@@ -1,0 +1,15 @@
+# Ignore embedded Git repositories
+ADSB_GPS/1928d043d6e4b19e0aef498c6055b74f/
+ADSB_GPS/IOTstack/
+ADSB_GPS/PiBuilder/
+ADSB_GPS/gqrx/
+ADSB_GPS/rtl-sdr/
+
+# Also good to include general exclusions for logging
+# (assuming your scripts output logs directly into the project folder,
+# or if you change log paths in the future)
+*.log
+*.txt
+*.txt.gz
+__pycache__/
+*.pyc
