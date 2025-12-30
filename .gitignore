@@ -13,3 +13,4 @@ ADSB_GPS/rtl-sdr/
 *.txt.gz
 __pycache__/
 *.pyc
+*.bb

@@ -1,0 +1,29 @@
+%% Assess Quality
+% Loads data, transforms, and makes quality assessment
+% Output is the clean, centered data
+[x, Fs] = assess_bb_quality('n320_540_5Msps_10s.bb', 'cf', 540e6, 'bw', 6e6);
+
+%% Perform SAF (self-ambiguity function)
+% For yagi (surveillance) this is clutter map
+
+% Grab a 20ms slice (too much data will be very slow)
+slice_len = round(0.020 * Fs); 
+x_slice = x(1:slice_len);
+
+% Run SAF
+[ambg, delays, doppler] = calculate_saf(x_slice, Fs, 0.2, 500);
+
+%% Perform coherence testing
+check_dual_channel_coherence('n320_dual_capture.bb', 6.144e6);
+
+%% Localize aircraft
+[map, dets] = compute_radar_caf_thresholded('n320_dual_capture.bb', 6.144e6);
+
+%% Add interpolation to increase sensitivty
+[map, dets] = compute_radar_caf_interpolated('n320_dual_capture.bb', 6.144e6);
+
+%% Localize aircraft outside of guard zone and plot ellipses on map
+tx_gps = [42.311389, -71.216111];
+rx_gps = [42.3007,-71.3490];
+%[caf_map, detections] = compute_radar_caf_localized(fname, Fs, tx_gps, rx_gps);
+[detections, hFig] = compute_radar_caf_localized_TbxFns('n320_dual_capture.bb', 6.144e6, tx_gps, rx_gps);
