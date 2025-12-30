@@ -38,9 +38,9 @@ function [caf_map, detections] = compute_radar_caf_thresholded(fname, Fs)
     
     if ~isempty(detections)
         plot(detections.Delay_us, detections.Doppler_Hz, 'ro', 'MarkerSize', 10, 'LineWidth', 2);
-        title(sprintf('Target Map: %d Potential Hits Detected!', height(detections)));
+        title(sprintf('Step 4B: Cross-Ambiguity Function with CFAR - %d Moving Targets Detected', height(detections)));
     else
-        title('Target Map: No Hits Above Threshold (Noise Only)');
+        title('Step 4B: Cross-Ambiguity Function with CFAR - No Moving Targets Above Threshold');
     end
     
     xlabel('Bistatic Delay (\mu s)'); ylabel('Doppler Shift (Hz)');

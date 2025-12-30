@@ -39,7 +39,7 @@ function [ambg, delays, doppler] = calculate_saf(x, Fs, max_delay_ms, max_dopple
     view(2); % Top-down view
     axis tight; colormap jet; colorbar;
     xlabel('Delay (\mu s)'); ylabel('Doppler (Hz)');
-    title('SAF: Time-Delay vs Doppler (dB)');
+    title('Step 4A: Self-Ambiguity Function - Clutter Characterization (Single Channel)');
 
     fprintf(['Yagi will eventually be your Surveillance antenna,\n...' ...
         'the SAF you run on it now is actually a Clutter Map. \n...' ...

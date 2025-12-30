@@ -92,9 +92,9 @@ if nargin < 5 || showPlots  % Default to true if not specified, otherwise check 
             [lat_el, lon_el] = calculate_bistatic_ellipse(tx_gps, rx_gps, detections.TotalPath_km(i));
             geoplot(ax, lat_el, lon_el, 'g--', 'LineWidth', 2, 'HandleVisibility', 'off');
         end
-        title(ax, sprintf('Detection Active: %d Targets', height(detections)));
+        title(ax, sprintf('Step 6: Geographic Localization - %d Aircraft Detected with Bistatic Ellipses', height(detections)));
     else
-        title(ax, 'Scanning... No Targets Above Threshold');
+        title(ax, 'Step 6: Geographic Localization - No Aircraft Above Threshold (Scanning...)');
     end
 else
     % If showPlots is false, skip figure rendering

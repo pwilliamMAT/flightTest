@@ -49,6 +49,6 @@ axis xy; colormap jet; hold on;
 if ~isempty(detections)
     plot(detections.Delay_us, detections.Doppler_Hz, 'rx', 'MarkerSize', 12, 'LineWidth', 2);
 end
-title('Interpolated Target Map (Sub-sample Precision)');
+title(sprintf('Step 5B: Spline Interpolation Demo - Sub-Sample Peak Refinement (%d targets)', height(detections)));
 disp(detections);
 end
