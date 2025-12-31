@@ -59,15 +59,20 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 - [`calculate_saf.m`](TestSetupTesting/calculate_saf.m) - Self-Ambiguity Function (clutter characterization)
 
 #### Detection Engines
-- [`compute_radar_caf.m`](TestSetupTesting/compute_radar_caf.m) - Standard Cross-Ambiguity Function (time-domain)
-- [`compute_radar_caf_nitro.m`](TestSetupTesting/compute_radar_caf_nitro.m) - FFT-accelerated engine (5-10× faster)
+- [`compute_radar_caf.m`](TestSetupTesting/compute_radar_caf.m) - **Standard** Cross-Ambiguity Function (time-domain xcorr)
+- [`compute_radar_caf_nitro.m`](TestSetupTesting/compute_radar_caf_nitro.m) - **Nitro** FFT-accelerated engine (5-10× faster)
 - [`compute_radar_caf_thresholded.m`](TestSetupTesting/compute_radar_caf_thresholded.m) - CFAR detection with thresholding
 - [`compute_radar_caf_interpolated.m`](TestSetupTesting/compute_radar_caf_interpolated.m) - Spline interpolation for sub-sample accuracy
 - [`compute_radar_caf_localized_TbxFns.m`](TestSetupTesting/compute_radar_caf_localized_TbxFns.m) - **Production localization** (geographic coordinates + bistatic ellipses)
 
+**Engine Comparison:**
+- **Standard Engine:** Uses time-domain `xcorr()` for cross-correlation. More memory efficient, easier to understand, but slower.
+- **Nitro Engine:** Uses frequency-domain correlation via FFT/IFFT. Exploits FFT speed advantages for large datasets. Produces numerically equivalent results but 5-10× faster. Recommended for production batch processing.
+- [`BenchmarkEngine.m`](TestSetupTesting/BenchmarkEngine.m) validates both engines produce identical detections and measures speedup.
+
 #### Batch Processing & Utilities
-- [`IQDataProcessing.m`](TestSetupTesting/IQDataProcessing.m) - Production batch processor for long recordings
-- [`BenchmarkEngine.m`](TestSetupTesting/BenchmarkEngine.m) - Performance comparison (standard vs Nitro)
+- [`IQDataProcessing.m`](TestSetupTesting/IQDataProcessing.m) - Production batch processor (uses Nitro engine for speed)
+- [`BenchmarkEngine.m`](TestSetupTesting/BenchmarkEngine.m) - Performance comparison tool (validates standard vs Nitro equivalence)
 - [`calculate_bistatic_ellipse.m`](TestSetupTesting/calculate_bistatic_ellipse.m) - Bistatic geometry calculations
 - [`VisualizeCoverage_Estimate.m`](TestSetupTesting/VisualizeCoverage_Estimate.m) - Geographic coverage visualization
 - [`dualChannelQuickCheck.m`](TestSetupTesting/dualChannelQuickCheck.m) - Quick coherence verification
@@ -221,11 +226,14 @@ sudo ./start_adsb_gps_loggers.sh
 
 - **Bistatic Geometry:** Cross-Ambiguity Function with dual-channel correlation
 - **Clutter Suppression:** Reference channel projection subtraction
-- **Decimation:** 10× sample rate reduction for processing speed
-- **CFAR Detection:** Cell-Averaging Constant False Alarm Rate (2D)
-- **Spline Interpolation:** Sub-sample peak refinement for accuracy
-- **FFT Acceleration:** Frequency-domain correlation (Nitro engine)
-- **Guard Zones:** Site-specific clutter rejection based on delay/Doppler
+- **Decimation:** 10× sample rate reduction for processing speed (6.144 MHz → 614.4 kHz)
+- **CFAR Detection:** Cell-Averaging Constant False Alarm Rate (2D) with guard bands
+- **Spline Interpolation:** Sub-sample peak refinement for improved localization accuracy
+- **FFT Acceleration (Nitro):** Frequency-domain correlation using FFT/IFFT instead of time-domain xcorr
+  - Leverages FFT computational efficiency: O(N log N) vs O(N²)
+  - Equivalent to time-domain results but 5-10× faster
+  - Essential for real-time or large dataset processing
+- **Guard Zones:** Site-specific clutter rejection based on delay/Doppler thresholds
 - **Geographic Mapping:** Bistatic ellipse plotting with Mapping Toolbox
 
 ---
