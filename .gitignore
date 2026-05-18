@@ -14,3 +14,11 @@ ADSB_GPS/rtl-sdr/
 __pycache__/
 *.pyc
 *.bb
+\n# Ignore local raw data files
+n320_*
+\n# Ignore local raw data files\nn320_*
+\n# Ignore MATLAB data files\n*.mat
+\n# Ignore baseband IQ recordings from the repo's examples\n*.bb
+\n# Ignore compressed log files\n*.txt.gz
+\n# Ignore baseband IQ recordings from the repo's examples\n*.bb
+\n# Ignore compressed log files\n*.txt.gz
