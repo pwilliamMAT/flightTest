@@ -1,0 +1,22 @@
+try
+  % Check function parses without syntax error
+  fn = functions(@plotBistaticEllipses3D);
+  fprintf('Function file found: %s\n', fn.file);
+
+  % Exercise the geometry math only (no figure)
+  txLLA = [42.310278, -71.236667, 431.9024];
+  rxLLA = [42.2999333, -71.349333,  42];
+  detTable = [7075, -42.0, 226.5, 1, 0.450, 1; 9294, -51.0, 225.8, 1, 1.150, 2; 11692, -63.0, 225.2, 1, 2.150, 3];
+  
+  try
+    plotBistaticEllipses3D(txLLA, rxLLA, detTable, 'Use2DFallback', true, 'NEllipsePoints', 36);
+  catch eFig
+    fprintf('Figure output attempted: %s\n', eFig.message);
+  end
+catch eSyn
+  fprintf('SYNTAX/LOAD ERROR: %s\n', eSyn.message);
+  for ii=1:numel(eSyn.stack)
+    fprintf('  at %s line %d\n', eSyn.stack(ii).name, eSyn.stack(ii).line);
+  end
+end
+
