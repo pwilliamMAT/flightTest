@@ -6,7 +6,7 @@ function adsb_bistatic = adsbToBistatic(adsb_tracks, txLLA, rxLLA, fc)
 %  The passive bistatic radar measures two scalars per detection:
 %
 %    R_excess  =  R_tx + R_rx  −  L       [m]   (from CAF range axis)
-%    f_D       =  (2·fc/c) · dR_excess/dt [Hz]  (from CAF Doppler axis)
+%    f_D       = -(2·fc/c) · dR_excess/dt [Hz]  (passive-radar CAF sign)
 %
 %  where R_tx is the slant range from the HDTV transmitter (Tx) to the
 %  target, R_rx is the slant range from the surveillance receiver (Rx) to
@@ -17,7 +17,7 @@ function adsb_bistatic = adsbToBistatic(adsb_tracks, txLLA, rxLLA, fc)
 %  R_excess directly from geometry.  The bistatic Doppler is then derived
 %  by numerically differentiating the R_excess time series:
 %
-%    f_D ≈ (2·fc/c) · ΔR_excess / Δt
+%    f_D ≈ -(2·fc/c) · ΔR_excess / Δt
 %
 %  This avoids any ambiguity in the bistatic Doppler formula (monostatic
 %  factor of 2 vs. bistatic (cos β_tx + cos β_rx)) and is exactly
@@ -56,7 +56,7 @@ function adsb_bistatic = adsbToBistatic(adsb_tracks, txLLA, rxLLA, fc)
 %     .callsign      char   — callsign         (carried through)
 %     .t_utc         [M×1]  — UTC epoch seconds at each valid fix
 %     .R_excess_m    [M×1]  — bistatic range excess [m]
-%     .f_D_hz        [M×1]  — bistatic Doppler [Hz]  (positive = receding)
+%     .f_D_hz        [M×1]  — bistatic Doppler [Hz]  (positive = approaching)
 %     .lat_deg       [M×1]  — WGS-84 latitude  (carried through)
 %     .lon_deg       [M×1]  — WGS-84 longitude (carried through)
 %     .alt_m         [M×1]  — altitude MSL [m]  (carried through)
@@ -208,7 +208,7 @@ for k = 1 : N_aircraft
     N_valid = numel(t_pos);
 
     % ── Bistatic Doppler via numerical differentiation of R_excess ────────
-    %  f_D = α · dR_excess/dt   where  α = 2·fc/c
+    %  f_D = -α · dR_excess/dt   where  α = 2·fc/c
     %
     %  Numerical scheme: central differences at interior points, forward/
     %  backward differences at the endpoints.  This is equivalent to
@@ -218,8 +218,8 @@ for k = 1 : N_aircraft
     %  At this rate, a 300 m/s aircraft changes R_excess by up to 600 m/s,
     %  producing Doppler rates well within the stencil's accuracy envelope.
     %
-    %  Sign convention: positive Doppler → R_excess increasing → target receding.
-    %  This matches the Doppler axis in the RDM and the tracker's α·Ṙ convention.
+    %  Sign convention: positive Doppler → R_excess decreasing → target approaching.
+    %  This matches initMeasurementSpaceKF, where f_D = -α · Rdot.
     dRdt = zeros(N_valid, 1);
     if N_valid >= 2
         dt_vec = diff(t_pos);   % [N_valid-1 × 1]  seconds between fixes
@@ -243,7 +243,7 @@ for k = 1 : N_aircraft
                 (t_pos(3:end)      - t_pos(1:end-2));
         end
     end
-    f_D_hz = alpha * dRdt;   % [N_valid×1]  Hz
+    f_D_hz = -alpha * dRdt;   % [N_valid×1]  Hz
 
     % ── Store results ─────────────────────────────────────────────────────
     adsb_bistatic(k).t_utc      = t_pos;

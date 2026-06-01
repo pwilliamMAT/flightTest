@@ -38,6 +38,9 @@
 %           assessTruthVsDetections, plotTruthComparison.
 
 clear; close all;
+orig_fig_vis = get(groot, 'DefaultFigureVisible');
+cleanup_fig_vis = onCleanup(@() set(groot, 'DefaultFigureVisible', orig_fig_vis)); %#ok<NASGU>
+set(groot, 'DefaultFigureVisible', 'off');
 fprintf('══════════════════════════════════════════════════════════════\n');
 fprintf('  ADS-B Truth Pipeline  —  Synthetic Test\n');
 fprintf('══════════════════════════════════════════════════════════════\n\n');
@@ -200,12 +203,13 @@ catch ME
 end
 
 fprintf('[S2] loadADSBTruth\n');
-adsb_tracks = loadADSBTruth({adsb_file});
+adsb_tracks = loadADSBTruth({adsb_file}, 'Verbose', false);
 
 if isempty(adsb_tracks)
     error('test_adsbTruthPipeline:noTracks', ...
         'loadADSBTruth returned 0 aircraft. Check the file format printed above.');
 end
+assert(numel(adsb_tracks) == 2, 'Expected two synthetic aircraft tracks.');
 
 fprintf('  Loaded %d aircraft:\n', numel(adsb_tracks));
 for k = 1 : numel(adsb_tracks)
@@ -232,6 +236,20 @@ t_epoch = getRadarEpoch(fake_part1_path, ...
 % =========================================================================
 fprintf('[§4] adsbToBistatic\n');
 adsb_bistatic = adsbToBistatic(adsb_tracks, txLLA, rxLLA, fc);
+assert(numel(adsb_bistatic) == numel(adsb_tracks));
+
+for k = 1 : numel(adsb_bistatic)
+    ac = adsb_bistatic(k);
+    if numel(ac.t_utc) < 3
+        continue
+    end
+    dRdt_ctr = (ac.R_excess_m(3:end) - ac.R_excess_m(1:end-2)) ./ ...
+               (ac.t_utc(3:end)      - ac.t_utc(1:end-2));
+    fd_ctr   = ac.f_D_hz(2:end-1);
+    valid_fd = abs(dRdt_ctr) > 1e-6 & abs(fd_ctr) > 1e-6;
+    assert(all(sign(fd_ctr(valid_fd)) == -sign(dRdt_ctr(valid_fd))), ...
+        'ADS-B bistatic Doppler sign should oppose dR/dt.');
+end
 
 % =========================================================================
 %  §5  alignTruthToRadar
@@ -279,24 +297,59 @@ for q = 1 : numel(t_abs_query)
 end
 fprintf('  %d fake detections generated (%d query points × aircraft).\n\n', ...
     numel(fake_dets), numel(t_abs_query));
+assert(~isempty(fake_dets), 'Synthetic detections should not be empty.');
+
+% =========================================================================
+%  §6b  Synthesise tracker snapshots and convert to per-track histories
+% =========================================================================
+fprintf('[§6b] Synthesising tracker snapshots...\n');
+
+valid_trk = ~isnan(adsb_aligned(1).R_excess_m) & ~isnan(adsb_aligned(1).f_D_hz);
+t_trk     = adsb_aligned(1).t_abs_s(valid_trk);
+R_trk     = adsb_aligned(1).R_excess_m(valid_trk);
+f_trk     = adsb_aligned(1).f_D_hz(valid_trk);
+trk_snapshots = repmat(struct('time', 0, 'tracks', struct([]), 'n_confirmed', 0), ...
+    1, numel(t_trk));
+
+for ii = 1 : numel(t_trk)
+    trk_struct = struct( ...
+        'TrackID',         101, ...
+        'State',           [R_trk(ii) + 0.2 * range_cell_m * sin(ii / 2); ...
+                            -(f_trk(ii) + 0.2 * doppler_bin_hz * cos(ii / 3)) / alpha], ...
+        'StateCovariance', diag([range_cell_m^2, (doppler_bin_hz / alpha)^2]));
+    trk_snapshots(ii).time        = t_trk(ii);
+    trk_snapshots(ii).tracks      = trk_struct;
+    trk_snapshots(ii).n_confirmed = 1;
+end
+
+track_histories = helperTracksLogToHistories(trk_snapshots, fc);
+assert(numel(track_histories) == 1, 'Expected one synthetic track history.');
+assert(all(isfinite(track_histories(1).t_abs_s)));
+assert(all(isfinite(track_histories(1).R_excess_m)));
+assert(all(isfinite(track_histories(1).f_D_hz)));
+assert(all(diff(track_histories(1).t_abs_s) > 0));
 
 % =========================================================================
 %  §7  assessTruthVsDetections
 % =========================================================================
 fprintf('[§7] assessTruthVsDetections\n');
 metrics = assessTruthVsDetections( ...
-    fake_dets, [], adsb_aligned, ...
+    fake_dets, track_histories, adsb_aligned, ...
     'RangeCellM',      range_cell_m,   ...
     'DopplerBinHz',    doppler_bin_hz, ...
     'GateRangeCells',  3,              ...
     'GateDopplerBins', 3,              ...
     'Verbose',         true);
+assert(metrics.n_tp > 0, 'Synthetic truth comparison should yield true positives.');
+assert(~isempty(metrics.trk_table), 'Track metrics table should not be empty.');
+assert(any(isfinite(metrics.trk_table.range_rmse_m)), ...
+    'At least one track should produce finite range metrics.');
 
 % =========================================================================
 %  §8  plotTruthComparison
 % =========================================================================
 fprintf('[§8] plotTruthComparison\n');
-plotTruthComparison(adsb_aligned, [], metrics, ...
+plotTruthComparison(adsb_aligned, track_histories, metrics, ...
     'FigureTitle', 'Synthetic Test — Newton MA geometry');
 
 % =========================================================================

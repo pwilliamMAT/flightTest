@@ -26,11 +26,10 @@ function plotTruthComparison(adsb_aligned, tracks_log, metrics, varargin)
 %   adsb_aligned   Struct array from alignTruthToRadar.
 %                  Fields used: .hex, .callsign, .t_abs_s, .R_excess_m.
 %
-%   tracks_log     Struct array of KF tracks from trackTargets.
-%                  Fields used: .t_abs_s, .State (:,1 = R_excess [m]),
-%                  .TrackID (optional; used to index colour palette),
-%                  .StateCovDiag (optional; [P×4] row = diag(P_k), used
-%                  for ±1σ shading on range).
+%   tracks_log     Struct array of KF track histories.
+%                  Preferred fields: .t_abs_s, .R_excess_m, .TrackID,
+%                  .StateCovDiag (optional; row = diag(P_k)).
+%                  Legacy fallback: .t_abs_s with .State(:,1) = R_excess [m].
 %                  Pass [] to show truth-only (no track overlay).
 %
 %   metrics        Struct from assessTruthVsDetections.
@@ -162,29 +161,21 @@ if has_tracks
     N_trk = numel(tracks_log);
     for ti = 1 : N_trk
         trk = tracks_log(ti);
-        if ~isfield(trk, 'State') || isempty(trk.t_abs_s)
+        [tid, t_trk, R_trk_km, sigma_R_km] = extractTrackPlotSeries(trk, ti);
+        if isempty(t_trk) || isempty(R_trk_km)
             continue
-        end
-        if isfield(trk, 'TrackID')
-            tid = trk.TrackID;
-        else
-            tid = ti;
         end
         clr = TRK_COLORS(mod(tid - 1, N_TRK_CLR) + 1, :);
 
-        t_trk = trk.t_abs_s(:);
-        R_trk = trk.State(:, 1) / 1e3;   % m → km
-
         % ±1σ shading from state covariance diagonal (optional)
-        if isfield(trk, 'StateCovDiag') && ~isempty(trk.StateCovDiag)
-            sigma_R = sqrt(max(trk.StateCovDiag(:, 1), 0)) / 1e3;
+        if ~isempty(sigma_R_km)
             fill(ax_range, [t_trk; flipud(t_trk)], ...
-                [R_trk + sigma_R; flipud(R_trk - sigma_R)], ...
+                [R_trk_km + sigma_R_km; flipud(R_trk_km - sigma_R_km)], ...
                 clr, 'FaceAlpha', 0.20, 'EdgeColor', 'none', ...
                 'HandleVisibility', 'off');
         end
 
-        h = plot(ax_range, t_trk, R_trk, '-', 'Color', clr, 'LineWidth', 2.0);
+        h = plot(ax_range, t_trk, R_trk_km, '-', 'Color', clr, 'LineWidth', 2.0);
         legend_handles(end+1) = h; %#ok<AGROW>
         legend_labels{end+1}  = sprintf('Track %d', tid); %#ok<AGROW>
     end
@@ -289,3 +280,34 @@ end
 fprintf('[plotTruthComparison] Figure ready.\n\n');
 
 end  % ════════════════════ end plotTruthComparison ════════════════════
+
+function [tid, t_trk, R_trk_km, sigma_R_km] = extractTrackPlotSeries(trk, fallback_tid)
+tid        = fallback_tid;
+t_trk      = zeros(0, 1);
+R_trk_km   = zeros(0, 1);
+sigma_R_km = zeros(0, 1);
+
+if isfield(trk, 'TrackID') && ~isempty(trk.TrackID)
+    tid = trk.TrackID;
+end
+
+if ~isfield(trk, 't_abs_s') || isempty(trk.t_abs_s)
+    return
+end
+t_trk = trk.t_abs_s(:);
+
+if isfield(trk, 'R_excess_m') && ~isempty(trk.R_excess_m)
+    R_trk_km = trk.R_excess_m(:) / 1e3;
+elseif isfield(trk, 'State') && ~isempty(trk.State) && size(trk.State, 2) >= 1
+    R_trk_km = trk.State(:, 1) / 1e3;
+else
+    t_trk = zeros(0, 1);
+    return
+end
+
+if isfield(trk, 'StateCovDiag') && ~isempty(trk.StateCovDiag)
+    sigma_R_km = sqrt(max(trk.StateCovDiag(:, 1), 0)) / 1e3;
+elseif isfield(trk, 'StateCovariance') && ~isempty(trk.StateCovariance)
+    sigma_R_km = sqrt(max(diag(trk.StateCovariance), 0)) / 1e3;
+end
+end

@@ -105,9 +105,10 @@ config.rxLLA = [42.2999333, -71.349333,  15.0];   % [lat °N, lon °W(−), alt 
 %   Measured from BasebandFileWriter header DateTime stamps:
 %     • File 1→2 gap: ~5.96 s  (first-capture hardware-init overhead)
 %     • Files 2→10:   ~2.7–3.1 s  (steady-state: pause(repspace) + writer overhead)
-%   Using nominal 3.0 s for KF propagation (steady-state average).
-%   For production, read per-file DateTime from headers and compute exact Δt.
-config.inter_part_gap_s = 3.0;  % [s] nominal steady-state gap (measured ~2.85 s avg)
+%   Using nominal 3.0 s as the fallback idle gap between file captures.
+%   helperGetPartStartOffsets reads per-file metadata when available and
+%   falls back to this steady-state average only when headers are missing.
+config.inter_part_gap_s = 3.0;  % [s] fallback idle gap when per-file metadata is unavailable
 
 %% 2. Multi-Part Processing
 % Run the full ECA-C + bounded-NCI + CFAR pipeline on each consecutive
@@ -127,6 +128,15 @@ data_parts = { ...
 };
 N_parts    = numel(data_parts);
 part_dur_s = config.numSamples / config.fs;   % 1.0 s per part
+[part_start_offsets_s, ~] = helperGetPartStartOffsets( ...
+    data_parts, part_dur_s, config.inter_part_gap_s, 'Verbose', config.verbose);
+part_end_offsets_s = part_start_offsets_s + part_dur_s;
+if N_parts > 1
+    part_gap_report_s = median(diff(part_start_offsets_s) - part_dur_s);
+else
+    part_gap_report_s = config.inter_part_gap_s;
+end
+bistatic_consts = helperDeriveBistaticConstants(config);
 
 % Pre-allocate per-part result storage.
 part_res = struct( ...
@@ -148,7 +158,7 @@ for i_part = 1 : N_parts
     % including the inter-part wall-clock gap so the tracker's prediction
     % step uses the true elapsed time between consecutive file parts.
     if ~isempty(dets)
-        dets(:, 5) = dets(:, 5) + (i_part - 1) * (part_dur_s + config.inter_part_gap_s);
+        dets(:, 5) = dets(:, 5) + part_start_offsets_s(i_part);
     end
     part_res(i_part).detections  = dets;
     part_res(i_part).cfar_nf_db  = nf_db;
@@ -238,9 +248,8 @@ fprintf('%s\n\n', repmat('-', 1, 64));
 if N_parts < 3 || isempty(all_track_dets)
     fprintf('[E10/E11/E12] Insufficient parts or no detections — skipping.\n\n');
 else
-    c_chk        = physconst('LightSpeed');
-    range_bin_chk = c_chk / (2 * config.fs);                              % 30 m
-    dopp_bin_chk  = 1 / (config.N_slow_cpi * config.cpi_duration_s);      % 10 Hz
+    range_bin_chk = bistatic_consts.range_cell_m;
+    dopp_bin_chk  = bistatic_consts.doppler_bin_hz;
 
     tol_range_e10 = 2 * range_bin_chk;    % ±2 bins ≈ ±60 m  (original E10)
     tol_dopp_e10  = 2 * dopp_bin_chk;     % ±2 bins ≈ ±20 Hz (original E10)
@@ -271,9 +280,9 @@ else
         size(dets_p1,1), size(dets_p2,1), size(dets_p3,1));
     if isempty(e10_matches)
         fprintf('  E10: FAIL — 0 detections within tolerance across all 3 parts.\n');
-        expected_range_shift = 200 * config.inter_part_gap_s;   % rough upper bound
+        expected_range_shift = 200 * part_gap_report_s;   % rough upper bound
         fprintf('  (EXPECTED for moving targets: at 200 m/s over %.0f s, range shifts\n', ...
-            config.inter_part_gap_s);
+            part_gap_report_s);
         fprintf('   ~%.0f m ≈ %.0f range bins — far outside ±2-bin window.)\n', ...
             expected_range_shift, expected_range_shift / range_bin_chk);
         fprintf('  E11: N/A — no E10 match to evaluate.\n');
@@ -317,7 +326,7 @@ else
 
     fprintf('=== E12 (kinematic consistency — moving targets) ===\n');
     fprintf('  Tolerance: Doppler ±%.0f Hz across %.0f s inter-part gap\n', ...
-        tol_dopp_e12, config.inter_part_gap_s);
+        tol_dopp_e12, part_gap_report_s);
     if isempty(e12_matches)
         fprintf('  E12: FAIL — no cross-part Doppler-consistent detections found.\n');
     else
@@ -598,7 +607,7 @@ CLR_NAMES   = {'red','blue','green','magenta','orange','cyan', ...
                'brown','lime','pink','purple','yellow','lavender'};
 
 CLIM_TRK  = [-10, 20];   % [dB] whitened RDM display window
-alpha_trk = 2 * config.fc / physconst('LightSpeed');   % Hz/(m/s)
+alpha_trk = bistatic_consts.alpha;
 
 % ── 7.4a  Pre-compute per-tracker-step data for interactive viewer ─────────
 % One struct entry per tracks_log step: t_abs_s, which part, whitened RDM,
@@ -611,20 +620,19 @@ step_data = struct( ...
     'range_axis',  cell(N_steps, 1), ...
     'doppler_axis', cell(N_steps, 1), ...
     'dets',        cell(N_steps, 1), ...
-    'conf_trks',   cell(N_steps, 1));
+    'conf_trks',   cell(N_steps, 1), ...
+    'truth_data',  cell(N_steps, 1));
 
 for s = 1 : N_steps
     t_s = tracks_log(s).time;
-    i_p = 0;
-    for ip = 1 : N_parts
-        t_lo = (ip - 1) * (part_dur_s + config.inter_part_gap_s);
-        t_hi = t_lo + part_dur_s;
-        if t_s >= t_lo && t_s < t_hi
-            i_p = ip;
-            break;
+    i_p = find((t_s >= part_start_offsets_s) & (t_s < part_end_offsets_s), 1, 'last');
+    if isempty(i_p)
+        if t_s >= part_end_offsets_s(end)
+            i_p = N_parts;
+        else
+            i_p = 1;
         end
     end
-    if i_p == 0, i_p = 1; end   % fallback for boundary edge cases
 
     rdm_w  = part_res(i_p).rdm_after - median(part_res(i_p).rdm_after, 2);
     mask_t = abs(all_track_dets(:, 5) - t_s) < 1e-9;
@@ -641,8 +649,8 @@ end
 
 % ── 7.4  Part-level console quality table ─────────────────────────────────
 for i_part = 1 : N_parts
-    t_start = (i_part - 1) * (part_dur_s + config.inter_part_gap_s);
-    t_end   =  t_start + part_dur_s;
+    t_start = part_start_offsets_s(i_part);
+    t_end   = part_end_offsets_s(i_part);
 
     step_mask = ([tracks_log.time] >= t_start) & ([tracks_log.time] < t_end);
     if any(step_mask)
@@ -904,12 +912,13 @@ else
         if exist('all_track_dets', 'var') && ~isempty(all_track_dets)
             t_abs_query = sort(unique(all_track_dets(:, 5)));
         else
-            % Fallback: reconstruct from part durations and inter-part gaps
+            % Fallback: use the nominal block cadence for each recording part.
             t_abs_query = [];
+            block_dt_s = config.max_nci_looks * bistatic_consts.chunk_dur_s;
             for ip8 = 1 : N_parts
-                t_start8 = (ip8 - 1) * (part_dur_s + config.inter_part_gap_s);
+                t_start8 = part_start_offsets_s(ip8);
                 t_abs_query = [t_abs_query; ...
-                    (t_start8 : 1/config.fs : t_start8 + part_dur_s - 1/config.fs).']; %#ok<AGROW>
+                    (t_start8 + block_dt_s/2 : block_dt_s : t_start8 + part_dur_s - block_dt_s/2).']; %#ok<AGROW>
             end
         end
 
@@ -940,18 +949,15 @@ else
         end
 
         if exist('tracks_log', 'var') && ~isempty(tracks_log)
-            trk_log_for_metrics = tracks_log;
+            trk_log_for_metrics = helperTracksLogToHistories(tracks_log, config.fc);
         else
             trk_log_for_metrics = [];
         end
 
-        range_cell_m  = physconst('LightSpeed') / (2 * config.fs);
-        doppler_bin_hz = 1 / (config.N_slow * (config.N_fast / config.fs));
-
         truth_metrics = assessTruthVsDetections( ...
             det_struct, trk_log_for_metrics, adsb_aligned, ...
-            'RangeCellM',      range_cell_m,  ...
-            'DopplerBinHz',    doppler_bin_hz, ...
+            'RangeCellM',      bistatic_consts.range_cell_m, ...
+            'DopplerBinHz',    bistatic_consts.doppler_bin_hz, ...
             'GateRangeCells',  3,              ...
             'GateDopplerBins', 3,              ...
             'Verbose',         config.verbose);

@@ -43,6 +43,8 @@ for k = 1:2:numel(varargin)
     if isfield(args,key), args.(key) = val; else, error("Unknown argument '%s'.", key); end
 end
 
+assert(args.dur > 0, 'Duration ''dur'' must be positive.');
+
 dtg = string(datetime('now','Format','yyyy-MM-dd_HH-mm-ss.SSS'));
 
 fprintf('date time group (DTG) for this capture: %s\n', dtg);
@@ -97,26 +99,28 @@ meta = struct('Label','Passive_Radar_Dual_Channel', ...
               'Antenna2', bbrx.Antennas{2}, ...
               'LOOffset', args.lo, ...
               'DateTime', dtg, ...
+              'RecordingUTC', posixtime(datetime('now', 'TimeZone', 'UTC')), ...
               'Repetition', 0); % Repetition will be updated in loop
 
 
 % -------- Capture Loop --------
-seg = seconds(1);
-nSeg = ceil(args.dur / seconds(seg));
+segment_durations_s = helperCaptureSegments(args.dur);
 
 for rr = 1:args.reps
     fprintf('--- Capture Round %d of %d ---\n', rr, args.reps);
     meta.DateTime = string(datetime('now','Format','yyyy-MM-dd_HH-mm-ss.SSS'));
+    meta.RecordingUTC = posixtime(datetime('now', 'TimeZone', 'UTC'));
     meta.Repetition = rr;
     bbw = comm.BasebandFileWriter(args.file + "_" + string(rr), ...
             'SampleRate',      bbrx.SampleRate, ...
             'CenterFrequency', args.cf, ...
             'Metadata',        meta);
 
-    for i = 1:nSeg
+    for i = 1:numel(segment_durations_s)
         if i == 1, fprintf('Collection Started...\n'); end
 
         % Capture returns [N x 2] complex matrix when 2 antennas are set
+        seg = seconds(segment_durations_s(i));
         data = capture(bbrx, seg); % , 'Background',true -> background is actually heavier unless running long capture
         %while isCapturing(bbrx) <- uncomment when background=true
         %     pause(0.3);
@@ -126,9 +130,9 @@ for rr = 1:args.reps
         % Write dual-channel data directly to file
         bbw(data);
     end
+    release(bbw);
     pause(args.repspace); % Short pause between repetitions
 end
 
-release(bbw);
 fprintf('Done: %s\n', args.file);
 end

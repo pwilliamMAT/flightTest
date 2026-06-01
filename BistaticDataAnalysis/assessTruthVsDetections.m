@@ -38,10 +38,10 @@ function metrics = assessTruthVsDetections(detections, tracks_log, adsb_aligned,
 %                  .f_D_hz [scalar].  Each element is one detection from
 %                  one CPI.  Pass [] to skip detection-level analysis.
 %
-%   tracks_log     Struct array of KF tracks from trackTargets.  Required
-%                  fields: .t_abs_s [P×1], .State [P×4] where
-%                  State(p,1) = R_excess_m, State(p,3) = f_D_hz (or
-%                  dR/dt in m/s — see 'StateIsVelocity' parameter).
+%   tracks_log     Struct array of KF track histories.
+%                  Preferred fields: .t_abs_s [P×1], .R_excess_m [P×1],
+%                  .f_D_hz [P×1], .TrackID, .StateCovDiag (optional).
+%                  Legacy fallback fields: .t_abs_s with .State.
 %                  Pass [] to skip track-level analysis.
 %
 %   adsb_aligned   Struct array from alignTruthToRadar.  Required fields:
@@ -52,8 +52,10 @@ function metrics = assessTruthVsDetections(detections, tracks_log, adsb_aligned,
 %   'DopplerBinHz'     Doppler bin  [Hz].     Default: 10.
 %   'GateRangeCells'   Range gate width in cells.   Default: 3.
 %   'GateDopplerBins'  Doppler gate width in bins.  Default: 3.
+%   'TimeGateS'        Detection-to-truth time gate [s]. Default: derived
+%                      from the aligned truth grid spacing.
 %   'StateIsVelocity'  Logical.  If true, tracks_log.State(:,3) is
-%                      range-rate [m/s]; multiply by α=2fc/c to get f_D.
+%                      range-rate [m/s]; convert using f_D = -α·Rdot.
 %                      Default: false (State(:,3) already in Hz).
 %   'Alpha'            Doppler coupling factor α = 2fc/c [Hz/(m/s)].
 %                      Only used when StateIsVelocity=true.  Default: 4.0.
@@ -94,6 +96,7 @@ addParameter(p, 'RangeCellM',      30,    @(x) isnumeric(x) && x > 0);
 addParameter(p, 'DopplerBinHz',    10,    @(x) isnumeric(x) && x > 0);
 addParameter(p, 'GateRangeCells',  3,     @(x) isnumeric(x) && x > 0);
 addParameter(p, 'GateDopplerBins', 3,     @(x) isnumeric(x) && x > 0);
+addParameter(p, 'TimeGateS',       [],    @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x > 0));
 addParameter(p, 'StateIsVelocity', false, @islogical);
 addParameter(p, 'Alpha',           4.0,   @(x) isnumeric(x) && x > 0);
 addParameter(p, 'Verbose',         true,  @islogical);
@@ -113,7 +116,15 @@ if N_ac == 0
     return
 end
 
+if isempty(opts.TimeGateS)
+    time_gate_s = estimateTruthTimeGate(adsb_aligned);
+else
+    time_gate_s = opts.TimeGateS;
+end
+metrics.time_gate_s = time_gate_s;
+
 fprintf('[assessTruthVsDetections] Gate: |ΔR| < %.0f m,  |Δf| < %.1f Hz\n', gate_R, gate_f);
+fprintf('[assessTruthVsDetections] Time gate: |Δt| < %.3f s\n', time_gate_s);
 fprintf('[assessTruthVsDetections] %d ADS-B aircraft available as truth.\n', N_ac);
 
 % =========================================================================
@@ -163,6 +174,7 @@ if ~isempty(detections)
 
         best_dR  = Inf;
         best_k   = 0;
+        best_R_k = NaN;
         best_f_k = NaN;
 
         for k = 1 : N_ac
@@ -170,22 +182,29 @@ if ~isempty(detections)
             if isempty(ac.t_abs_s) || isempty(ac.R_excess_m)
                 continue
             end
+            valid_truth = ~isnan(ac.R_excess_m) & ~isnan(ac.f_D_hz);
+            if ~any(valid_truth)
+                continue
+            end
+
+            t_truth = ac.t_abs_s(valid_truth);
+            R_truth = ac.R_excess_m(valid_truth);
+            f_truth = ac.f_D_hz(valid_truth);
+
             % Nearest truth sample to this detection's time
-            [dt_min, idx] = min(abs(ac.t_abs_s - t_d));
-            if dt_min > opts.DopplerBinHz   % looser time gate: 1 Doppler bin's worth of CPI time
+            [dt_min, idx] = min(abs(t_truth - t_d));
+            if dt_min > time_gate_s
                 continue
             end
-            R_k = ac.R_excess_m(idx);
-            f_k = ac.f_D_hz(idx);
-            if isnan(R_k) || isnan(f_k)
-                continue
-            end
+            R_k = R_truth(idx);
+            f_k = f_truth(idx);
             dR = abs(R_d - R_k);
             df = abs(f_d - f_k);
             if dR < gate_R && df < gate_f
                 if dR < best_dR
                     best_dR  = dR;
                     best_k   = k;
+                    best_R_k = R_k;
                     best_f_k = f_k;
                 end
             end
@@ -195,8 +214,7 @@ if ~isempty(detections)
             is_tp(d)       = true;
             is_fa(d)       = false;
             matched_hex{d} = adsb_aligned(best_k).hex;
-            matched_dR(d)  = det_R(d) - adsb_aligned(best_k).R_excess_m( ...
-                                  findNearest(adsb_aligned(best_k).t_abs_s, t_d));
+            matched_dR(d)  = det_R(d) - best_R_k;
             matched_df(d)  = det_f(d) - best_f_k;
             ac_tp(best_k)  = ac_tp(best_k) + 1;
         end
@@ -209,14 +227,15 @@ if ~isempty(detections)
             continue
         end
         % Unique CPI times where this aircraft has non-NaN truth
-        cpi_visible = ac.t_abs_s(~isnan(ac.R_excess_m));
+        valid_truth = ~isnan(ac.R_excess_m) & ~isnan(ac.f_D_hz);
+        cpi_visible = ac.t_abs_s(valid_truth);
         if isempty(cpi_visible)
             continue
         end
         % Unique CPI times that had a TP match for this aircraft
         tp_times = det_t(strcmp(matched_hex, ac.hex));
         % Miss = visible CPIs with no associated TP (within 1 CPI time step)
-        min_dt_cpi = median(diff(ac.t_abs_s));   % typical CPI interval
+        min_dt_cpi = estimateTruthTimeGate(ac);   % typical CPI interval
         if isnan(min_dt_cpi) || min_dt_cpi == 0
             min_dt_cpi = 0.5;   % fallback 0.5 s
         end
@@ -295,27 +314,13 @@ if ~isempty(tracks_log) && N_ac > 0
 
     for ti = 1 : N_trk
         trk = tracks_log(ti);
+        trk_series = extractTrackSeries(trk, ti, opts);
+        trk_ids(ti) = trk_series.TrackID;
+        t_trk = trk_series.t_abs_s;
+        R_trk = trk_series.R_excess_m;
+        f_trk = trk_series.f_D_hz;
 
-        % Support both track struct layouts used by trackTargets
-        if isfield(trk, 'TrackID')
-            trk_ids(ti) = trk.TrackID;
-        else
-            trk_ids(ti) = ti;
-        end
-
-        if isfield(trk, 'State')
-            t_trk = trk.t_abs_s(:);
-            R_trk = trk.State(:, 1);
-            if opts.StateIsVelocity
-                f_trk = opts.Alpha * trk.State(:, 3);   % vel [m/s] → Hz
-            else
-                f_trk = trk.State(:, 3);                % already Hz
-            end
-        else
-            continue   % Unexpected format — skip
-        end
-
-        if isempty(t_trk)
+        if isempty(t_trk) || isempty(R_trk) || isempty(f_trk)
             continue
         end
 
@@ -387,4 +392,81 @@ end  % ════════════════════ end assessTr
 % ── Local helper ─────────────────────────────────────────────────────────
 function idx = findNearest(t_vec, t_query)
     [~, idx] = min(abs(t_vec - t_query));
+end
+
+function time_gate_s = estimateTruthTimeGate(adsb_aligned)
+dt_all = zeros(0, 1);
+
+for k = 1 : numel(adsb_aligned)
+    ac = adsb_aligned(k);
+    if isempty(ac.t_abs_s) || isempty(ac.R_excess_m)
+        continue
+    end
+
+    valid_truth = ~isnan(ac.R_excess_m);
+    if isfield(ac, 'f_D_hz')
+        valid_truth = valid_truth & ~isnan(ac.f_D_hz);
+    end
+
+    t_visible = ac.t_abs_s(valid_truth);
+    if numel(t_visible) < 2
+        continue
+    end
+
+    dt_vec = diff(t_visible(:));
+    dt_vec = dt_vec(dt_vec > 0);
+    dt_all = [dt_all; dt_vec(:)]; %#ok<AGROW>
+end
+
+if isempty(dt_all)
+    time_gate_s = 0.5;
+else
+    time_gate_s = median(dt_all);
+end
+end
+
+function trk_series = extractTrackSeries(trk, fallback_track_id, opts)
+trk_series = struct( ...
+    'TrackID',     fallback_track_id, ...
+    't_abs_s',     zeros(0, 1), ...
+    'R_excess_m',  zeros(0, 1), ...
+    'f_D_hz',      zeros(0, 1));
+
+if isfield(trk, 'TrackID') && ~isempty(trk.TrackID)
+    trk_series.TrackID = trk.TrackID;
+end
+
+if ~isfield(trk, 't_abs_s') || isempty(trk.t_abs_s)
+    return
+end
+trk_series.t_abs_s = trk.t_abs_s(:);
+
+if isfield(trk, 'R_excess_m') && ~isempty(trk.R_excess_m)
+    trk_series.R_excess_m = trk.R_excess_m(:);
+elseif isfield(trk, 'State') && ~isempty(trk.State) && size(trk.State, 2) >= 1
+    trk_series.R_excess_m = trk.State(:, 1);
+else
+    trk_series.t_abs_s = zeros(0, 1);
+    return
+end
+
+if isfield(trk, 'f_D_hz') && ~isempty(trk.f_D_hz)
+    trk_series.f_D_hz = trk.f_D_hz(:);
+    return
+end
+
+if isfield(trk, 'Rdot_mps') && ~isempty(trk.Rdot_mps)
+    trk_series.f_D_hz = -opts.Alpha * trk.Rdot_mps(:);
+    return
+end
+
+if isfield(trk, 'State') && ~isempty(trk.State)
+    if size(trk.State, 2) >= 3 && ~opts.StateIsVelocity
+        trk_series.f_D_hz = trk.State(:, 3);
+    elseif size(trk.State, 2) >= 3 && opts.StateIsVelocity
+        trk_series.f_D_hz = -opts.Alpha * trk.State(:, 3);
+    elseif size(trk.State, 2) >= 2
+        trk_series.f_D_hz = -opts.Alpha * trk.State(:, 2);
+    end
+end
 end

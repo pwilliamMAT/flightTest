@@ -1,12 +1,14 @@
-function filter = initMeasurementSpaceKF(detection, fc, fs)
+function filter = initMeasurementSpaceKF(detection, fc, fs, doppler_bin_hz)
 %INITMEASUREMENTSPACEKF  Initialize a 2-state linear Kalman filter for
 %  passive bistatic radar tracking in the Range–Doppler measurement space.
 %
-%  fc  [Hz]  carrier frequency  (default 600 MHz — legacy; pass explicitly)
-%  fs  [Hz]  sample rate        (default 5 Msps  — legacy; pass explicitly)
+%  fc             [Hz]  carrier frequency  (default 600 MHz — legacy)
+%  fs             [Hz]  sample rate        (default 5 Msps  — legacy)
+%  doppler_bin_hz [Hz]  Doppler bin size   (default 10 Hz  — legacy)
 %
 %  Called via a closure in trackTargets:
-%    init_fcn = @(det) initMeasurementSpaceKF(det, config.fc, config.fs);
+%    init_fcn = @(det) initMeasurementSpaceKF( ...
+%        det, config.fc, config.fs, doppler_bin_hz);
 %
 % ── STATE VECTOR ─────────────────────────────────────────────────────────
 %   x = [R (m);  Ṙ (m/s)]
@@ -71,14 +73,15 @@ function filter = initMeasurementSpaceKF(detection, fc, fs)
 %   Signal Processing Toolbox           (physconst)
 
 % ── System constants (passed from config via closure in trackTargets) ─────
-if nargin < 2 || isempty(fc),  fc = 600e6;  end   % default: legacy 600 MHz
-if nargin < 3 || isempty(fs),  fs = 5e6;   end   % default: legacy 5 Msps
+if nargin < 2 || isempty(fc),             fc = 600e6; end   % legacy default
+if nargin < 3 || isempty(fs),             fs = 5e6;   end   % legacy default
+if nargin < 4 || isempty(doppler_bin_hz), doppler_bin_hz = 10; end
 c_light = physconst('LightSpeed');    % speed of light  [m/s]
 alpha   = 2 * fc / c_light;           % Doppler coupling [Hz/(m/s)]
 
 % ── Resolution cell sizes ────────────────────────────────────────────────
 range_bin_m  = c_light / (2 * fs);   % range bin [m] — depends on sample rate
-dopp_bin_hz  = 10;                    % 10 Hz — Doppler bin (N_slow=200, Tcpi=0.5 ms)
+dopp_bin_hz  = doppler_bin_hz;
 
 % ── Measurement model  H : z = H · x ────────────────────────────────────
 %   Negative α: passive-radar CAF sign convention (positive f_D = approaching

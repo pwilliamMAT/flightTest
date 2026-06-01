@@ -57,12 +57,14 @@ function [tracks_log, tracker_obj] = trackTargets(all_track_dets, config)
 %   Sensor Fusion and Tracking Toolbox (trackerGNN, objectDetection, objectTrack)
 
 % ── Build trackerGNN ──────────────────────────────────────────────────────
-% ── Closure so initMeasurementSpaceKF gets the correct fc and fs ────────────
-init_fcn = @(det) initMeasurementSpaceKF(det, config.fc, config.fs);
+% ── Shared range/Doppler constants for tracker gating and filter init ───────
+bistatic_consts = helperDeriveBistaticConstants(config);
+init_fcn = @(det) initMeasurementSpaceKF( ...
+    det, config.fc, config.fs, bistatic_consts.doppler_bin_hz);
 
-c_light     = physconst('LightSpeed');
-range_bin_m = c_light / (2 * config.fs);  % range bin [m] — from config
-dopp_bin_hz = 10;                          % Doppler bin [Hz] (fixed by N_slow/PRF)
+c_light     = bistatic_consts.c_light;
+range_bin_m = bistatic_consts.range_cell_m;
+dopp_bin_hz = bistatic_consts.doppler_bin_hz;
 % R_meas must match the variance used inside initMeasurementSpaceKF.
 % 3-bin range / 2-bin Doppler: see initMeasurementSpaceKF for rationale.
 R_meas      = diag([(3 * range_bin_m)^2, (2 * dopp_bin_hz)^2]);
@@ -90,7 +92,7 @@ tracks_log = repmat( ...
     struct('time', 0, 'tracks', objectTrack.empty, 'n_confirmed', 0), ...
     1, N_steps);
 
-alpha = 2 * config.fc / c_light;   % Doppler coupling [Hz/(m/s)]
+alpha = bistatic_consts.alpha;
 
 fprintf('[trackTargets] %d detections  |  %d time steps  |  %d parts\n', ...
     size(all_track_dets, 1), N_steps, numel(unique(all_track_dets(:, 6))));

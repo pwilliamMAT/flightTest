@@ -1,4 +1,4 @@
-function adsb_tracks = loadADSBTruth(filenames)
+function adsb_tracks = loadADSBTruth(filenames, varargin)
 %LOADADSBTRUTH  Parse SBS-1/BaseStation ADS-B files (dump1090 TCP port 30003)
 %  into a per-aircraft struct array ready for bistatic truth comparison.
 %
@@ -37,6 +37,7 @@ function adsb_tracks = loadADSBTruth(filenames)
 %
 % ── SYNTAX ──────────────────────────────────────────────────────────────
 %   adsb_tracks = loadADSBTruth(filenames)
+%   adsb_tracks = loadADSBTruth(filenames, 'Verbose', true)
 %
 % ── INPUTS ──────────────────────────────────────────────────────────────
 %   filenames   String, char array, or cell array of strings.
@@ -80,6 +81,15 @@ function adsb_tracks = loadADSBTruth(filenames)
 % =========================================================================
 %  0.  Input normalisation
 % =========================================================================
+p = inputParser;
+p.FunctionName = mfilename;
+addRequired(p, 'filenames');
+addParameter(p, 'Verbose', true, @islogical);
+parse(p, filenames, varargin{:});
+
+filenames = p.Results.filenames;
+vb        = p.Results.Verbose;
+
 if ischar(filenames) || isstring(filenames)
     filenames = {char(filenames)};
 elseif iscell(filenames)
@@ -110,7 +120,9 @@ fpm2mps   = 0.00508;              % ft/min → m/s
 
 for f_idx = 1 : numel(filenames)
     fname = filenames{f_idx};
-    fprintf('[loadADSBTruth] Reading: %s\n', fname);
+    if vb
+        fprintf('[loadADSBTruth] Reading: %s\n', fname);
+    end
 
     % ── Gzip decompression ───────────────────────────────────────────────
     cleanup_tmp = false;
@@ -259,12 +271,16 @@ for f_idx = 1 : numel(filenames)
         try, rmdir(fileparts(actual_file), 's'); catch, end
     end
 
-    fprintf('[loadADSBTruth]   %d lines read, %d MSG records parsed.\n', ...
-        line_count, parse_count);
-    if parse_count == 0 && line_count > 0
-        fprintf('[loadADSBTruth]   Skip breakdown: pre-MSG=%d  <16fields=%d  bad-type=%d  no-hex=%d  no-ts=%d  dt-parse=%d  no-pos=%d\n', ...
-            skip_premsg, skip_fields, skip_type, skip_hex, skip_ts, skip_dtprs, skip_nopos);
-        if ~isempty(first_dtprs_err), fprintf('[loadADSBTruth]   First dt-parse fail: %s\n', first_dtprs_err); end
+    if vb
+        fprintf('[loadADSBTruth]   %d lines read, %d MSG records parsed.\n', ...
+            line_count, parse_count);
+        if parse_count == 0 && line_count > 0
+            fprintf('[loadADSBTruth]   Skip breakdown: pre-MSG=%d  <16fields=%d  bad-type=%d  no-hex=%d  no-ts=%d  dt-parse=%d  no-pos=%d\n', ...
+                skip_premsg, skip_fields, skip_type, skip_hex, skip_ts, skip_dtprs, skip_nopos);
+            if ~isempty(first_dtprs_err)
+                fprintf('[loadADSBTruth]   First dt-parse fail: %s\n', first_dtprs_err);
+            end
+        end
     end
 end   % for f_idx
 
@@ -289,8 +305,10 @@ end
 % (since files are fed in time order).
 unique_hex = unique(raw_hex, 'stable');
 N_aircraft = numel(unique_hex);
-fprintf('[loadADSBTruth] Grouping %d records into %d aircraft tracks...\n', ...
-    n_raw, N_aircraft);
+if vb
+    fprintf('[loadADSBTruth] Grouping %d records into %d aircraft tracks...\n', ...
+        n_raw, N_aircraft);
+end
 
 % Pre-build a lookup from hex → row indices for fast grouping
 hex_to_rows = containers.Map(unique_hex, repmat({[]}, 1, N_aircraft));
@@ -418,21 +436,23 @@ end   % for k = 1 : N_aircraft
 has_pos = ~cellfun(@isempty, {adsb_tracks.t_utc});
 adsb_tracks = adsb_tracks(has_pos);
 
-fprintf('[loadADSBTruth] Complete: %d aircraft with position data (%d total fixes).\n\n', ...
-    numel(adsb_tracks), n_pos_total);
-if numel(adsb_tracks) > 0
-    fprintf('  %-8s  %-10s  %6s  %20s  %20s\n', ...
-        'ICAO', 'Callsign', 'Fixes', 'T_start (UTC)', 'T_end (UTC)');
-    for k = 1 : numel(adsb_tracks)
-        t_start_dt = datetime(adsb_tracks(k).t_utc(1),   'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
-        t_end_dt   = datetime(adsb_tracks(k).t_utc(end), 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
-        fprintf('  %-8s  %-10s  %6d  %20s  %20s\n', ...
-            adsb_tracks(k).hex, adsb_tracks(k).callsign, ...
-            numel(adsb_tracks(k).t_utc), ...
-            datestr(t_start_dt, 'yyyy-mm-dd HH:MM:SS'), ...
-            datestr(t_end_dt,   'yyyy-mm-dd HH:MM:SS'));
+if vb
+    fprintf('[loadADSBTruth] Complete: %d aircraft with position data (%d total fixes).\n\n', ...
+        numel(adsb_tracks), n_pos_total);
+    if numel(adsb_tracks) > 0
+        fprintf('  %-8s  %-10s  %6s  %20s  %20s\n', ...
+            'ICAO', 'Callsign', 'Fixes', 'T_start (UTC)', 'T_end (UTC)');
+        for k = 1 : numel(adsb_tracks)
+            t_start_dt = datetime(adsb_tracks(k).t_utc(1),   'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+            t_end_dt   = datetime(adsb_tracks(k).t_utc(end), 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+            fprintf('  %-8s  %-10s  %6d  %20s  %20s\n', ...
+                adsb_tracks(k).hex, adsb_tracks(k).callsign, ...
+                numel(adsb_tracks(k).t_utc), ...
+                datestr(t_start_dt, 'yyyy-mm-dd HH:MM:SS'), ...
+                datestr(t_end_dt,   'yyyy-mm-dd HH:MM:SS'));
+        end
+        fprintf('\n');
     end
-    fprintf('\n');
 end
 
 end  % ════════════════════ end loadADSBTruth ════════════════════

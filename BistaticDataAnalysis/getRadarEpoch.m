@@ -26,11 +26,8 @@ function t_epoch_utc = getRadarEpoch(data_file_path, varargin)
 %     If the file is a .bb Baseband File (Wireless Testbench / Communications
 %     Toolbox), attempt to read its info() struct for a 'RecordingTime' or
 %     'Timestamp' field written by comm.BasebandFileWriter.
-%     NOTE: the current log_iq_n320_2antennas.m does NOT store a UTC
-%     timestamp in the metadata struct.  This path will succeed only if a
-%     future recording script adds:
-%       meta.RecordingUTC = posixtime(datetime('now','TimeZone','UTC'));
-%     to the BasebandFileWriter metadata.
+%     Custom metadata may appear either as top-level info() fields or inside
+%     info().Metadata, depending on MATLAB release.
 %
 %  4. MANUAL OVERRIDE — 'ManualEpoch' name-value parameter
 %     If the above attempts fail, or if the caller knows the exact time,
@@ -63,14 +60,11 @@ function t_epoch_utc = getRadarEpoch(data_file_path, varargin)
 %                 of the recording.  Returns NaN if all strategies fail and
 %                 no ManualEpoch is provided.
 %
-% ── RECOMMENDATION FOR FUTURE COLLECTIONS ──────────────────────────────
-%   Add the following to log_iq_n320_2antennas.m BEFORE the
-%   comm.BasebandFileWriter call to embed the epoch in the file metadata:
-%
-%     meta.RecordingUTC = posixtime(datetime('now', 'TimeZone', 'UTC'));
-%
-%   This allows getRadarEpoch to recover the exact start time from any
-%   recording regardless of the filename convention used.
+% ── METADATA RECOMMENDATION ─────────────────────────────────────────────
+%   log_iq_n320_2antennas.m now writes meta.RecordingUTC alongside the
+%   human-readable DateTime string. Keep that metadata field present in
+%   future collection scripts so getRadarEpoch can recover the exact start
+%   time regardless of filename convention.
 %
 % See also: loadADSBTruth, alignTruthToRadar, adsbToBistatic.
 
@@ -181,19 +175,47 @@ if isnan(t_epoch_utc)
             reader = BasebandFileReader(data_file_path);
             s = info(reader);
             release(reader);
-            % Field name varies by MATLAB version and custom metadata key
+            % Field name varies by MATLAB version and whether the writer
+            % exposes custom fields at the top level or inside Metadata.
             candidate_fields = {'RecordingUTC', 'RecordingTime', 'Timestamp', ...
                                  'StartTime', 'CaptureTime'};
-            for cf = candidate_fields
-                if isfield(s, cf{1}) && ~isempty(s.(cf{1}))
-                    val = s.(cf{1});
+            search_structs = {s};
+            search_labels  = {'BasebandFileReader'};
+            if isfield(s, 'Metadata') && isstruct(s.Metadata)
+                search_structs{end + 1} = s.Metadata; %#ok<AGROW>
+                search_labels{end + 1}  = 'BasebandFileReader.Metadata'; %#ok<AGROW>
+            end
+
+            for si = 1 : numel(search_structs)
+                source_struct = search_structs{si};
+                source_label  = search_labels{si};
+
+                for cf = candidate_fields
+                    if ~isfield(source_struct, cf{1}) || isempty(source_struct.(cf{1}))
+                        continue
+                    end
+
+                    val = source_struct.(cf{1});
                     if isnumeric(val) && isscalar(val)
                         t_epoch_utc = double(val);
-                        method_used = sprintf('BasebandFileReader.%s (numeric)', cf{1});
-                    elseif isdatetime(val)
+                        method_used = sprintf('%s.%s (numeric)', source_label, cf{1});
+                    elseif isdatetime(val) && isscalar(val)
                         t_epoch_utc = dt2unix(val);
-                        method_used = sprintf('BasebandFileReader.%s (datetime)', cf{1});
+                        method_used = sprintf('%s.%s (datetime)', source_label, cf{1});
+                    elseif ischar(val) || (isstring(val) && isscalar(val))
+                        val_num = str2double(char(val));
+                        if isfinite(val_num)
+                            t_epoch_utc = val_num;
+                            method_used = sprintf('%s.%s (numeric string)', source_label, cf{1});
+                        end
                     end
+
+                    if ~isnan(t_epoch_utc)
+                        break
+                    end
+                end
+
+                if ~isnan(t_epoch_utc)
                     break
                 end
             end
