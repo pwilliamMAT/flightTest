@@ -104,6 +104,8 @@ if ~isfield(options, 'atsc_guard_penalty_db'),   options.atsc_guard_penalty_db  
 if ~isfield(options, 'atsc_guard_width_bins'),   options.atsc_guard_width_bins   = 3;   end
 if ~isfield(options, 'notch_guard_dopp_bins'),   options.notch_guard_dopp_bins   = 0;   end
 if ~isfield(options, 'nci_looks'),               options.nci_looks               = 1;   end
+if ~isfield(options, 'verbose'),                 options.verbose                 = true; end
+verbose = options.verbose;
 % nci_looks: number of non-coherently integrated RDMs (e.g. N_chunks from
 % the sub-CPI loop). When > 1 the noise follows a Gamma(L, θ) distribution
 % instead of exponential, so the CFAR threshold multiplier is computed via
@@ -133,8 +135,10 @@ end
 if options.nci_looks > 1
     extra = [extra, sprintf(', NCI=%d looks', options.nci_looks)];
 end
-fprintf('Running 2-D %s-CFAR (Pfa=%.0e, guard=[%d %d], train=[%d %d], min_range=%.0f km%s)...\n', ...
-    upper(options.cfar_type), pfa, Ng_r, Ng_d, Nt_r, Nt_d, min_range_m/1e3, extra);
+if verbose
+    fprintf('Running 2-D %s-CFAR (Pfa=%.0e, guard=[%d %d], train=[%d %d], min_range=%.0f km%s)...\n', ...
+        upper(options.cfar_type), pfa, Ng_r, Ng_d, Nt_r, Nt_d, min_range_m/1e3, extra);
+end
 
 % --- Convert RDM to linear power ---
 % CFAR statistics assume exponentially distributed noise power (complex
@@ -306,9 +310,11 @@ if rdm_linear(dbg_r, dbg_d) > threshold_linear(dbg_r, dbg_d)
 else
     dbg_str = 'below thresh';
 end
-fprintf('  [CFAR-DEBUG] Cell[r=%d,d=%d]: NF=%.1f dB  alpha=%.4f (+%.2f dB)  Thr=%.1f dB  RDM=%.1f dB  [%s]\n', ...
-    dbg_r, dbg_d, dbg_nf_db, dbg_alpha, 10*log10(max(dbg_alpha, eps)), ...
-    dbg_thr_db, rdm_db(dbg_r, dbg_d), dbg_str);
+if verbose
+    fprintf('  [CFAR-DEBUG] Cell[r=%d,d=%d]: NF=%.1f dB  alpha=%.4f (+%.2f dB)  Thr=%.1f dB  RDM=%.1f dB  [%s]\n', ...
+        dbg_r, dbg_d, dbg_nf_db, dbg_alpha, 10*log10(max(dbg_alpha, eps)), ...
+        dbg_thr_db, rdm_db(dbg_r, dbg_d), dbg_str);
+end
 % ── END DEBUG ────────────────────────────────────────────────────────────
 
 % =========================================================================
@@ -384,7 +390,7 @@ detect_mask(:, suppress_dopp_zero) = false;
 
 if isempty(r_idx)
     detections = zeros(0, 3);
-    fprintf('  No detections above threshold.\n');
+    if verbose, fprintf('  No detections above threshold.\n'); end
     return;
 end
 
@@ -394,5 +400,5 @@ det_power  = rdm_db(sub2ind([N_range, N_dopp], r_idx, d_idx));
 
 detections = [det_range(:), det_dopp(:), det_power(:)];   % [N_det x 3]
 
-fprintf('  %d detections found.\n', size(detections, 1));
+if verbose, fprintf('  %d detections found.\n', size(detections, 1)); end
 end

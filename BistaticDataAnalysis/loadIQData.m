@@ -23,6 +23,8 @@ function [reference_channel, surveillance_channel, reference_cube, surveillance_
 %% 0. Options
 if nargin < 5 || isempty(options), options = struct(); end
 if ~isfield(options, 'swap_channels'), options.swap_channels = false; end
+if ~isfield(options, 'verbose'),       options.verbose       = true;  end
+verbose = options.verbose;
 
 %% 1. Read IQ data
 % Use comm.BasebandFileReader first — it reads the .bb header, determines the
@@ -32,7 +34,7 @@ if ~isfield(options, 'swap_channels'), options.swap_channels = false; end
 %
 % If the file is raw binary (e.g. captured by a UHD C++ utility as sc16),
 % the reader throws an error and we fall back to the original int16 fread.
-fprintf('Loading data from: %s\n', filepath);
+if verbose, fprintf('Loading data from: %s\n', filepath); end
 try
     reader   = comm.BasebandFileReader(filepath, 'SamplesPerFrame', numSamples);
     raw_data = reader();    % [numSamples × num_channels] complex
@@ -45,11 +47,15 @@ try
     ch1_raw  = double(raw_data(:, 1));   % CH1 — RX1  (default: Surveillance)
     ch2_raw  = double(raw_data(:, 2));   % CH2 — RX2  (default: Reference)
     n_actual = size(raw_data, 1);
-    fprintf('  BasebandFileReader: %d samples × %d channels (complex %s).\n', ...
-        n_actual, size(raw_data, 2), class(raw_data));
+    if verbose
+        fprintf('  BasebandFileReader: %d samples × %d channels (complex %s).\n', ...
+            n_actual, size(raw_data, 2), class(raw_data));
+    end
 catch me_bbr
-    fprintf('  comm.BasebandFileReader failed: %s\n', me_bbr.message);
-    fprintf('  Falling back to raw int16 binary read (sc16 format)...\n');
+    if verbose
+        fprintf('  comm.BasebandFileReader failed: %s\n', me_bbr.message);
+        fprintf('  Falling back to raw int16 binary read (sc16 format)...\n');
+    end
     fileID = fopen(filepath, 'r');
     if fileID == -1
         error('loadIQData:fileNotFound', ...
@@ -57,13 +63,13 @@ catch me_bbr
     end
     rawInt16 = fread(fileID, 4 * numSamples, 'int16');
     fclose(fileID);
-    fprintf('  Raw int16 read: %d values.\n', numel(rawInt16));
+    if verbose, fprintf('  Raw int16 read: %d values.\n', numel(rawInt16)); end
     % sc16 layout: I_ch1, Q_ch1, I_ch2, Q_ch2 repeating
     ch1_raw  = complex(double(rawInt16(1:4:end)), double(rawInt16(2:4:end)));
     ch2_raw  = complex(double(rawInt16(3:4:end)), double(rawInt16(4:4:end)));
     n_actual = numel(ch1_raw);
 end
-fprintf('  %d complex samples available per channel.\n', n_actual);
+if verbose, fprintf('  %d complex samples available per channel.\n', n_actual); end
 
 %% 2b. Per-channel power diagnostic
 % Compare mean signal power of CH1 (RX1) and CH2 (RX2).
@@ -72,16 +78,20 @@ fprintf('  %d complex samples available per channel.\n', n_actual);
 ch1_pwr      = mean(abs(ch1_raw).^2);
 ch2_pwr      = mean(abs(ch2_raw).^2);
 pwr_ratio_db = 10 * log10(ch1_pwr / max(ch2_pwr, eps));
-fprintf('  CH1 (RX1) mean power: %.3e\n', ch1_pwr);
-fprintf('  CH2 (RX2) mean power: %.3e\n', ch2_pwr);
-fprintf('  CH1 / CH2 power ratio: %+.1f dB\n', pwr_ratio_db);
+if verbose
+    fprintf('  CH1 (RX1) mean power: %.3e\n', ch1_pwr);
+    fprintf('  CH2 (RX2) mean power: %.3e\n', ch2_pwr);
+    fprintf('  CH1 / CH2 power ratio: %+.1f dB\n', pwr_ratio_db);
+end
 if pwr_ratio_db > 10
     fprintf(['  CHANNEL DIAGNOSTIC: CH1 is %.0f dB stronger than CH2.\n' ...
              '  Default: CH1=Surveillance, CH2=Reference.\n' ...
              '  If the reference antenna is on RX1, set config.swap_channels = true.\n'], ...
              pwr_ratio_db);
 elseif pwr_ratio_db < -10
-    fprintf('  Channel powers nominal: CH2 (Reference) is %.0f dB stronger than CH1.\n', -pwr_ratio_db);
+    if verbose
+        fprintf('  Channel powers nominal: CH2 (Reference) is %.0f dB stronger than CH1.\n', -pwr_ratio_db);
+    end
 end
 
 %% 3. Channel assignment
@@ -94,12 +104,13 @@ else
     reference_channel    = ch2_raw;   % CH2 (RX2) → Reference (default)
 end
 
-%% 4. Verification
-fprintf('\n--- Verification ---\n');
-fprintf('Size of Reference Channel data: [%d, %d]\n', size(reference_channel, 1), size(reference_channel, 2));
-fprintf('Size of Surveillance Channel data: [%d, %d]\n', size(surveillance_channel, 1), size(surveillance_channel, 2));
+if verbose
+    fprintf('\n--- Verification ---\n');
+    fprintf('Size of Reference Channel data: [%d, %d]\n', size(reference_channel, 1), size(reference_channel, 2));
+    fprintf('Size of Surveillance Channel data: [%d, %d]\n', size(surveillance_channel, 1), size(surveillance_channel, 2));
+end
 if numel(reference_channel) == numel(surveillance_channel)
-    fprintf('Channel assignment successful.\n');
+    if verbose, fprintf('Channel assignment successful.\n'); end
 else
     fprintf('Warning: channel size mismatch (%d vs %d).\n', numel(reference_channel), numel(surveillance_channel));
 end
@@ -125,9 +136,10 @@ ref_truncated = reference_channel(1:truncated_length);
 surveillance_cube = reshape(surv_truncated, samples_per_cpi, num_cpis);
 reference_cube = reshape(ref_truncated, samples_per_cpi, num_cpis);
 
-fprintf('\n--- Data Cube Creation ---\n');
-fprintf('Data reshaped into a %d x %d data cube.\n', samples_per_cpi, num_cpis);
-fprintf('CPI duration: %.2f ms  |  PRF: %.0f Hz  |  N_fast: %d  |  N_slow: %d\n', ...
+if verbose
+    fprintf('\n--- Data Cube Creation ---\n');
+    fprintf('Data reshaped into a %d x %d data cube.\n', samples_per_cpi, num_cpis);
+    fprintf('CPI duration: %.2f ms  |  PRF: %.0f Hz  |  N_fast: %d  |  N_slow: %d\n', ...
     cpi_duration_s*1e3, 1/cpi_duration_s, samples_per_cpi, num_cpis);
 
 end

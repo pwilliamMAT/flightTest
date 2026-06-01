@@ -12,7 +12,14 @@ This document captures both **what** each algorithm does and **why** each design
 | **Coherent Processing Interval (CPI) in Passive Radar** | In passive radar, there are no transmitted pulses. The CPI is an **artificial construct** created by segmenting the continuous incoming data stream into fixed-length chunks. Each chunk is treated as a "virtual pulse," allowing for Doppler processing. The length of this artificial CPI is a critical tuning parameter: a longer CPI improves Doppler resolution but can cause smearing for fast targets, while a shorter CPI has worse Doppler resolution but provides a clearer snapshot. | `analyzeBistaticData.m` (see `config.cpi_duration_s`) |
 | **Cross-Ambiguity Function (CAF)** | The 2D generalization of cross-correlation. The CAF between the surveillance channel s(t) and reference channel r(t) is computed as a range (fast-time) cross-correlation stack for each CPI, then a Doppler (slow-time) FFT across CPIs. The output is the Range-Doppler Map (RDM): each cell (r, d) represents the energy scattered by a target with bistatic range-excess r and Doppler shift d. Output stored as amplitude-dB: `rdm = 20×log10(|CAF| + eps)`. | `createRDM.m` |
 | **Range Whitening (Per-Row Median Normalisation)** | Pre-CFAR stage that subtracts each range bin’s own median power across Doppler (in dB), making the CFAR threshold range-independent. Absolute detection power is restored post-CFAR by adding the stored per-row noise floor back to each detection’s power column. Median is used over mean for robustness to the presence of a bright target in the Doppler dimension. | `processOnePart.m` |
-| **Bistatic Iso-Range Ellipse** | The locus of all target positions with a given bistatic range-excess `R_exc` is an ellipse with Tx and Rx at the foci: `a = (R_exc+L)/2`, `b = sqrt(a²-c²)`, `c = L/2`. Computed in local ENU frame (Rx as origin) and back-projected to geodetic via `enu2geodetic`. Used to map CFAR detections onto a geographic display. | `plotBistaticEllipses3D.m` |
+| **Bistatic Iso-Range Ellipse** | The locus of all target positions with a given bistatic range-excess `R_exc` is an ellipse with Tx and Rx at the foci: `a = (R_exc+L)/2`, `b = sqrt(a²-c²)`, `c = L/2`. Computed in local ENU frame (Rx as origin) and back-projected to geodetic via `enu2geodetic`. CFAR detections are rendered as ellipses colour-coded by Doppler frequency (cold = approaching, warm = receding) so the globe gives an instantaneous speed map of every hit. | `plotBistaticEllipses3D.m` |
+| **Tracking in Measurement Space** | Because a passive radar with a single receiver can only measure bistatic range excess (one scalar per detection), it is mathematically impossible to estimate a 2D/3D target position from a single snapshot. The only valid state to track is the 1D measurement itself: `[R_excess; Ṙ]`. A 1D Kalman filter with `MotionModel = '1D Constant Velocity'` propagates this directly. The tracker produces a time series of `[R, Ṙ]` estimates; the geographic position is constrained only to the corresponding bistatic ellipse, not a point. | `trackTargets.m`, `initMeasurementSpaceKF.m` |
+| **Doppler–Velocity Coupling (α) and Sign Convention** | The bistatic Doppler shift is `f_D = −(2·fc/c)·Ṙ = −α·Ṙ` where `Ṙ` is the bistatic range-rate. The **negative sign** is mandated by the passive-radar CAF implementation in `createRDM.m`: `xc = ifft(fft(surv) .* conj(fft(ref)))` followed by `fftshift(fft(xc .* win_slow, 2))`. Under this convention, an **approaching** target (Ṙ < 0) produces a **positive** f_D bin — the opposite of the active-radar convention where `f_D = +α·Ṙ`. The KF measurement matrix must use **H(2,2) = −α**, and the initial velocity seed must be **Ṙ₀ = −f_D/α**. Using +α inverts the predicted range-rate direction on every step; the track diverges from all subsequent detections and falls outside the assignment gate within ~5 frames (confirmed empirically: 126 single-step tracks, all with σ_v = 374 m/s unchanged from P₀). Coupling factor value: `α = 2fc/c ≈ 3.99 Hz/(m/s)` at fc = 599 MHz. | `initMeasurementSpaceKF.m` (H matrix), `createRDM.m` (sign derivation) |
+| **Interactive RD Map Viewer** | After tracking, each tracker time step can be inspected interactively: the step_data struct is precomputed once (holds the whitened RDM image, axis vectors, per-step CFAR detections, and confirmed track array), then a slider/button UI renders any step on demand. Precomputation moves the expensive work (RDM computation) out of the callback path so each step transition takes <100 ms instead of 10–20 s. | `analyzeBistaticData.m` §7.4a, §7.6; `render_rdm_step.m` |
+| **ADS-B Truth Ingestion** | SBS-1/BaseStation format messages from dump1090 are parsed into per-aircraft structs. MSG type 1 gives callsign; type 3 gives position (lat/lon/alt); type 4 gives velocity (ground speed, track, vertical rate). Records are grouped by ICAO hex address and velocity fields are merged onto the position time grid via `interp1`. Unit conversions: ft→m, kts→m/s, ft/min→m/s. Files may be raw `.txt` or `.gz` compressed. | `loadADSBTruth.m` |
+| **Bistatic Truth Projection** | An ADS-B position fix (lat, lon, alt) is converted to bistatic measurement space by computing `R_rx = ‖ENU_ac − ENU_rx‖`, `R_tx = ‖ENU_ac − ENU_tx‖` (both via `geodetic2enu` in the Rx-centred ENU frame), then `R_excess = R_tx + R_rx − L`. Bistatic Doppler is derived by numerical central-difference of the R_excess time series: `f_D = (2fc/c) · ΔR_excess/Δt`. This is exactly consistent with the radar code's `α = 2fc/c` convention and avoids the bistatic angle ambiguity in analytical formulas. | `adsbToBistatic.m` |
+| **Truth–Radar Alignment** | The radar pipeline operates in recording-relative time `t_abs_s` (seconds since start of Part 1). ADS-B uses UTC Unix timestamps. `getRadarEpoch` extracts the recording start epoch from the filename (14-digit `YYYYMMDDHHMMSS` for May-2026 data; `M_D_YYYY` date-only with midnight-UTC fallback for Newton July-2026 data; or a manual `ManualEpoch` override). `alignTruthToRadar` subtracts the epoch and resamples ADS-B R_excess and f_D onto the radar's CPI query grid via `interp1` (linear, NaN outside data span). | `getRadarEpoch.m`, `alignTruthToRadar.m` |
+| **Truth Comparison Metrics** | Two-level evaluation: (1) Detection-level — each CFAR detection is labelled TP or FA by testing `|ΔR| < 3×range_cell` AND `|Δf| < 3×Doppler_bin` against every ADS-B aircraft at that CPI time; per-aircraft probability of detection `Pd = n_tp / (n_tp + n_miss)` is tabulated. (2) Track-level — each KF track is associated with the nearest ADS-B aircraft by minimum mean `|ΔR|` over the track's confirmed lifetime; range bias/RMSE and Doppler bias/RMSE are computed. | `assessTruthVsDetections.m`, `plotTruthComparison.m` |
 
 ---
 
@@ -197,6 +204,121 @@ The scalar `abs_nf_block` (~224–228 dB for the Newton deployment) is stored in
 ### Why median and not mean?
 
 The median is robust to the presence of a bright target return in the Doppler dimension. A single strong target does not bias the median of a row with 2000 Doppler cells (it would need to dominate more than half the cells, which is never the case for a single aircraft echo). The mean would be pulled upward by even one bright target, inflating the threshold for that entire range bin and masking nearby weaker targets.
+
+---
+
+## Target Tracking in Measurement Space
+
+### The fundamental observability constraint
+
+A conventional tracking radar sends a pulse and receives it back from a target; from the round-trip delay it measures slant range, and from multiple returns it infers range-rate and, with a phased array, angle. A passive bistatic radar with a **single surveillance receiver** has only one observable per snapshot: the bistatic range excess `R = R_Tx + R_Rx − L`. From a single ellipse you cannot uniquely determine the target's (latitude, longitude) position — every point on that ellipse is an equally valid hypothesis.
+
+**The only well-posed choice is to track in the 1D measurement space `[R; Ṙ]`.** This:
+1. Directly tracks what the sensor actually measures — no inversion required.
+2. Avoids unobservable states (x, y) that would require two simultaneous measurements (e.g., range + angle, or two receivers) to estimate.
+3. Produces a time series of bistatic range and range-rate that is a meaningful trajectory product: each state maps to a bistatic ellipse, and a sequence of ellipses shows the target moving inward or outward.
+
+The geographic footprint is the *envelope* of those ellipses — the operator sees an arc sweep on the globe that constrains target position without resolving it to a point.
+
+### Why `trackTargets.m` uses `trackerGNN` instead of a manual KF loop
+
+A manual loop (compute predicted range, find nearest detection, update KF) requires implementing the full track lifecycle: tentative → confirmed → coasted → deleted. `trackerGNN` from the Sensor Fusion and Tracking Toolbox provides:
+- **Hungarian-algorithm GNN assignment** — globally optimal assignment at each time step (not greedy nearest-neighbor per track)
+- **Automatic lifecycle management** — tracks are confirmed at `ConfirmationThreshold`, deleted at `DeletionThreshold`, and coasted (predict-only) when unmatched
+- **Standard `objectTrack` output** — consistent interface with `objectDetection` inputs, directly compatible with MATLAB's track evaluation and display tooling
+
+The custom `initMeasurementSpaceKF.m` is needed because `trackerGNN`'s default KF initializer expects a full 2D/3D position measurement. A custom init function specifies:
+- `H = [1, 0]` — measure `R` only, not `Ṙ`
+- `P0 = diag([range_bin_m², (50·range_bin_m/α)²])` — initial range uncertainty = one range cell (~30 m); initial velocity uncertainty = 50 range cells' worth of range-rate (very broad, intentionally uninformative so the first measurement can pull the estimate quickly)
+- `Q = q_psd · [dt³/3, dt²/2; dt²/2, dt] × q_psd` (Singer-model process noise at `q_psd = 400 m²/s³`)
+
+### Why `MotionModel = '1D Constant Velocity'`
+
+The state `[R; Ṙ]` evolves as:
+```
+R(k+1)  = R(k) + Ṙ·dt
+Ṙ(k+1) = Ṙ(k) + w_k   (process noise)
+```
+An aircraft at cruise altitude maintains nearly constant airspeed and heading within a 1–3 second observation window, so the range-rate is approximately constant. A 1D constant-acceleration model would add an unobservable acceleration state — unobservable because range-rate is already the derivative of range, and estimating a second derivative requires more signal than our sparse (3-part, 10 s gap) timeline provides.
+
+### Why `ConfirmationThreshold = [1, 1]`
+
+This means *confirm a track after seeing 1 detection in 1 scan*. The Newton dataset has only three 1-second file parts separated by ~10-second gaps, giving at most 3 tracker time steps per track lifetime. With a stricter threshold such as `[2, 3]` (confirm after 2 detections in 3 scans), a track that appears only in Part 1 and Part 3 would never be confirmed. `[1, 1]` ensures every single-detection hit gets confirmed immediately.
+
+**The cost**: with `[1, 1]`, every single CFAR detection — including random false alarms — spawns a confirmed track. The 26 detections in the Newton run produced up to 10 simultaneously confirmed tracks. Most have `StateCovariance(2,2)` → `σ_v ≈ 370 m/s` (uninformative; the initial prior has not been updated by a second detection). Raising to `[2, 3]` or `[3, 5]` would dramatically reduce spurious tracks at the cost of missing tracks with fewer than 2 detections. The right threshold depends on the expected target density and part-count for future datasets.
+
+### Why `AssignmentThreshold = 50` (range bins)
+
+The assignment gate is the maximum Mahalanobis distance (in measurement space, normalized by the predicted covariance) between a detection and a track prediction. A threshold of 50 means a detection more than 50 standard deviations from the predicted range is not considered a match. With σ_R ≈ 30 m and a 10-second coast gap, the predicted position uncertainty after coasting grows to √(q_psd·Δt³/3) ≈ √(400·333) ≈ 365 m ≈ 12 range bins. A gate of 50 bins ≈ 1500 m comfortably encompasses even an aggressively maneuvering target across the inter-part gap.
+
+### The inter-part gap and tracker coasting
+
+The three Newton data parts were recorded with ~10-second intervals between them (`inter_part_gap_s = 10`). During each gap, the tracker predicts forward without receiving any measurements — this is the KF **coasting** state (`IsCoasted = true`). Tracks are not deleted during coasting unless they fail to receive a detection for `DeletionThreshold(2) = 3` consecutive scan intervals. With only 3 parts, a track that appears in Part 1 and Part 3 but not Part 2 survives the two consecutive coasting steps and is updated in Part 3.
+
+**Why this matters for trajectory continuity**: the 10-second gap means the KF extrapolates `R` forward by `Ṙ × 10 s`. For an aircraft at 500 m/s closing speed, the predicted range changes by 5 km. If the Part-3 detection is within the assignment gate of the coasted prediction, the same TrackID is maintained — producing a continuous trajectory arc across all three parts rather than three unrelated detections.
+
+### How `α = 2fc/c` bridges the state and the RDM display
+
+The KF state is `[R (m); Ṙ (m/s)]`. The RDM display axis is Doppler frequency (Hz). The relationship is:
+```
+f_D = (2·fc/c) · Ṙ = α · Ṙ
+```
+This approximation (exact for monostatic; accurate to < 15% for bistatic angles < 60°) holds well for the Newton-Needham geometry where the baseline is roughly perpendicular to the I-90 air corridor. At fc = 600 MHz, `α ≈ 4.004 Hz/(m/s)`. This factor appears in:
+- `initMeasurementSpaceKF.m`: the measurement matrix `H = [1, 0]` maps state → range; the `α` factor is used only in the *display* conversion `f_D = α·Ṙ`, not in the KF equations themselves
+- `analyzeBistaticData.m` §7.3: `alpha_trk = 2 * config.fc / physconst('LightSpeed')`
+- `render_rdm_step.m`: `D_est = p.alpha_trk * st(2)` and `sigma_D = p.alpha_trk * sqrt(P(2,2))`
+
+---
+
+## Visualization Architecture
+
+### Why precompute `step_data` instead of computing on-the-fly in the slider callback
+
+The interactive RD map viewer must display one of 11 tracker time steps on each slider drag. The RDM data for each step requires knowing which file part to use (each part is a separate `processOnePart.m` call) and whitening the RDM by subtracting the per-row median. Both steps involve large matrices (2500 × 2000 per part).
+
+If these computations happened inside the slider callback, each step transition would take 10–20 seconds — making the UI unusable. `step_data` (in `analyzeBistaticData.m` §7.4a) precomputes this once after all parts are processed:
+
+```
+for each tracker time step s:
+    find which part i_p the time t_s belongs to
+    rdm_image = part_res(i_p).rdm_after - median(part_res(i_p).rdm_after, 2)
+    store: t_abs_s, i_part, rdm_image, range_axis, doppler_axis, dets (this step only), conf_trks
+```
+
+Each callback then calls `render_rdm_step.m` with the precomputed `step_data(n)` struct — the callback is a pure visualization operation with no signal processing, completing in < 100 ms.
+
+**Why only the detections for this exact time step?** All 26 detections from the full three-part run are stored in `all_track_dets`. Rendering all 26 on every step would be confusing — a detection from Part 1 appearing on Part 3's background. The `mask_t = abs(all_track_dets(:,5) - t_s) < 1e-9` filter selects only the 1–4 CFAR hits that actually fell in this tracker scan, so the viewer shows "what the CFAR saw at this moment" alongside "what the tracker believed."
+
+### Why `uicontrol` (classic) instead of `uifigure`/`uislider` (App Designer)
+
+`uifigure` and its companion `uislider` component are part of MATLAB's web-based App Designer engine, introduced in R2016a but substantially improved through R2020b. They require the WebView2 runtime and behave differently across desktop/Online/Codespaces environments.
+
+`uicontrol` is the classic UI widget system, unchanged since early MATLAB versions. It runs in the same process as the figure and has deterministic callback timing. Using `uicontrol` for the slider, label, Prev, and Next buttons guarantees the viewer works in any environment where the script runs.
+
+The `SliderStep` parameter is set to `[1/(N_steps-1), 1/(N_steps-1)]` so each unit drag moves the slider by exactly one step — no rounding artifacts.
+
+### Why a static one-pass globe render instead of per-step animation
+
+The original approach updated the globe on every tracker step: for each step, deleted all previous ellipse handles, and drew a new set of altitude-ribbon ellipses for all confirmed tracks. This was the bottleneck:
+
+- **Per-ellipse cost**: 11 `geoplot3` calls (altitude ribbon from −250 m to +250 m in 50 m steps) per main ellipse, plus 2 `geoplot3` calls for the ±1σ side contours = 13 calls per track
+- **Per-step cost**: ~5 confirmed tracks × 13 calls = 65 `geoplot3` calls per step
+- **Handle deletion loop**: 13 handles × 5 tracks × 11 previous steps accumulated → up to 715 `delete()` calls per step
+- **WebGL cost**: each `geoplot3` triggers a full scene redraw in the geoglobe WebView
+
+Result: ~2 seconds per step, ~22 seconds total for the globe portion.
+
+**The fix**: a single post-loop pass rendering the *last-known state* for each unique TrackID — one `geoplot3` call per track at a fixed altitude of `TGT_ALT_M = 3000 m`, no altitude ribbon. For 10 unique tracks: 10 `geoplot3` calls total (down from ~715). Render time: < 1 second.
+
+**Why last-known-state and not final-step?** A track deleted partway through (e.g., T7, lost after Part 2) would be invisible if only the final step's confirmed tracks were rendered. "Last known" means the globe shows *every* track the system ever confirmed, at the last ellipse the KF was confident about — a complete picture of the engagement.
+
+### Why per-TrackID colours (not per-part colours)
+
+`plotBistaticEllipses3D.m` uses per-detection Doppler colour coding: the colour of each ellipse encodes the target's closing/opening speed at the moment of detection. This is useful for the raw CFAR ellipse view (no association) because it turns the globe into a speed map.
+
+The tracker's RD map and globe use per-TrackID colours from `TRK_ID_COLORS` (12-entry qualitative palette). The same colour appears on the track's filled circle in `render_rdm_step.m` and on its globe ellipse in the §7.5 loop. **The cross-reference is the key benefit**: an operator looking at both figures simultaneously can identify which range-Doppler blob corresponds to which geographic ellipse purely by colour, without needing to read the `T#` label.
+
+Multiple tracks can be simultaneously confirmed within the same file part (up to 10 in the Newton run). If part-colour were used, all contemporaneous tracks would be the same colour and be indistinguishable on either the RD map or the globe.
 
 ---
 

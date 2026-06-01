@@ -65,7 +65,8 @@ if isfield(config, 'ref_snr_threshold_db')
     config.ref_pilot_snr_threshold = config.ref_snr_threshold_db;
 end
 
-fprintf('Checking reference channel quality...\n');
+verbose = isfield(config, 'verbose') && config.verbose;
+if verbose, fprintf('Checking reference channel quality...\n'); end
 
 ref_flat = double(reference_cube(:));
 N_slow   = size(reference_cube, 2);
@@ -131,9 +132,11 @@ sfm_str   = sprintf('SFM = %.1f dB (threshold %.0f dB) [%s]', ...
     sfm_db, config.ref_sfm_threshold_db, passstr(sfm_pass));
 results.message = sprintf('%s  |  %s  |  %s', level_str, pilot_str, sfm_str);
 
-fprintf('  %s\n', level_str);
-fprintf('  %s\n', pilot_str);
-fprintf('  %s\n', sfm_str);
+if verbose
+    fprintf('  %s\n', level_str);
+    fprintf('  %s\n', pilot_str);
+    fprintf('  %s\n', sfm_str);
+end
 
 if ~results.pass
     if ~level_pass

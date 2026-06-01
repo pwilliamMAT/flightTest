@@ -42,14 +42,19 @@ function [all_detections, cfar_nf_db, rdm_before, rdm_after, ...
 %                       .cfar_options.nci_looks — same value
 
 %% A. Load IQ Data
-fprintf('  Loading IQ data from: %s\n', config.dataFile);
+verbose = isfield(config, 'verbose') && config.verbose;
+
+if verbose, fprintf('  Loading IQ data from: %s\n', config.dataFile); end
 [~, ~, ref_cube, surv_cube] = loadIQData( ...
     config.dataFile, config.numSamples, config.cpi_duration_s, config.fs, ...
-    struct('swap_channels', config.swap_channels));
+    struct('swap_channels', config.swap_channels, 'verbose', verbose));
+if ~verbose
+    fprintf('  Load .......  %d×%d IQ cube\n', size(ref_cube,1), size(ref_cube,2));
+end
 
 %% B. Reference Channel Quality Check
-fprintf('  Reference channel quality check...\n');
-checkRefQuality(ref_cube, config);
+if verbose, fprintf('  Reference channel quality check...\n'); end
+checkRefQuality(ref_cube, config);   % always prints PASS or WARNING
 
 %% C. Dimension Setup + DPI Lag Detection
 N_slow_cpi   = config.N_slow_cpi;
@@ -63,10 +68,16 @@ N_chunks     = floor(N_slow_total / N_slow_cpi);
 config.cfar_options.nci_looks = config.max_nci_looks;
 config.nci_looks               = config.max_nci_looks;
 
-fprintf('  Detecting DPI lag (first %d-CPI sub-chunk [%d × %d])...\n', ...
-    N_slow_cpi, N_fast_dim, N_slow_cpi);
+if verbose
+    fprintf('  Detecting DPI lag (first %d-CPI sub-chunk [%d \u00d7 %d])...\n', ...
+        N_slow_cpi, N_fast_dim, N_slow_cpi);
+end
 [~, ~, ~, dpi_lag] = createRDM(surv_cube(:, 1:N_slow_cpi), ...
-                                ref_cube(:, 1:N_slow_cpi), config.fs, config.prf);
+                                ref_cube(:, 1:N_slow_cpi), config.fs, config.prf, [], verbose);
+if ~verbose
+    fprintf('  DPI lag ....  %d samples  (%.0f km)\n', ...
+        dpi_lag, dpi_lag / config.fs * physconst('LightSpeed') / 1e3);
+end
 
 %% D. Sub-chunk ECA-C + Bounded Non-Coherent Integration
 %
@@ -80,8 +91,10 @@ fprintf('  Detecting DPI lag (first %d-CPI sub-chunk [%d × %d])...\n', ...
 % The full 10-look RDM is still accumulated for display and quality checks;
 % only the bounded per-block RDMs feed the CFAR detector.
 
-fprintf('  Bounded NCI (%d-look blocks, %d chunks) | DPI lag = %d samples:\n', ...
-    config.max_nci_looks, N_chunks, dpi_lag);
+if verbose
+    fprintf('  Bounded NCI (%d-look blocks, %d chunks) | DPI lag = %d samples:\n', ...
+        config.max_nci_looks, N_chunks, dpi_lag);
+end
 
 % Full-record power accumulators (display and quality-check only).
 rdm_power_before_full = zeros(N_fast_dim, N_slow_cpi);
@@ -103,16 +116,18 @@ for k_chunk = 1 : N_chunks
     surv_k  = surv_cube(:, col_idx);
     ref_k   = ref_cube(:,  col_idx);
 
-    fprintf('\n    === Chunk %d/%d | CPIs %d–%d ===\n', ...
-        k_chunk, N_chunks, col_idx(1), col_idx(end));
+    if verbose
+        fprintf('\n    === Chunk %d/%d | CPIs %d\u2013%d ===\n', ...
+            k_chunk, N_chunks, col_idx(1), col_idx(end));
+    end
 
     % createRDM returns amplitude-dB: rdm = 20*log10(|CAF| + eps).
     [rdm_k_before, doppler_axis, range_axis] = ...
-        createRDM(surv_k, ref_k, config.fs, config.prf, dpi_lag);
+        createRDM(surv_k, ref_k, config.fs, config.prf, dpi_lag, verbose);
 
-    surv_k_filt = mitigateClutter(surv_k, ref_k, dpi_lag);
+    surv_k_filt = mitigateClutter(surv_k, ref_k, dpi_lag, verbose);
 
-    rdm_k_after = createRDM(surv_k_filt, ref_k, config.fs, config.prf, dpi_lag);
+    rdm_k_after = createRDM(surv_k_filt, ref_k, config.fs, config.prf, dpi_lag, verbose);
 
     % Save Chunk 1 pre-mitigation RDM for the Rayleigh distribution check (C5).
     if k_chunk == 1, rdm_chunk1_before = rdm_k_before; end
@@ -165,13 +180,18 @@ for k_chunk = 1 : N_chunks
         % so betaincinv computes the correct Gamma(L, θ) threshold multiplier.
         opts_block           = config.cfar_options;
         opts_block.nci_looks = block_look_count;
+        opts_block.verbose   = verbose;
 
-        fprintf('\n    --- Block %d (%d-look, t_ctr=%.2f s) -> CFAR (whitened) ---\n', ...
-            block_num, block_look_count, block_center_s);
+        if verbose
+            fprintf('\n    --- Block %d (%d-look, t_ctr=%.2f s) -> CFAR (whitened) ---\n', ...
+                block_num, block_look_count, block_center_s);
+        end
         [blk_dets, ~, blk_nf_db] = detectTargets(rdm_block_w, range_axis, doppler_axis, ...
             config.cfar_pfa, config.cfar_guard_cells, [], config.cfar_min_range_m, opts_block);
-        fprintf('        Block %d: %d detection(s)  NF_abs=%.1f dB  NF_white=%.1f dB\n', ...
-            block_num, size(blk_dets, 1), abs_nf_block, blk_nf_db);
+        if verbose
+            fprintf('        Block %d: %d detection(s)  NF_abs=%.1f dB  NF_white=%.1f dB\n', ...
+                block_num, size(blk_dets, 1), abs_nf_block, blk_nf_db);
+        end
 
         if ~isempty(blk_dets)
             % Restore absolute power: detectTargets returns power on the whitened scale
@@ -214,7 +234,7 @@ cfar_nf_db = median(block_nf_dbs);
 config.cfar_noise_floor_db  = cfar_nf_db;
 config.single_look_noise_rdm = rdm_chunk1_before;   % for C5 Rayleigh check
 
-fprintf('\n  Done: %d detection(s) | %d blocks | NF=%.1f dB (median across blocks)\n', ...
+fprintf('  Done: %d detection(s) | %d blocks | NF=%.1f dB (median across blocks)\n', ...
     size(all_detections, 1), block_num, cfar_nf_db);
 
 end

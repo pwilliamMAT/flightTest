@@ -1,4 +1,4 @@
-function [surv_cube_filtered] = mitigateClutter(surveillance_cube, reference_cube, dpi_lag_in)
+function [surv_cube_filtered] = mitigateClutter(surveillance_cube, reference_cube, dpi_lag_in, verbose)
 % mitigateClutter  Removes direct-path interference (DPI) and zero-Doppler
 %                  clutter via a two-stage ECA-C implementation.
 %
@@ -47,7 +47,10 @@ function [surv_cube_filtered] = mitigateClutter(surveillance_cube, reference_cub
 %   - surv_cube_filtered: [N_fast x N_slow] with DPI and zero-Doppler clutter
 %                         suppressed.
 
-fprintf('Applying ECA-C clutter mitigation...\n');
+if nargin < 4, verbose = true; end   % default: print (backward-compatible)
+if nargin < 3, dpi_lag_in = []; end
+
+if verbose, fprintf('Applying ECA-C clutter mitigation...\n'); end
 
 [N_fast, N_slow] = size(surveillance_cube);
 
@@ -58,7 +61,7 @@ fprintf('Applying ECA-C clutter mitigation...\n');
 % Detect or accept the DPI lag (integer sample count).
 if nargin >= 3 && ~isempty(dpi_lag_in)
     dpi_lag = dpi_lag_in;
-    fprintf('  Using supplied DPI lag: %d samples\n', dpi_lag);
+    if verbose, fprintf('  Using supplied DPI lag: %d samples\n', dpi_lag); end
 else
     % Auto-detect: same zero-padded cross-correlation as createRDM uses.
     N_fft_xc = 2^nextpow2(2*N_fast + 10000);
@@ -66,7 +69,7 @@ else
                      conj(fft(reference_cube(:,1), N_fft_xc)) );
     [~, dpi_idx] = max(abs(xc_first));
     dpi_lag = dpi_idx - 1;   % convert 1-based index to 0-based lag
-    fprintf('  Auto-detected DPI lag: %d samples\n', dpi_lag);
+    if verbose, fprintf('  Auto-detected DPI lag: %d samples\n', dpi_lag); end
 end
 
 % Build the aligned reference cube.
@@ -95,7 +98,9 @@ end
 % =========================================================================
 % STAGE 1: ECA — frequency-domain DPI cancellation
 % =========================================================================
-fprintf('  Stage 1: ECA frequency-domain DPI cancellation (lag=%d samples)...\n', dpi_lag);
+if verbose
+    fprintf('  Stage 1: ECA frequency-domain DPI cancellation (lag=%d samples)...\n', dpi_lag);
+end
 
 SURV_F = fft(surveillance_cube, [], 1);    % [N_fast x N_slow]
 REF_F  = fft(ref_aligned_cube,  [], 1);   % [N_fast x N_slow]  ← time-aligned
@@ -120,8 +125,10 @@ surv_eca   = ifft(SURV_F_eca, [], 1);     % [N_fast x N_slow], complex
 %   N_slow=2000 (1 Hz/bin)  → N_cancel=3  (±3 bins = ±3 Hz)
 %   N_slow=200  (10 Hz/bin) → N_cancel=1  (±1 bin  = ±10 Hz)
 N_cancel = max(1, round(3 * N_slow / 2000));
-fprintf('  Stage 2: Zero-Doppler slow-time subspace notch (N_slow=%d → N_cancel=%d, notch %c%d bins)...\n', ...
-    N_slow, N_cancel, char(177), N_cancel);
+if verbose
+    fprintf('  Stage 2: Zero-Doppler slow-time subspace notch (N_slow=%d \u2192 N_cancel=%d, notch %c%d bins)...\n', ...
+        N_slow, N_cancel, char(177), N_cancel);
+end
 
 k_vec = (-N_cancel:N_cancel).';    % [(2*N_cancel+1) x 1] bin indices
 t_vec = (0:N_slow-1);              % [1 x N_slow] slow-time sample indices
@@ -137,6 +144,6 @@ VVH_inv_V  = (V * V') \ V;         % [7 x N_slow]
 proj_coeff = surv_eca * V';        % [N_fast x 7]
 surv_cube_filtered = surv_eca - proj_coeff * VVH_inv_V;   % [N_fast x N_slow]
 
-fprintf('ECA-C clutter mitigation complete.\n');
+if verbose, fprintf('ECA-C clutter mitigation complete.\n'); end
 
 end

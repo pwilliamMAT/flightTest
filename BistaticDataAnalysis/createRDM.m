@@ -1,4 +1,4 @@
-function [rdm, doppler_axis, range_axis, dpi_lag] = createRDM(surv_cube, ref_cube, fs, prf, dpi_lag_in)
+function [rdm, doppler_axis, range_axis, dpi_lag] = createRDM(surv_cube, ref_cube, fs, prf, dpi_lag_in, verbose)
 % createRDM  Generates a Range-Doppler Map via the Cross-Ambiguity Function (CAF).
 %
 %   [rdm, doppler_axis, range_axis] = createRDM(surv_cube, ref_cube, fs, prf)
@@ -30,7 +30,10 @@ function [rdm, doppler_axis, range_axis, dpi_lag] = createRDM(surv_cube, ref_cub
 %   - range_axis:   Bistatic range axis in metres (length = fast_time_samples).
 %
 
-fprintf('Generating Range-Doppler Map via Cross-Ambiguity Function (CAF)...\n');
+if nargin < 6, verbose = true; end   % default: print everything (backward-compatible)
+if nargin < 5, dpi_lag_in = []; end
+
+if verbose, fprintf('Generating Range-Doppler Map via Cross-Ambiguity Function (CAF)...\n'); end
 
 [N_fast, N_slow] = size(surv_cube);
 c = physconst('LightSpeed');
@@ -61,8 +64,10 @@ range_profiles = zeros(N_fast, N_slow);
 % Otherwise auto-detect from the strongest peak in the first CPI.
 if nargin >= 5 && ~isempty(dpi_lag_in)
     dpi_lag = dpi_lag_in;
-    fprintf('  Using supplied DPI lag: %d samples (%.3f ms, %.1f km equivalent)\n', ...
-        dpi_lag, dpi_lag/fs*1e3, dpi_lag/fs*c/1e3);
+    if verbose
+        fprintf('  Using supplied DPI lag: %d samples (%.3f ms, %.1f km equivalent)\n', ...
+            dpi_lag, dpi_lag/fs*1e3, dpi_lag/fs*c/1e3);
+    end
 else
     xc_first = ifft( fft(surv_cube(:,1), N_fft_range) .* ...
                      conj(fft(ref_cube(:,1), N_fft_range)) );
@@ -100,8 +105,10 @@ else
         dpi_lag = 0;
     end
 
-    fprintf('  Detected DPI lag: %d samples (%.3f ms, %.1f km equiv.) | P/N = %.1f dB\n', ...
-        dpi_lag, dpi_lag/fs*1e3, dpi_lag/fs*c/1e3, peak_to_noise_db);
+    if verbose
+        fprintf('  Detected DPI lag: %d samples (%.3f ms, %.1f km equiv.) | P/N = %.1f dB\n', ...
+            dpi_lag, dpi_lag/fs*1e3, dpi_lag/fs*c/1e3, peak_to_noise_db);
+    end
 end
 
 % Guard: window must not exceed the FFT output buffer
@@ -158,6 +165,6 @@ doppler_axis = linspace(-prf/2, prf/2, N_slow);   % [Hz], row vector
 % flooring the minimum representable level at ~-300 dB.
 rdm = 20 * log10(abs(rdm_complex) + eps);
 
-fprintf('RDM generation complete.\n');
+if verbose, fprintf('RDM generation complete.\n'); end
 
 end

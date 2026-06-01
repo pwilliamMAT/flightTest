@@ -23,7 +23,8 @@ function plotBistaticEllipses3D(txLLA, rxLLA, detectionTable, varargin)
 %       assumed target altitude.
 %    3. Back-projects via enu2geodetic to (lat, lon, alt).
 %    4. Plots all contours on a geoglobe (3-D globe) or geoaxes (2-D map
-%       fallback), colour-coded Part1=blue, Part2=green, Part3=magenta.
+%       fallback), colour-coded by Doppler frequency (approaching = cold,
+%       receding = warm) so each ellipse conveys the target speed.
 %
 % ── SYNTAX ──────────────────────────────────────────────────────────────
 %   plotBistaticEllipses3D(txLLA, rxLLA, detectionTable)
@@ -59,8 +60,11 @@ function plotBistaticEllipses3D(txLLA, rxLLA, detectionTable, varargin)
 %   Basemap         Basemap string for geoglobe/geoaxes.  Default: 'satellite'.
 %                   Options: 'topographic', 'openstreetmap', 'streets-light'.
 %
-%   PartColors      [Nparts×3] RGB colour array, one row per unique part.
-%                   Default: [blue; green; magenta].
+%   DopplerColormap MATLAB colormap name used to colour ellipses by the
+%                   detection's Doppler frequency.  Cold end = most-negative
+%                   Doppler (approaching target); warm end = most-positive
+%                   (receding target).  Default: 'jet'.
+%                   Options: 'parula', 'cool', 'turbo', 'hsv', etc.
 %
 %   LineWidth       Ellipse contour line width (pts).  Default: 2.
 %
@@ -90,20 +94,18 @@ addRequired(p, 'rxLLA',  @(x) isnumeric(x) && numel(x) == 3);
 addRequired(p, 'detectionTable', ...
     @(x) (isnumeric(x) && size(x,2) >= 6) || istable(x));
 
-% Default colour table: Part1=blue, Part2=green, Part3=magenta
-defaultColors = [0.20, 0.45, 0.90; ...  % Part 1 - blue
-                 0.10, 0.75, 0.30; ...  % Part 2 - green
-                 0.85, 0.10, 0.85];    % Part 3 - magenta
-
-addParameter(p, 'TargetAlt_m',    3000,         @(x) isnumeric(x) && all(x(:) >= 0));
-addParameter(p, 'NEllipsePoints',  360,          @(x) isnumeric(x) && isscalar(x) && x >= 10);
-addParameter(p, 'Basemap',        'satellite',   @ischar);
-addParameter(p, 'PartColors',      defaultColors, @(x) isnumeric(x) && size(x,2) == 3);
-addParameter(p, 'LineWidth',       2,             @(x) isnumeric(x) && isscalar(x));
-addParameter(p, 'Use2DFallback',   false,         @islogical);
+addParameter(p, 'TargetAlt_m',    3000,      @(x) isnumeric(x) && all(x(:) >= 0));
+addParameter(p, 'NEllipsePoints',  360,       @(x) isnumeric(x) && isscalar(x) && x >= 10);
+addParameter(p, 'Basemap',        'satellite', @ischar);
+addParameter(p, 'DopplerColormap', 'jet',      @ischar);
+addParameter(p, 'LineWidth',       2,          @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'Use2DFallback',   false,      @islogical);
+addParameter(p, 'Verbose',         false,      @islogical);
+addParameter(p, 'ADSBTracks',      [],         @(x) isstruct(x) || isempty(x));
 
 parse(p, txLLA, rxLLA, detectionTable, varargin{:});
 opts = p.Results;
+vb   = opts.Verbose;   % shorthand for verbose flag
 
 % Convert table -> matrix if needed
 if istable(detectionTable)
@@ -113,6 +115,7 @@ else
 end
 
 range_m  = dtMat(:, 1);
+dopp_hz  = dtMat(:, 2);
 t_abs_s  = dtMat(:, 5);
 part_idx = round(dtMat(:, 6));
 N_dets   = size(dtMat, 1);
@@ -157,10 +160,12 @@ R2 = [cos(theta), -sin(theta);
 midE = txE / 2;
 midN = txN / 2;
 
-fprintf('\n[%s] Bistatic geometry:\n', mfilename);
-fprintf('  Tx ENU from Rx  :  E=%.1f m,  N=%.1f m,  U=%.1f m\n', txE, txN, txU);
-fprintf('  Baseline L      :  %.3f km   bearing  %.1f° (CCW from East)\n', ...
-    L/1e3, rad2deg(theta));
+if vb
+    fprintf('\n[%s] Bistatic geometry:\n', mfilename);
+    fprintf('  Tx ENU from Rx  :  E=%.1f m,  N=%.1f m,  U=%.1f m\n', txE, txN, txU);
+    fprintf('  Baseline L      :  %.3f km   bearing  %.1f\u00b0 (CCW from East)\n', ...
+        L/1e3, rad2deg(theta));
+end
 
 % =========================================================================
 %  2.  Parametric Ellipse Contours — Geodetic Back-Projection
@@ -232,35 +237,38 @@ end
 % =========================================================================
 %  3.  Visualisation
 % =========================================================================
+% ── Per-detection Doppler colour mapping ─────────────────────────────────
+%   Each ellipse is coloured by the detection's Doppler frequency so the
+%   globe gives an at-a-glance speed map of every CFAR hit:
+%     cold end of the colormap  →  most-negative Doppler  (approaching)
+%     warm end of the colormap  →  most-positive Doppler  (receding)
+N_clr      = 256;
+cmap_table = feval(opts.DopplerColormap, N_clr);   % [256 × 3] RGB
+dopp_lo = min(dopp_hz);
+dopp_hi = max(dopp_hz);
+if dopp_lo == dopp_hi
+    dopp_lo = dopp_lo - 1;   % guard against zero-range colourmap
+    dopp_hi = dopp_hi + 1;
+end
+dopp_norm  = (dopp_hz - dopp_lo) ./ (dopp_hi - dopp_lo);   % [0, 1]
+color_idx  = max(1, min(N_clr, floor(dopp_norm * (N_clr - 1)) + 1));
+det_colors = cmap_table(color_idx, :);   % [N_dets × 3] — one RGB row per detection
+
 parts   = unique(part_idx, 'sorted');
 N_parts = numel(parts);
 
-% Pad the colour table if there are more parts than pre-defined colours
-clr_map = opts.PartColors;
-while size(clr_map, 1) < N_parts
-    extra_hue = (size(clr_map, 1)) / (N_parts + 1);
-    clr_map(end+1, :) = hsv2rgb([extra_hue, 0.85, 0.90]); %#ok<AGROW>
-end
-
-% ── Decide 3-D globe or 2-D map fallback ────────────────────────────────
-%   geoglobe (Mapping Toolbox, R2020b+) is used for 3-D globe rendering of
-%   geographic line contours (geoplot3).  trackingGlobeViewer is reserved
-%   for Step 7, where objectTrack outputs from trackerGNN will be passed to
-%   plotTrack/plotDetection.  Fall back to geoaxes 2-D if geoglobe is
-%   absent or the user explicitly requests 2-D.
+% ── Decide 3-D globe or 2-D map fallback ─────────────────────────────────
 use_globe = ~opts.Use2DFallback && ...
     (exist('geoglobe', 'file') == 2 || exist('geoglobe', 'builtin') == 3);
 
 if use_globe
-    % ── 3-D geoglobe ──────────────────────────────────────────────────
     uif  = uifigure( ...
         'Name',     'Passive Bistatic Radar — Ellipse Trajectory (3D Globe)', ...
         'Position', [50, 50, 1280, 720]);
     gObj = geoglobe(uif, 'Basemap', opts.Basemap, 'Terrain', 'gmted2010');
     hold(gObj, 'on');
-    fprintf('[%s] Rendering on geoglobe 3-D globe.\n', mfilename);
+    if vb, fprintf('[%s] Rendering on geoglobe 3-D globe.\n', mfilename); end
 else
-    % ── 2-D geoaxes fallback ──────────────────────────────────────────
     figH = figure( ...
         'Name',     'Passive Bistatic Radar — Ellipse Trajectory (2D Map)', ...
         'Position', [50, 50, 1280, 720]);
@@ -271,96 +279,66 @@ else
 end
 
 % ── Station markers ──────────────────────────────────────────────────────
-%   Tx = red upward triangle  (▲)   Rx = blue square (■)
-%   The small altitude offset (+200 m) keeps markers above the terrain tile.
 if use_globe
-    % geoglobe only supports marker 'none' or 'o' — circles used for both
-    % stations; Tx is larger to distinguish from Rx.
     geoplot3(gObj, txLLA(1), txLLA(2), txLLA(3)+200, ...
         'ro', 'MarkerSize', 16, 'LineWidth', 2);
     geoplot3(gObj, rxLLA(1), rxLLA(2), rxLLA(3)+200, ...
         'bo', 'MarkerSize', 12, 'LineWidth', 2);
-    % Baseline connecting Tx and Rx (geoglobe only supports '-' or 'none')
     geoplot3(gObj, [txLLA(1), rxLLA(1)], [txLLA(2), rxLLA(2)], ...
         [txLLA(3)+50, rxLLA(3)+50], 'w-', 'LineWidth', 1);
 else
-    % Store handles so they can be reused directly in the legend
     h_tx_marker = geoplot(gObj, txLLA(1), txLLA(2), ...
         'r^', 'MarkerSize', 14, 'MarkerFaceColor', 'red', 'LineWidth', 2, ...
-        'DisplayName', 'Tx -- HDTV Tower');
+        'DisplayName', 'Tx — HDTV Tower');
     h_rx_marker = geoplot(gObj, rxLLA(1), rxLLA(2), ...
         'bs', 'MarkerSize', 12, 'MarkerFaceColor', [0.20 0.45 0.90], 'LineWidth', 2, ...
-        'DisplayName', 'Rx -- Surveillance Site');
+        'DisplayName', 'Rx — Surveillance Site');
     geoplot(gObj, [txLLA(1), rxLLA(1)], [txLLA(2), rxLLA(2)], ...
         'w--', 'LineWidth', 1, 'HandleVisibility', 'off');
 end
 
-% ── Ellipse contours per file part ──────────────────────────────────────
-legend_h      = gobjects(0);   % collects one representative handle per part
-legend_labels = {};
-
-for p_i = 1 : N_parts
-    ip   = parts(p_i);
-    clr  = clr_map(p_i, :);
-    mask = (part_idx == ip);
-    kidx = find(mask);
-    t_lo = min(t_abs_s(mask));
-    t_hi = max(t_abs_s(mask));
-
-    part_label = sprintf('Part %d  |  t = %.2f – %.2f s  |  %d det.', ...
-        ip, t_lo, t_hi, numel(kidx));
-
-    first_drawn = false;   % used to tag exactly one handle for the legend
-
-    for j = 1 : numel(kidx)
-        k = kidx(j);
-
-        % Skip non-physical detections flagged during computation
-        if isscalar(ellipse_lat{k}) && isnan(ellipse_lat{k})
-            continue
+% ── Ellipse contours — one per detection, coloured by Doppler ────────────
+for k = 1 : N_dets
+    if isscalar(ellipse_lat{k}) && isnan(ellipse_lat{k})
+        continue
+    end
+    clr = det_colors(k, :);
+    if use_globe
+        lat_row    = ellipse_lat{k}';
+        lon_row    = ellipse_lon{k}';
+        N_pts      = numel(lat_row);
+        ribbon_bot = tgt_alt(k) - 250;
+        ribbon_top = tgt_alt(k) + 250;
+        for alt_step = ribbon_bot : 50 : ribbon_top
+            geoplot3(gObj, lat_row, lon_row, ...
+                alt_step * ones(1, N_pts), ...
+                'Color', clr, 'LineWidth', opts.LineWidth);
         end
-
-        % Only the first contour of each part appears in the legend;
-        % the rest set HandleVisibility='off' to keep the legend clean.
-        if ~first_drawn
-            hv = 'on';
-            first_drawn = true;
-        else
-            hv = 'off';
-        end
-
-        if use_globe
-            % Render iso-range contour as a 500-m vertical ribbon by
-            % stacking geoplot3 rings every 50 m from tgt_alt-250 to
-            % tgt_alt+250.  geoplot3 on geoglobe requires row-vector
-            % inputs, so transpose the column-vector geodetic arrays.
-            lat_row = ellipse_lat{k}';          % [1 × NEllipsePoints]
-            lon_row = ellipse_lon{k}';
-            N_pts   = numel(lat_row);
-            ribbon_bot = tgt_alt(k) - 250;
-            ribbon_top = tgt_alt(k) + 250;
-            for alt_step = ribbon_bot : 50 : ribbon_top
-                geoplot3(gObj, lat_row, lon_row, ...
-                    alt_step * ones(1, N_pts), ...
-                    'Color', clr, 'LineWidth', 1.5);
-            end
-        else
-            h = geoplot(gObj, ellipse_lat{k}, ellipse_lon{k}, ...
-                'Color', clr, 'LineWidth', opts.LineWidth, ...
-                'DisplayName', part_label, 'HandleVisibility', hv);
-        end
-
-        if strcmp(hv, 'on') && ~use_globe && isvalid(h)
-            legend_h(end+1)      = h;         %#ok<AGROW>
-            legend_labels{end+1} = part_label; %#ok<AGROW>
-        end
+    else
+        geoplot(gObj, ellipse_lat{k}, ellipse_lon{k}, ...
+            'Color', clr, 'LineWidth', opts.LineWidth, ...
+            'HandleVisibility', 'off');
     end
 end
 
-% ── Legend, title, grid ──────────────────────────────────────────────────
+% ── Doppler colour-scale legend (companion figure, works for both modes) ──
+fig_cb = figure('Name', 'Doppler Colour Scale', ...
+    'Position',  [1340, 50, 90, 420], ...
+    'Color',     [0.12, 0.12, 0.12], ...
+    'MenuBar',   'none', ...
+    'ToolBar',   'none');
+ax_cb = axes(fig_cb, 'Position', [0.05, 0.05, 0.35, 0.88], ...
+    'Visible', 'off', 'Color', 'none');
+colormap(ax_cb, cmap_table);
+clim(ax_cb, [dopp_lo, dopp_hi]);
+cb              = colorbar(ax_cb, 'eastoutside');
+cb.Label.String = 'Doppler  (Hz)';
+cb.Label.Color  = [0.90, 0.90, 0.90];
+cb.Color        = [0.90, 0.90, 0.90];
+cb.FontSize     = 10;
+
+% ── Title / console summary ───────────────────────────────────────────────
 if use_globe
-    % geoglobe does not expose a legend object; print a labelled console summary.
-    % Attempt to centre the camera above the scene midpoint.
     scene_lat = mean([txLLA(1), rxLLA(1)]);
     scene_lon = mean([txLLA(2), rxLLA(2)]);
     try
@@ -368,50 +346,63 @@ if use_globe
     catch
         % campos unavailable in this MATLAB version — keep default view
     end
-
     fprintf('\n─── FIGURE LEGEND ───────────────────────────────────────\n');
-    fprintf('  Red  ▲  : Tx — HDTV Tower      [%.4f°, %.4f°, %.0f m]\n', ...
+    fprintf('  Tx  [%.4f°, %.4f°, %.0f m MSL]  (red  circle)\n', ...
         txLLA(1), txLLA(2), txLLA(3));
-    fprintf('  Blue ■  : Rx — Surveillance     [%.4f°, %.4f°, %.0f m]\n', ...
+    fprintf('  Rx  [%.4f°, %.4f°, %.0f m MSL]  (blue circle)\n', ...
         rxLLA(1), rxLLA(2), rxLLA(3));
     fprintf('  Baseline L = %.3f km\n', L/1e3);
-    for p_i = 1 : N_parts
-        ip   = parts(p_i);
-        clr  = clr_map(p_i, :);
-        mask = (part_idx == ip);
-        fprintf('  RGB [%.2f %.2f %.2f]  :  Part %d  (t=%.2f–%.2f s, %d dets)\n', ...
-            clr(1), clr(2), clr(3), ip, ...
-            min(t_abs_s(mask)), max(t_abs_s(mask)), sum(mask));
-    end
+    fprintf('  Colour = Doppler (Hz)   map: %s\n', opts.DopplerColormap);
+    fprintf('  %.1f Hz (cold / approaching)  →  %.1f Hz (warm / receding)\n', ...
+        dopp_lo, dopp_hi);
     fprintf('─────────────────────────────────────────────────────────\n');
-
 else
-    % Traditional geoaxes: full legend, title, grid
     hold(gObj, 'off');
-
-    % Reuse the Tx/Rx handles created earlier (stored as h_tx_marker /
-    % h_rx_marker) so we do not add extra invisible glyphs to the axes.
-    all_h = [h_tx_marker; h_rx_marker; legend_h(:)];
-    all_labels = [{'Tx -- HDTV Tower'; 'Rx -- Surveillance Site'}; legend_labels(:)];
-    valid_mask = isvalid(all_h);
-    all_h      = all_h(valid_mask);
-    all_labels = all_labels(valid_mask);
-
-    legend(gObj, all_h, all_labels, ...
+    legend(gObj, [h_tx_marker, h_rx_marker], ...
+        {'Tx — HDTV Tower', 'Rx — Surveillance Site'}, ...
         'Location',  'northwest', ...
         'FontSize',   9, ...
-        'Color',      [0.10 0.10 0.10], ...
+        'Color',      [0.10, 0.10, 0.10], ...
         'TextColor',  'white');
-
     title(gObj, sprintf( ...
-        'Bistatic Range Ellipses — %d detections  |  %d file parts  |  L=%.1f km', ...
+        'Bistatic Ellipses — %d det.  |  %d parts  |  L=%.1f km  |  colour = Doppler (Hz)', ...
         N_dets, N_parts, L/1e3));
-
     grid(gObj, 'on');
 end
 
-fprintf('[%s] Complete — rendered %d ellipses across %d parts.\n\n', ...
-    mfilename, N_dets, N_parts);
+fprintf('[%s] Complete — rendered %d ellipses  (Doppler: %.1f to %.1f Hz).\n\n', ...
+    mfilename, N_dets, dopp_lo, dopp_hi);
+
+% ── ADS-B truth track overlay (optional) ────────────────────────────────
+%  Pass 'ADSBTracks', adsb_bistatic (from adsbToBistatic) to overlay each
+%  aircraft's geographic path on the basemap for visual cross-check.
+if ~isempty(opts.ADSBTracks)
+    ac_clr = lines(numel(opts.ADSBTracks));
+    for ka = 1 : numel(opts.ADSBTracks)
+        ac = opts.ADSBTracks(ka);
+        if isempty(ac.lat_deg) || numel(ac.lat_deg) < 2
+            continue
+        end
+        alt_plot = ac.alt_m + 200;   % 200 m lift so path sits above terrain
+        if use_globe
+            geoplot3(gObj, ac.lat_deg, ac.lon_deg, alt_plot, ...
+                '-', 'Color', ac_clr(ka, :), 'LineWidth', 2);
+        else
+            geoplot(gObj, ac.lat_deg, ac.lon_deg, ...
+                '-', 'Color', ac_clr(ka, :), 'LineWidth', 2);
+        end
+        label_ac = ac.callsign;
+        if isempty(strtrim(label_ac))
+            label_ac = ac.hex;
+        end
+        if vb
+            fprintf('[%s]   ADS-B track: %s (%s)  %d fixes\n', ...
+                mfilename, label_ac, ac.hex, numel(ac.lat_deg));
+        end
+    end
+    fprintf('[%s] ADS-B overlay: %d aircraft tracks drawn.\n', ...
+        mfilename, numel(opts.ADSBTracks));
+end
 
 end  % ════════════════════ end plotBistaticEllipses3D ════════════════════
 
