@@ -4,31 +4,43 @@ function log_iq_n320_2antennas(varargin)
 %
 % Example run:
 % matlab -batch "log_iq_n320_2antennas('radio','My USRP N320','cf',540e6,'sr',6.144e6,'lo',200e3,'gain',30,'dur',10,'file','n320_dual_capture.bb')"
-%% 1. Auto-Configure Network for N320 Jumbo Frames
+%% 1. Auto-Configure System for N320 Capture
+% All three settings are persisted at boot via system configuration:
+%   A. MTU 9000       — NetworkManager profile (nmcli connection modify)
+%   B. CPU governor   — /etc/systemd/system/cpu-performance.service
+%   C. Socket buffers — /etc/sysctl.d/99-usrp-n320.conf
+% sudo -n is used here so that if a setting ever reverts, the call fails
+% immediately with a warning rather than hanging (no TTY in matlab -batch).
 if isunix
     intf = 'eno1'; %'enxa0cec8c28955'; <- if using USB Dongle
-    % A. Jumbo Frames
-    % Check current MTU
-    [~, result] = system(['ifconfig ', intf]);
-    if ~contains(result, 'mtu 9000')
-        fprintf('Optimizing network for N320 (MTU 9000)...\n');
-        % Note: This requires 'sudo' to be passwordless for this command
-        % or run the MATLAB session with appropriate permissions.
-        system(['sudo ip link set ', intf, ' mtu 9000']);
-    % B. CPU Performance Mode (Prevent "O" Overruns)
-    % This forces the CPU out of power-save mode to handle 10GbE interrupts instantly
-    fprintf('Setting CPU governor to "performance"...\n');
-    system('sudo cpupower frequency-set -g performance');
 
-    % C. Kernel Network Buffers (The "Shock Absorber")
-    % Increases the socket receive buffer to 49MB to survive disk write stutters
-    fprintf('Increasing Linux network socket buffers (rmem)...\n');
-    system('sudo sysctl -w net.core.rmem_max=50000000');
-    system('sudo sysctl -w net.core.wmem_max=50000000');
+    % A. Jumbo Frames — only set if not already 9000
+    [~, result] = system(['ip link show ', intf]);
+    if ~contains(result, 'mtu 9000')
+        fprintf('Setting MTU 9000 on %s...\n', intf);
+        rc = system(['sudo -n ip link set ', intf, ' mtu 9000']);
+        if rc ~= 0
+            warning('MTU set failed (rc=%d). Run: sudo ip link set %s mtu 9000', rc, intf);
+        end
     else
-        fprintf('Network already optimized (MTU 9000).\n');
+        fprintf('MTU already 9000 on %s.\n', intf);
     end
 
+    % B. CPU Performance Mode — always apply (managed by cpu-performance.service at boot)
+    % Prevents "O" overruns by keeping CPU out of power-save during 10GbE interrupts
+    fprintf('Confirming CPU governor = performance...\n');
+    rc = system('sudo -n cpupower frequency-set -g performance > /dev/null 2>&1');
+    if rc ~= 0
+        warning('CPU governor set failed (rc=%d). Check: systemctl status cpu-performance', rc);
+    end
+
+    % C. Kernel Network Buffers — always apply (managed by /etc/sysctl.d/99-usrp-n320.conf at boot)
+    % 50MB socket buffer absorbs disk write stutters during high-rate capture
+    fprintf('Confirming kernel socket buffers (rmem/wmem = 50MB)...\n');
+    rc = system('sudo -n sysctl -w net.core.rmem_max=50000000 net.core.wmem_max=50000000 > /dev/null 2>&1');
+    if rc ~= 0
+        warning('sysctl buffer set failed (rc=%d). Check: /etc/sysctl.d/99-usrp-n320.conf', rc);
+    end
 end
 
 fprintf('Starting Dual-Channel Capture Setup...\n')
