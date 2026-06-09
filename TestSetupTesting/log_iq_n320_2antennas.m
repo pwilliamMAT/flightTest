@@ -4,43 +4,50 @@ function log_iq_n320_2antennas(varargin)
 %
 % Example run:
 % matlab -batch "log_iq_n320_2antennas('radio','My USRP N320','cf',540e6,'sr',6.144e6,'lo',200e3,'gain',30,'dur',10,'file','n320_dual_capture.bb')"
+%% 1. Auto-Configure Network for N320 Jumbo Frames
+if isunix
+    intf = 'eno1'; %'enxa0cec8c28955'; <- if using USB Dongle
+    % A. Jumbo Frames
+    % Check current MTU
+    [~, result] = system(['ifconfig ', intf]);
+    if ~contains(result, 'mtu 9000')
+        fprintf('Optimizing network for N320 (MTU 9000)...\n');
+        % Note: This requires 'sudo' to be passwordless for this command
+        % or run the MATLAB session with appropriate permissions.
+        system(['sudo ip link set ', intf, ' mtu 9000']);
+    % B. CPU Performance Mode (Prevent "O" Overruns)
+    % This forces the CPU out of power-save mode to handle 10GbE interrupts instantly
+    fprintf('Setting CPU governor to "performance"...\n');
+    system('sudo cpupower frequency-set -g performance');
 
-% 1. Are we truly time-synced?
-% Yes. Your latest Coherence Test proved it - see "check_dual_channel_coherence".
-% The fact that your correlation peak appeared at exactly 0.00us confirms this. 
-% If the antennas were not time-synced, that spike would be shifted significantly to 
-% the left or right, or it wouldn't exist at all.
+    % C. Kernel Network Buffers (The "Shock Absorber")
+    % Increases the socket receive buffer to 49MB to survive disk write stutters
+    fprintf('Increasing Linux network socket buffers (rmem)...\n');
+    system('sudo sysctl -w net.core.rmem_max=50000000');
+    system('sudo sysctl -w net.core.wmem_max=50000000');
+    else
+        fprintf('Network already optimized (MTU 9000).\n');
+    end
 
-% This means the electrical delay between your two antenna paths is smaller 
-% than one sample period (1 / 6.144MHz  or approx 162ns)
-
-% Delay leads to range resolution -> 300m/us (light speed) * 162ns = 48.6m
-% (BISTATIC RANGE RESOLUTION)
-% Distance Error considered +/- 1/2 Sample Interval, so:
-% Distance Error = c * Ts/2 = c/(2*Fs) = 24.4m
-% REMINDER: Sampling Jitter, SNR-Dependent Error, and Bistatic Geometry may
-% also affect the Total System Error
-
-% Via Parabolic Interpolation, we can theoretically reduce the timing error
-% to 1/10th of a sample.  Resulting in approx 16ns delay or approx 5m error
-% NOT YET IMPLEMENTED 12/29
-
-% In the N320 architecture, when you initialize both channels simultaneously, 
-% the hardware uses a Common Local Oscillator (LO).
-
-% Note - Minimum RF center frequency for time sync = 450MHz
+end
 
 fprintf('Starting Dual-Channel Capture Setup...\n')
 
 % -------- Parameters --------
-args = struct('radio',"", 'cf',540e6, 'sr',6.144e6, 'lo',200e3, 'gain',30, ...
-              'dur',10, 'file',"");
+args = struct('radio',"", 'cf',599e6, 'sr',8e6, 'lo',200e3, 'gain',30, ...
+              'dur',10, 'reps', 1, 'repspace', 1.0, 'file',"");
           
 for k = 1:2:numel(varargin)
     key = varargin{k};
     val = varargin{k+1};
     if isfield(args,key), args.(key) = val; else, error("Unknown argument '%s'.", key); end
 end
+
+dtg = string(datetime('now','Format','yyyy-MM-dd_HH-mm-ss.SSS'));
+
+fprintf('date time group (DTG) for this capture: %s\n', dtg);
+
+
 
 % -------- Initialize Radio --------
 if args.radio == ""
@@ -49,9 +56,6 @@ if args.radio == ""
     args.radio = string(cfgs(1).Name);
 end
 
-if args.file == ""
-    args.file = sprintf("dual_ch_%s_%.0fMHz.bb", args.radio, args.cf/1e6);
-end
 
 % Create Receiver
 bbrx = basebandReceiver(args.radio);
@@ -77,7 +81,8 @@ end
 
 % Explicitly set two antennas for coherent capture
 % Usually: antList(1) is RX1, antList(2) is RX2
-bbrx.Antennas = {antList{1}, antList{2}}; 
+%bbrx.Antennas = {antList{1}, antList{2}}; 
+bbrx.Antennas = string(antList(1:2));
 fprintf('Selected Antennas: %s and %s\n', bbrx.Antennas{1}, bbrx.Antennas{2});
 
 % -------- Estimate Size (Double for 2 channels) --------
@@ -90,25 +95,38 @@ fprintf('Planned: %.2f s @ %.3f MSps (2 Ch) → ~%.2f GB\n', ...
 meta = struct('Label','Passive_Radar_Dual_Channel', ...
               'Antenna1', bbrx.Antennas{1}, ...
               'Antenna2', bbrx.Antennas{2}, ...
-              'LOOffset', args.lo);
+              'LOOffset', args.lo, ...
+              'DateTime', dtg, ...
+              'Repetition', 0); % Repetition will be updated in loop
 
-bbw = comm.BasebandFileWriter(args.file, ...
-        'SampleRate',      bbrx.SampleRate, ...
-        'CenterFrequency', args.cf, ...
-        'Metadata',        meta);
 
 % -------- Capture Loop --------
 seg = seconds(1); 
 nSeg = ceil(args.dur / seconds(seg));
 
-for i = 1:nSeg
-    if i == 1, fprintf('Collection Started...\n'); end
-    
-    % Capture returns [N x 2] complex matrix when 2 antennas are set
-    data = capture(bbrx, seg); 
-    
-    % Write dual-channel data directly to file
-    bbw(data);
+for rr = 1:args.reps
+    fprintf('--- Capture Round %d of %d ---\n', rr, args.reps);
+    meta.DateTime = string(datetime('now','Format','yyyy-MM-dd_HH-mm-ss.SSS'));
+    meta.Repetition = rr;
+    bbw = comm.BasebandFileWriter(args.file + "_" + string(rr), ...
+            'SampleRate',      bbrx.SampleRate, ...
+            'CenterFrequency', args.cf, ...
+            'Metadata',        meta);
+
+    for i = 1:nSeg
+        if i == 1, fprintf('Collection Started...\n'); end
+        
+        % Capture returns [N x 2] complex matrix when 2 antennas are set
+        data = capture(bbrx, seg); % , 'Background',true -> background is actually heavier unless running long capture
+        %while isCapturing(bbrx) <- uncomment when background=true
+        %     pause(0.3); 
+        %end
+
+
+        % Write dual-channel data directly to file
+        bbw(data);
+    end
+    pause(args.repspace); % Short pause between repetitions
 end
 
 release(bbw);
