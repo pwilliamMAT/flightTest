@@ -32,8 +32,10 @@ end
 %   time (e.g. '20260610T090720').  All files whose name contains that
 %   token will be selected and sorted automatically.
 %   Leave session_id = '' to process ALL .bb files found in data_folder.
-data_folder = '../../04_Natick_Ah_Pkg_May_21_26';   % ← path to .bb files
-session_id  = '';   % ← paste session ID from capture output, or '' for all
+%data_folder = '../../04_Natick_Ah_Pkg_May_21_26';   % ← path to .bb files
+%session_id  = '';   % ← paste session ID from capture output, or '' for all
+data_folder = '<path to captured files>';
+session_id  = '20260610T142305';   % paste from Step 1 output
 
 % fs, fc, and numSamples are auto-read from the first file's .bb header
 % below (search for "Auto-read metadata").  The values here are FALLBACKS
