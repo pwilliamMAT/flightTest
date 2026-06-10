@@ -5,7 +5,7 @@ function capture_info = runCoordinatedHDTVCapture(varargin)
 %
 %  Example:
 %    info = runCoordinatedHDTVCapture( ...
-%        'PiHost', '192.168.10.20', ...
+%        'PiHost', '192.168.10.131', ...
 %        'LocalCaptureArgs', {'radio', 'My USRP N320', 'gain', [30 50]}, ...
 %        'CaptureFile', 'n320_hdtv_capture');
 
@@ -19,6 +19,12 @@ addParameter(p, 'PiLoggerScript', '/home/pi2/flightTest/ADSB_GPS/gatherTCPcompre
     @(x) ischar(x) || isstring(x));
 addParameter(p, 'SSHExecutable', 'ssh', @(x) ischar(x) || isstring(x));
 addParameter(p, 'SCPExecutable', 'scp', @(x) ischar(x) || isstring(x));
+addParameter(p, 'SSHOptions', ...
+    {'-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', '-o', 'StrictHostKeyChecking=accept-new'}, ...
+    @iscell);
+addParameter(p, 'SCPOptions', ...
+    {'-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', '-o', 'StrictHostKeyChecking=accept-new'}, ...
+    @iscell);
 addParameter(p, 'CaptureDuration_s', 30, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'LeadSeconds_s', 15, @(x) isnumeric(x) && isscalar(x) && x >= 0);
 addParameter(p, 'TailSeconds_s', 5, @(x) isnumeric(x) && isscalar(x) && x >= 0);
@@ -60,8 +66,28 @@ pi_workdir = helperStripTrailingSlash(char(string(opts.PiWorkingDir)));
 pi_logger_script = char(string(opts.PiLoggerScript));
 ssh_exe = char(string(opts.SSHExecutable));
 scp_exe = char(string(opts.SCPExecutable));
+ssh_opts = helperStringCell(opts.SSHOptions);
+scp_opts = helperStringCell(opts.SCPOptions);
 capture_file = string(opts.CaptureFile);
 remote_log_file = sprintf('%s/adsb_capture_%s.log', pi_workdir, session_id);
+
+remote_probe_body = sprintf([ ...
+    'cd %s && test -f %s && command -v python3 >/dev/null 2>&1 ' ...
+    '&& printf READY'], ...
+    helperQuotePosixArg(pi_workdir), helperQuotePosixArg(pi_logger_script));
+remote_probe_cmd = helperBuildSSHCommand( ...
+    ssh_exe, ssh_opts, pi_target, remote_probe_body);
+[status_probe, output_probe] = system(remote_probe_cmd);
+if status_probe ~= 0 || ~strcmp(strtrim(output_probe), 'READY')
+    error('runCoordinatedHDTVCapture:sshProbeFailed', [ ...
+        'Could not reach the Raspberry Pi with non-interactive SSH before capture start.\n' ...
+        'The usual cause is missing SSH key-based login, an unknown host key, or the Pi being offline.\n' ...
+        'Manual test from the same terminal:\n  %s\n' ...
+        'Probe command:\n  %s\n' ...
+        'Probe output:\n%s'], ...
+        helperBuildLocalCommand([{ssh_exe}, ssh_opts, {pi_target, 'echo READY'}]), ...
+        remote_probe_cmd, output_probe);
+end
 
 remote_logger_tokens = [ ...
     {'--session-id', char(session_id), '--run-seconds', sprintf('%.1f', adsb_run_s)}, ...
@@ -73,8 +99,8 @@ remote_start_body = sprintf( ...
     helperQuotePosixArg(pi_logger_script), ...
     remote_logger_arg_string, ...
     helperQuotePosixArg(remote_log_file));
-remote_start_cmd = sprintf('%s %s "bash -lc %s"', ...
-    helperQuoteLocalArg(ssh_exe), pi_target, helperQuotePosixArg(remote_start_body));
+remote_start_cmd = helperBuildSSHCommand( ...
+    ssh_exe, ssh_opts, pi_target, remote_start_body);
 
 fprintf('[1/5] Starting ADS-B logger on %s for %.1f s...\n', pi_target, adsb_run_s);
 [status_start, output_start] = system(remote_start_cmd);
@@ -105,7 +131,7 @@ if remaining_adsb_s > 0
 end
 
 remote_running = helperRemoteLoggerRunning( ...
-    ssh_exe, pi_target, char(session_id), opts.RemotePollPeriod_s, opts.RemoteWaitTimeout_s);
+    ssh_exe, ssh_opts, pi_target, char(session_id), opts.RemotePollPeriod_s, opts.RemoteWaitTimeout_s);
 
 remote_adsb_files = strings(0, 1);
 local_adsb_files = strings(0, 1);
@@ -120,12 +146,14 @@ if opts.FetchADSBToLocal
         if ~exist(local_adsb_dir, 'dir')
             mkdir(local_adsb_dir);
         end
-        remote_adsb_files = helperListRemoteADSBFiles(ssh_exe, pi_target, pi_workdir, char(session_id));
+        remote_adsb_files = helperListRemoteADSBFiles( ...
+            ssh_exe, ssh_opts, pi_target, pi_workdir, char(session_id));
         if isempty(remote_adsb_files)
             warning('runCoordinatedHDTVCapture:noRemoteFiles', ...
                 'No remote ADS-B files matched session %s in %s.', session_id, pi_workdir);
         else
-            local_adsb_files = helperCopyRemoteFiles(scp_exe, pi_target, remote_adsb_files, local_adsb_dir);
+            local_adsb_files = helperCopyRemoteFiles( ...
+                scp_exe, scp_opts, pi_target, remote_adsb_files, local_adsb_dir);
         end
     end
 end
@@ -144,17 +172,17 @@ fprintf('Coordinated capture complete for session %s.\n', session_id);
 end
 
 function remote_running = helperRemoteLoggerRunning( ...
-    ssh_exe, pi_target, session_id, poll_period_s, wait_timeout_s)
+    ssh_exe, ssh_opts, pi_target, session_id, poll_period_s, wait_timeout_s)
 % Poll until the remote logger stops or the timeout is reached.
 
 if wait_timeout_s <= 0
-    remote_running = helperQueryRemoteLogger(ssh_exe, pi_target, session_id);
+    remote_running = helperQueryRemoteLogger(ssh_exe, ssh_opts, pi_target, session_id);
     return
 end
 
 stopwatch = tic;
 while true
-    remote_running = helperQueryRemoteLogger(ssh_exe, pi_target, session_id);
+    remote_running = helperQueryRemoteLogger(ssh_exe, ssh_opts, pi_target, session_id);
     if ~remote_running
         return
     end
@@ -168,14 +196,13 @@ while true
 end
 end
 
-function remote_running = helperQueryRemoteLogger(ssh_exe, pi_target, session_id)
+function remote_running = helperQueryRemoteLogger(ssh_exe, ssh_opts, pi_target, session_id)
 % Check whether the remote ADS-B logger process is still present.
 
 remote_pattern = sprintf('gatherTCPcompress.py.*%s', session_id);
 remote_body = sprintf('pgrep -f %s >/dev/null && printf RUNNING || printf STOPPED', ...
     helperQuotePosixArg(remote_pattern));
-remote_cmd = sprintf('%s %s "bash -lc %s"', ...
-    helperQuoteLocalArg(ssh_exe), pi_target, helperQuotePosixArg(remote_body));
+remote_cmd = helperBuildSSHCommand(ssh_exe, ssh_opts, pi_target, remote_body);
 [status, output] = system(remote_cmd);
 if status ~= 0
     warning('runCoordinatedHDTVCapture:remotePollFailed', ...
@@ -187,14 +214,13 @@ end
 remote_running = strcmp(strtrim(output), 'RUNNING');
 end
 
-function remote_files = helperListRemoteADSBFiles(ssh_exe, pi_target, pi_workdir, session_id)
+function remote_files = helperListRemoteADSBFiles(ssh_exe, ssh_opts, pi_target, pi_workdir, session_id)
 % Return the list of remote ADS-B files that match this session.
 
 remote_glob = sprintf('%s/*adsb_%s*.txt.gz', pi_workdir, session_id);
 remote_body = sprintf('shopt -s nullglob; for f in %s; do printf "%%s\\n" "$f"; done', ...
     remote_glob);
-remote_cmd = sprintf('%s %s "bash -lc %s"', ...
-    helperQuoteLocalArg(ssh_exe), pi_target, helperQuotePosixArg(remote_body));
+remote_cmd = helperBuildSSHCommand(ssh_exe, ssh_opts, pi_target, remote_body);
 [status, output] = system(remote_cmd);
 if status ~= 0
     error('runCoordinatedHDTVCapture:listRemoteFailed', ...
@@ -206,11 +232,10 @@ raw_lines = splitlines(string(output));
 remote_files = raw_lines(strlength(strtrim(raw_lines)) > 0);
 end
 
-function local_files = helperCopyRemoteFiles(scp_exe, pi_target, remote_files, local_dir)
+function local_files = helperCopyRemoteFiles(scp_exe, scp_opts, pi_target, remote_files, local_dir)
 % Copy concrete remote files with scp after the logger has stopped.
 
 local_files = strings(numel(remote_files), 1);
-local_dir_quoted = helperQuoteLocalArg(local_dir);
 for k = 1:numel(remote_files)
     remote_file = char(remote_files(k));
     [~, name, ext] = fileparts(remote_file);
@@ -220,8 +245,8 @@ for k = 1:numel(remote_files)
     else
         local_name = [name, ext];
     end
-    scp_cmd = sprintf('%s "%s:%s" %s', ...
-        helperQuoteLocalArg(scp_exe), pi_target, remote_file, local_dir_quoted);
+    scp_cmd = helperBuildLocalCommand( ...
+        [{scp_exe}, scp_opts, {sprintf('%s:%s', pi_target, remote_file), local_dir}]);
     [status, output] = system(scp_cmd);
     if status ~= 0
         error('runCoordinatedHDTVCapture:scpFailed', ...
@@ -246,6 +271,21 @@ function quoted = helperQuoteLocalArg(value)
 
 value = char(string(value));
 quoted = ['"', strrep(value, '"', '\"'), '"'];
+end
+
+function cmd = helperBuildSSHCommand(ssh_exe, ssh_opts, pi_target, remote_body)
+% Build one SSH command line with fail-fast options and a remote shell body.
+
+cmd = helperBuildLocalCommand([{ssh_exe}, ssh_opts, ...
+    {pi_target, ['bash -lc ', helperQuotePosixArg(remote_body)]}]);
+end
+
+function cmd = helperBuildLocalCommand(tokens)
+% Quote and join local shell arguments for MATLAB system() calls.
+
+quoted_tokens = cellfun(@helperQuoteLocalArg, helperStringCell(tokens), ...
+    'UniformOutput', false);
+cmd = strjoin(quoted_tokens, ' ');
 end
 
 function joined = helperJoinQuotedArgs(values)

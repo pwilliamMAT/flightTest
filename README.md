@@ -48,6 +48,7 @@ Important syntax notes:
 - `'LocalCaptureArgs'` must be a cell array of name-value pairs passed directly into `log_iq_n320_2antennas`.
 - `'CaptureFile'` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
 - The example above assumes your shell is in the repo root before `matlab -batch` starts. If not, change `cd('TestSetupTesting')` to the full path to that folder.
+- The testing machine must be able to SSH to the Pi without an interactive password prompt. Verify this first with `ssh -o BatchMode=yes -o ConnectTimeout=10 pi2@192.168.10.131 "echo READY"`.
 
 To set the timing explicitly instead of using the defaults:
 
