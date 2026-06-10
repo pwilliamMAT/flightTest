@@ -86,14 +86,15 @@ end
 
 % -------- Dual Antenna Selection --------
 % For N320, we typically want RX1 and RX2 simultaneously.
-antList = hCaptureAntennas(args.radio); 
+% Query available antennas directly from the receiver object (avoids
+% the example-only helper hCaptureAntennas which is not available in batch mode).
+antList = bbrx.Antennas;
 if numel(antList) < 2
     error("Radio does not report enough antennas for dual-channel capture.");
 end
 
 % Explicitly set two antennas for coherent capture
 % Usually: antList(1) is RX1, antList(2) is RX2
-%bbrx.Antennas = {antList{1}, antList{2}}; 
 bbrx.Antennas = string(antList(1:2));
 fprintf('Selected Antennas: %s and %s\n', bbrx.Antennas{1}, bbrx.Antennas{2});
 
