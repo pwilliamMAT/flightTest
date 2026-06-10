@@ -26,10 +26,21 @@ verbose = false;   % ← set true for troubleshooting
 if verbose
     fprintf('1. Configuring parameters...\n');
 end
-config.dataFile = '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_1'; % Path to IQ data
-config.numSamples = 8e6;       % 1s of data at 8 Msps
-config.fs = 8e6;               % Sample rate in Hz
-config.fc = 599e6;             % Centre frequency in Hz (CBS Tower, Newton MA, used for Doppler→velocity)
+% ── Data source ─────────────────────────────────────────────────────────
+% Set data_folder to the directory containing the captured .bb files.
+% Set session_id to the token printed by log_iq_n320_2antennas at capture
+%   time (e.g. '20260610T090720').  All files whose name contains that
+%   token will be selected and sorted automatically.
+%   Leave session_id = '' to process ALL .bb files found in data_folder.
+data_folder = '../../04_Natick_Ah_Pkg_May_21_26';   % ← path to .bb files
+session_id  = '';   % ← paste session ID from capture output, or '' for all
+
+% fs, fc, and numSamples are auto-read from the first file's .bb header
+% below (search for "Auto-read metadata").  The values here are FALLBACKS
+% used only when older files lack a proper BasebandFileWriter header.
+config.fs = 8e6;    % fallback sample rate (Hz)
+config.fc = 599e6;  % fallback centre frequency (Hz) — raw RF, not LO-shifted
+config.numSamples = config.fs * 1.0;  % fallback: 1 s per part
 config.cpi_duration_s = 0.5e-3; % CPI duration: 0.5 ms → PRF = 2000 Hz → ±250 m/s unambiguous velocity
                                 % N_fast = 4000 samples → range window ≈ 150 km  (c/fs × N_fast)
                                 % N_slow = numSamples/N_fast = 2000 CPIs → Doppler resolution = 1 Hz/bin
@@ -112,20 +123,65 @@ config.inter_part_gap_s = 3.0;  % [s] fallback idle gap when per-file metadata i
 
 %% 2. Multi-Part Processing
 % Run the full ECA-C + bounded-NCI + CFAR pipeline on each consecutive
-% 1-second Natick data file.  processOnePart encapsulates steps 2–5 and
-% returns detections with block-number and block-centre-time metadata.
-data_parts = { ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_1',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_2',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_3',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_4',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_5',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_6',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_7',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_8',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_9',  ...
-    '../../04_Natick_Ah_Pkg_May_21_26/n320_599_8Msps_100ms_10'  ...
-};
+% capture file.  processOnePart encapsulates steps 2-5 and returns
+% detections with block-number and block-centre-time metadata.
+
+% ── Auto-discover files ──────────────────────────────────────────────────
+% Find all files in data_folder whose name contains session_id (or all
+% files if session_id is empty).  Exclude known non-data extensions.
+if isempty(session_id)
+    glob_pattern = '*';
+else
+    glob_pattern = ['*', session_id, '*'];
+end
+dir_hits = dir(fullfile(data_folder, glob_pattern));
+dir_hits = dir_hits(~[dir_hits.isdir]);   % files only
+exclude_ext = {'.m','.mat','.txt','.csv','.png','.jpg','.fig','.mlx','.asv','.sh','.py'};
+keep = true(numel(dir_hits), 1);
+for ii = 1 : numel(dir_hits)
+    [~, ~, ext_ii] = fileparts(dir_hits(ii).name);
+    if any(strcmpi(ext_ii, exclude_ext))
+        keep(ii) = false;
+    end
+end
+dir_hits = dir_hits(keep);
+assert(~isempty(dir_hits), ...
+    'analyzeBistaticData: no data files found in ''%s'' matching session_id ''%s''.', ...
+    data_folder, session_id);
+% Natural sort by filename so _part1 < _part2 < ... < _part10
+[~, sort_idx] = sort({dir_hits.name});
+dir_hits = dir_hits(sort_idx);
+data_parts = cellfun(@(n) fullfile(data_folder, n), {dir_hits.name}, 'UniformOutput', false);
+fprintf('Found %d data file(s) in ''%s'' (session_id: ''%s''):\n', ...
+    numel(data_parts), data_folder, session_id);
+for ii = 1 : numel(data_parts)
+    fprintf('  [%d] %s\n', ii, dir_hits(ii).name);
+end
+fprintf('\n');
+
+% ── Auto-read metadata from first file header ────────────────────────────
+try
+    meta_reader = comm.BasebandFileReader(data_parts{1}, 'SamplesPerFrame', 1);
+    config.fs = meta_reader.SampleRate;
+    config.fc = meta_reader.CenterFrequency;
+    file_meta  = meta_reader.Metadata;
+    release(meta_reader);
+    if isstruct(file_meta) && isfield(file_meta, 'Duration_s') && file_meta.Duration_s > 0
+        config.numSamples = round(config.fs * file_meta.Duration_s);
+    else
+        config.numSamples = round(config.fs * 1.0);  % assume 1 s if field absent
+    end
+    fprintf('Auto-read from file header:\n');
+    fprintf('  fs          = %.3f MSps\n', config.fs / 1e6);
+    fprintf('  fc          = %.1f MHz\n',  config.fc / 1e6);
+    fprintf('  numSamples  = %d  (%.2f s)\n', config.numSamples, config.numSamples/config.fs);
+    fprintf('\n');
+catch me_meta
+    fprintf('  [WARN] Could not read .bb header from first file: %s\n', me_meta.message);
+    fprintf('  Using fallback config.fs=%.3f MSps, config.fc=%.1f MHz\n', ...
+        config.fs/1e6, config.fc/1e6);
+end
+config.dataFile = data_parts{1};  % keep for any legacy callers
 N_parts    = numel(data_parts);
 part_dur_s = config.numSamples / config.fs;   % 1.0 s per part
 [part_start_offsets_s, ~] = helperGetPartStartOffsets( ...
