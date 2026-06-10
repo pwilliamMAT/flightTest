@@ -88,7 +88,8 @@ end
 % Directly assign both N320 receive ports for coherent dual-channel capture.
 % basebandReceiver defaults to a single antenna on construction, so Antennas
 % must be SET here — reading it back before assignment always returns 1 antenna.
-bbrx.Antennas = ["RX1", "RX2"];
+% N320 port naming convention: RF0:RX2 (channel 0) and RF1:RX2 (channel 1).
+bbrx.Antennas = ["RF0:RX2", "RF1:RX2"];
 assert(numel(bbrx.Antennas) == 2, ...
     "Failed to configure dual antennas. Check radio connection and configuration.");
 fprintf('Selected Antennas: %s and %s\n', bbrx.Antennas(1), bbrx.Antennas(2));
