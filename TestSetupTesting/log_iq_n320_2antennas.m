@@ -85,18 +85,13 @@ else
 end
 
 % -------- Dual Antenna Selection --------
-% For N320, we typically want RX1 and RX2 simultaneously.
-% Query available antennas directly from the receiver object (avoids
-% the example-only helper hCaptureAntennas which is not available in batch mode).
-antList = bbrx.Antennas;
-if numel(antList) < 2
-    error("Radio does not report enough antennas for dual-channel capture.");
-end
-
-% Explicitly set two antennas for coherent capture
-% Usually: antList(1) is RX1, antList(2) is RX2
-bbrx.Antennas = string(antList(1:2));
-fprintf('Selected Antennas: %s and %s\n', bbrx.Antennas{1}, bbrx.Antennas{2});
+% Directly assign both N320 receive ports for coherent dual-channel capture.
+% basebandReceiver defaults to a single antenna on construction, so Antennas
+% must be SET here — reading it back before assignment always returns 1 antenna.
+bbrx.Antennas = ["RX1", "RX2"];
+assert(numel(bbrx.Antennas) == 2, ...
+    "Failed to configure dual antennas. Check radio connection and configuration.");
+fprintf('Selected Antennas: %s and %s\n', bbrx.Antennas(1), bbrx.Antennas(2));
 
 % -------- Estimate Size (Double for 2 channels) --------
 bytesPerSample = 4 * 2; % 4 bytes per complex sample * 2 channels
@@ -106,8 +101,8 @@ fprintf('Planned: %.2f s @ %.3f MSps (2 Ch) → ~%.2f GB\n', ...
 
 % -------- File Writer --------
 meta = struct('Label','Passive_Radar_Dual_Channel', ...
-              'Antenna1', bbrx.Antennas{1}, ...
-              'Antenna2', bbrx.Antennas{2}, ...
+              'Antenna1', bbrx.Antennas(1), ...
+              'Antenna2', bbrx.Antennas(2), ...
               'LOOffset', args.lo, ...
               'DateTime', dtg, ...
               'Repetition', 0); % Repetition will be updated in loop
