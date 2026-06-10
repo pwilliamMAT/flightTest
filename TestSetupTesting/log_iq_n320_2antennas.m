@@ -1,4 +1,4 @@
-function log_iq_n320_2antennas(varargin)
+function [session_id, written_files] = log_iq_n320_2antennas(varargin)
 % log_iq_n320_2antennas: Dual-channel IQ logger for Passive Radar.
 % Captures phase-coherent data from RX1 (Surveillance) and RX2 (Reference).
 %
@@ -47,7 +47,8 @@ fprintf('Starting Dual-Channel Capture Setup...\n')
 
 % -------- Parameters --------
 args = struct('radio',"", 'cf',599e6, 'sr',8e6, 'lo',200e3, 'gain',30, ...
-              'dur',10, 'reps', 1, 'repspace', 1.0, 'file',"");
+              'dur',10, 'reps', 1, 'repspace', 1.0, 'file',"", ...
+              'session_id', "");
           
 for k = 1:2:numel(varargin)
     key = varargin{k};
@@ -55,8 +56,13 @@ for k = 1:2:numel(varargin)
     if isfield(args,key), args.(key) = val; else, error("Unknown argument '%s'.", key); end
 end
 
-dtg        = string(datetime('now','Format','yyyy-MM-dd_HH-mm-ss.SSS'));
-session_id = string(datetime('now','Format','yyyyMMdd''T''HHmmss'));
+dtg = string(datetime('now','Format','yyyy-MM-dd_HH-mm-ss.SSS'));
+if strlength(string(args.session_id)) == 0
+    session_id = string(datetime('now','Format','yyyyMMdd''T''HHmmss'));
+else
+    session_id = string(args.session_id);
+end
+written_files = strings(args.reps, 1);
 
 fprintf('date time group (DTG) for this capture: %s\n', dtg);
 fprintf('Session ID (use in analyzeBistaticData): %s\n', session_id);
@@ -109,6 +115,7 @@ meta = struct('Label','Passive_Radar_Dual_Channel', ...
               'LOOffset',   args.lo, ...
               'DateTime',   dtg, ...
               'SessionID',  session_id, ...
+              'RecordingUTC', posixtime(datetime('now', 'TimeZone', 'UTC')), ...
               'Duration_s', args.dur, ...
               'Repetition', 0); % Repetition will be updated in loop
 
@@ -120,8 +127,10 @@ nSeg = ceil(args.dur / seconds(seg));
 for rr = 1:args.reps
     fprintf('--- Capture Round %d of %d ---\n', rr, args.reps);
     meta.DateTime = string(datetime('now','Format','yyyy-MM-dd_HH-mm-ss.SSS'));
+    meta.RecordingUTC = posixtime(datetime('now', 'TimeZone', 'UTC'));
     meta.Repetition = rr;
-    bbw = comm.BasebandFileWriter(args.file + "_" + session_id + "_part" + string(rr), ...
+    written_files(rr) = args.file + "_" + session_id + "_part" + string(rr);
+    bbw = comm.BasebandFileWriter(written_files(rr), ...
             'SampleRate',      bbrx.SampleRate, ...
             'CenterFrequency', args.cf, ...
             'Metadata',        meta);
@@ -139,9 +148,9 @@ for rr = 1:args.reps
         % Write dual-channel data directly to file
         bbw(data);
     end
+    release(bbw);
     pause(args.repspace); % Short pause between repetitions
 end
 
-release(bbw);
 fprintf('Done: %s\n', args.file);
 end

@@ -5,7 +5,8 @@
 % --- 1. CONFIGURATION ---
 test_dur = 10;                % 10 second dry-run
 prod_dur = 10; %2 * 3600;          % 2 hour production run (7200s)
-output_file = sprintf('n320_dual_capture_%s.bb', datestr(now, 'yyyymmdd_HHMM'));
+output_stamp = char(datetime('now', 'Format', 'yyyyMMdd_HHmm'));
+output_file = "n320_dual_capture_" + output_stamp + ".bb";
 test_file   = 'preflight_sanity_check.bb';
 fs = 6.144e6;                 % Sample Rate
 
@@ -27,11 +28,13 @@ end
 % --- 3. RUN DRY-RUN (10s) ---
 fprintf('\n>>> STEP 1: Running 10s Pre-Flight Test...\n');
 % Calls your existing logger function
-log_iq_n320_2antennas('dur', test_dur, 'file', test_file, 'gain', [30, 50]);
+[test_session_id, test_files] = log_iq_n320_2antennas( ...
+    'dur', test_dur, 'file', test_file, 'gain', [30, 50]);
+fprintf('Pre-flight session ID: %s\n', test_session_id);
 
 % --- 4. ANALYZE DATA INTEGRITY & TIME SYNC ---
 fprintf('\n>>> STEP 2: Analyzing Data Integrity & Time-Sync...\n');
-reader = comm.BasebandFileReader(test_file);
+reader = comm.BasebandFileReader(test_files(1));
 test_data = reader(); % Read first large block of samples
 
 % A. Check for Zeros (Dropped Packets/Disk Bottleneck)
@@ -75,6 +78,8 @@ fprintf('Available Disk Space: %s\n', strtrim(disk_info));
 
 % --- 6. START PRODUCTION RUN ---
 fprintf('\n>>> STEP 3: Starting 2-Hour Production Capture: %s\n', output_file);
-log_iq_n320_2antennas('dur', prod_dur, 'file', output_file, 'gain', [30, 50]);
+[prod_session_id, prod_files] = log_iq_n320_2antennas( ...
+    'dur', prod_dur, 'file', output_file, 'gain', [30, 50]);
 
-fprintf('Mission Complete. File saved as %s\n', output_file);
+fprintf('Mission Complete. Session %s saved to %s\n', ...
+    prod_session_id, prod_files(1));

@@ -31,6 +31,42 @@ This repository contains a complete passive bistatic radar system and multi-sens
 
 ---
 
+## Coordinated Capture Syntax
+
+Use the PC as the coordinator. Start MATLAB on the SDR capture machine, then run:
+
+```matlab
+cd TestSetupTesting
+info = runCoordinatedHDTVCapture( ...
+    'PiHost', '192.168.10.131', ...
+    'PiUser', 'pi2', ...
+    'CaptureFile', 'n320_hdtv_capture', ...
+    'LocalCaptureArgs', {'radio', 'My USRP N320', 'gain', [30 50]});
+```
+
+This call starts `gatherTCPcompress.py` on the Raspberry Pi over SSH, waits 15 s, runs the local HDTV capture for 30 s, leaves ADS-B running for 5 s after the SDR capture, and then copies the matching `adsb_<session>.txt.gz` file back to the PC.
+
+Important syntax notes:
+- `'PiHost'` is required and should be `192.168.10.131` for the current Raspberry Pi setup.
+- `'PiUser'` defaults to `'pi2'`.
+- `'LocalCaptureArgs'` must be a cell array of name-value pairs passed directly into `log_iq_n320_2antennas`.
+- `'CaptureFile'` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
+
+To set the timing explicitly instead of using the defaults:
+
+```matlab
+info = runCoordinatedHDTVCapture( ...
+    'PiHost', '192.168.10.131', ...
+    'CaptureDuration_s', 30, ...
+    'LeadSeconds_s', 15, ...
+    'TailSeconds_s', 5, ...
+    'LocalCaptureArgs', {'radio', 'My USRP N320', 'gain', [30 50]});
+```
+
+The returned `info` struct contains the shared `session_id`, the local capture file paths, and any ADS-B files copied back from the Pi. Use that `session_id` later in `analyzeBistaticData.m` to select the matching radar capture.
+
+---
+
 ## Repository Structure
 
 ### 📁 [`TestSetupTesting/`](TestSetupTesting/)
@@ -43,6 +79,7 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 #### Data Collection
 - [`PassiveRadarCollection_wPreFlightChecks.m`](TestSetupTesting/PassiveRadarCollection_wPreFlightChecks.m) - Mission control with Linux optimization and hardware validation
 - [`log_iq_n320_2antennas.m`](TestSetupTesting/log_iq_n320_2antennas.m) - Dual-channel IQ data recording
+- [`runCoordinatedHDTVCapture.m`](TestSetupTesting/runCoordinatedHDTVCapture.m) - Starts Raspberry Pi ADS-B logging over SSH, waits for lead time, runs the local 30 s HDTV capture, and optionally copies the matching ADS-B file back to the PC
 - [`log_iq_n320.m`](TestSetupTesting/log_iq_n320.m) - Single-channel variant
 
 #### Quality Assessment
@@ -94,9 +131,9 @@ Raspberry Pi-based data collection system for capturing aircraft transponder mes
 
 #### Python Data Loggers
 - [`gatherTCPcompress.py`](ADSB_GPS/gatherTCPcompress.py) - ADS-B message capture from dump1090 (TCP port 30003)
-  - Real-time compression to save disk space
-  - Timestamped data files with automatic rollover
-  - Progress indicators and error handling
+  - Graceful shutdown on timeout or `Ctrl+C` with synchronous final-file flush/compress
+  - `--run-seconds` and `--session-id` options for bounded capture windows that align with SDR sessions
+  - Timestamped data files with automatic rollover, chunk-safe TCP line reassembly, and optional rsync/rclone sync
 
 - [`gatherNMEAcompress.py`](ADSB_GPS/gatherNMEAcompress.py) - GPS/NMEA sentence logging from gpsd
   - Captures position, velocity, and timing data
@@ -104,12 +141,13 @@ Raspberry Pi-based data collection system for capturing aircraft transponder mes
   - Compressed storage with configurable sample rates
 
 - [`getSomeNMEAStuff.py`](ADSB_GPS/getSomeNMEAStuff.py) - Quick NMEA data extraction utility
+- [`test_gatherTCPcompress.py`](ADSB_GPS/test_gatherTCPcompress.py) - Local integration test for chunked TCP input and final gzip file creation
 
 #### System Control
 - [`start_adsb_gps_loggers.sh`](ADSB_GPS/start_adsb_gps_loggers.sh) - **Master control script**
   - Starts/stops gpsd, dump1090, and data loggers
-  - Process management and health monitoring
-  - Handles service conflicts and graceful restarts
+  - Supports bounded ADS-B runs via `--adsb-run-seconds` and shared session IDs via `--adsb-session-id`
+  - Handles service conflicts and targeted logger restarts without killing unrelated Python processes
   - Automatically runs on Raspberry Pi boot
 
 #### Data Files
@@ -128,6 +166,16 @@ cd TestSetupTesting
 PassiveRadarCollection_wPreFlightChecks  % Runs pre-flight checks and captures data
 ```
 
+### 1b. Coordinate a 30 s HDTV Capture with Raspberry Pi ADS-B Logging
+```matlab
+cd TestSetupTesting
+info = runCoordinatedHDTVCapture( ...
+    'PiHost', '192.168.10.131', ...
+    'LocalCaptureArgs', {'radio', 'My USRP N320', 'gain', [30 50]}, ...
+    'CaptureFile', 'n320_hdtv_capture');
+```
+This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture for 30 s, lets ADS-B run a few seconds longer, and copies the matching `adsb_<session>.txt.gz` file back to the PC.
+
 ### 2. Run System Characterization
 ```matlab
 script_QualityEtc  % Complete workflow: quality → characterization → detection
@@ -142,6 +190,12 @@ IQDataProcessing  % Processes entire file, outputs Results_*.csv
 ```bash
 cd ADSB_GPS
 sudo ./start_adsb_gps_loggers.sh
+```
+
+For a single bounded ADS-B-only run from the Pi:
+```bash
+cd ADSB_GPS
+sudo ./start_adsb_gps_loggers.sh --adsb-only --adsb-session-id 20260610T094500 --adsb-run-seconds 50
 ```
 
 ---
@@ -259,4 +313,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: December 31, 2025*
+*Last Updated: June 10, 2026*

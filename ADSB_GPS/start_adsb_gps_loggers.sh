@@ -1,136 +1,230 @@
 #!/bin/bash
 
-# --- Configuration ---
-# Absolute path to your Python and Perl scripts
-GPS_LOGGER_SCRIPT="/home/pi2/flightTest/ADSB_GPS/gatherNMEAcompress.py"
-ADSB_LOGGER_SCRIPT="/home/pi2/flightTest/ADSB_GPS/1928d043d6e4b19e0aef498c6055b74f/gatherTCPcompress.pl"
+set -u
 
-# Log files for the nohup processes
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
+
+# --- Configuration ---
+GPS_LOGGER_SCRIPT="$SCRIPT_DIR/gatherNMEAcompress.py"
+ADSB_LOGGER_SCRIPT="$SCRIPT_DIR/gatherTCPcompress.py"
+LEGACY_ADSB_PATTERN="gatherTCPcompress\\.pl"
+
 GPSD_LOG="/var/log/gpsd_startup.log"
 DUMP1090_LOG="/var/log/dump1090_startup.log"
-GPS_LOGGER_LOG="/var/log/adsb_logger.log" # Your NMEA logger from before
-ADSB_LOGGER_LOG="/var/log/nmea_logger.log" # Your TCP logger from before (note: you called this nmea_logger.log earlier)
+GPS_LOGGER_LOG="/var/log/gps_logger.log"
+ADSB_LOGGER_LOG="/var/log/adsb_logger.log"
+
+ADSB_RUN_SECONDS=""
+ADSB_SESSION_ID=""
+START_ADSB=1
+START_GPS=1
+
+usage() {
+    cat <<EOF
+Usage: $0 [options]
+
+Options:
+  --adsb-run-seconds <seconds>   Stop the ADS-B logger after this duration.
+  --adsb-session-id <token>      Pass a shared session ID to the ADS-B logger.
+  --adsb-only                    Start only dump1090 + ADS-B logging.
+  --gps-only                     Start only gpsd + GPS logging.
+  -h, --help                     Show this help text.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --adsb-run-seconds)
+            [[ $# -ge 2 ]] || { echo "Missing value for $1"; exit 1; }
+            ADSB_RUN_SECONDS="$2"
+            shift 2
+            ;;
+        --adsb-session-id)
+            [[ $# -ge 2 ]] || { echo "Missing value for $1"; exit 1; }
+            ADSB_SESSION_ID="$2"
+            shift 2
+            ;;
+        --adsb-only)
+            START_GPS=0
+            shift
+            ;;
+        --gps-only)
+            START_ADSB=0
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+if [[ $START_ADSB -eq 0 && $START_GPS -eq 0 ]]; then
+    echo "Nothing to start. Remove --adsb-only or --gps-only."
+    exit 1
+fi
 
 # --- Functions ---
 
-# Function to check if a process is running
-is_running() {
-    pgrep -x "$1" > /dev/null
-}
-
-# Function to check if a systemd service is active
 is_service_active() {
     systemctl is-active --quiet "$1"
 }
 
-# Function to kill processes by name
 kill_process_by_name() {
-    PROCESS_NAME="$1"
-    echo "Checking for existing '$PROCESS_NAME' processes..."
-    PIDS=$(pgrep -x "$PROCESS_NAME")
-    if [ -n "$PIDS" ]; then
-        echo "  Found PIDs: $PIDS. Attempting graceful kill..."
-        kill $PIDS
-        sleep 3 # Give it a moment to shut down
-        PIDS_AFTER_KILL=$(pgrep -x "$PROCESS_NAME")
-        if [ -n "$PIDS_AFTER_KILL" ]; then
-            echo "  '$PROCESS_NAME' did not terminate gracefully. Force killing (kill -9) PIDs: $PIDS_AFTER_KILL"
-            kill -9 $PIDS_AFTER_KILL
-            sleep 1
-        else
-            echo "  '$PROCESS_NAME' terminated gracefully."
-        fi
+    local process_name="$1"
+    local pids
+
+    echo "Checking for existing '$process_name' processes..."
+    pids=$(pgrep -x "$process_name")
+    if [[ -z "$pids" ]]; then
+        echo "  No '$process_name' processes found."
+        return
+    fi
+
+    echo "  Found PIDs: $pids. Attempting graceful kill..."
+    kill $pids
+    sleep 3
+
+    pids=$(pgrep -x "$process_name")
+    if [[ -n "$pids" ]]; then
+        echo "  '$process_name' did not terminate gracefully. Force killing: $pids"
+        kill -9 $pids
+        sleep 1
     else
-        echo "  No '$PROCESS_NAME' processes found."
+        echo "  '$process_name' terminated gracefully."
     fi
 }
 
-# Function to stop and disable a systemd service
+kill_process_by_pattern() {
+    local label="$1"
+    local pattern="$2"
+    local pids
+
+    echo "Checking for existing '$label' processes..."
+    pids=$(pgrep -f "$pattern")
+    if [[ -z "$pids" ]]; then
+        echo "  No '$label' processes found."
+        return
+    fi
+
+    echo "  Found PIDs: $pids. Attempting graceful kill..."
+    kill $pids
+    sleep 3
+
+    pids=$(pgrep -f "$pattern")
+    if [[ -n "$pids" ]]; then
+        echo "  '$label' did not terminate gracefully. Force killing: $pids"
+        kill -9 $pids
+        sleep 1
+    else
+        echo "  '$label' terminated gracefully."
+    fi
+}
+
 stop_and_disable_service() {
-    SERVICE_NAME="$1"
-    echo "Checking status of service: $SERVICE_NAME"
-    if is_service_active "$SERVICE_NAME"; then
-        echo "  Service '$SERVICE_NAME' is active. Stopping..."
-        systemctl stop "$SERVICE_NAME"
+    local service_name="$1"
+
+    echo "Checking status of service: $service_name"
+    if is_service_active "$service_name"; then
+        echo "  Service '$service_name' is active. Stopping..."
+        systemctl stop "$service_name"
         sleep 2
-        if ! is_service_active "$SERVICE_NAME"; then
-            echo "  Service '$SERVICE_NAME' stopped."
+        if ! is_service_active "$service_name"; then
+            echo "  Service '$service_name' stopped."
         else
-            echo "  Warning: Service '$SERVICE_NAME' still active after stop attempt."
+            echo "  Warning: Service '$service_name' still active after stop attempt."
         fi
     else
-        echo "  Service '$SERVICE_NAME' is not active."
+        echo "  Service '$service_name' is not active."
     fi
-    echo "  Disabling service '$SERVICE_NAME' to prevent automatic restart (if manually starting)."
-    systemctl disable "$SERVICE_NAME" > /dev/null 2>&1 # Disable quietly
+    echo "  Disabling service '$service_name' to prevent automatic restart."
+    systemctl disable "$service_name" > /dev/null 2>&1
 }
 
-# Function to ensure log directories exist
 ensure_log_directories() {
     echo "Ensuring log directory /var/log exists..."
-    if [ ! -d "/var/log" ]; then
+    if [[ ! -d "/var/log" ]]; then
         mkdir -p "/var/log"
-        if [ $? -ne 0 ]; then
+        if [[ $? -ne 0 ]]; then
             echo "Error: Could not create /var/log. Check permissions or disk space."
             exit 1
         fi
     fi
 }
 
-
 # --- Main Script Logic ---
 echo "--- Starting ADSB and GPS Logger Management Script ---"
 ensure_log_directories
 
-# 1. Kill existing processes and stop services
 echo ""
 echo "--- Step 1: Stopping existing processes and services ---"
 
-# Kill custom gpsd instance if running (from your manual start 'gpsd -n -F /tmp/gpsd.sock /dev/serial0 &')
-kill_process_by_name "gpsd"
+if [[ $START_GPS -eq 1 ]]; then
+    kill_process_by_name "gpsd"
+    stop_and_disable_service "gpsd.socket"
+    stop_and_disable_service "gpsd"
+    kill_process_by_pattern "GPS logger" "$GPS_LOGGER_SCRIPT"
+fi
 
-# Stop systemd gpsd services (if any are active)
-stop_and_disable_service "gpsd.socket"
-stop_and_disable_service "gpsd"
-
-# Kill custom dump1090-mutability instance if running (from your manual nohup start)
-kill_process_by_name "dump1090"
-
-# Kill your logger scripts if they are still running from a previous invocation
-kill_process_by_name "python3" # Will catch gatherNMEAcompress.py
-kill_process_by_name "perl"    # Will catch gatherTCPcompress.pl
+if [[ $START_ADSB -eq 1 ]]; then
+    kill_process_by_name "dump1090"
+    kill_process_by_pattern "ADSB logger (Python)" "$ADSB_LOGGER_SCRIPT"
+    kill_process_by_pattern "ADSB logger (legacy Perl)" "$LEGACY_ADSB_PATTERN"
+fi
 
 echo "--- Finished stopping processes ---"
 
 echo ""
 echo "--- Step 2: Starting Services and Loggers ---"
 
-# 3. Start gpsd in the background
-echo "Starting gpsd manually..."
-# Your manual start: gpsd -n -F /tmp/gpsd.sock /dev/serial0 &
-# Use nohup for persistence and redirect its stdout/stderr to a log file
-nohup gpsd -n -F /tmp/gpsd.sock /dev/serial0 > "$GPSD_LOG" 2>&1 &
-echo "  gpsd started. Log: $GPSD_LOG"
-sleep 2 # Give gpsd a moment to start up
+if [[ $START_GPS -eq 1 ]]; then
+    echo "Starting gpsd manually..."
+    nohup gpsd -n -F /tmp/gpsd.sock /dev/serial0 > "$GPSD_LOG" 2>&1 &
+    echo "  gpsd started. Log: $GPSD_LOG"
+    sleep 2
+fi
 
-# 4. Start dump1090-mutability in the background
-echo "Starting dump1090-mutability manually..."
-# Your manual start: sudo sh -c 'nohup dump1090 --net --gain -1 --mlat --sbs-port 30003 > /var/log/dump1090.log 2>&1 &'
-nohup dump1090 --net --gain -1 --mlat --sbs-port 30003 > "$DUMP1090_LOG" 2>&1 &
-echo "  dump1090-mutability started. Log: $DUMP1090_LOG"
-sleep 5 # Give dump1090 a bit more time to get going
+if [[ $START_ADSB -eq 1 ]]; then
+    echo "Starting dump1090-mutability manually..."
+    nohup dump1090 --net --gain -1 --mlat --sbs-port 30003 > "$DUMP1090_LOG" 2>&1 &
+    echo "  dump1090-mutability started. Log: $DUMP1090_LOG"
+    sleep 5
+fi
 
-# 5. Start gatherTCPcompress.pl (ADSB logger) in the background
-echo "Starting ADSB logger (gatherTCPcompress.pl)..."
-nohup "$ADSB_LOGGER_SCRIPT" > "$ADSB_LOGGER_LOG" 2>&1 &
-echo "  ADSB logger started. Log: $ADSB_LOGGER_LOG"
+if [[ $START_ADSB -eq 1 ]]; then
+    adsb_cmd=(python3 "$ADSB_LOGGER_SCRIPT")
+    if [[ -n "$ADSB_SESSION_ID" ]]; then
+        adsb_cmd+=(--session-id "$ADSB_SESSION_ID")
+    fi
+    if [[ -n "$ADSB_RUN_SECONDS" ]]; then
+        adsb_cmd+=(--run-seconds "$ADSB_RUN_SECONDS")
+    fi
 
-# 6. Start gatherNMEAcompress.py (GPS logger) in the background
-echo "Starting GPS logger (gatherNMEAcompress.py)..."
-nohup "$GPS_LOGGER_SCRIPT" > "$GPS_LOGGER_LOG" 2>&1 &
-echo "  GPS logger started. Log: $GPS_LOGGER_LOG"
+    echo "Starting ADSB logger (gatherTCPcompress.py)..."
+    nohup "${adsb_cmd[@]}" > "$ADSB_LOGGER_LOG" 2>&1 &
+    echo "  ADSB logger started. Log: $ADSB_LOGGER_LOG"
+fi
+
+if [[ $START_GPS -eq 1 ]]; then
+    echo "Starting GPS logger (gatherNMEAcompress.py)..."
+    nohup python3 "$GPS_LOGGER_SCRIPT" > "$GPS_LOGGER_LOG" 2>&1 &
+    echo "  GPS logger started. Log: $GPS_LOGGER_LOG"
+fi
 
 echo ""
-echo "--- All services and loggers have been initiated. ---"
-echo "You can check their status with 'ps aux | grep <process_name>' or 'tail -f /var/log/your_log_file.log'"
+echo "--- All requested services and loggers have been initiated. ---"
+echo "Working directory: $SCRIPT_DIR"
+if [[ -n "$ADSB_SESSION_ID" ]]; then
+    echo "ADS-B session ID: $ADSB_SESSION_ID"
+fi
+if [[ -n "$ADSB_RUN_SECONDS" ]]; then
+    echo "ADS-B run duration: $ADSB_RUN_SECONDS s"
+fi
+echo "You can check status with 'ps aux | grep <process_name>' or 'tail -f /var/log/<logfile>'."
 echo "Script finished."
