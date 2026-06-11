@@ -14,7 +14,12 @@
 % 7. (Future) Target tracking.
 
 %% 0. Clear Workspace
-clear; clc; close all;
+if exist('analysisSetup', 'var')
+    clearvars('-except', 'analysisSetup');
+else
+    clearvars;
+end
+clc; close all;
 
 %% 1. Configuration Parameters
 % ── Verbosity flag ──────────────────────────────────────────────────────
@@ -22,6 +27,11 @@ clear; clc; close all;
 %                    table are always shown.
 %   true:            full per-chunk / per-block debug output from all functions.
 verbose = false;   % ← set true for troubleshooting
+
+if exist('analysisSetup', 'var') && isfield(analysisSetup, 'verbose') ...
+        && ~isempty(analysisSetup.verbose)
+    verbose = logical(analysisSetup.verbose);
+end
 
 if verbose
     fprintf('1. Configuring parameters...\n');
@@ -34,8 +44,8 @@ end
 %   Leave session_id = '' to process ALL .bb files found in data_folder.
 %data_folder = '../../04_Natick_Ah_Pkg_May_21_26';   % ← path to .bb files
 %session_id  = '';   % ← paste session ID from capture output, or '' for all
-data_folder = '/Users/pwillie822/MCPServer/FlightTest_RadSigProc/';
-session_id  = '20260610T093952';   % paste from Step 1 output
+data_folder = '';   % set manually, or call runBistaticAnalysisSession(session_id)
+session_id  = '';   % paste from Step 1 output, or leave '' to process all files
 
 % fs, fc, and numSamples are auto-read from the first file's .bb header
 % below (search for "Auto-read metadata").  The values here are FALLBACKS
@@ -122,10 +132,29 @@ config.rxLLA = [42.2999333, -71.349333,  15.0];   % [lat °N, lon °W(−), alt 
 %   helperGetPartStartOffsets reads per-file metadata when available and
 %   falls back to this steady-state average only when headers are missing.
 config.inter_part_gap_s = 3.0;  % [s] fallback idle gap when per-file metadata is unavailable
-config.adsb_files = { ...
-        '/Users/pwillie822/MCPServer/FlightTest_RadSigProc/nmea_20260610_092224_0.txt.gz', ...
-        '/Users/pwillie822/MCPServer/FlightTest_RadSigProc/nmea_20260610_092224_1.txt.gz'  ...
-    };
+config.adsb_files = {};   % set to {'/path/to/adsb_<session>.txt.gz', ...} to enable truth integration
+
+explicit_data_parts = {};
+if exist('analysisSetup', 'var')
+    config.verbose = verbose;
+    data_folder = char(string(analysisSetup.data_folder));
+    session_id = char(string(analysisSetup.session_id));
+    if isfield(analysisSetup, 'data_parts') && ~isempty(analysisSetup.data_parts)
+        explicit_data_parts = analysisSetup.data_parts;
+    end
+    if isfield(analysisSetup, 'adsb_files')
+        config.adsb_files = analysisSetup.adsb_files;
+    end
+    if isfield(analysisSetup, 'radar_epoch_utc') && ~isempty(analysisSetup.radar_epoch_utc)
+        config.radar_epoch_utc = analysisSetup.radar_epoch_utc;
+    end
+
+    fprintf('1. Configuring session-based analysis...\n');
+    fprintf('  Session ID ........ %s\n', session_id);
+    fprintf('  Radar folder ...... %s\n', data_folder);
+    fprintf('  Radar files ....... %d\n', numel(explicit_data_parts));
+    fprintf('  ADS-B truth files . %d\n', numel(config.adsb_files));
+end
 
 %% 2. Multi-Part Processing
 % Run the full ECA-C + bounded-NCI + CFAR pipeline on each consecutive
@@ -135,35 +164,50 @@ config.adsb_files = { ...
 % ── Auto-discover files ──────────────────────────────────────────────────
 % Find all files in data_folder whose name contains session_id (or all
 % files if session_id is empty).  Exclude known non-data extensions.
-if isempty(session_id)
-    glob_pattern = '*';
-else
-    glob_pattern = ['*', session_id, '*'];
-end
-dir_hits = dir(fullfile(data_folder, glob_pattern));
-dir_hits = dir_hits(~[dir_hits.isdir]);   % files only
-exclude_ext = {'.m','.mat','.txt','.csv','.png','.jpg','.fig','.mlx','.asv','.sh','.py'};
-keep = true(numel(dir_hits), 1);
-for ii = 1 : numel(dir_hits)
-    [~, ~, ext_ii] = fileparts(dir_hits(ii).name);
-    if any(strcmpi(ext_ii, exclude_ext))
-        keep(ii) = false;
+if ~isempty(explicit_data_parts)
+    data_parts = explicit_data_parts(:).';
+    assert(all(cellfun(@(p) exist(p, 'file') == 2, data_parts)), ...
+        'analyzeBistaticData: one or more explicit radar files do not exist.');
+    fprintf('Using %d radar file(s) provided by the session wrapper:\n', numel(data_parts));
+    for ii = 1 : numel(data_parts)
+        [~, file_name_ii, file_ext_ii] = fileparts(data_parts{ii});
+        fprintf('  [%d] %s%s\n', ii, file_name_ii, file_ext_ii);
     end
+    fprintf('\n');
+else
+    assert(~isempty(data_folder), ...
+        ['analyzeBistaticData:manualSetupRequired: Set data_folder/session_id in §1 ', ...
+         'or call runBistaticAnalysisSession(session_id).']);
+    if isempty(session_id)
+        glob_pattern = '*';
+    else
+        glob_pattern = ['*', session_id, '*'];
+    end
+    dir_hits = dir(fullfile(data_folder, glob_pattern));
+    dir_hits = dir_hits(~[dir_hits.isdir]);   % files only
+    exclude_ext = {'.m','.mat','.txt','.csv','.png','.jpg','.fig','.mlx','.asv','.sh','.py','.json'};
+    keep = true(numel(dir_hits), 1);
+    for ii = 1 : numel(dir_hits)
+        [~, ~, ext_ii] = fileparts(dir_hits(ii).name);
+        if any(strcmpi(ext_ii, exclude_ext))
+            keep(ii) = false;
+        end
+    end
+    dir_hits = dir_hits(keep);
+    assert(~isempty(dir_hits), ...
+        'analyzeBistaticData: no data files found in ''%s'' matching session_id ''%s''.', ...
+        data_folder, session_id);
+    % Natural sort by filename so _part1 < _part2 < ... < _part10
+    [~, sort_idx] = sort({dir_hits.name});
+    dir_hits = dir_hits(sort_idx);
+    data_parts = cellfun(@(n) fullfile(data_folder, n), {dir_hits.name}, 'UniformOutput', false);
+    fprintf('Found %d data file(s) in ''%s'' (session_id: ''%s''):\n', ...
+        numel(data_parts), data_folder, session_id);
+    for ii = 1 : numel(data_parts)
+        fprintf('  [%d] %s\n', ii, dir_hits(ii).name);
+    end
+    fprintf('\n');
 end
-dir_hits = dir_hits(keep);
-assert(~isempty(dir_hits), ...
-    'analyzeBistaticData: no data files found in ''%s'' matching session_id ''%s''.', ...
-    data_folder, session_id);
-% Natural sort by filename so _part1 < _part2 < ... < _part10
-[~, sort_idx] = sort({dir_hits.name});
-dir_hits = dir_hits(sort_idx);
-data_parts = cellfun(@(n) fullfile(data_folder, n), {dir_hits.name}, 'UniformOutput', false);
-fprintf('Found %d data file(s) in ''%s'' (session_id: ''%s''):\n', ...
-    numel(data_parts), data_folder, session_id);
-for ii = 1 : numel(data_parts)
-    fprintf('  [%d] %s\n', ii, dir_hits(ii).name);
-end
-fprintf('\n');
 
 % ── Auto-read metadata from first file header ────────────────────────────
 try
@@ -939,7 +983,8 @@ end  % if ~isempty(all_track_dets)
 
 if ~isfield(config, 'adsb_files') || isempty(config.adsb_files)
     fprintf('[§8] config.adsb_files not set — skipping ADS-B truth pipeline.\n');
-    fprintf('     (Set config.adsb_files in §1 to enable truth-vs-radar comparison.)\n\n');
+    fprintf(['     (Set config.adsb_files in §1, or call runBistaticAnalysisSession ' ...
+        'to populate it from session_manifest.json.)\n\n']);
 else
     fprintf('\n════════════════════════════════════════════════════════════════\n');
     fprintf('[§8] ADS-B Truth Integration\n');

@@ -32,6 +32,31 @@ bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 
 This keeps the Raspberry Pi ADS-B launch outside MATLAB. The shell script starts `gatherTCPcompress.py` on `pi2@192.168.10.131`, then runs the local SDR capture through `matlab -batch` by calling `runLocalHDTVCapture.m`, which hides the stable defaults such as `radio='My USRP N320'` and `lo=200e3`.
 
+Each successful run is packaged locally under the repo-root `captures/` folder as:
+
+```text
+captures/<session_id>/radar/
+captures/<session_id>/truth/
+captures/<session_id>/logs/
+captures/<session_id>/session_manifest.json
+```
+
+`adsb_capture/` is only a temporary staging directory for fetched ADS-B files. The packaged session folder is the supported handoff artifact for post-capture analysis.
+
+To pull one packaged session to a development machine, run:
+
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --session-id <id>
+```
+
+To analyze that synced session without editing the engine script, run:
+
+```matlab
+cd BistaticDataAnalysis
+out = runBistaticAnalysisSession('20260611T101530');
+```
+
 The older `runCoordinatedHDTVCapture.m` MATLAB workflow is still present for backward compatibility, but it is now the secondary path.
 
 ### 1. **Data Collection with Pre-Flight Checks**

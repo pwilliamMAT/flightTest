@@ -19,9 +19,15 @@ TAIL_SECONDS_S="5"
 CAPTURE_FILE="n320_hdtv_capture"
 GAIN_SPEC="30,50"
 SESSION_ID="$(date +%Y%m%dT%H%M%S)"
-ADSB_DIR="$REPO_ROOT/adsb_capture"
+ADSB_STAGE_DIR="$REPO_ROOT/adsb_capture"
+SESSION_ROOT="$REPO_ROOT/captures"
 REMOTE_WAIT_TIMEOUT_S="60"
 REMOTE_POLL_PERIOD_S="2"
+
+RADIO_NAME="My USRP N320"
+CENTER_FREQUENCY_HZ="540000000"
+SAMPLE_RATE_HZ="6144000"
+LO_OFFSET_HZ="200000"
 
 SSH_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
 SCP_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
@@ -39,7 +45,8 @@ Options:
   --capture-file <base>            Base name for local SDR files (default: n320_hdtv_capture)
   --gain <g>                       Gain as N or N,M (default: 30,50)
   --session-id <id>                Shared session ID (default: current timestamp)
-  --adsb-dir <path>                Local folder for copied ADS-B files
+  --adsb-stage-dir <path>          Local staging folder for fetched ADS-B files
+  --session-root <path>            Root folder for packaged session outputs
   --matlab-bin <path>              MATLAB executable (default: matlab)
   --ssh-bin <path>                 SSH executable (default: ssh)
   --scp-bin <path>                 SCP executable (default: scp)
@@ -182,6 +189,54 @@ list_remote_adsb_files() {
     run_ssh_body "$remote_body"
 }
 
+json_escape() {
+    local value="$1"
+    value="${value//\\/\\\\}"
+    value="${value//\"/\\\"}"
+    value="${value//$'\n'/\\n}"
+    value="${value//$'\r'/\\r}"
+    value="${value//$'\t'/\\t}"
+    printf "%s" "$value"
+}
+
+write_json_array() {
+    local item
+    local sep=""
+
+    printf "["
+    for item in "$@"; do
+        printf '%s"%s"' "$sep" "$(json_escape "$item")"
+        sep=", "
+    done
+    printf "]"
+}
+
+append_if_exists() {
+    local path="$1"
+    local -n target_array="$2"
+    if [[ -f "$path" ]]; then
+        target_array+=("$path")
+    fi
+}
+
+fallback_find_capture_files() {
+    find "$SCRIPT_DIR" -maxdepth 1 -type f -name "*${SESSION_ID}*" \
+        ! -name '*.m' ! -name '*.asv' ! -name '*.sh' ! -name '*.py' ! -name '*.log' \
+        ! -name '*.txt' ! -name '*.txt.gz' ! -name '*.json' | sort
+}
+
+move_into_subdir() {
+    local src_path="$1"
+    local dest_dir="$2"
+    local rel_prefix="$3"
+    local dest_path
+
+    mkdir -p "$dest_dir"
+    dest_path="$dest_dir/$(basename "$src_path")"
+    mv -f "$src_path" "$dest_path"
+    printf "%s/%s" "$rel_prefix" "$(basename "$dest_path")"
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --pi-host)
@@ -224,9 +279,14 @@ while [[ $# -gt 0 ]]; do
             SESSION_ID="$2"
             shift 2
             ;;
-        --adsb-dir)
+        --adsb-stage-dir)
             [[ $# -ge 2 ]] || die "Missing value for $1"
-            ADSB_DIR="$2"
+            ADSB_STAGE_DIR="$2"
+            shift 2
+            ;;
+        --session-root)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            SESSION_ROOT="$2"
             shift 2
             ;;
         --matlab-bin)
@@ -273,9 +333,27 @@ validate_positive_number "remote poll period" "$REMOTE_POLL_PERIOD_S"
 ADSB_RUN_SECONDS_S="$(sum_seconds "$LEAD_SECONDS_S" "$CAPTURE_DURATION_S" "$TAIL_SECONDS_S")"
 MATLAB_GAIN_EXPR="$(gain_to_matlab_expr "$GAIN_SPEC")"
 REMOTE_LOG_FILE="$PI_WORKDIR/adsb_capture_${SESSION_ID}.log"
+
 MATLAB_STATUS=0
 FETCH_STATUS=0
 REMOTE_WAIT_STATUS=0
+REMOTE_LOG_STATUS=0
+
+capture_files=()
+staged_adsb_files=()
+packaged_radar_files=()
+packaged_adsb_files=()
+packaged_log_files=()
+
+SESSION_DIR="$SESSION_ROOT/$SESSION_ID"
+RADAR_DIR="$SESSION_DIR/radar"
+TRUTH_DIR="$SESSION_DIR/truth"
+LOG_DIR="$SESSION_DIR/logs"
+MANIFEST_PATH="$SESSION_DIR/session_manifest.json"
+
+MATLAB_OUTPUT_LOG="$(mktemp "${TMPDIR:-/tmp}/flighttest_capture_${SESSION_ID}_XXXX.log")"
+LOCAL_REMOTE_LOG="$LOG_DIR/adsb_capture_${SESSION_ID}.log"
+REPORTED_RECORDING_UTC=""
 
 echo "Preflight: verifying non-interactive SSH access to $PI_USER@$PI_HOST ..."
 set +e
@@ -303,9 +381,25 @@ sleep "$LEAD_SECONDS_S"
 echo "[3/5] Running local SDR capture for $CAPTURE_DURATION_S s (session $SESSION_ID) ..."
 matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'Gain', $MATLAB_GAIN_EXPR);"
 set +e
-"$MATLAB_BIN" -batch "$matlab_cmd"
+"$MATLAB_BIN" -batch "$matlab_cmd" > >(tee "$MATLAB_OUTPUT_LOG") 2>&1
 MATLAB_STATUS=$?
 set -e
+
+while IFS= read -r line; do
+    capture_files+=("${line#*=}")
+done < <(grep '^CAPTURE_FILE_' "$MATLAB_OUTPUT_LOG" || true)
+
+reported_session_id="$(grep '^CAPTURE_SESSION_ID=' "$MATLAB_OUTPUT_LOG" | tail -n 1 | cut -d= -f2- || true)"
+REPORTED_RECORDING_UTC="$(grep '^CAPTURE_RECORDING_UTC=' "$MATLAB_OUTPUT_LOG" | tail -n 1 | cut -d= -f2- || true)"
+
+if [[ -n "$reported_session_id" && "$reported_session_id" != "$SESSION_ID" ]]; then
+    echo "Warning: MATLAB reported session $reported_session_id but the coordinator requested $SESSION_ID." >&2
+fi
+
+if [[ ${#capture_files[@]} -eq 0 ]]; then
+    mapfile -t capture_files < <(fallback_find_capture_files)
+fi
+
 if [[ $MATLAB_STATUS -ne 0 ]]; then
     echo "Warning: local MATLAB SDR capture failed with status $MATLAB_STATUS." >&2
 fi
@@ -317,33 +411,110 @@ if ! wait_for_remote_logger; then
     echo "Warning: Pi ADS-B logger still appears to be running after $REMOTE_WAIT_TIMEOUT_S s." >&2
 fi
 
-echo "[5/5] Copying ADS-B files for session $SESSION_ID ..."
-mkdir -p "$ADSB_DIR"
+echo "[5/5] Fetching ADS-B outputs and packaging session $SESSION_ID ..."
+mkdir -p "$ADSB_STAGE_DIR" "$RADAR_DIR" "$TRUTH_DIR" "$LOG_DIR"
+
 mapfile -t remote_files < <(list_remote_adsb_files)
 if [[ ${#remote_files[@]} -eq 0 ]]; then
     FETCH_STATUS=1
     echo "Warning: no remote ADS-B files matched session $SESSION_ID." >&2
 else
     for remote_file in "${remote_files[@]}"; do
+        local_stage_path="$ADSB_STAGE_DIR/$(basename "$remote_file")"
         set +e
-        "$SCP_BIN" "${SCP_OPTIONS[@]}" "$PI_USER@$PI_HOST:$remote_file" "$ADSB_DIR/"
+        "$SCP_BIN" "${SCP_OPTIONS[@]}" "$PI_USER@$PI_HOST:$remote_file" "$ADSB_STAGE_DIR/"
         scp_status=$?
         set -e
         if [[ $scp_status -ne 0 ]]; then
             FETCH_STATUS=1
             echo "Warning: failed to copy $remote_file from the Pi." >&2
+            continue
         fi
+        append_if_exists "$local_stage_path" staged_adsb_files
     done
 fi
 
+set +e
+"$SCP_BIN" "${SCP_OPTIONS[@]}" "$PI_USER@$PI_HOST:$REMOTE_LOG_FILE" "$LOG_DIR/"
+remote_log_copy_status=$?
+set -e
+if [[ $remote_log_copy_status -ne 0 ]]; then
+    REMOTE_LOG_STATUS=1
+    echo "Warning: failed to copy remote Pi log $REMOTE_LOG_FILE." >&2
+fi
+
+for capture_file in "${capture_files[@]}"; do
+    if [[ ! -f "$capture_file" ]]; then
+        echo "Warning: local capture file not found for packaging: $capture_file" >&2
+        continue
+    fi
+    packaged_radar_files+=("$(move_into_subdir "$capture_file" "$RADAR_DIR" "radar")")
+done
+
+for staged_adsb in "${staged_adsb_files[@]}"; do
+    if [[ ! -f "$staged_adsb" ]]; then
+        echo "Warning: staged ADS-B file not found for packaging: $staged_adsb" >&2
+        continue
+    fi
+    packaged_adsb_files+=("$(move_into_subdir "$staged_adsb" "$TRUTH_DIR" "truth")")
+done
+
+local_matlab_log_rel="$(move_into_subdir "$MATLAB_OUTPUT_LOG" "$LOG_DIR" "logs")"
+packaged_log_files+=("$local_matlab_log_rel")
+
+if [[ -f "$LOCAL_REMOTE_LOG" ]]; then
+    packaged_log_files+=("logs/$(basename "$LOCAL_REMOTE_LOG")")
+fi
+
+if [[ ${#packaged_radar_files[@]} -eq 0 ]]; then
+    echo "Error: no radar files were packaged for session $SESSION_ID. The session manifest was not written." >&2
+    if [[ $MATLAB_STATUS -ne 0 ]]; then
+        exit "$MATLAB_STATUS"
+    fi
+    exit 1
+fi
+
+{
+    printf "{\n"
+    printf '  "manifest_version": 1,\n'
+    printf '  "session_id": "%s",\n' "$(json_escape "$SESSION_ID")"
+    printf '  "session_folder": "%s",\n' "$(json_escape "$SESSION_ID")"
+    printf '  "session_created_utc": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '  "capture_duration_s": %s,\n' "$CAPTURE_DURATION_S"
+    printf '  "lead_seconds_s": %s,\n' "$LEAD_SECONDS_S"
+    printf '  "tail_seconds_s": %s,\n' "$TAIL_SECONDS_S"
+    printf '  "adsb_run_seconds_s": %s,\n' "$ADSB_RUN_SECONDS_S"
+    printf '  "capture_file_base": "%s",\n' "$(json_escape "$CAPTURE_FILE")"
+    printf '  "gain_spec": "%s",\n' "$(json_escape "$(normalize_gain_spec "$GAIN_SPEC")")"
+    printf '  "pi_host": "%s",\n' "$(json_escape "$PI_HOST")"
+    printf '  "pi_user": "%s",\n' "$(json_escape "$PI_USER")"
+    printf '  "remote_log_file": "%s",\n' "$(json_escape "$REMOTE_LOG_FILE")"
+    if [[ -n "$REPORTED_RECORDING_UTC" ]]; then
+        printf '  "radar_epoch_utc": %s,\n' "$REPORTED_RECORDING_UTC"
+    else
+        printf '  "radar_epoch_utc": null,\n'
+    fi
+    printf '  "sdr_defaults": {\n'
+    printf '    "radio_name": "%s",\n' "$(json_escape "$RADIO_NAME")"
+    printf '    "center_frequency_hz": %s,\n' "$CENTER_FREQUENCY_HZ"
+    printf '    "sample_rate_hz": %s,\n' "$SAMPLE_RATE_HZ"
+    printf '    "lo_offset_hz": %s\n' "$LO_OFFSET_HZ"
+    printf '  },\n'
+    printf '  "radar_files": %s,\n' "$(write_json_array "${packaged_radar_files[@]}")"
+    printf '  "adsb_files": %s,\n' "$(write_json_array "${packaged_adsb_files[@]}")"
+    printf '  "log_files": %s\n' "$(write_json_array "${packaged_log_files[@]}")"
+    printf "}\n"
+} > "$MANIFEST_PATH"
+
 echo "SESSION_ID=$SESSION_ID"
+echo "SESSION_DIR=$SESSION_DIR"
+echo "SESSION_MANIFEST=$MANIFEST_PATH"
 echo "REMOTE_LOG_FILE=$REMOTE_LOG_FILE"
-echo "LOCAL_ADSB_DIR=$ADSB_DIR"
 
 if [[ $MATLAB_STATUS -ne 0 ]]; then
     exit "$MATLAB_STATUS"
 fi
-if [[ $REMOTE_WAIT_STATUS -ne 0 || $FETCH_STATUS -ne 0 ]]; then
+if [[ $REMOTE_WAIT_STATUS -ne 0 || $FETCH_STATUS -ne 0 || $REMOTE_LOG_STATUS -ne 0 ]]; then
     exit 1
 fi
 

@@ -47,6 +47,26 @@ if strlength(requested_session) > 0 && ~strcmp(char(session_id), char(requested_
         session_id, requested_session);
 end
 
+absolute_files = strings(size(written_files));
+for k = 1:numel(written_files)
+    absolute_files(k) = string(helperMakeAbsolutePath(written_files(k)));
+end
+
+recording_utc = NaN;
+if ~isempty(absolute_files)
+    try
+        meta_reader = comm.BasebandFileReader(char(absolute_files(1)), 'SamplesPerFrame', 1);
+        file_meta = meta_reader.Metadata;
+        release(meta_reader);
+        if isstruct(file_meta) && isfield(file_meta, 'RecordingUTC') && ~isempty(file_meta.RecordingUTC)
+            recording_utc = double(file_meta.RecordingUTC);
+        end
+    catch me_meta
+        warning('runLocalHDTVCapture:recordingTimeUnavailable', ...
+            'Could not read RecordingUTC from the first capture file: %s', me_meta.message);
+    end
+end
+
 capture_info = struct( ...
     'session_id', session_id, ...
     'capture_duration_s', opts.CaptureDuration_s, ...
@@ -56,10 +76,31 @@ capture_info = struct( ...
     'sample_rate_hz', opts.SampleRate_Hz, ...
     'lo_offset_hz', opts.LOOffset_Hz, ...
     'gain', opts.Gain, ...
-    'local_capture_files', written_files);
+    'recording_utc', recording_utc, ...
+    'local_capture_files', absolute_files);
 
 fprintf('CAPTURE_SESSION_ID=%s\n', session_id);
-for k = 1:numel(written_files)
-    fprintf('CAPTURE_FILE_%d=%s\n', k, written_files(k));
+if isfinite(recording_utc)
+    fprintf('CAPTURE_RECORDING_UTC=%.6f\n', recording_utc);
+end
+for k = 1:numel(absolute_files)
+    fprintf('CAPTURE_FILE_%d=%s\n', k, absolute_files(k));
+end
+end
+
+function abs_path = helperMakeAbsolutePath(file_path)
+%HELPERMAKEABSOLUTEPATH Convert one capture output path into an absolute path.
+
+file_path = char(string(file_path));
+if ispc
+    is_absolute = ~isempty(regexp(file_path, '^[A-Za-z]:[\\/]', 'once')) || startsWith(file_path, '\\');
+else
+    is_absolute = startsWith(file_path, filesep);
+end
+
+if is_absolute
+    abs_path = file_path;
+else
+    abs_path = fullfile(pwd, file_path);
 end
 end

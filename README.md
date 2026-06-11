@@ -40,7 +40,14 @@ cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
 
-This script verifies SSH access to the Pi, starts `gatherTCPcompress.py` remotely, waits 15 s, runs the local HDTV capture for 30 s through `matlab -batch`, leaves ADS-B running for 5 s after the SDR capture, and then copies the matching `adsb_<session>.txt.gz` file back to the PC.
+This script verifies SSH access to the Pi, starts `gatherTCPcompress.py` remotely, waits 15 s, runs the local HDTV capture for 30 s through `matlab -batch`, leaves ADS-B running for 5 s after the SDR capture, and then packages the session locally as:
+
+```text
+captures/<session_id>/radar/
+captures/<session_id>/truth/
+captures/<session_id>/logs/
+captures/<session_id>/session_manifest.json
+```
 
 Important syntax notes:
 - The default Pi host is `192.168.10.131` and the default Pi user is `pi2`.
@@ -55,7 +62,9 @@ Important syntax notes:
   - `tail = 5`
 - `--capture-file` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
 - `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `30,50`.
-- Copied ADS-B files land in `adsb_capture/` at the repo root unless `--adsb-dir` is provided.
+- `adsb_capture/` is only a temporary staging area for fetched truth files.
+- The packaged session is written under `captures/` unless `--session-root` is provided.
+- `--adsb-stage-dir` overrides the temporary ADS-B staging folder.
 - The Pi-side logger writes its session log to `/home/pi2/flightTest/ADSB_GPS/adsb_capture_<session>.log`.
 - The testing machine must be able to SSH to the Pi without an interactive password prompt. Verify this first with `ssh -o BatchMode=yes -o ConnectTimeout=10 pi2@192.168.10.131 "echo READY"`.
 
@@ -65,6 +74,24 @@ Typical overrides:
 cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
 ```
+
+To pull one packaged session onto a development machine, use:
+
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --session-id <id>
+```
+
+This pulls `captures/<session_id>/` with `rsync -av -C`, preserves the packaged layout locally, and fails if the remote session folder or `session_manifest.json` is missing.
+
+To run the analysis without editing `analyzeBistaticData.m`, use the MATLAB session wrapper:
+
+```matlab
+cd BistaticDataAnalysis
+out = runBistaticAnalysisSession('20260611T101530');
+```
+
+The wrapper loads `session_manifest.json`, resolves radar and `adsb_*` files automatically, ignores any `nmea_*` files that appear in the truth list, and preserves direct use of `analyzeBistaticData.m` for manual debugging.
 
 If you want to run only the local SDR step from a terminal, use:
 
@@ -80,7 +107,7 @@ cd /path/to/flightTest
 matlab -batch "cd('TestSetupTesting'); info = runCoordinatedHDTVCapture('PiHost','192.168.10.131'); disp(info.session_id);"
 ```
 
-Use the shell coordinator as the supported workflow when running coordinated captures from the testing machine.
+Use the shell coordinator, `sync_capture_session.sh`, and `runBistaticAnalysisSession` as the supported end-to-end workflow.
 
 ---
 
@@ -97,7 +124,8 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 - [`PassiveRadarCollection_wPreFlightChecks.m`](TestSetupTesting/PassiveRadarCollection_wPreFlightChecks.m) - Mission control with Linux optimization and hardware validation
 - [`log_iq_n320_2antennas.m`](TestSetupTesting/log_iq_n320_2antennas.m) - Dual-channel IQ data recording
 - [`runLocalHDTVCapture.m`](TestSetupTesting/runLocalHDTVCapture.m) - Local-only HDTV capture wrapper that keeps the standard SDR defaults in one place
-- [`run_coordinated_hdtv_capture.sh`](TestSetupTesting/run_coordinated_hdtv_capture.sh) - Recommended Ubuntu coordinator that starts Pi ADS-B logging over SSH and then launches the local SDR capture through `matlab -batch`
+- [`run_coordinated_hdtv_capture.sh`](TestSetupTesting/run_coordinated_hdtv_capture.sh) - Recommended Ubuntu coordinator that starts Pi ADS-B logging over SSH, runs the local SDR capture through `matlab -batch`, and packages the session under `captures/<session_id>/`
+- [`sync_capture_session.sh`](TestSetupTesting/sync_capture_session.sh) - Pull one packaged session from the testing machine to a development machine with `rsync -av -C`
 - [`runCoordinatedHDTVCapture.m`](TestSetupTesting/runCoordinatedHDTVCapture.m) - Legacy MATLAB-owned Pi + SDR coordinator kept for backward compatibility
 - [`log_iq_n320.m`](TestSetupTesting/log_iq_n320.m) - Single-channel variant
 
@@ -138,6 +166,16 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 - `MissionReport_LoganCorridor.mat` - Saved performance metrics and system characterization
 
 **See [`TestSetupTesting/README.md`](TestSetupTesting/README.md) for detailed documentation of the evaluation workflow.**
+
+---
+
+### [`BistaticDataAnalysis/`](BistaticDataAnalysis/)
+**Session-based bistatic analysis and truth alignment**
+
+- [`analyzeBistaticData.m`](BistaticDataAnalysis/analyzeBistaticData.m) - Main processing engine; still supports direct manual runs for debugging
+- [`runBistaticAnalysisSession.m`](BistaticDataAnalysis/runBistaticAnalysisSession.m) - Supported analysis entrypoint for packaged sessions
+- [`helperLoadSessionManifest.m`](BistaticDataAnalysis/helperLoadSessionManifest.m) - Loads and validates `session_manifest.json`
+- [`helperResolveSessionAnalysisSetup.m`](BistaticDataAnalysis/helperResolveSessionAnalysisSetup.m) - Resolves one packaged session into radar files, truth files, and analysis preflight settings
 
 ---
 
@@ -190,7 +228,7 @@ PassiveRadarCollection_wPreFlightChecks  % Runs pre-flight checks and captures d
 cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
-This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture for 30 s, lets ADS-B run a few seconds longer, and copies the matching `adsb_<session>.txt.gz` file back to the PC.
+This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture for 30 s, lets ADS-B run a few seconds longer, and writes a packaged session to `captures/<session_id>/`.
 
 To tune gains or timing without rewriting a long MATLAB command:
 
@@ -199,17 +237,29 @@ cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --lead-seconds 15 --tail-seconds 5
 ```
 
-### 2. Run System Characterization
+### 1c. Sync One Packaged Session to a Development Machine
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --session-id <id>
+```
+
+### 2. Run Session-Based Analysis by Session ID
+```matlab
+cd BistaticDataAnalysis
+out = runBistaticAnalysisSession('20260611T101530');
+```
+
+### 3. Run System Characterization
 ```matlab
 script_QualityEtc  % Complete workflow: quality → characterization → detection
 ```
 
-### 3. Batch Process Long Recordings
+### 4. Batch Process Long Recordings
 ```matlab
 IQDataProcessing  % Processes entire file, outputs Results_*.csv
 ```
 
-### 4. Start Ground Truth Collection (Raspberry Pi)
+### 5. Start Ground Truth Collection (Raspberry Pi)
 ```bash
 cd ADSB_GPS
 sudo ./start_adsb_gps_loggers.sh
