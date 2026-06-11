@@ -30,7 +30,7 @@ cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
 
-This keeps the Raspberry Pi ADS-B launch outside MATLAB. The shell script starts `gatherTCPcompress.py` on `pi2@192.168.10.131`, then runs the local SDR capture through `matlab -batch` by calling `runLocalHDTVCapture.m`, which hides the stable defaults such as `radio='My USRP N320'` and `lo=200e3`.
+This keeps the Raspberry Pi ADS-B launch outside MATLAB. The shell script starts `gatherTCPcompress.py` on `pi2@192.168.10.131`, then runs the local SDR capture through `matlab -batch` by calling `runLocalHDTVCapture.m`, which hides the stable defaults such as `radio='My USRP N320'` and `lo=200e3`. The Pi logger now runs until the coordinator observes the local capture finish, then the coordinator waits the configured tail interval and sends a graceful stop signal so MATLAB startup latency does not truncate the ADS-B window.
 
 Each successful run is packaged locally under the repo-root `captures/` folder as:
 

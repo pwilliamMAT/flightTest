@@ -40,7 +40,7 @@ cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
 
-This script verifies SSH access to the Pi, starts `gatherTCPcompress.py` remotely, waits 15 s, runs the local HDTV capture for 30 s through `matlab -batch`, leaves ADS-B running for 5 s after the SDR capture, and then packages the session locally as:
+This script verifies SSH access to the Pi, starts `gatherTCPcompress.py` remotely, waits 15 s, runs the local HDTV capture for 30 s through `matlab -batch`, keeps ADS-B running until the local SDR step actually finishes, leaves ADS-B running for 5 s after that capture, and then stops the Pi logger gracefully before packaging the session locally as:
 
 ```text
 captures/<session_id>/radar/
@@ -228,7 +228,7 @@ PassiveRadarCollection_wPreFlightChecks  % Runs pre-flight checks and captures d
 cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
-This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture for 30 s, lets ADS-B run a few seconds longer, and writes a packaged session to `captures/<session_id>/`.
+This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture for 30 s, keeps ADS-B running until that local capture completes, lets ADS-B run a few seconds longer, then stops the Pi logger gracefully and writes a packaged session to `captures/<session_id>/`.
 
 To tune gains or timing without rewriting a long MATLAB command:
 

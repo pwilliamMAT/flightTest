@@ -32,6 +32,13 @@ LO_OFFSET_HZ="200000"
 SSH_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
 SCP_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
 
+REMOTE_LOGGER_STARTED=0
+SESSION_ID_REGEX=""
+ADSB_TARGET_WINDOW_S="0.0"
+ADSB_START_WALLCLOCK_S=""
+ADSB_STOP_WALLCLOCK_S=""
+ADSB_ACTUAL_RUN_SECONDS_S=""
+
 usage() {
     cat <<EOF
 Usage: bash TestSetupTesting/run_coordinated_hdtv_capture.sh [options]
@@ -50,7 +57,7 @@ Options:
   --matlab-bin <path>              MATLAB executable (default: matlab)
   --ssh-bin <path>                 SSH executable (default: ssh)
   --scp-bin <path>                 SCP executable (default: scp)
-  --remote-wait-timeout <seconds>  Max wait for Pi logger to stop (default: 60)
+  --remote-wait-timeout <seconds>  Max wait for Pi logger to stop after shutdown request (default: 60)
   --remote-poll-period <seconds>   Polling period while waiting for Pi logger (default: 2)
   -h, --help                       Show this help text
 EOF
@@ -71,6 +78,10 @@ quote_matlab_string() {
 
 sum_seconds() {
     awk -v a="$1" -v b="$2" -v c="$3" 'BEGIN { printf "%.1f", a + b + c }'
+}
+
+diff_seconds() {
+    awk -v start="$1" -v finish="$2" 'BEGIN { printf "%.1f", finish - start }'
 }
 
 is_nonnegative_number() {
@@ -143,12 +154,16 @@ run_ssh_body() {
     "$SSH_BIN" "${SSH_OPTIONS[@]}" "$PI_USER@$PI_HOST" "bash -lc $(quote_posix_arg "$remote_body")"
 }
 
+remote_logger_pattern() {
+    printf "%s" "gatherTCPcompress.py.*${SESSION_ID_REGEX}"
+}
+
 remote_logger_running() {
     local output
     local status
     local remote_body
 
-    remote_body="pgrep -f $(quote_posix_arg "gatherTCPcompress.py.*$SESSION_ID") >/dev/null && printf RUNNING || printf STOPPED"
+    remote_body="pgrep -f $(quote_posix_arg "$(remote_logger_pattern)") >/dev/null && printf RUNNING || printf STOPPED"
 
     set +e
     output="$(run_ssh_body "$remote_body" 2>/dev/null)"
@@ -161,6 +176,14 @@ remote_logger_running() {
     fi
 
     printf "%s" "$output"
+}
+
+signal_remote_logger() {
+    local signal_name="${1:-INT}"
+    local remote_body
+
+    remote_body="pids=\$(pgrep -f $(quote_posix_arg "$(remote_logger_pattern)") || true); if [[ -z \"\$pids\" ]]; then printf STOPPED; else kill -s $signal_name \$pids && printf SIGNALED; fi"
+    run_ssh_body "$remote_body"
 }
 
 wait_for_remote_logger() {
@@ -188,6 +211,27 @@ list_remote_adsb_files() {
     remote_body="find $(quote_posix_arg "$PI_WORKDIR") -maxdepth 1 -type f -name $(quote_posix_arg "*adsb_${SESSION_ID}*.txt.gz") -printf '%p\n' | sort"
     run_ssh_body "$remote_body"
 }
+
+cleanup_remote_logger_on_exit() {
+    local exit_code=$?
+    local remote_state=""
+    trap - EXIT
+
+    if [[ $REMOTE_LOGGER_STARTED -eq 1 ]]; then
+        set +e
+        remote_state="$(remote_logger_running)"
+        if [[ "$remote_state" == "RUNNING" ]]; then
+            echo "Cleanup: stopping remote ADS-B logger for session $SESSION_ID ..."
+            signal_remote_logger TERM >/dev/null 2>&1
+            wait_for_remote_logger >/dev/null 2>&1
+        fi
+        set -e
+    fi
+
+    exit "$exit_code"
+}
+
+trap cleanup_remote_logger_on_exit EXIT
 
 json_escape() {
     local value="$1"
@@ -330,7 +374,8 @@ validate_nonnegative_number "tail seconds" "$TAIL_SECONDS_S"
 validate_nonnegative_number "remote wait timeout" "$REMOTE_WAIT_TIMEOUT_S"
 validate_positive_number "remote poll period" "$REMOTE_POLL_PERIOD_S"
 
-ADSB_RUN_SECONDS_S="$(sum_seconds "$LEAD_SECONDS_S" "$CAPTURE_DURATION_S" "$TAIL_SECONDS_S")"
+SESSION_ID_REGEX="$(printf "%s" "$SESSION_ID" | sed -e 's/[][(){}.^$*+?|\\]/\\&/g')"
+ADSB_TARGET_WINDOW_S="$(sum_seconds "$LEAD_SECONDS_S" "$CAPTURE_DURATION_S" "$TAIL_SECONDS_S")"
 MATLAB_GAIN_EXPR="$(gain_to_matlab_expr "$GAIN_SPEC")"
 REMOTE_LOG_FILE="$PI_WORKDIR/adsb_capture_${SESSION_ID}.log"
 
@@ -364,8 +409,8 @@ if [[ $probe_status -ne 0 || "$probe_output" != "READY" ]]; then
     die "SSH preflight failed. Verify key-based SSH access and that $PI_LOGGER_SCRIPT exists on the Pi."
 fi
 
-echo "[1/5] Starting ADS-B logger on $PI_USER@$PI_HOST for $ADSB_RUN_SECONDS_S s ..."
-remote_logger_body="exec python3 $(quote_posix_arg "$PI_LOGGER_SCRIPT") --session-id $(quote_posix_arg "$SESSION_ID") --run-seconds $(quote_posix_arg "$ADSB_RUN_SECONDS_S") > $(quote_posix_arg "$REMOTE_LOG_FILE") 2>&1 < /dev/null"
+echo "[1/5] Starting ADS-B logger on $PI_USER@$PI_HOST until the SDR capture completes ..."
+remote_logger_body="exec python3 $(quote_posix_arg "$PI_LOGGER_SCRIPT") --session-id $(quote_posix_arg "$SESSION_ID") > $(quote_posix_arg "$REMOTE_LOG_FILE") 2>&1 < /dev/null"
 remote_start_body="cd $(quote_posix_arg "$PI_WORKDIR") && if command -v setsid >/dev/null 2>&1; then setsid -f bash -lc $(quote_posix_arg "$remote_logger_body"); else nohup bash -lc $(quote_posix_arg "$remote_logger_body") >/dev/null 2>&1 & fi; printf STARTED"
 set +e
 start_output="$(run_ssh_body "$remote_start_body")"
@@ -374,6 +419,8 @@ set -e
 if [[ $start_status -ne 0 || "$start_output" != *"STARTED"* ]]; then
     die "Could not start gatherTCPcompress.py on the Pi. Check $REMOTE_LOG_FILE after a manual start attempt."
 fi
+REMOTE_LOGGER_STARTED=1
+ADSB_START_WALLCLOCK_S="$(date +%s.%N)"
 
 echo "[2/5] Waiting $LEAD_SECONDS_S s before the local SDR capture ..."
 sleep "$LEAD_SECONDS_S"
@@ -404,11 +451,34 @@ if [[ $MATLAB_STATUS -ne 0 ]]; then
     echo "Warning: local MATLAB SDR capture failed with status $MATLAB_STATUS." >&2
 fi
 
-echo "[4/5] Waiting for ADS-B tail coverage and Pi logger shutdown ..."
+echo "[4/5] Waiting for ADS-B tail coverage, then stopping the Pi logger ..."
 sleep "$TAIL_SECONDS_S"
-if ! wait_for_remote_logger; then
+set +e
+stop_output="$(signal_remote_logger INT 2>/dev/null)"
+stop_status=$?
+set -e
+if [[ $stop_status -ne 0 ]]; then
     REMOTE_WAIT_STATUS=1
-    echo "Warning: Pi ADS-B logger still appears to be running after $REMOTE_WAIT_TIMEOUT_S s." >&2
+    echo "Warning: failed to send a graceful stop request to the Pi ADS-B logger." >&2
+else
+    if ! wait_for_remote_logger; then
+        echo "Warning: Pi ADS-B logger did not stop after SIGINT; retrying with SIGTERM." >&2
+        set +e
+        term_output="$(signal_remote_logger TERM 2>/dev/null)"
+        term_status=$?
+        set -e
+        if [[ $term_status -ne 0 || "$term_output" == "STOPPED" ]]; then
+            :
+        fi
+        if ! wait_for_remote_logger; then
+            REMOTE_WAIT_STATUS=1
+            echo "Warning: Pi ADS-B logger still appears to be running after $REMOTE_WAIT_TIMEOUT_S s." >&2
+        fi
+    fi
+fi
+ADSB_STOP_WALLCLOCK_S="$(date +%s.%N)"
+if [[ -n "$ADSB_START_WALLCLOCK_S" && -n "$ADSB_STOP_WALLCLOCK_S" ]]; then
+    ADSB_ACTUAL_RUN_SECONDS_S="$(diff_seconds "$ADSB_START_WALLCLOCK_S" "$ADSB_STOP_WALLCLOCK_S")"
 fi
 
 echo "[5/5] Fetching ADS-B outputs and packaging session $SESSION_ID ..."
@@ -483,7 +553,13 @@ fi
     printf '  "capture_duration_s": %s,\n' "$CAPTURE_DURATION_S"
     printf '  "lead_seconds_s": %s,\n' "$LEAD_SECONDS_S"
     printf '  "tail_seconds_s": %s,\n' "$TAIL_SECONDS_S"
-    printf '  "adsb_run_seconds_s": %s,\n' "$ADSB_RUN_SECONDS_S"
+    printf '  "adsb_target_window_s": %s,\n' "$ADSB_TARGET_WINDOW_S"
+    if [[ -n "$ADSB_ACTUAL_RUN_SECONDS_S" ]]; then
+        printf '  "adsb_run_seconds_s": %s,\n' "$ADSB_ACTUAL_RUN_SECONDS_S"
+    else
+        printf '  "adsb_run_seconds_s": null,\n'
+    fi
+    printf '  "adsb_stop_mode": "signal_after_capture",\n'
     printf '  "capture_file_base": "%s",\n' "$(json_escape "$CAPTURE_FILE")"
     printf '  "gain_spec": "%s",\n' "$(json_escape "$(normalize_gain_spec "$GAIN_SPEC")")"
     printf '  "pi_host": "%s",\n' "$(json_escape "$PI_HOST")"
