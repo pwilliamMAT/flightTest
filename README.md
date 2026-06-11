@@ -33,31 +33,54 @@ This repository contains a complete passive bistatic radar system and multi-sens
 
 ## Coordinated Capture Syntax
 
-Use the PC as the coordinator. From a terminal on the SDR capture machine, run `matlab -batch` from the repo root:
+Use the Ubuntu SDR capture machine as the coordinator. From the repo root, run:
 
 ```bash
 cd /path/to/flightTest
-matlab -batch "cd('TestSetupTesting'); info = runCoordinatedHDTVCapture('PiHost','192.168.10.131','PiUser','pi2','CaptureFile','n320_hdtv_capture','LocalCaptureArgs',{'radio','My USRP N320','gain',[30 50]}); disp(info.session_id);"
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
 
-This call starts `gatherTCPcompress.py` on the Raspberry Pi over SSH, waits 15 s, runs the local HDTV capture for 30 s, leaves ADS-B running for 5 s after the SDR capture, and then copies the matching `adsb_<session>.txt.gz` file back to the PC.
+This script verifies SSH access to the Pi, starts `gatherTCPcompress.py` remotely, waits 15 s, runs the local HDTV capture for 30 s through `matlab -batch`, leaves ADS-B running for 5 s after the SDR capture, and then copies the matching `adsb_<session>.txt.gz` file back to the PC.
 
 Important syntax notes:
-- `'PiHost'` is required and should be `192.168.10.131` for the current Raspberry Pi setup.
-- `'PiUser'` defaults to `'pi2'`.
-- `'LocalCaptureArgs'` must be a cell array of name-value pairs passed directly into `log_iq_n320_2antennas`.
-- `'CaptureFile'` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
-- The example above assumes your shell is in the repo root before `matlab -batch` starts. If not, change `cd('TestSetupTesting')` to the full path to that folder.
+- The default Pi host is `192.168.10.131` and the default Pi user is `pi2`.
+- The default local SDR settings are hidden behind `runLocalHDTVCapture.m`:
+  - `radio = 'My USRP N320'`
+  - `cf = 540e6`
+  - `sr = 6.144e6`
+  - `lo = 200e3`
+  - `gain = [30 50]`
+  - `capture-duration = 30`
+  - `lead = 15`
+  - `tail = 5`
+- `--capture-file` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
+- `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `30,50`.
+- Copied ADS-B files land in `adsb_capture/` at the repo root unless `--adsb-dir` is provided.
+- The Pi-side logger writes its session log to `/home/pi2/flightTest/ADSB_GPS/adsb_capture_<session>.log`.
 - The testing machine must be able to SSH to the Pi without an interactive password prompt. Verify this first with `ssh -o BatchMode=yes -o ConnectTimeout=10 pi2@192.168.10.131 "echo READY"`.
 
-To set the timing explicitly instead of using the defaults:
+Typical overrides:
 
 ```bash
 cd /path/to/flightTest
-matlab -batch "cd('TestSetupTesting'); info = runCoordinatedHDTVCapture('PiHost','192.168.10.131','CaptureDuration_s',30,'LeadSeconds_s',15,'TailSeconds_s',5,'LocalCaptureArgs',{'radio','My USRP N320','gain',[30 50]}); disp(info.session_id);"
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
 ```
 
-The returned `info` struct contains the shared `session_id`, the local capture file paths, and any ADS-B files copied back from the Pi. Use that `session_id` later in `analyzeBistaticData.m` to select the matching radar capture.
+If you want to run only the local SDR step from a terminal, use:
+
+```bash
+cd /path/to/flightTest
+matlab -batch "cd('TestSetupTesting'); runLocalHDTVCapture();"
+```
+
+Legacy MATLAB-owned coordination is still available, but it is now the secondary path:
+
+```bash
+cd /path/to/flightTest
+matlab -batch "cd('TestSetupTesting'); info = runCoordinatedHDTVCapture('PiHost','192.168.10.131'); disp(info.session_id);"
+```
+
+Use the shell coordinator as the supported workflow when running coordinated captures from the testing machine.
 
 ---
 
@@ -73,7 +96,9 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 #### Data Collection
 - [`PassiveRadarCollection_wPreFlightChecks.m`](TestSetupTesting/PassiveRadarCollection_wPreFlightChecks.m) - Mission control with Linux optimization and hardware validation
 - [`log_iq_n320_2antennas.m`](TestSetupTesting/log_iq_n320_2antennas.m) - Dual-channel IQ data recording
-- [`runCoordinatedHDTVCapture.m`](TestSetupTesting/runCoordinatedHDTVCapture.m) - Starts Raspberry Pi ADS-B logging over SSH, waits for lead time, runs the local 30 s HDTV capture, and optionally copies the matching ADS-B file back to the PC
+- [`runLocalHDTVCapture.m`](TestSetupTesting/runLocalHDTVCapture.m) - Local-only HDTV capture wrapper that keeps the standard SDR defaults in one place
+- [`run_coordinated_hdtv_capture.sh`](TestSetupTesting/run_coordinated_hdtv_capture.sh) - Recommended Ubuntu coordinator that starts Pi ADS-B logging over SSH and then launches the local SDR capture through `matlab -batch`
+- [`runCoordinatedHDTVCapture.m`](TestSetupTesting/runCoordinatedHDTVCapture.m) - Legacy MATLAB-owned Pi + SDR coordinator kept for backward compatibility
 - [`log_iq_n320.m`](TestSetupTesting/log_iq_n320.m) - Single-channel variant
 
 #### Quality Assessment
@@ -163,9 +188,16 @@ PassiveRadarCollection_wPreFlightChecks  % Runs pre-flight checks and captures d
 ### 1b. Coordinate a 30 s HDTV Capture with Raspberry Pi ADS-B Logging
 ```bash
 cd /path/to/flightTest
-matlab -batch "cd('TestSetupTesting'); info = runCoordinatedHDTVCapture('PiHost','192.168.10.131','CaptureFile','n320_hdtv_capture','LocalCaptureArgs',{'radio','My USRP N320','gain',[30 50]}); disp(info.session_id);"
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
 This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture for 30 s, lets ADS-B run a few seconds longer, and copies the matching `adsb_<session>.txt.gz` file back to the PC.
+
+To tune gains or timing without rewriting a long MATLAB command:
+
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --lead-seconds 15 --tail-seconds 5
+```
 
 ### 2. Run System Characterization
 ```matlab

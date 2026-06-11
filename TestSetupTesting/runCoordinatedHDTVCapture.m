@@ -1,7 +1,9 @@
 function capture_info = runCoordinatedHDTVCapture(varargin)
-%RUNCOORDINATEDHDTVCAPTURE Coordinate Pi ADS-B logging with a local SDR run.
-%  The Raspberry Pi ADS-B logger starts first, warms up, and then the local
-%  N320 capture runs with the same session ID so the files are easy to pair.
+%RUNCOORDINATEDHDTVCAPTURE Legacy MATLAB-owned Pi + SDR coordinator.
+%  This function keeps the older all-in-MATLAB coordination path available
+%  for compatibility. The recommended workflow now uses the external shell
+%  coordinator in run_coordinated_hdtv_capture.sh so Pi SSH orchestration
+%  is separated from MATLAB startup and local SDR capture.
 %
 %  Example:
 %    info = runCoordinatedHDTVCapture( ...

@@ -21,6 +21,19 @@ This repository contains MATLAB code for evaluating, characterizing, and process
 
 The system evaluation follows a multi-stage process to ensure data quality, characterize system performance, and generate aircraft detections:
 
+### Coordinated HDTV + ADS-B Capture
+
+For the recommended coordinated collection workflow, start from the repo root on the Ubuntu testing machine and use the external coordinator:
+
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh
+```
+
+This keeps the Raspberry Pi ADS-B launch outside MATLAB. The shell script starts `gatherTCPcompress.py` on `pi2@192.168.10.131`, then runs the local SDR capture through `matlab -batch` by calling `runLocalHDTVCapture.m`, which hides the stable defaults such as `radio='My USRP N320'` and `lo=200e3`.
+
+The older `runCoordinatedHDTVCapture.m` MATLAB workflow is still present for backward compatibility, but it is now the secondary path.
+
 ### 1. **Data Collection with Pre-Flight Checks**
 
 **Script:** [PassiveRadarCollection_wPreFlightChecks.m](PassiveRadarCollection_wPreFlightChecks.m)
