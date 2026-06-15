@@ -115,6 +115,33 @@ out = runBistaticAnalysisSession('20260611T101530');
 The wrapper loads `session_manifest.json`, resolves radar and `adsb_*` files automatically, ignores any `nmea_*` files that appear in the truth list, and preserves direct use of `analyzeBistaticData.m` for manual debugging.
 When ADS-B truth is present, the analysis now overlays the projected truth directly on both the static per-part Range-Doppler maps and the interactive RD viewer in bistatic `(R_excess, f_D)` space.
 
+### 3b. Re-run Only the Truth Diagnostics
+
+After one full session run, you can iterate on the detection-vs-truth plots without re-running the raw IQ pipeline:
+
+```matlab
+cd BistaticDataAnalysis
+out = runBistaticAnalysisSession('20260611T101530');
+
+diag = runDetectionTruthDiagnostics(out.truth_diag_input, ...
+    'PlotDetectionTimeSeries', true, ...
+    'PlotRDMOverlays', true, ...
+    'PlotTrackComparison', false);
+```
+
+If you want to save that post-detection snapshot and replay it later:
+
+```matlab
+cd BistaticDataAnalysis
+saveDetectionTruthDiagnosticInput(out.truth_diag_input, 'truth_diag_snapshot.mat');
+
+diag = runDetectionTruthDiagnostics('truth_diag_snapshot.mat', ...
+    'PlotDetectionTimeSeries', true, ...
+    'PlotRDMOverlays', true);
+```
+
+This replay path skips the expensive raw IQ, ECA-C, CAF, and CFAR stages. It reruns only ADS-B loading, bistatic truth projection, truth alignment, detection matching, and the comparison plots.
+
 ### 4. Other Entry Points
 
 If you want to run only the local SDR step from a terminal, use:
@@ -197,11 +224,16 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 **Session-based bistatic analysis and truth alignment**
 
 - [`analyzeBistaticData.m`](BistaticDataAnalysis/analyzeBistaticData.m) - Main processing engine; still supports direct manual runs for debugging
-- [`runBistaticAnalysisSession.m`](BistaticDataAnalysis/runBistaticAnalysisSession.m) - Supported analysis entrypoint for packaged sessions
+- [`runBistaticAnalysisSession.m`](BistaticDataAnalysis/runBistaticAnalysisSession.m) - Supported analysis entrypoint for packaged sessions; returns `truth_diag_input` for fast diagnostic replay
+- [`buildDetectionTruthDiagnosticInput.m`](BistaticDataAnalysis/buildDetectionTruthDiagnosticInput.m) - Builds the standalone post-detection bundle used to replay truth diagnostics without reprocessing IQ
+- [`saveDetectionTruthDiagnosticInput.m`](BistaticDataAnalysis/saveDetectionTruthDiagnosticInput.m) - Saves a `truth_diag_input` snapshot to MAT for later replay
+- [`runDetectionTruthDiagnostics.m`](BistaticDataAnalysis/runDetectionTruthDiagnostics.m) - Re-runs truth alignment, detection matching, and diagnostic plots from a bundle, struct, or MAT snapshot
+- [`plotDetectionTruthDiagnostics.m`](BistaticDataAnalysis/plotDetectionTruthDiagnostics.m) - Plots `R_excess` vs time and `f_D` vs time with matched and unmatched detections overlaid on truth
 - [`helperBuildTruthQueryTimes.m`](BistaticDataAnalysis/helperBuildTruthQueryTimes.m) - Builds the block-center time grid used to align ADS-B truth to the radar processing cadence
 - [`helperPlotRDMTruthOverlay.m`](BistaticDataAnalysis/helperPlotRDMTruthOverlay.m) - Overlays ADS-B truth directly on Range-Doppler figures in bistatic measurement space
 - [`helperLoadSessionManifest.m`](BistaticDataAnalysis/helperLoadSessionManifest.m) - Loads and validates `session_manifest.json`
 - [`helperResolveSessionAnalysisSetup.m`](BistaticDataAnalysis/helperResolveSessionAnalysisSetup.m) - Resolves one packaged session into radar files, truth files, and analysis preflight settings
+- [`test_adsbTruthPipeline.m`](BistaticDataAnalysis/test_adsbTruthPipeline.m) - Synthetic end-to-end regression test for the ADS-B truth and standalone diagnostic workflow
 
 ---
 
@@ -276,6 +308,16 @@ In an interactive terminal, this script prompts to launch the session analysis i
 cd BistaticDataAnalysis
 out = runBistaticAnalysisSession('20260611T101530');
 ```
+
+### 2b. Re-run Only the Detection-vs-Truth Diagnostics
+```matlab
+cd BistaticDataAnalysis
+diag = runDetectionTruthDiagnostics(out.truth_diag_input, ...
+    'PlotDetectionTimeSeries', true, ...
+    'PlotRDMOverlays', true, ...
+    'PlotTrackComparison', false);
+```
+Use this after one full session run when you only want to iterate on truth alignment, truth overlays, or detection-vs-truth checks.
 
 ### 3. Run System Characterization
 ```matlab

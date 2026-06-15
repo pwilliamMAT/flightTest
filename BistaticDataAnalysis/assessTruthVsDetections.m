@@ -67,11 +67,18 @@ function metrics = assessTruthVsDetections(detections, tracks_log, adsb_aligned,
 %     DETECTION-LEVEL:
 %     .det_table      table  — one row per detection: columns
 %                              t_abs_s, R_excess_m, f_D_hz,
-%                              matched_hex ('' = FA), is_tp, is_fa
+%                              matched_hex, matched_callsign,
+%                              matched_truth_t_abs_s,
+%                              matched_truth_R_excess_m,
+%                              matched_truth_f_D_hz,
+%                              matched_dt_s,
+%                              det_range_err_m, det_doppler_err_hz,
+%                              is_tp, is_fa
 %     .n_tp           scalar — total true positives
 %     .n_fa           scalar — total false alarms
 %     .n_miss         scalar — total missed detections (all aircraft combined)
-%     .Pd_per_ac      table  — per-aircraft: hex, callsign, n_tp, n_miss, Pd
+%     .Pd_per_ac      table  — per-aircraft: hex, callsign, n_tp,
+%                              n_hit_cpis, n_miss, n_visible_cpis, Pd
 %     .det_range_err_m  [n_tp×1] — ΔR at each TP (for histogram)
 %     .det_doppler_err_hz [n_tp×1] — Δf at each TP
 %
@@ -158,6 +165,11 @@ if ~isempty(detections)
     is_tp        = false(N_det, 1);
     is_fa        = true(N_det, 1);
     matched_hex  = repmat({''}, N_det, 1);
+    matched_callsign = repmat({''}, N_det, 1);
+    matched_truth_t = NaN(N_det, 1);
+    matched_truth_R = NaN(N_det, 1);
+    matched_truth_f = NaN(N_det, 1);
+    matched_dt_s = NaN(N_det, 1);
     matched_dR   = NaN(N_det, 1);
     matched_df   = NaN(N_det, 1);
 
@@ -174,6 +186,7 @@ if ~isempty(detections)
 
         best_dR  = Inf;
         best_k   = 0;
+        best_t_k = NaN;
         best_R_k = NaN;
         best_f_k = NaN;
 
@@ -204,6 +217,7 @@ if ~isempty(detections)
                 if dR < best_dR
                     best_dR  = dR;
                     best_k   = k;
+                    best_t_k = t_truth(idx);
                     best_R_k = R_k;
                     best_f_k = f_k;
                 end
@@ -214,6 +228,11 @@ if ~isempty(detections)
             is_tp(d)       = true;
             is_fa(d)       = false;
             matched_hex{d} = adsb_aligned(best_k).hex;
+            matched_callsign{d} = adsb_aligned(best_k).callsign;
+            matched_truth_t(d) = best_t_k;
+            matched_truth_R(d) = best_R_k;
+            matched_truth_f(d) = best_f_k;
+            matched_dt_s(d) = det_t(d) - best_t_k;
             matched_dR(d)  = det_R(d) - best_R_k;
             matched_df(d)  = det_f(d) - best_f_k;
             ac_tp(best_k)  = ac_tp(best_k) + 1;
@@ -248,6 +267,8 @@ if ~isempty(detections)
         end
         ac_miss(k) = n_visible - n_covered;
     end
+    ac_n_visible_all = countVisibleTruthSamples(adsb_aligned);
+    ac_hit_cpi = max(ac_n_visible_all - ac_miss, 0);
 
     % ── Assemble output ───────────────────────────────────────────────────
     metrics.n_tp               = sum(is_tp);
@@ -257,26 +278,25 @@ if ~isempty(detections)
     metrics.det_doppler_err_hz = matched_df(is_tp);
 
     metrics.det_table = table( ...
-        det_t, det_R, det_f, matched_hex, is_tp, is_fa, ...
+        det_t, det_R, det_f, matched_hex, matched_callsign, ...
+        matched_truth_t, matched_truth_R, matched_truth_f, ...
+        matched_dt_s, matched_dR, matched_df, ...
+        is_tp, is_fa, ...
         'VariableNames', ...
-        {'t_abs_s', 'R_excess_m', 'f_D_hz', 'matched_hex', 'is_tp', 'is_fa'});
+        {'t_abs_s', 'R_excess_m', 'f_D_hz', 'matched_hex', 'matched_callsign', ...
+         'matched_truth_t_abs_s', 'matched_truth_R_excess_m', 'matched_truth_f_D_hz', ...
+         'matched_dt_s', 'det_range_err_m', 'det_doppler_err_hz', ...
+         'is_tp', 'is_fa'});
 
     % Per-aircraft detection probability table
     ac_hex_list      = {adsb_aligned.hex}.';
     ac_cs_list       = {adsb_aligned.callsign}.';
-    ac_n_visible_all = zeros(N_ac, 1);
-    for k = 1 : N_ac
-        ac = adsb_aligned(k);
-        if ~isempty(ac.R_excess_m)
-            ac_n_visible_all(k) = sum(~isnan(ac.R_excess_m));
-        end
-    end
-    ac_Pd = ac_tp ./ max(ac_tp + ac_miss, 1);
+    ac_Pd = ac_hit_cpi ./ max(ac_n_visible_all, 1);
 
     metrics.Pd_per_ac = table( ...
-        ac_hex_list, ac_cs_list, ac_tp, ac_miss, ac_n_visible_all, ac_Pd, ...
+        ac_hex_list, ac_cs_list, ac_tp, ac_hit_cpi, ac_miss, ac_n_visible_all, ac_Pd, ...
         'VariableNames', ...
-        {'hex', 'callsign', 'n_tp', 'n_miss', 'n_visible_cpis', 'Pd'});
+        {'hex', 'callsign', 'n_tp', 'n_hit_cpis', 'n_miss', 'n_visible_cpis', 'Pd'});
 
     if opts.Verbose
         fprintf('\n── Detection-Level Metrics ──────────────────────────────────────\n');
@@ -291,7 +311,7 @@ if ~isempty(detections)
                 sqrt(mean(metrics.det_doppler_err_hz.^2, 'omitnan')));
         end
         fprintf('\n  Per-aircraft detection probability:\n');
-        disp(metrics.Pd_per_ac(:, {'hex','callsign','n_tp','n_miss','Pd'}));
+        disp(metrics.Pd_per_ac(:, {'hex','callsign','n_tp','n_hit_cpis','n_miss','Pd'}));
     end
 end
 
@@ -390,10 +410,6 @@ fprintf('[assessTruthVsDetections] Done.\n\n');
 end  % ════════════════════ end assessTruthVsDetections ════════════════════
 
 % ── Local helper ─────────────────────────────────────────────────────────
-function idx = findNearest(t_vec, t_query)
-    [~, idx] = min(abs(t_vec - t_query));
-end
-
 function time_gate_s = estimateTruthTimeGate(adsb_aligned)
 dt_all = zeros(0, 1);
 
@@ -422,6 +438,24 @@ if isempty(dt_all)
     time_gate_s = 0.5;
 else
     time_gate_s = median(dt_all);
+end
+end
+
+function ac_n_visible_all = countVisibleTruthSamples(adsb_aligned)
+N_ac = numel(adsb_aligned);
+ac_n_visible_all = zeros(N_ac, 1);
+
+for k = 1 : N_ac
+    ac = adsb_aligned(k);
+    if isempty(ac.R_excess_m)
+        continue
+    end
+
+    valid_truth = ~isnan(ac.R_excess_m);
+    if isfield(ac, 'f_D_hz')
+        valid_truth = valid_truth & ~isnan(ac.f_D_hz);
+    end
+    ac_n_visible_all(k) = sum(valid_truth);
 end
 end
 

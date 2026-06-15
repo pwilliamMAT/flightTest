@@ -68,3 +68,13 @@ end
 if exist('adsb_aligned', 'var')
     analysis_output.adsb_aligned = adsb_aligned;
 end
+if exist('truth_metrics', 'var')
+    analysis_output.truth_metrics = truth_metrics;
+end
+if exist('truth_diag_input', 'var')
+    analysis_output.truth_diag_input = truth_diag_input;
+end
+if exist('truth_diag_output', 'var') && isstruct(truth_diag_output) && ...
+        isfield(truth_diag_output, 'check_summary')
+    analysis_output.truth_diag_summary = truth_diag_output.check_summary;
+end

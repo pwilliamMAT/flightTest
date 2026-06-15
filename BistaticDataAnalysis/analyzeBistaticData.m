@@ -997,43 +997,46 @@ else
     fprintf('[§8] ADS-B Truth Integration\n');
     fprintf('════════════════════════════════════════════════════════════════\n');
 
-    % ── §8.1  Load and parse ADS-B SBS-1 files ───────────────────────────
-    fprintf('\n[§8.1] Loading ADS-B truth data…\n');
-    adsb_tracks = loadADSBTruth(config.adsb_files, 'Verbose', config.verbose);
-
-    if isempty(adsb_tracks)
-        warning('analyzeBistaticData:noADSBTracks', ...
-            '§8: loadADSBTruth returned no aircraft tracks — check adsb_files paths.');
+    analysis_label = sprintf('%d-part Newton recording', N_parts);
+    if exist('tracks_log', 'var') && ~isempty(tracks_log)
+        tracks_log_for_truth = tracks_log;
     else
-        % ── §8.2  Get radar recording epoch ──────────────────────────────
-        fprintf('\n[§8.2] Extracting radar recording epoch…\n');
-        if isfield(config, 'radar_epoch_utc') && ~isempty(config.radar_epoch_utc)
-            t_epoch_utc = getRadarEpoch(data_parts{1}, ...
-                'ManualEpoch', config.radar_epoch_utc, ...
-                'Verbose', config.verbose);
-        else
-            t_epoch_utc = getRadarEpoch(data_parts{1}, 'Verbose', config.verbose);
-        end
+        tracks_log_for_truth = [];
+    end
 
-        % ── §8.3  Project ADS-B into bistatic measurement space ──────────
-        fprintf('\n[§8.3] Projecting ADS-B positions to (R_excess, f_D)…\n');
-        adsb_bistatic = adsbToBistatic(adsb_tracks, config.txLLA, config.rxLLA, config.fc);
+    fprintf('\n[§8.1] Building post-detection diagnostic bundle…\n');
+    truth_diag_input = buildDetectionTruthDiagnosticInput( ...
+        config, data_parts, ...
+        part_start_offsets_s, part_end_offsets_s, all_track_dets, ...
+        'TracksLog', tracks_log_for_truth, ...
+        'PartResults', part_res, ...
+        'PartDurationS', part_dur_s, ...
+        'SessionID', session_id, ...
+        'AnalysisLabel', analysis_label, ...
+        'RDMDisplayCLim', CLIM_WHITE, ...
+        'Verbose', config.verbose);
 
-        % ── §8.4  Align truth to radar time axis ─────────────────────────
-        %  Build the full multi-part truth query vector on the CFAR block
-        %  cadence so truth is visible even when a part has zero detections.
-        fprintf('\n[8.4] Aligning truth to radar time axis...\n');
-        t_abs_query = helperBuildTruthQueryTimes( ...
-            part_start_offsets_s, part_dur_s, ...
-            bistatic_consts.chunk_dur_s, config.max_nci_looks);
-        fprintf('[8.4] Using %d block-centre truth query times across %d part(s).\n', ...
-            numel(t_abs_query), N_parts);
+    fprintf('\n[§8.2] Running standalone detection-vs-truth diagnostics…\n');
+    truth_diag_output = runDetectionTruthDiagnostics( ...
+        truth_diag_input, ...
+        'FigureTitle', analysis_label, ...
+        'PlotDetectionTimeSeries', true, ...
+        'PlotRDMOverlays', false, ...
+        'PlotTrackComparison', true, ...
+        'TrackColors', TRK_ID_COLORS, ...
+        'GateRangeCells', 3, ...
+        'GateDopplerBins', 3, ...
+        'Verbose', config.verbose);
 
-        adsb_aligned = alignTruthToRadar(adsb_bistatic, t_epoch_utc, t_abs_query);
+    adsb_tracks = truth_diag_output.adsb_tracks;
+    adsb_bistatic = truth_diag_output.adsb_bistatic;
+    adsb_aligned = truth_diag_output.adsb_aligned;
+    truth_metrics = truth_diag_output.truth_metrics;
+    t_epoch_utc = truth_diag_output.t_epoch_utc;
 
-        % ── §8.4b Back-fill truth_data into step_data for the RDM viewer ──
-        %  Each step_data entry gets the adsb_aligned sub-struct that
-        %  render_rdm_step uses to draw yellow ◆ truth markers.
+    if ~isempty(adsb_aligned)
+        % Each step_data entry gets the aligned ADS-B struct so the
+        % interactive Range-Doppler viewer can render truth immediately.
         if exist('step_data', 'var') && ~isempty(step_data)
             for s8 = 1 : numel(step_data)
                 step_data(s8).truth_data = adsb_aligned;
@@ -1045,17 +1048,14 @@ else
                     current_step = max(1, min(N_steps, round(get(sld, 'Value'))));
                 end
                 render_fn(current_step);
-                fprintf('[8.4b] Interactive RDM viewer refreshed with ADS-B truth overlay.\n');
+                fprintf('[8.3] Interactive RDM viewer refreshed with ADS-B truth overlay.\n');
             end
-            fprintf('[8.4b] truth_data populated into %d step_data entries.\n', ...
+            fprintf('[8.3] truth_data populated into %d step_data entries.\n', ...
                 numel(step_data));
         end
 
-        % ── §8.5  Assess detections and tracks vs truth ───────────────────
-        fprintf('\n[§8.5] Computing truth-vs-detection metrics…\n');
-
         if exist('static_rdm_axes', 'var') && ~isempty(static_rdm_axes)
-            fprintf('[8.4c] Overlaying ADS-B truth on per-part RDM figures...\n');
+            fprintf('[8.4] Overlaying ADS-B truth on per-part RDM figures...\n');
             for ip8 = 1 : N_parts
                 ax_part = static_rdm_axes(ip8);
                 if ~isgraphics(ax_part, 'axes')
@@ -1072,14 +1072,18 @@ else
                     'LineWidth', 1.4, ...
                     'LabelOffsetHz', 8);
 
-                legend_handles = gobjects(0, 1);
+                legend_handles = gobjects(2, 1);
+                n_legend_handles = 0;
                 if ip8 <= numel(static_det_handles) && isgraphics(static_det_handles(ip8))
-                    legend_handles(end + 1, 1) = static_det_handles(ip8); %#ok<AGROW>
+                    n_legend_handles = n_legend_handles + 1;
+                    legend_handles(n_legend_handles, 1) = static_det_handles(ip8);
                 end
                 if isgraphics(h_truth)
-                    legend_handles(end + 1, 1) = h_truth; %#ok<AGROW>
+                    n_legend_handles = n_legend_handles + 1;
+                    legend_handles(n_legend_handles, 1) = h_truth;
                 end
-                if ~isempty(legend_handles)
+                if n_legend_handles > 0
+                    legend_handles = legend_handles(1:n_legend_handles);
                     legend(ax_part, legend_handles, 'Location', 'northeast', ...
                         'TextColor', 'white', 'Color', [0.2 0.2 0.2]);
                 end
@@ -1087,41 +1091,11 @@ else
                 title(ax_part, sprintf( ...
                     'Post-ECA-C RDM (whitened) - Part %d of %d - %d detection(s) - ADS-B truth %d pt(s)', ...
                     ip8, N_parts, static_det_counts(ip8), n_truth_pts));
-                fprintf('         Part %d/%d: %d truth point(s).\n', ...
+                fprintf('       Part %d/%d: %d truth point(s).\n', ...
                     ip8, N_parts, n_truth_pts);
             end
         end
-
-        % Wrap all_track_dets rows as a struct array for assessTruthVsDetections
-        if exist('all_track_dets', 'var') && ~isempty(all_track_dets)
-            det_struct = struct( ...
-                't_abs_s',    num2cell(all_track_dets(:, 5)), ...
-                'R_excess_m', num2cell(all_track_dets(:, 1)), ...
-                'f_D_hz',     num2cell(all_track_dets(:, 2)));
-        else
-            det_struct = [];
-        end
-
-        if exist('tracks_log', 'var') && ~isempty(tracks_log)
-            trk_log_for_metrics = helperTracksLogToHistories(tracks_log, config.fc);
-        else
-            trk_log_for_metrics = [];
-        end
-
-        truth_metrics = assessTruthVsDetections( ...
-            det_struct, trk_log_for_metrics, adsb_aligned, ...
-            'RangeCellM',      bistatic_consts.range_cell_m, ...
-            'DopplerBinHz',    bistatic_consts.doppler_bin_hz, ...
-            'GateRangeCells',  3,              ...
-            'GateDopplerBins', 3,              ...
-            'Verbose',         config.verbose);
-
-        % ── §8.6  Plot truth comparison figure ────────────────────────────
-        fprintf('\n[§8.6] Plotting truth comparison…\n');
-        plotTruthComparison(adsb_aligned, trk_log_for_metrics, truth_metrics, ...
-            'TrkIdColors',  TRK_ID_COLORS, ...
-            'FigureTitle',  sprintf('%d-part Newton recording', N_parts));
-
-        fprintf('\n[§8] ADS-B truth pipeline complete.\n\n');
     end
+
+    fprintf('\n[§8] ADS-B truth pipeline complete.\n\n');
 end  % §8
