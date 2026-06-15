@@ -2,6 +2,15 @@ function analysis_output = runBistaticAnalysisSession(session_id, varargin)
 %RUNBISTATICANALYSISSESSION Run analyzeBistaticData on one packaged session.
 %  Example:
 %    out = runBistaticAnalysisSession('20260611T101530');
+%
+%  Key name-value options:
+%    'SaveTruthDiagnosticSnapshot'   Save a post-detection truth snapshot
+%                                    under <session>/analysis. Default: true
+%    'TruthDiagnosticSnapshotMode'   'compact', 'full', 'both', or 'off'.
+%                                    Default: 'compact'
+%    'TruthDiagnosticSnapshotFolder' Override the snapshot output folder.
+%    'TruthDiagnosticSnapshotBaseName'
+%                                    Override the snapshot filename stem.
 
 if nargin < 1
     session_id = "";
@@ -14,6 +23,10 @@ addParameter(p, 'DatasetRoot', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'SessionFolder', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'ManifestPath', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'Verbose', false, @islogical);
+addParameter(p, 'SaveTruthDiagnosticSnapshot', true, @islogical);
+addParameter(p, 'TruthDiagnosticSnapshotMode', 'compact', @localIsSnapshotMode);
+addParameter(p, 'TruthDiagnosticSnapshotFolder', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'TruthDiagnosticSnapshotBaseName', 'truth_diag_input', @(x) ischar(x) || isstring(x));
 parse(p, session_id, varargin{:});
 opts = p.Results;
 
@@ -73,8 +86,39 @@ if exist('truth_metrics', 'var')
 end
 if exist('truth_diag_input', 'var')
     analysis_output.truth_diag_input = truth_diag_input;
+    if opts.SaveTruthDiagnosticSnapshot
+        analysis_output.truth_diag_snapshot = helperSaveTruthDiagnosticSnapshots( ...
+            truth_diag_input, analysisSetup.session_folder, ...
+            'SnapshotMode', opts.TruthDiagnosticSnapshotMode, ...
+            'OutputFolder', opts.TruthDiagnosticSnapshotFolder, ...
+            'BaseName', opts.TruthDiagnosticSnapshotBaseName, ...
+            'Verbose', false);
+        localPrintSnapshotInfo(analysis_output.truth_diag_snapshot);
+    end
+elseif opts.SaveTruthDiagnosticSnapshot && opts.Verbose
+    fprintf('Truth diagnostic snapshot not saved: no truth_diag_input was produced.\n');
 end
 if exist('truth_diag_output', 'var') && isstruct(truth_diag_output) && ...
         isfield(truth_diag_output, 'check_summary')
     analysis_output.truth_diag_summary = truth_diag_output.check_summary;
+end
+
+end
+
+function tf = localIsSnapshotMode(value)
+mode = char(string(value));
+tf = any(strcmpi(mode, {'compact', 'full', 'both', 'off'}));
+end
+
+function localPrintSnapshotInfo(snapshot_info)
+if ~isstruct(snapshot_info)
+    return
+end
+
+if isfield(snapshot_info, 'compact_path') && strlength(snapshot_info.compact_path) > 0
+    fprintf('Saved compact truth snapshot: %s\n', char(snapshot_info.compact_path));
+end
+if isfield(snapshot_info, 'full_path') && strlength(snapshot_info.full_path) > 0
+    fprintf('Saved full truth snapshot: %s\n', char(snapshot_info.full_path));
+end
 end
