@@ -62,6 +62,7 @@ function detector_replay_output = runDetectorReplaySweep(replay_input, varargin)
 
 p = inputParser;
 p.FunctionName = mfilename;
+p.PartialMatching = false;
 addRequired(p, 'replay_input', @(x) isstruct(x) || ischar(x) || isstring(x));
 addParameter(p, 'Cases', struct([]), @(x) isempty(x) || isstruct(x) || istable(x));
 addParameter(p, 'Pfa', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x > 0 && x < 1));
@@ -88,7 +89,8 @@ addParameter(p, 'ShowRDMLabels', true, @islogical);
 addParameter(p, 'ConnectRDMTruthSamples', true, @islogical);
 addParameter(p, 'MaxAircraft', 12, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'Verbose', [], @(x) isempty(x) || islogical(x));
-parse(p, replay_input, varargin{:});
+normalized_varargin = localNormalizeNameValueArgs(varargin, localSupportedOptionNames());
+parse(p, replay_input, normalized_varargin{:});
 opts = p.Results;
 
 detector_replay_input = localResolveReplayInput(opts.replay_input);
@@ -229,6 +231,13 @@ else
     case_overrides = opts.Cases;
 end
 
+[case_overrides, alias_pairs] = localNormalizeCaseOverrides(case_overrides);
+if ~isempty(alias_pairs)
+    warning('runDetectorReplaySweep:caseFieldAlias', ...
+        'Accepted compatibility aliases in Cases: %s. Prefer the canonical README field names.', ...
+        strjoin(alias_pairs, ', '));
+end
+
 case_defs = repmat(base_case, 1, numel(case_overrides));
 for ic = 1 : numel(case_overrides)
     case_defs(ic) = localMergeCaseOverride(base_case, case_overrides(ic), ic);
@@ -276,29 +285,29 @@ end
 pfa_value = localGetFirstField(case_override, {'Pfa', 'pfa'}, []);
 if ~isempty(pfa_value), case_def.pfa = pfa_value; end
 
-guard_value = localGetFirstField(case_override, {'GuardCells', 'guard_cells'}, []);
+guard_value = localGetFirstField(case_override, {'GuardCells', 'guard_cells', 'guardCells'}, []);
 if ~isempty(guard_value), case_def.guard_cells = guard_value(:).'; end
 
-train_value = localGetFirstField(case_override, {'TrainCells', 'train_cells'}, []);
+train_value = localGetFirstField(case_override, {'TrainCells', 'train_cells', 'trainCells'}, []);
 if ~isempty(train_value), case_def.train_cells = train_value(:).'; end
 
-min_range_value = localGetFirstField(case_override, {'MinRangeM', 'min_range_m'}, []);
+min_range_value = localGetFirstField(case_override, {'MinRangeM', 'min_range_m', 'minRangeM'}, []);
 if ~isempty(min_range_value), case_def.min_range_m = min_range_value; end
 
-cfar_struct = localGetFirstField(case_override, {'CfarOptions', 'cfar_options'}, struct());
+cfar_struct = localGetFirstField(case_override, {'CfarOptions', 'cfar_options', 'cfarOptions'}, struct());
 if isstruct(cfar_struct) && ~isempty(fieldnames(cfar_struct))
     case_def.cfar_options = localMergeStruct(case_def.cfar_options, cfar_struct);
 end
 
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'CfarType', 'cfar_type'}, 'cfar_type');
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'OSRankFraction', 'os_rank_fraction'}, 'os_rank_fraction');
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'LocalMaxima', 'local_maxima'}, 'local_maxima');
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'LMRangeBins', 'lm_range_bins'}, 'lm_range_bins');
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'LMDoppBins', 'lm_dopp_bins'}, 'lm_dopp_bins');
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'MinSNRDB', 'min_snr_db'}, 'min_snr_db');
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'ATSCGuardPenaltyDB', 'atsc_guard_penalty_db'}, 'atsc_guard_penalty_db');
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'ATSCGuardWidthBins', 'atsc_guard_width_bins'}, 'atsc_guard_width_bins');
-case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'NotchGuardDoppBins', 'notch_guard_dopp_bins'}, 'notch_guard_dopp_bins');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'CfarType', 'cfar_type', 'cfarType'}, 'cfar_type');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'OSRankFraction', 'os_rank_fraction', 'osRankFraction'}, 'os_rank_fraction');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'LocalMaxima', 'local_maxima', 'localMaxima'}, 'local_maxima');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'LMRangeBins', 'lm_range_bins', 'lmRangeBins'}, 'lm_range_bins');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'LMDoppBins', 'lm_dopp_bins', 'lmDoppBins'}, 'lm_dopp_bins');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'MinSNRDB', 'min_snr_db', 'minSNRDB'}, 'min_snr_db');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'ATSCGuardPenaltyDB', 'atsc_guard_penalty_db', 'atscGuardPenaltyDB'}, 'atsc_guard_penalty_db');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'ATSCGuardWidthBins', 'atsc_guard_width_bins', 'atscGuardWidthBins'}, 'atsc_guard_width_bins');
+case_def.cfar_options = localApplyOptionOverride(case_def.cfar_options, case_override, {'NotchGuardDoppBins', 'notch_guard_dopp_bins', 'notchGuardDoppBins'}, 'notch_guard_dopp_bins');
 end
 
 function cfar_options = localApplyOptionOverride(cfar_options, case_override, source_fields, target_field)
@@ -583,4 +592,173 @@ for k = 1 : numel(override_fields)
     field_name = override_fields{k};
     merged.(field_name) = override_struct.(field_name);
 end
+end
+
+function supported_names = localSupportedOptionNames()
+supported_names = { ...
+    'Cases', ...
+    'Pfa', ...
+    'GuardCells', ...
+    'TrainCells', ...
+    'MinRangeM', ...
+    'CfarType', ...
+    'OSRankFraction', ...
+    'LocalMaxima', ...
+    'LMRangeBins', ...
+    'LMDoppBins', ...
+    'MinSNRDB', ...
+    'ATSCGuardPenaltyDB', ...
+    'ATSCGuardWidthBins', ...
+    'NotchGuardDoppBins', ...
+    'RunTruthDiagnostics', ...
+    'PlotCases', ...
+    'PlotDetectionTimeSeries', ...
+    'PlotRDMOverlays', ...
+    'GateRangeCells', ...
+    'GateDopplerBins', ...
+    'TimeGateS', ...
+    'ShowRDMLabels', ...
+    'ConnectRDMTruthSamples', ...
+    'MaxAircraft', ...
+    'Verbose'};
+end
+
+function args = localNormalizeNameValueArgs(args_in, supported_names)
+args = args_in;
+if isempty(args)
+    return
+end
+
+if mod(numel(args), 2) ~= 0
+    return
+end
+
+for k = 1 : 2 : numel(args)
+    name_value = args{k};
+    if ~(ischar(name_value) || isstring(name_value))
+        continue
+    end
+
+    canonical_name = localMatchSupportedName(name_value, supported_names);
+    if strlength(canonical_name) == 0
+        suggestion = localSuggestSupportedName(name_value, supported_names);
+        message = sprintf('Unknown option ''%s''.', char(string(name_value)));
+        if strlength(suggestion) > 0
+            message = sprintf('%s Did you mean ''%s''?', message, char(suggestion));
+        end
+        error('runDetectorReplaySweep:unknownOption', '%s', message);
+    end
+
+    args{k} = char(canonical_name);
+end
+end
+
+function canonical_name = localMatchSupportedName(name_value, supported_names)
+name_value = char(string(name_value));
+canonical_name = "";
+
+exact_idx = find(strcmpi(supported_names, name_value), 1, 'first');
+if ~isempty(exact_idx)
+    canonical_name = string(supported_names{exact_idx});
+    return
+end
+
+prefix_matches = startsWith(supported_names, name_value, 'IgnoreCase', true);
+if nnz(prefix_matches) == 1
+    canonical_name = string(supported_names{find(prefix_matches, 1, 'first')});
+end
+end
+
+function suggestion = localSuggestSupportedName(name_value, supported_names)
+name_value = char(string(name_value));
+best_score = inf;
+best_name = "";
+
+for k = 1 : numel(supported_names)
+    candidate = supported_names{k};
+    score = localEditDistance(lower(name_value), lower(candidate));
+    if score < best_score
+        best_score = score;
+        best_name = string(candidate);
+    end
+end
+
+if best_score <= max(3, ceil(strlength(best_name) / 4))
+    suggestion = best_name;
+else
+    suggestion = "";
+end
+end
+
+function [case_overrides, alias_pairs] = localNormalizeCaseOverrides(case_overrides)
+alias_pairs = strings(0, 1);
+if isempty(case_overrides)
+    return
+end
+
+alias_map = { ...
+    'guardCells', 'GuardCells'; ...
+    'trainCells', 'TrainCells'; ...
+    'minRangeM', 'MinRangeM'; ...
+    'cfarType', 'CfarType'; ...
+    'cfarOptions', 'CfarOptions'; ...
+    'osRankFraction', 'OSRankFraction'; ...
+    'localMaxima', 'LocalMaxima'; ...
+    'lmRangeBins', 'LMRangeBins'; ...
+    'lmDoppBins', 'LMDoppBins'; ...
+    'minSNRDB', 'MinSNRDB'; ...
+    'atscGuardPenaltyDB', 'ATSCGuardPenaltyDB'; ...
+    'atscGuardWidthBins', 'ATSCGuardWidthBins'; ...
+    'notchGuardDoppBins', 'NotchGuardDoppBins'};
+
+for ic = 1 : numel(case_overrides)
+    fields_ic = fieldnames(case_overrides(ic));
+    for im = 1 : size(alias_map, 1)
+        alias_name = alias_map{im, 1};
+        canonical_name = alias_map{im, 2};
+        alias_idx = find(strcmpi(fields_ic, alias_name), 1, 'first');
+        if isempty(alias_idx)
+            continue
+        end
+
+        actual_alias_name = fields_ic{alias_idx};
+        if strcmp(actual_alias_name, canonical_name)
+            continue
+        end
+
+        if isfield(case_overrides(ic), canonical_name)
+            error('runDetectorReplaySweep:duplicateCaseField', ...
+                ['Cases entry %d includes both ''%s'' and ''%s''. ' ...
+                 'Keep only the canonical field name.'], ...
+                ic, actual_alias_name, canonical_name);
+        end
+
+        alias_pairs(end+1, 1) = string(sprintf('%s -> %s', actual_alias_name, canonical_name)); %#ok<AGROW>
+    end
+end
+
+alias_pairs = unique(alias_pairs);
+end
+
+function distance = localEditDistance(source_text, target_text)
+source_text = char(source_text);
+target_text = char(target_text);
+
+n_source = numel(source_text);
+n_target = numel(target_text);
+dp = zeros(n_source + 1, n_target + 1);
+dp(:, 1) = 0 : n_source;
+dp(1, :) = 0 : n_target;
+
+for i = 2 : n_source + 1
+    for j = 2 : n_target + 1
+        substitution_cost = double(source_text(i-1) ~= target_text(j-1));
+        dp(i, j) = min([ ...
+            dp(i-1, j) + 1, ...
+            dp(i, j-1) + 1, ...
+            dp(i-1, j-1) + substitution_cost]);
+    end
+end
+
+distance = dp(end, end);
 end

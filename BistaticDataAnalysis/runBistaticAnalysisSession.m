@@ -50,6 +50,7 @@ analysisSetup = helperResolveSessionAnalysisSetup(opts.session_id, ...
     'SessionFolder', opts.SessionFolder, ...
     'ManifestPath', opts.ManifestPath, ...
     'Verbose', opts.Verbose);
+analysisSetup.session_wrapper_options = localBuildWrapperOptions(opts);
 
 fprintf('Session analysis preflight:\n');
 fprintf('  session_id   : %s\n', analysisSetup.session_id);
@@ -65,6 +66,7 @@ end
 fprintf('\n');
 
 run(fullfile(fileparts(mfilename('fullpath')), 'analyzeBistaticData.m'));
+session_opts = localResolveWrapperOptions(analysisSetup);
 
 analysis_output = struct( ...
     'session_id', string(analysisSetup.session_id), ...
@@ -76,6 +78,11 @@ analysis_output = struct( ...
 if isfield(analysisSetup, 'radar_epoch_utc')
     analysis_output.radar_epoch_utc = analysisSetup.radar_epoch_utc;
 end
+
+analysis_output.truth_diag_snapshot = localDefaultTruthSnapshotStatus( ...
+    analysisSetup.session_folder, session_opts);
+analysis_output.detector_replay_snapshot = localDefaultDetectorReplaySnapshotStatus( ...
+    analysisSetup.session_folder, session_opts);
 
 if exist('data_parts', 'var')
     analysis_output.data_parts = data_parts;
@@ -94,17 +101,45 @@ if exist('truth_metrics', 'var')
 end
 if exist('truth_diag_input', 'var')
     analysis_output.truth_diag_input = truth_diag_input;
-    if opts.SaveTruthDiagnosticSnapshot
-        analysis_output.truth_diag_snapshot = helperSaveTruthDiagnosticSnapshots( ...
-            truth_diag_input, analysisSetup.session_folder, ...
-            'SnapshotMode', opts.TruthDiagnosticSnapshotMode, ...
-            'OutputFolder', opts.TruthDiagnosticSnapshotFolder, ...
-            'BaseName', opts.TruthDiagnosticSnapshotBaseName, ...
-            'Verbose', false);
-        localPrintSnapshotInfo(analysis_output.truth_diag_snapshot);
+    if session_opts.save_truth_snapshot && ~strcmpi(session_opts.truth_snapshot_mode, "off")
+        try
+            saved_snapshot = helperSaveTruthDiagnosticSnapshots( ...
+                truth_diag_input, analysisSetup.session_folder, ...
+                'SnapshotMode', session_opts.truth_snapshot_mode, ...
+                'OutputFolder', session_opts.truth_snapshot_folder, ...
+                'BaseName', session_opts.truth_snapshot_base_name, ...
+                'Verbose', false);
+            analysis_output.truth_diag_snapshot = localMergeStruct( ...
+                analysis_output.truth_diag_snapshot, saved_snapshot);
+            analysis_output.truth_diag_snapshot.saved = localTruthSnapshotSaved(saved_snapshot);
+            if analysis_output.truth_diag_snapshot.saved
+                analysis_output.truth_diag_snapshot.status = "saved";
+                analysis_output.truth_diag_snapshot.message = "";
+            else
+                analysis_output.truth_diag_snapshot.status = "unavailable";
+                analysis_output.truth_diag_snapshot.message = ...
+                    "Truth snapshot save completed without producing a snapshot path.";
+            end
+            localPrintSnapshotInfo(analysis_output.truth_diag_snapshot);
+        catch ME
+            analysis_output.truth_diag_snapshot.status = "error";
+            analysis_output.truth_diag_snapshot.message = string(ME.message);
+            warning('runBistaticAnalysisSession:truthSnapshotSaveFailed', ...
+                'Truth diagnostic snapshot was not saved: %s', ME.message);
+        end
+    elseif session_opts.save_truth_snapshot
+        analysis_output.truth_diag_snapshot.message = ...
+            "Truth snapshot saving is disabled because TruthDiagnosticSnapshotMode is 'off'.";
+    else
+        analysis_output.truth_diag_snapshot.message = ...
+            "Truth snapshot saving is disabled by SaveTruthDiagnosticSnapshot=false.";
     end
-elseif opts.SaveTruthDiagnosticSnapshot && opts.Verbose
+elseif session_opts.save_truth_snapshot && session_opts.verbose
     fprintf('Truth diagnostic snapshot not saved: no truth_diag_input was produced.\n');
+    if strlength(analysis_output.truth_diag_snapshot.message) == 0
+        analysis_output.truth_diag_snapshot.message = ...
+            "Truth diagnostic input was not produced by analyzeBistaticData.";
+    end
 end
 if exist('truth_diag_output', 'var') && isstruct(truth_diag_output) && ...
         isfield(truth_diag_output, 'check_summary')
@@ -139,16 +174,42 @@ if exist('config', 'var') && exist('data_parts', 'var') && ...
         'Verbose', false);
     analysis_output.detector_replay_input = detector_replay_input;
 
-    if opts.SaveDetectorReplaySnapshot
-        analysis_output.detector_replay_snapshot = helperSaveDetectorReplaySnapshot( ...
-            detector_replay_input, analysisSetup.session_folder, ...
-            'OutputFolder', opts.DetectorReplaySnapshotFolder, ...
-            'BaseName', opts.DetectorReplaySnapshotBaseName, ...
-            'Verbose', false);
-        localPrintDetectorReplaySnapshotInfo(analysis_output.detector_replay_snapshot);
+    if session_opts.save_detector_snapshot
+        try
+            saved_snapshot = helperSaveDetectorReplaySnapshot( ...
+                detector_replay_input, analysisSetup.session_folder, ...
+                'OutputFolder', session_opts.detector_snapshot_folder, ...
+                'BaseName', session_opts.detector_snapshot_base_name, ...
+                'Verbose', false);
+            analysis_output.detector_replay_snapshot = localMergeStruct( ...
+                analysis_output.detector_replay_snapshot, saved_snapshot);
+            analysis_output.detector_replay_snapshot.saved = ...
+                isfield(saved_snapshot, 'path') && strlength(saved_snapshot.path) > 0;
+            if analysis_output.detector_replay_snapshot.saved
+                analysis_output.detector_replay_snapshot.status = "saved";
+                analysis_output.detector_replay_snapshot.message = "";
+            else
+                analysis_output.detector_replay_snapshot.status = "unavailable";
+                analysis_output.detector_replay_snapshot.message = ...
+                    "Detector replay snapshot save completed without producing a snapshot path.";
+            end
+            localPrintDetectorReplaySnapshotInfo(analysis_output.detector_replay_snapshot);
+        catch ME
+            analysis_output.detector_replay_snapshot.status = "error";
+            analysis_output.detector_replay_snapshot.message = string(ME.message);
+            warning('runBistaticAnalysisSession:detectorReplaySnapshotSaveFailed', ...
+                'Detector replay snapshot was not saved: %s', ME.message);
+        end
+    else
+        analysis_output.detector_replay_snapshot.message = ...
+            "Detector replay snapshot saving is disabled by SaveDetectorReplaySnapshot=false.";
     end
-elseif opts.SaveDetectorReplaySnapshot && opts.Verbose
+elseif session_opts.save_detector_snapshot && session_opts.verbose
     fprintf('Detector replay snapshot not saved: no detector replay input was produced.\n');
+    if strlength(analysis_output.detector_replay_snapshot.message) == 0
+        analysis_output.detector_replay_snapshot.message = ...
+            "Detector replay input was not produced by analyzeBistaticData.";
+    end
 end
 
 end
@@ -156,6 +217,98 @@ end
 function tf = localIsSnapshotMode(value)
 mode = char(string(value));
 tf = any(strcmpi(mode, {'compact', 'full', 'both', 'off'}));
+end
+
+function wrapper_opts = localBuildWrapperOptions(opts)
+wrapper_opts = struct( ...
+    'verbose', logical(opts.Verbose), ...
+    'save_truth_snapshot', logical(opts.SaveTruthDiagnosticSnapshot), ...
+    'truth_snapshot_mode', string(opts.TruthDiagnosticSnapshotMode), ...
+    'truth_snapshot_folder', string(opts.TruthDiagnosticSnapshotFolder), ...
+    'truth_snapshot_base_name', string(opts.TruthDiagnosticSnapshotBaseName), ...
+    'save_detector_snapshot', logical(opts.SaveDetectorReplaySnapshot), ...
+    'detector_snapshot_folder', string(opts.DetectorReplaySnapshotFolder), ...
+    'detector_snapshot_base_name', string(opts.DetectorReplaySnapshotBaseName));
+end
+
+function wrapper_opts = localResolveWrapperOptions(analysisSetup)
+wrapper_opts = localBuildWrapperOptions(struct( ...
+    'Verbose', false, ...
+    'SaveTruthDiagnosticSnapshot', true, ...
+    'TruthDiagnosticSnapshotMode', 'compact', ...
+    'TruthDiagnosticSnapshotFolder', "", ...
+    'TruthDiagnosticSnapshotBaseName', 'truth_diag_input', ...
+    'SaveDetectorReplaySnapshot', true, ...
+    'DetectorReplaySnapshotFolder', "", ...
+    'DetectorReplaySnapshotBaseName', 'detector_replay_input'));
+
+if isstruct(analysisSetup) && isfield(analysisSetup, 'session_wrapper_options') && ...
+        isstruct(analysisSetup.session_wrapper_options)
+    wrapper_opts = localMergeStruct(wrapper_opts, analysisSetup.session_wrapper_options);
+end
+end
+
+function snapshot_status = localDefaultTruthSnapshotStatus(session_folder, wrapper_opts)
+snapshot_status = struct( ...
+    'saved', false, ...
+    'status', "unavailable", ...
+    'mode', string(wrapper_opts.truth_snapshot_mode), ...
+    'output_folder', localResolveSnapshotOutputFolder( ...
+        session_folder, wrapper_opts.truth_snapshot_folder), ...
+    'compact_path', "", ...
+    'full_path', "", ...
+    'message', localDefaultTruthSnapshotMessage(wrapper_opts));
+end
+
+function snapshot_status = localDefaultDetectorReplaySnapshotStatus(session_folder, wrapper_opts)
+snapshot_status = struct( ...
+    'saved', false, ...
+    'status', "unavailable", ...
+    'output_folder', localResolveSnapshotOutputFolder( ...
+        session_folder, wrapper_opts.detector_snapshot_folder), ...
+    'path', "", ...
+    'message', localDefaultDetectorReplaySnapshotMessage(wrapper_opts));
+end
+
+function output_folder = localResolveSnapshotOutputFolder(session_folder, override_folder)
+output_folder = string(override_folder);
+if strlength(output_folder) == 0
+    output_folder = string(fullfile(char(string(session_folder)), 'analysis'));
+end
+end
+
+function tf = localTruthSnapshotSaved(snapshot_info)
+tf = false;
+if ~isstruct(snapshot_info)
+    return
+end
+
+if isfield(snapshot_info, 'compact_path') && strlength(snapshot_info.compact_path) > 0
+    tf = true;
+    return
+end
+
+if isfield(snapshot_info, 'full_path') && strlength(snapshot_info.full_path) > 0
+    tf = true;
+end
+end
+
+function message = localDefaultTruthSnapshotMessage(wrapper_opts)
+if ~wrapper_opts.save_truth_snapshot
+    message = "Truth snapshot saving is disabled by SaveTruthDiagnosticSnapshot=false.";
+elseif strcmpi(wrapper_opts.truth_snapshot_mode, "off")
+    message = "Truth snapshot saving is disabled because TruthDiagnosticSnapshotMode is 'off'.";
+else
+    message = "";
+end
+end
+
+function message = localDefaultDetectorReplaySnapshotMessage(wrapper_opts)
+if ~wrapper_opts.save_detector_snapshot
+    message = "Detector replay snapshot saving is disabled by SaveDetectorReplaySnapshot=false.";
+else
+    message = "";
+end
 end
 
 function localPrintSnapshotInfo(snapshot_info)
@@ -196,5 +349,18 @@ elseif isfield(analysisSetup, 'session_id') && strlength(string(analysisSetup.se
     analysis_label = sprintf('Session %s', char(string(analysisSetup.session_id)));
 else
     analysis_label = 'Detector Replay';
+end
+end
+
+function merged = localMergeStruct(base_struct, override_struct)
+merged = base_struct;
+if ~isstruct(override_struct)
+    return
+end
+
+override_fields = fieldnames(override_struct);
+for k = 1 : numel(override_fields)
+    field_name = override_fields{k};
+    merged.(field_name) = override_struct.(field_name);
 end
 end

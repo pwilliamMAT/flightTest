@@ -15,6 +15,8 @@
 
 %% 0. Clear Workspace
 if exist('analysisSetup', 'var')
+    % Session-mode wrapper state must travel through analysisSetup because
+    % this script intentionally resets every other caller variable.
     clearvars('-except', 'analysisSetup');
 else
     clearvars;

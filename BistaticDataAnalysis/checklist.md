@@ -130,6 +130,126 @@
     3. Inspect the static per-part RDM figures and the interactive RD viewer to confirm the ADS-B overlay falls in plausible `(R_excess, f_D)` locations relative to the radar energy.
     4. Record any consistent range or Doppler bias and decide whether the next adjustment should target time alignment, geometry, or display styling.
 
+- **[COMPLETED] F. Fast Iteration and Parameter-Sweep Workflow**
+  - **Goal**: avoid rerunning the full multi-minute IQ pipeline when only a later analysis segment is being tuned.
+  - **Three supported analysis levels**:
+    1. **Full session run** â€” use when upstream signal processing has changed (`processOnePart.m`, `detectTargets.m` internals, clutter mitigation, CAF, timing setup, session manifest inputs).
+    2. **Truth-only replay** â€” use when tuning truth alignment, detection-vs-truth plots, truth gates, or standalone RDM truth overlays.
+    3. **Detector-only replay** â€” use when sweeping CFAR and post-CFAR detector parameters such as `Pfa`, guard/train cells, OS rank, local-max suppression, ATSC guard penalty, notch guard, or `MinSNRDB`.
+  - **Segment 1 â€” Full packaged-session analysis**:
+    - Entry point: `runBistaticAnalysisSession(session_id)`
+    - Example:
+      ```matlab
+      cd BistaticDataAnalysis
+      out = runBistaticAnalysisSession('20260615T103437');
+      ```
+    - **Outputs created automatically**:
+      - `out.truth_diag_snapshot.compact_path`
+      - `out.truth_diag_snapshot.full_path` (if `TruthDiagnosticSnapshotMode = 'both'`)
+      - `out.detector_replay_snapshot.path`
+    - **When to use**: only when the slow upstream radar chain must be rerun.
+  - **Segment 2 â€” Truth-only replay**:
+    - Entry point: `runDetectionTruthDiagnostics(...)`
+    - Fast path from an existing full-session output:
+      ```matlab
+      cd BistaticDataAnalysis
+      diag = runDetectionTruthDiagnostics(out.truth_diag_snapshot.compact_path, ...
+          'PlotDetectionTimeSeries', true, ...
+          'PlotRDMOverlays', false, ...
+          'PlotTrackComparison', false);
+      ```
+    - **Adjustable diagnostic-only parameters**:
+      - `GateRangeCells`
+      - `GateDopplerBins`
+      - `TimeGateS`
+      - `PlotDetectionTimeSeries`
+      - `PlotRDMOverlays`
+    - **When to use**: truth alignment checks, truth-vs-detection plots, and verifying whether detections fall near ADS-B truth before touching tracker logic.
+  - **Segment 3 â€” Detector-only replay / parameter sweep**:
+    - Entry point: `runDetectorReplaySweep(...)`
+    - Shortest syntax after `runBistaticAnalysisSession`:
+      ```matlab
+      cd BistaticDataAnalysis
+      replay_path = out.detector_replay_snapshot.path;
+      ```
+    - **One modified detector run (no sweep table)**:
+      ```matlab
+      replay = runDetectorReplaySweep( ...
+          replay_path, ...
+          'Pfa', 3e-4, ...
+          'GuardCells', [4 2], ...
+          'TrainCells', [12 4], ...
+          'CfarType', 'OS', ...
+          'OSRankFraction', 0.65, ...
+          'PlotDetectionTimeSeries', true, ...
+          'PlotRDMOverlays', false, ...
+          'Verbose', true);
+      replay.summary_table
+      ```
+    - **Named sweep across multiple cases**:
+      ```matlab
+      cases = struct( ...
+          'Name', {'baseline', 'pfa3e4', 'pfa1e3', 'ca_pfa3e4'}, ...
+          'Pfa', {1e-4, 3e-4, 1e-3, 3e-4}, ...
+          'CfarType', {'OS', 'OS', 'OS', 'CA'});
+
+      replay = runDetectorReplaySweep( ...
+          replay_path, ...
+          'Cases', cases, ...
+          'PlotCases', 'all', ...
+          'PlotDetectionTimeSeries', true, ...
+          'PlotRDMOverlays', false, ...
+          'Verbose', true);
+      replay.summary_table
+      ```
+    - **Detector parameters that can be swept directly**:
+      - `Pfa`
+      - `GuardCells`
+      - `TrainCells`
+      - `MinRangeM`
+      - `CfarType`
+      - `OSRankFraction`
+      - `LocalMaxima`
+      - `LMRangeBins`
+      - `LMDoppBins`
+      - `MinSNRDB`
+      - `ATSCGuardPenaltyDB`
+      - `ATSCGuardWidthBins`
+      - `NotchGuardDoppBins`
+    - **Important boundary**: `runDetectorReplaySweep` reruns only the detector stage from the saved whitened block-level RDM inputs. It does **not** rerun IQ loading, ECA-C clutter mitigation, or CAF generation.
+    - **How to review results**:
+      1. Check `replay.summary_table` first (`n_detections`, `n_tp`, `n_fa`, `n_miss`, `mean_pd`).
+      2. Then inspect the detection-vs-truth plots for the best cases.
+      3. Only after detections land near truth should tracker tuning resume.
+  - **If the full run was started with `analyzeBistaticData.m` directly instead of `runBistaticAnalysisSession`**:
+    - Build the replay bundle once from the current workspace:
+      ```matlab
+      compact_truth_template = truth_diag_input;
+      if isfield(compact_truth_template, 'rdm_parts')
+          compact_truth_template = rmfield(compact_truth_template, 'rdm_parts');
+      end
+
+      detector_replay_input = buildDetectorReplayInput( ...
+          config, data_parts, part_start_offsets_s, part_end_offsets_s, part_res, ...
+          'SessionID', session_id, ...
+          'AnalysisLabel', 'Detector Replay', ...
+          'TruthDiagnosticInput', compact_truth_template, ...
+          'PartDurationS', part_dur_s, ...
+          'TracksLog', tracks_log, ...
+          'Verbose', false);
+
+      saveDetectorReplayInput(detector_replay_input, 'detector_replay_input.mat');
+      replay_path = 'detector_replay_input.mat';
+      ```
+    - Then run `runDetectorReplaySweep(replay_path, ...)` using either a single set of overrides or a `Cases` struct.
+  - **Recommended usage discipline for parameter sweeps**:
+    1. Sweep one family of detector parameters at a time.
+    2. Start with sensitivity (`Pfa`, `CfarType`, `OSRankFraction`).
+    3. Then test CFAR window sizes (`GuardCells`, `TrainCells`).
+    4. Then test suppression logic (`LocalMaxima`, ATSC guard, notch guard).
+    5. Keep the tracker out of the loop until detector-vs-truth behavior is physically reasonable.
+  - **Reference**: `radarExpertDetectorTuning.md` now contains the detailed radar-expert tuning suggestions and copy/paste sweep campaigns.
+
 ---
 
 ## Session Testing Log

@@ -119,6 +119,7 @@ By default it also saves:
 - a detector replay snapshot at `captures/<session_id>/analysis/detector_replay_input.mat`
 
 The first artifact is for truth-only iteration; the second is for rerunning only the detector stage.
+The wrapper now always returns `out.truth_diag_snapshot` and `out.detector_replay_snapshot` status structs, even when an optional artifact could not be written. Check `.saved` and `.status` (`saved`, `unavailable`, or `error`) before assuming the on-disk snapshot exists.
 
 ### 3b. Re-run Only the Truth Diagnostics
 
@@ -139,6 +140,19 @@ The automatic snapshot is also returned in `out.truth_diag_snapshot.compact_path
 ```matlab
 cd BistaticDataAnalysis
 diag = runDetectionTruthDiagnostics(out.truth_diag_snapshot.compact_path, ...
+    'PlotDetectionTimeSeries', true, ...
+    'PlotRDMOverlays', true);
+```
+
+If the compact snapshot was unavailable, replay from the in-memory bundle instead:
+
+```matlab
+diag_source = out.truth_diag_input;
+if out.truth_diag_snapshot.saved
+    diag_source = out.truth_diag_snapshot.compact_path;
+end
+
+diag = runDetectionTruthDiagnostics(diag_source, ...
     'PlotDetectionTimeSeries', true, ...
     'PlotRDMOverlays', true);
 ```
@@ -175,9 +189,105 @@ replay = runDetectorReplaySweep(out.detector_replay_snapshot.path, ...
     'PlotRDMOverlays', false);
 ```
 
+If the detector replay snapshot was unavailable, pass the in-memory replay bundle instead:
+
+```matlab
+replay_source = out.detector_replay_input;
+if out.detector_replay_snapshot.saved
+    replay_source = out.detector_replay_snapshot.path;
+end
+
+replay = runDetectorReplaySweep(replay_source, ...
+    'Cases', cases, ...
+    'PlotDetectionTimeSeries', false, ...
+    'PlotRDMOverlays', false);
+```
+
 This replay path starts from the saved per-block whitened detector inputs, reruns `detectTargets`, rebuilds the detection table, and can still score the new detections against ADS-B truth. Use it when you are iterating on `Pfa`, guard/train cells, local-max suppression, minimum SNR, or related detector parameters.
 
-For a detector-tuning playbook and ready-to-paste sweep examples, see [radarExpertDetectorTuning.md](radarExpertDetectorTuning.md).
+`Cases` is a struct array of per-case detector overrides. Each case starts from the detector defaults saved in the replay snapshot and only overrides the fields you specify.
+
+Supported per-case fields:
+- `Name`
+- `Pfa`
+- `GuardCells`
+- `TrainCells`
+- `MinRangeM`
+- `CfarType`
+- `OSRankFraction`
+- `LocalMaxima`
+- `LMRangeBins`
+- `LMDoppBins`
+- `MinSNRDB`
+- `ATSCGuardPenaltyDB`
+- `ATSCGuardWidthBins`
+- `NotchGuardDoppBins`
+- `CfarOptions`
+
+Important syntax notes:
+- `Cases` fields are per-case detector settings.
+- Plotting and scoring controls such as `PlotCases`, `PlotDetectionTimeSeries`, `PlotRDMOverlays`, `GateRangeCells`, `GateDopplerBins`, `TimeGateS`, `RunTruthDiagnostics`, and `Verbose` are outer `runDetectorReplaySweep` name-value pairs, not `Cases` fields.
+- Vector-valued fields such as `GuardCells` and `TrainCells` must use cell-array entries, because each case needs its own 1x2 vector.
+- In most sweeps, prefer the flat case fields such as `CfarType`, `OSRankFraction`, and `MinSNRDB`; use `CfarOptions` only when you want to pass a nested options struct directly.
+- Common lower-camel case aliases such as `minSNRDB` are accepted inside `Cases` for compatibility, but the canonical field names shown here are still preferred.
+- Typos in outer name-value options still error; the parser now suggests the closest supported option name when it can.
+- Malformed MATLAB struct syntax is still a MATLAB error, so keep the `cases = struct(...)` field/value pattern exactly as shown in the examples.
+
+Example: sweep detector sensitivity first
+
+```matlab
+cd BistaticDataAnalysis
+out = runBistaticAnalysisSession('20260611T101530');
+
+cases = struct( ...
+    'Name', {'baseline', 'pfa3e4', 'pfa1e3', 'os065', 'os060', 'ca_baseline'}, ...
+    'Pfa', {1e-4, 3e-4, 1e-3, 1e-4, 1e-4, 1e-4}, ...
+    'CfarType', {'OS', 'OS', 'OS', 'OS', 'OS', 'CA'}, ...
+    'OSRankFraction', {0.75, 0.75, 0.75, 0.65, 0.60, 0.75});
+
+replay = runDetectorReplaySweep(out.detector_replay_snapshot.path, ...
+    'Cases', cases, ...
+    'PlotCases', 'all', ...
+    'PlotDetectionTimeSeries', true, ...
+    'PlotRDMOverlays', false);
+
+replay.summary_table
+```
+
+Example: sweep CFAR window sizes
+
+```matlab
+cases = struct( ...
+    'Name', {'baseline', 'smaller_window', 'larger_window'}, ...
+    'GuardCells', {[6 2], [4 2], [8 3]}, ...
+    'TrainCells', {[20 4], [12 4], [28 6]});
+
+replay = runDetectorReplaySweep(out.detector_replay_snapshot.path, ...
+    'Cases', cases, ...
+    'PlotCases', 'all', ...
+    'PlotDetectionTimeSeries', true, ...
+    'PlotRDMOverlays', false);
+```
+
+Example: sweep suppression and post-CFAR thresholds
+
+```matlab
+cases = struct( ...
+    'Name', {'baseline', 'snr6', 'snr10', 'no_localmax'}, ...
+    'MinSNRDB', {0, 6, 10, 0}, ...
+    'LocalMaxima', {true, true, true, false});
+
+replay = runDetectorReplaySweep(out.detector_replay_snapshot.path, ...
+    'Cases', cases, ...
+    'PlotCases', 'all', ...
+    'PlotDetectionTimeSeries', true, ...
+    'PlotRDMOverlays', false, ...
+    'GateRangeCells', 3, ...
+    'GateDopplerBins', 3, ...
+    'TimeGateS', 2.0);
+```
+
+For a detector-tuning playbook and ready-to-paste sweep examples, see [radarExpertDetectorTuning.md](radarExpertDetectorTuning.md). The segmented rerun workflow is also captured in [BistaticDataAnalysis/checklist.md](BistaticDataAnalysis/checklist.md).
 
 ### 4. Other Entry Points
 
@@ -372,6 +482,7 @@ replay = runDetectorReplaySweep(out.detector_replay_snapshot.path, ...
     'PlotRDMOverlays', false);
 ```
 Use this after one full session run when you want to iterate on CFAR and detector parameters only.
+For multi-case sweeps with the `Cases` struct, see the earlier **3c. Re-run Only the Detector Stage** section in this README.
 
 ### 3. Run System Characterization
 ```matlab
