@@ -427,6 +427,14 @@ truth_bundle = detector_replay_input.truth_diag_template;
 truth_bundle.all_track_dets = all_track_dets;
 truth_bundle.detections = localWrapTrackDetections(all_track_dets);
 truth_bundle.analysis_label = localResolveFigureTitle(detector_replay_input, case_def);
+[range_cell_m, doppler_bin_hz] = localResolveMeasurementGridFromDetectorParts( ...
+    detector_replay_input.detector_parts);
+if isfinite(range_cell_m) && range_cell_m > 0
+    truth_bundle.range_cell_m = range_cell_m;
+end
+if isfinite(doppler_bin_hz) && doppler_bin_hz > 0
+    truth_bundle.doppler_bin_hz = doppler_bin_hz;
+end
 
 if isfield(truth_bundle, 'rdm_parts') && ~isempty(truth_bundle.rdm_parts)
     n_parts = min(numel(part_detections), numel(truth_bundle.rdm_parts));
@@ -486,6 +494,36 @@ else
 end
 
 figure_title = char(base_title + " - " + string(case_def.name));
+end
+
+function [range_cell_m, doppler_bin_hz] = localResolveMeasurementGridFromDetectorParts(detector_parts)
+range_cell_m = NaN;
+doppler_bin_hz = NaN;
+
+for ip = 1 : numel(detector_parts)
+    if ~(isfinite(range_cell_m) && range_cell_m > 0) && ...
+            isfield(detector_parts(ip), 'range_axis') && numel(detector_parts(ip).range_axis) >= 2
+        delta_r = diff(detector_parts(ip).range_axis(:));
+        delta_r = delta_r(isfinite(delta_r) & delta_r > 0);
+        if ~isempty(delta_r)
+            range_cell_m = median(delta_r);
+        end
+    end
+
+    if ~(isfinite(doppler_bin_hz) && doppler_bin_hz > 0) && ...
+            isfield(detector_parts(ip), 'doppler_axis') && numel(detector_parts(ip).doppler_axis) >= 2
+        delta_f = diff(detector_parts(ip).doppler_axis(:));
+        delta_f = delta_f(isfinite(delta_f) & abs(delta_f) > 0);
+        if ~isempty(delta_f)
+            doppler_bin_hz = median(abs(delta_f));
+        end
+    end
+
+    if isfinite(range_cell_m) && range_cell_m > 0 && ...
+            isfinite(doppler_bin_hz) && doppler_bin_hz > 0
+        return
+    end
+end
 end
 
 function value = localGetField(struct_in, field_name, default_value)

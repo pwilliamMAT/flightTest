@@ -120,6 +120,8 @@ end
 
 rdm_parts = localBuildRDMParts(opts.PartResults, part_start_offsets_s, ...
     part_end_offsets_s, opts.RDMDisplayCLim);
+[range_cell_m, doppler_bin_hz] = localResolveMeasurementGrid( ...
+    config, opts.PartResults, bistatic_consts);
 
 adsb_files = {};
 if isfield(config, 'adsb_files') && ~isempty(config.adsb_files)
@@ -140,8 +142,8 @@ truth_diag_input = struct( ...
     'fs',                     config.fs, ...
     'max_display_range_m',    localGetOptionalConfigField(config, 'max_display_range_m', Inf), ...
     'radar_epoch_utc',        localGetOptionalConfigField(config, 'radar_epoch_utc', NaN), ...
-    'range_cell_m',           bistatic_consts.range_cell_m, ...
-    'doppler_bin_hz',         bistatic_consts.doppler_bin_hz, ...
+    'range_cell_m',           range_cell_m, ...
+    'doppler_bin_hz',         doppler_bin_hz, ...
     'chunk_dur_s',            bistatic_consts.chunk_dur_s, ...
     'max_nci_looks',          config.max_nci_looks, ...
     'part_dur_s',             part_dur_s, ...
@@ -272,5 +274,46 @@ if isfield(config, field_name) && ~isempty(config.(field_name))
     value = config.(field_name);
 else
     value = default_value;
+end
+end
+
+function [range_cell_m, doppler_bin_hz] = localResolveMeasurementGrid(config, part_results, bistatic_consts)
+range_cell_m = NaN;
+doppler_bin_hz = NaN;
+
+if isstruct(part_results) && ~isempty(part_results)
+    for ip = 1 : numel(part_results)
+        if isfield(part_results(ip), 'range_axis') && numel(part_results(ip).range_axis) >= 2
+            delta_r = diff(part_results(ip).range_axis(:));
+            delta_r = delta_r(isfinite(delta_r) & delta_r > 0);
+            if ~isempty(delta_r)
+                range_cell_m = median(delta_r);
+                break
+            end
+        end
+    end
+
+    for ip = 1 : numel(part_results)
+        if isfield(part_results(ip), 'doppler_axis') && numel(part_results(ip).doppler_axis) >= 2
+            delta_f = diff(part_results(ip).doppler_axis(:));
+            delta_f = delta_f(isfinite(delta_f) & abs(delta_f) > 0);
+            if ~isempty(delta_f)
+                doppler_bin_hz = median(abs(delta_f));
+                break
+            end
+        end
+    end
+end
+
+if ~(isfinite(range_cell_m) && range_cell_m > 0)
+    if isfield(config, 'fs') && isnumeric(config.fs) && isscalar(config.fs) && config.fs > 0
+        range_cell_m = physconst('LightSpeed') / config.fs;
+    else
+        range_cell_m = bistatic_consts.range_cell_m;
+    end
+end
+
+if ~(isfinite(doppler_bin_hz) && doppler_bin_hz > 0)
+    doppler_bin_hz = bistatic_consts.doppler_bin_hz;
 end
 end

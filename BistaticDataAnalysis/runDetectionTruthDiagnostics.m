@@ -72,6 +72,9 @@ truth_diag_input = localResolveDiagnosticInput(diag_input);
 verbose = localResolveVerbose(opts.Verbose, truth_diag_input);
 
 localValidateBundle(truth_diag_input);
+[range_cell_m, doppler_bin_hz] = localResolveMeasurementGrid(truth_diag_input);
+truth_diag_input.range_cell_m = range_cell_m;
+truth_diag_input.doppler_bin_hz = doppler_bin_hz;
 
 figure_handles = struct( ...
     'detection_truth', gobjects(1), ...
@@ -112,8 +115,8 @@ adsb_aligned = alignTruthToRadar(adsb_bistatic, t_epoch_utc, t_abs_query);
 
 truth_metrics = assessTruthVsDetections( ...
     detections, track_histories, adsb_aligned, ...
-    'RangeCellM', truth_diag_input.range_cell_m, ...
-    'DopplerBinHz', truth_diag_input.doppler_bin_hz, ...
+    'RangeCellM', range_cell_m, ...
+    'DopplerBinHz', doppler_bin_hz, ...
     'GateRangeCells', opts.GateRangeCells, ...
     'GateDopplerBins', opts.GateDopplerBins, ...
     'TimeGateS', opts.TimeGateS, ...
@@ -229,6 +232,77 @@ end
 if isempty(truth_diag_input.adsb_files)
     error('runDetectionTruthDiagnostics:noADSBFiles', ...
         'truth_diag_input.adsb_files is empty. No truth source is available.');
+end
+end
+
+function [range_cell_m, doppler_bin_hz] = localResolveMeasurementGrid(truth_diag_input)
+range_cell_m = NaN;
+doppler_bin_hz = NaN;
+range_cell_from_fs = NaN;
+
+if isfield(truth_diag_input, 'rdm_parts') && isstruct(truth_diag_input.rdm_parts) && ...
+        ~isempty(truth_diag_input.rdm_parts)
+    [range_cell_m, doppler_bin_hz] = localResolveMeasurementGridFromRDMParts( ...
+        truth_diag_input.rdm_parts, range_cell_m, doppler_bin_hz);
+end
+
+if isfield(truth_diag_input, 'fs') && isnumeric(truth_diag_input.fs) && ...
+        isscalar(truth_diag_input.fs) && truth_diag_input.fs > 0
+    range_cell_from_fs = physconst('LightSpeed') / truth_diag_input.fs;
+end
+
+if ~(isfinite(range_cell_m) && range_cell_m > 0) && ...
+        isfield(truth_diag_input, 'range_cell_m') && isnumeric(truth_diag_input.range_cell_m) && ...
+        isscalar(truth_diag_input.range_cell_m) && truth_diag_input.range_cell_m > 0
+    range_cell_m = truth_diag_input.range_cell_m;
+end
+
+% Legacy compact snapshots stored c/(2*fs) via helperDeriveBistaticConstants,
+% but the detector range axis in createRDM is c/fs. Correct that specific
+% mismatch when no explicit detector axis is available.
+if ~(isfinite(range_cell_m) && range_cell_m > 0) && ...
+        isfinite(range_cell_from_fs) && range_cell_from_fs > 0
+    range_cell_m = range_cell_from_fs;
+elseif isfinite(range_cell_m) && range_cell_m > 0 && ...
+        isfinite(range_cell_from_fs) && range_cell_from_fs > 0
+    rel_err_half = abs(range_cell_m - 0.5 * range_cell_from_fs) / range_cell_from_fs;
+    if rel_err_half < 1e-6
+        range_cell_m = range_cell_from_fs;
+    end
+end
+
+if ~(isfinite(doppler_bin_hz) && doppler_bin_hz > 0) && ...
+        isfield(truth_diag_input, 'doppler_bin_hz') && isnumeric(truth_diag_input.doppler_bin_hz) && ...
+        isscalar(truth_diag_input.doppler_bin_hz) && truth_diag_input.doppler_bin_hz > 0
+    doppler_bin_hz = truth_diag_input.doppler_bin_hz;
+end
+end
+
+function [range_cell_m, doppler_bin_hz] = localResolveMeasurementGridFromRDMParts( ...
+    rdm_parts, range_cell_m, doppler_bin_hz)
+for ip = 1 : numel(rdm_parts)
+    if ~(isfinite(range_cell_m) && range_cell_m > 0) && ...
+            isfield(rdm_parts(ip), 'range_axis') && numel(rdm_parts(ip).range_axis) >= 2
+        delta_r = diff(rdm_parts(ip).range_axis(:));
+        delta_r = delta_r(isfinite(delta_r) & delta_r > 0);
+        if ~isempty(delta_r)
+            range_cell_m = median(delta_r);
+        end
+    end
+
+    if ~(isfinite(doppler_bin_hz) && doppler_bin_hz > 0) && ...
+            isfield(rdm_parts(ip), 'doppler_axis') && numel(rdm_parts(ip).doppler_axis) >= 2
+        delta_f = diff(rdm_parts(ip).doppler_axis(:));
+        delta_f = delta_f(isfinite(delta_f) & abs(delta_f) > 0);
+        if ~isempty(delta_f)
+            doppler_bin_hz = median(abs(delta_f));
+        end
+    end
+
+    if isfinite(range_cell_m) && range_cell_m > 0 && ...
+            isfinite(doppler_bin_hz) && doppler_bin_hz > 0
+        return
+    end
 end
 end
 

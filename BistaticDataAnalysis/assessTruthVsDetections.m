@@ -25,7 +25,8 @@ function metrics = assessTruthVsDetections(detections, tracks_log, adsb_aligned,
 %  Gate parameters (override via 'GateRangeCells' and 'GateDopplerBins'):
 %    ΔR gate:  |R_det − R_adsb| < gate_range_cells × range_cell_m
 %    Δf gate:  |f_det − f_adsb| < gate_doppler_bins × doppler_bin_hz
-%  Defaults: 3 range cells (90 m @ 30 m/cell), 3 Doppler bins (30 Hz @ 10 Hz/bin)
+%  Defaults: 3 range cells (~180 m @ 60 m/cell for 5 Msps),
+%            3 Doppler bins (30 Hz @ 10 Hz/bin)
 %
 % ── SYNTAX ──────────────────────────────────────────────────────────────
 %   metrics = assessTruthVsDetections(detections, tracks_log, adsb_aligned)
