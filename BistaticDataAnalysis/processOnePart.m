@@ -1,5 +1,5 @@
 function [all_detections, cfar_nf_db, rdm_before, rdm_after, ...
-          range_axis, doppler_axis, config] = processOnePart(config)
+          range_axis, doppler_axis, detector_blocks, config] = processOnePart(config)
 % processOnePart  Core passive bistatic radar processing pipeline for one data part.
 %
 %   Runs the full signal-processing chain (IQ loading → reference-quality
@@ -35,6 +35,10 @@ function [all_detections, cfar_nf_db, rdm_before, rdm_after, ...
 %     rdm_after       [N_range × N_dopp] 10-look display RDM after  ECA-C (dB)
 %     range_axis      [N_range × 1] bistatic range excess (m)
 %     doppler_axis    [1 × N_dopp]  Doppler frequency (Hz)
+%     detector_blocks struct array — the exact per-block CFAR inputs used to
+%                     generate detections.  This is the detector-replay
+%                     checkpoint for fast CFAR retuning without re-running
+%                     the upstream IQ / ECA-C / CAF stages.
 %     config          config struct updated with:
 %                       .cfar_noise_floor_db  — median block noise floor (dB)
 %                       .single_look_noise_rdm — Chunk-1 pre-ECA-C RDM for C5
@@ -108,6 +112,13 @@ block_num        = 0;
 % Pre-allocate collectors.
 all_detections = zeros(0, 5);
 block_nf_dbs   = zeros(1, 0);
+detector_blocks = struct( ...
+    'block_num',       {}, ...
+    'look_count',      {}, ...
+    't_part_center_s', {}, ...
+    'rdm_whitened_db', {}, ...
+    'row_nf_db',       {}, ...
+    'abs_nf_db',       {});
 
 chunk_dur_s = N_slow_cpi / config.prf;   % seconds per 200-CPI chunk (= 0.1 s)
 
@@ -212,6 +223,16 @@ for k_chunk = 1 : N_chunks
         % whitened CFAR is ≈0 dB and not meaningful for assessDetections;
         % abs_nf_block gives the correct absolute reference for B3 and D9.
         block_nf_dbs = [block_nf_dbs, abs_nf_block]; %#ok<AGROW>
+
+        % Save the exact CFAR input so detector parameters can be swept
+        % later without repeating the upstream signal-processing chain.
+        detector_blocks(end + 1) = struct( ... %#ok<AGROW>
+            'block_num',       block_num, ...
+            'look_count',      block_look_count, ...
+            't_part_center_s', block_center_s, ...
+            'rdm_whitened_db', rdm_block_w, ...
+            'row_nf_db',       row_nf_block, ...
+            'abs_nf_db',       abs_nf_block);
 
         % Reset block accumulators for the next group.
         rdm_power_block  = zeros(N_fast_dim, N_slow_cpi);

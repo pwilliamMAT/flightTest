@@ -251,7 +251,8 @@ part_res = struct( ...
     'rdm_before',   cell(1, N_parts), ...
     'rdm_after',    cell(1, N_parts), ...
     'range_axis',   cell(1, N_parts), ...
-    'doppler_axis', cell(1, N_parts));
+    'doppler_axis', cell(1, N_parts), ...
+    'detector_blocks', cell(1, N_parts));
 
 for i_part = 1 : N_parts
     fprintf('\n[Part %d/%d]  %s\n', i_part, N_parts, data_parts{i_part});
@@ -259,7 +260,7 @@ for i_part = 1 : N_parts
         fprintf('  %s\n', repmat('-', 1, 52));
     end
     config.dataFile = data_parts{i_part};
-    [dets, nf_db, rdm_b, rdm_a, rax, dax, config] = processOnePart(config);
+    [dets, nf_db, rdm_b, rdm_a, rax, dax, detector_blocks, config] = processOnePart(config);
     % Shift block_center_s (col 5) to absolute time within the full dataset,
     % including the inter-part wall-clock gap so the tracker's prediction
     % step uses the true elapsed time between consecutive file parts.
@@ -272,6 +273,7 @@ for i_part = 1 : N_parts
     part_res(i_part).rdm_after   = rdm_a;
     part_res(i_part).range_axis  = rax;
     part_res(i_part).doppler_axis = dax;
+    part_res(i_part).detector_blocks = detector_blocks;
 end
 
 %% 3. Consolidated Detection Trajectory

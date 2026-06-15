@@ -11,6 +11,11 @@ function analysis_output = runBistaticAnalysisSession(session_id, varargin)
 %    'TruthDiagnosticSnapshotFolder' Override the snapshot output folder.
 %    'TruthDiagnosticSnapshotBaseName'
 %                                    Override the snapshot filename stem.
+%    'SaveDetectorReplaySnapshot'    Save a detector-replay snapshot under
+%                                    <session>/analysis. Default: true
+%    'DetectorReplaySnapshotFolder'  Override the detector snapshot folder.
+%    'DetectorReplaySnapshotBaseName'
+%                                    Override the detector snapshot filename stem.
 
 if nargin < 1
     session_id = "";
@@ -27,6 +32,9 @@ addParameter(p, 'SaveTruthDiagnosticSnapshot', true, @islogical);
 addParameter(p, 'TruthDiagnosticSnapshotMode', 'compact', @localIsSnapshotMode);
 addParameter(p, 'TruthDiagnosticSnapshotFolder', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'TruthDiagnosticSnapshotBaseName', 'truth_diag_input', @(x) ischar(x) || isstring(x));
+addParameter(p, 'SaveDetectorReplaySnapshot', true, @islogical);
+addParameter(p, 'DetectorReplaySnapshotFolder', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'DetectorReplaySnapshotBaseName', 'detector_replay_input', @(x) ischar(x) || isstring(x));
 parse(p, session_id, varargin{:});
 opts = p.Results;
 
@@ -103,6 +111,46 @@ if exist('truth_diag_output', 'var') && isstruct(truth_diag_output) && ...
     analysis_output.truth_diag_summary = truth_diag_output.check_summary;
 end
 
+if exist('config', 'var') && exist('data_parts', 'var') && ...
+        exist('part_start_offsets_s', 'var') && exist('part_end_offsets_s', 'var') && ...
+        exist('part_res', 'var')
+    detector_truth_template = struct([]);
+    if exist('truth_diag_input', 'var') && isstruct(truth_diag_input) && ~isempty(truth_diag_input)
+        detector_truth_template = localCompactTruthTemplate(truth_diag_input);
+    end
+
+    tracks_log_for_replay = [];
+    if exist('tracks_log', 'var') && ~isempty(tracks_log)
+        tracks_log_for_replay = tracks_log;
+    end
+
+    part_duration_s = NaN;
+    if exist('part_dur_s', 'var') && ~isempty(part_dur_s)
+        part_duration_s = part_dur_s;
+    end
+
+    detector_replay_input = buildDetectorReplayInput( ...
+        config, data_parts, part_start_offsets_s, part_end_offsets_s, part_res, ...
+        'SessionID', analysisSetup.session_id, ...
+        'AnalysisLabel', localResolveDetectorReplayLabel(analysisSetup, detector_truth_template), ...
+        'PartDurationS', part_duration_s, ...
+        'TruthDiagnosticInput', detector_truth_template, ...
+        'TracksLog', tracks_log_for_replay, ...
+        'Verbose', false);
+    analysis_output.detector_replay_input = detector_replay_input;
+
+    if opts.SaveDetectorReplaySnapshot
+        analysis_output.detector_replay_snapshot = helperSaveDetectorReplaySnapshot( ...
+            detector_replay_input, analysisSetup.session_folder, ...
+            'OutputFolder', opts.DetectorReplaySnapshotFolder, ...
+            'BaseName', opts.DetectorReplaySnapshotBaseName, ...
+            'Verbose', false);
+        localPrintDetectorReplaySnapshotInfo(analysis_output.detector_replay_snapshot);
+    end
+elseif opts.SaveDetectorReplaySnapshot && opts.Verbose
+    fprintf('Detector replay snapshot not saved: no detector replay input was produced.\n');
+end
+
 end
 
 function tf = localIsSnapshotMode(value)
@@ -120,5 +168,33 @@ if isfield(snapshot_info, 'compact_path') && strlength(snapshot_info.compact_pat
 end
 if isfield(snapshot_info, 'full_path') && strlength(snapshot_info.full_path) > 0
     fprintf('Saved full truth snapshot: %s\n', char(snapshot_info.full_path));
+end
+end
+
+function localPrintDetectorReplaySnapshotInfo(snapshot_info)
+if ~isstruct(snapshot_info)
+    return
+end
+
+if isfield(snapshot_info, 'path') && strlength(snapshot_info.path) > 0
+    fprintf('Saved detector replay snapshot: %s\n', char(snapshot_info.path));
+end
+end
+
+function truth_template = localCompactTruthTemplate(truth_diag_input)
+truth_template = truth_diag_input;
+if isfield(truth_template, 'rdm_parts')
+    truth_template = rmfield(truth_template, 'rdm_parts');
+end
+end
+
+function analysis_label = localResolveDetectorReplayLabel(analysisSetup, truth_template)
+if isstruct(truth_template) && isfield(truth_template, 'analysis_label') && ...
+        ~isempty(truth_template.analysis_label)
+    analysis_label = char(string(truth_template.analysis_label));
+elseif isfield(analysisSetup, 'session_id') && strlength(string(analysisSetup.session_id)) > 0
+    analysis_label = sprintf('Session %s', char(string(analysisSetup.session_id)));
+else
+    analysis_label = 'Detector Replay';
 end
 end

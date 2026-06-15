@@ -28,6 +28,8 @@ function truth_diag_output = runDetectionTruthDiagnostics(diag_input, varargin)
 %                             Default: false.
 %   'GateRangeCells'          Range gate width for assessTruthVsDetections.
 %   'GateDopplerBins'         Doppler gate width for assessTruthVsDetections.
+%   'TimeGateS'               Detection-to-truth time gate passed through
+%                             to assessTruthVsDetections. Default: [].
 %   'ShowRDMLabels'           Label aircraft on the RDM overlays.
 %   'ConnectRDMTruthSamples'  Connect truth samples inside each part window.
 %   'MaxAircraft'             Max aircraft to draw on the time-series figure.
@@ -58,6 +60,7 @@ addParameter(p, 'PlotRDMOverlays', true, @islogical);
 addParameter(p, 'PlotTrackComparison', false, @islogical);
 addParameter(p, 'GateRangeCells', 3, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'GateDopplerBins', 3, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'TimeGateS', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x > 0));
 addParameter(p, 'ShowRDMLabels', true, @islogical);
 addParameter(p, 'ConnectRDMTruthSamples', true, @islogical);
 addParameter(p, 'MaxAircraft', 12, @(x) isnumeric(x) && isscalar(x) && x > 0);
@@ -113,6 +116,7 @@ truth_metrics = assessTruthVsDetections( ...
     'DopplerBinHz', truth_diag_input.doppler_bin_hz, ...
     'GateRangeCells', opts.GateRangeCells, ...
     'GateDopplerBins', opts.GateDopplerBins, ...
+    'TimeGateS', opts.TimeGateS, ...
     'Verbose', verbose);
 
 check_summary = localBuildCheckSummary(truth_diag_input, adsb_aligned, detections, truth_metrics);

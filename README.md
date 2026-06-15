@@ -114,7 +114,11 @@ out = runBistaticAnalysisSession('20260611T101530');
 
 The wrapper loads `session_manifest.json`, resolves radar and `adsb_*` files automatically, ignores any `nmea_*` files that appear in the truth list, and preserves direct use of `analyzeBistaticData.m` for manual debugging.
 When ADS-B truth is present, the analysis now overlays the projected truth directly on both the static per-part Range-Doppler maps and the interactive RD viewer in bistatic `(R_excess, f_D)` space.
-By default it also saves a compact post-detection snapshot to `captures/<session_id>/analysis/truth_diag_input.mat` so the truth diagnostics can be replayed later without re-running the raw-IQ stages.
+By default it also saves:
+- a compact post-detection truth snapshot at `captures/<session_id>/analysis/truth_diag_input.mat`
+- a detector replay snapshot at `captures/<session_id>/analysis/detector_replay_input.mat`
+
+The first artifact is for truth-only iteration; the second is for rerunning only the detector stage.
 
 ### 3b. Re-run Only the Truth Diagnostics
 
@@ -152,6 +156,28 @@ diag = runDetectionTruthDiagnostics(out.truth_diag_snapshot.full_path, ...
 ```
 
 This replay path skips the expensive raw IQ, ECA-C, CAF, and CFAR stages. It reruns only ADS-B loading, bistatic truth projection, truth alignment, detection matching, and the comparison plots. The compact snapshot is the default because it is smaller; the full snapshot is optional when you want standalone RDM overlay figures as well.
+
+### 3c. Re-run Only the Detector Stage
+
+When you want to retune CFAR or post-CFAR thresholds without rerunning IQ loading, ECA-C, or CAF generation:
+
+```matlab
+cd BistaticDataAnalysis
+out = runBistaticAnalysisSession('20260611T101530');
+
+cases = struct( ...
+    'Name', {'baseline', 'tight_snr'}, ...
+    'MinSNRDB', {0, 10});
+
+replay = runDetectorReplaySweep(out.detector_replay_snapshot.path, ...
+    'Cases', cases, ...
+    'PlotDetectionTimeSeries', false, ...
+    'PlotRDMOverlays', false);
+```
+
+This replay path starts from the saved per-block whitened detector inputs, reruns `detectTargets`, rebuilds the detection table, and can still score the new detections against ADS-B truth. Use it when you are iterating on `Pfa`, guard/train cells, local-max suppression, minimum SNR, or related detector parameters.
+
+For a detector-tuning playbook and ready-to-paste sweep examples, see [radarExpertDetectorTuning.md](radarExpertDetectorTuning.md).
 
 ### 4. Other Entry Points
 
@@ -235,10 +261,14 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 **Session-based bistatic analysis and truth alignment**
 
 - [`analyzeBistaticData.m`](BistaticDataAnalysis/analyzeBistaticData.m) - Main processing engine; still supports direct manual runs for debugging
-- [`runBistaticAnalysisSession.m`](BistaticDataAnalysis/runBistaticAnalysisSession.m) - Supported analysis entrypoint for packaged sessions; returns `truth_diag_input` and auto-saves compact truth snapshots under the packaged session
+- [`runBistaticAnalysisSession.m`](BistaticDataAnalysis/runBistaticAnalysisSession.m) - Supported analysis entrypoint for packaged sessions; returns `truth_diag_input`, returns `detector_replay_input`, and auto-saves truth plus detector replay snapshots under the packaged session
 - [`buildDetectionTruthDiagnosticInput.m`](BistaticDataAnalysis/buildDetectionTruthDiagnosticInput.m) - Builds the standalone post-detection bundle used to replay truth diagnostics without reprocessing IQ
 - [`saveDetectionTruthDiagnosticInput.m`](BistaticDataAnalysis/saveDetectionTruthDiagnosticInput.m) - Saves a compact or full `truth_diag_input` snapshot to MAT for later replay
 - [`helperSaveTruthDiagnosticSnapshots.m`](BistaticDataAnalysis/helperSaveTruthDiagnosticSnapshots.m) - Writes session-style compact/full truth-diagnostic snapshots into an analysis folder
+- [`buildDetectorReplayInput.m`](BistaticDataAnalysis/buildDetectorReplayInput.m) - Builds the block-level detector replay bundle from the saved whitened CFAR inputs
+- [`saveDetectorReplayInput.m`](BistaticDataAnalysis/saveDetectorReplayInput.m) - Saves `detector_replay_input` to MAT for later detector-only reruns
+- [`helperSaveDetectorReplaySnapshot.m`](BistaticDataAnalysis/helperSaveDetectorReplaySnapshot.m) - Writes the session-style detector replay snapshot into the analysis folder
+- [`runDetectorReplaySweep.m`](BistaticDataAnalysis/runDetectorReplaySweep.m) - Re-runs `detectTargets` from the saved detector checkpoint and optionally rescores the results against ADS-B truth
 - [`runDetectionTruthDiagnostics.m`](BistaticDataAnalysis/runDetectionTruthDiagnostics.m) - Re-runs truth alignment, detection matching, and diagnostic plots from a bundle, struct, or MAT snapshot
 - [`plotDetectionTruthDiagnostics.m`](BistaticDataAnalysis/plotDetectionTruthDiagnostics.m) - Plots `R_excess` vs time and `f_D` vs time with matched and unmatched detections overlaid on truth
 - [`helperBuildTruthQueryTimes.m`](BistaticDataAnalysis/helperBuildTruthQueryTimes.m) - Builds the block-center time grid used to align ADS-B truth to the radar processing cadence
@@ -320,7 +350,7 @@ In an interactive terminal, this script prompts to launch the session analysis i
 cd BistaticDataAnalysis
 out = runBistaticAnalysisSession('20260611T101530');
 ```
-This also writes a compact truth snapshot to `captures/<session_id>/analysis/truth_diag_input.mat` by default.
+This also writes a compact truth snapshot to `captures/<session_id>/analysis/truth_diag_input.mat` and a detector replay snapshot to `captures/<session_id>/analysis/detector_replay_input.mat` by default.
 
 ### 2b. Re-run Only the Detection-vs-Truth Diagnostics
 ```matlab
@@ -331,6 +361,17 @@ diag = runDetectionTruthDiagnostics(out.truth_diag_snapshot.compact_path, ...
     'PlotTrackComparison', false);
 ```
 Use this after one full session run when you only want to iterate on truth alignment, truth overlays, or detection-vs-truth checks.
+
+### 2c. Re-run Only the Detector Stage
+```matlab
+cd BistaticDataAnalysis
+replay = runDetectorReplaySweep(out.detector_replay_snapshot.path, ...
+    'Pfa', 1e-4, ...
+    'MinSNRDB', 10, ...
+    'PlotDetectionTimeSeries', false, ...
+    'PlotRDMOverlays', false);
+```
+Use this after one full session run when you want to iterate on CFAR and detector parameters only.
 
 ### 3. Run System Characterization
 ```matlab
