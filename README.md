@@ -33,6 +33,13 @@ This repository contains a complete passive bistatic radar system and multi-sens
 
 ## Coordinated Capture Syntax
 
+TLDR:
+1. Capture and package a session on the testing machine. See **1. Capture on the Testing Machine**.
+2. Sync that packaged session onto the development machine. See **2. Sync on the Development Machine**.
+3. Run the packaged-session analysis on the development machine. See **3. Analyze on the Development Machine**.
+
+### 1. Capture on the Testing Machine
+
 Use the Ubuntu SDR capture machine as the coordinator. From the repo root, run:
 
 ```bash
@@ -50,6 +57,7 @@ captures/<session_id>/session_manifest.json
 ```
 
 At the end of a successful run, the coordinator also prints the exact `sync_capture_session.sh` command to run on the development machine for that packaged session.
+For Pi truth capture recovery, the coordinator now reads the Pi session log's `final artifact` record first, then falls back to searching the Pi capture folder and the Pi user's home tree for `adsb_<session_id>` gzip files.
 
 Important syntax notes:
 - The default Pi host is `192.168.10.131` and the default Pi user is `pi2`.
@@ -71,12 +79,14 @@ Important syntax notes:
 - The Pi-side logger writes its session log to `/home/pi2/flightTest/ADSB_GPS/adsb_capture_<session>.log`.
 - The testing machine must be able to SSH to the Pi without an interactive password prompt. Verify this first with `ssh -o BatchMode=yes -o ConnectTimeout=10 pi2@192.168.10.131 "echo READY"`.
 
-Typical overrides:
+Typical capture overrides:
 
 ```bash
 cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
 ```
+
+### 2. Sync on the Development Machine
 
 To pull one packaged session onto a development machine, use:
 
@@ -86,10 +96,14 @@ bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --user <t
 ```
 
 This pulls `captures/<session_id>/` with `rsync -av -C`, preserves the packaged layout locally, and fails if the remote session folder or `session_manifest.json` is missing.
+Large radar captures can take several minutes to transfer, and `rsync` may appear quiet while it copies the radar file.
 In an interactive terminal, it then asks whether to run `runBistaticAnalysisSession('<session_id>')` immediately on the development machine. If you answer no, or pass `--no-ask-analysis`, it prints the exact MATLAB command instead.
 Pass `--user` whenever your username on the testing machine differs from your username on the development machine.
 Pass `--remote-root` whenever the testing machine stores packaged sessions somewhere other than `~/agenticProjects/flightTest/captures`.
-Pass `--matlab-bin` if the development machine needs a non-default MATLAB executable path.
+On macOS, the sync script will try `/Applications/MATLAB*.app/bin/matlab` automatically if `matlab` is not already on `PATH`.
+Pass `--matlab-bin` if the development machine needs a non-default MATLAB executable path or if you want to override the auto-detected MATLAB binary.
+
+### 3. Analyze on the Development Machine
 
 To run the analysis without editing `analyzeBistaticData.m`, use the MATLAB session wrapper:
 
@@ -99,6 +113,8 @@ out = runBistaticAnalysisSession('20260611T101530');
 ```
 
 The wrapper loads `session_manifest.json`, resolves radar and `adsb_*` files automatically, ignores any `nmea_*` files that appear in the truth list, and preserves direct use of `analyzeBistaticData.m` for manual debugging.
+
+### 4. Other Entry Points
 
 If you want to run only the local SDR step from a terminal, use:
 

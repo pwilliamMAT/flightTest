@@ -211,7 +211,43 @@ wait_for_remote_logger() {
 list_remote_adsb_files() {
     local remote_body
 
-    remote_body="find $(quote_posix_arg "$PI_WORKDIR") -maxdepth 1 -type f -name $(quote_posix_arg "*adsb_${SESSION_ID}*.txt.gz") -printf '%p\n' | sort"
+    remote_body="
+remote_log=$(quote_posix_arg "$REMOTE_LOG_FILE")
+pi_workdir=$(quote_posix_arg "$PI_WORKDIR")
+session_glob=$(quote_posix_arg "*adsb_${SESSION_ID}*.txt.gz")
+declare -a hits=()
+
+if [[ -f \$remote_log ]]; then
+    while IFS= read -r artifact; do
+        [[ -n \$artifact ]] || continue
+        [[ \$artifact == '(none)' ]] && continue
+        if [[ \$artifact != /* ]]; then
+            artifact=\"\$pi_workdir/\$artifact\"
+        fi
+        if [[ -f \$artifact ]]; then
+            hits+=(\"\$artifact\")
+        fi
+    done < <(sed -n 's/^[[:space:]]*final artifact[[:space:]]*:[[:space:]]*//p' \"\$remote_log\")
+fi
+
+if [[ \${#hits[@]} -eq 0 ]]; then
+    while IFS= read -r path; do
+        [[ -n \$path ]] || continue
+        hits+=(\"\$path\")
+    done < <(find \"\$pi_workdir\" -maxdepth 1 -type f -name \"\$session_glob\" -print | sort)
+fi
+
+if [[ \${#hits[@]} -eq 0 ]]; then
+    while IFS= read -r path; do
+        [[ -n \$path ]] || continue
+        hits+=(\"\$path\")
+    done < <(find \"\$HOME\" -maxdepth 4 -type f -name \"\$session_glob\" -print | sort)
+fi
+
+if [[ \${#hits[@]} -gt 0 ]]; then
+    printf '%s\n' \"\${hits[@]}\" | awk '!seen[\$0]++'
+fi
+"
     run_ssh_body "$remote_body"
 }
 
@@ -486,7 +522,7 @@ if [[ $probe_status -ne 0 || "$probe_output" != "READY" ]]; then
 fi
 
 echo "[1/5] Starting ADS-B logger on $PI_USER@$PI_HOST until the SDR capture completes ..."
-remote_logger_body="exec python3 $(quote_posix_arg "$PI_LOGGER_SCRIPT") --session-id $(quote_posix_arg "$SESSION_ID") > $(quote_posix_arg "$REMOTE_LOG_FILE") 2>&1 < /dev/null"
+remote_logger_body="cd $(quote_posix_arg "$PI_WORKDIR") && exec python3 $(quote_posix_arg "$PI_LOGGER_SCRIPT") --session-id $(quote_posix_arg "$SESSION_ID") > $(quote_posix_arg "$REMOTE_LOG_FILE") 2>&1 < /dev/null"
 remote_start_body="cd $(quote_posix_arg "$PI_WORKDIR") && if command -v setsid >/dev/null 2>&1; then setsid -f bash -lc $(quote_posix_arg "$remote_logger_body"); else nohup bash -lc $(quote_posix_arg "$remote_logger_body") >/dev/null 2>&1 & fi; printf STARTED"
 set +e
 start_output="$(run_ssh_body "$remote_start_body")"
@@ -563,8 +599,9 @@ mkdir -p "$ADSB_STAGE_DIR" "$RADAR_DIR" "$TRUTH_DIR" "$LOG_DIR"
 mapfile -t remote_files < <(list_remote_adsb_files)
 if [[ ${#remote_files[@]} -eq 0 ]]; then
     FETCH_STATUS=1
-    echo "Warning: no remote ADS-B files matched session $SESSION_ID." >&2
+    echo "Warning: no remote ADS-B files matched session $SESSION_ID under $PI_WORKDIR, and no final artifact was recovered from $REMOTE_LOG_FILE." >&2
 else
+    echo "Found ${#remote_files[@]} remote ADS-B artifact(s) for session $SESSION_ID."
     for remote_file in "${remote_files[@]}"; do
         local_stage_path="$ADSB_STAGE_DIR/$(basename "$remote_file")"
         set +e
@@ -610,6 +647,10 @@ packaged_log_files+=("$local_matlab_log_rel")
 
 if [[ -f "$LOCAL_REMOTE_LOG" ]]; then
     packaged_log_files+=("logs/$(basename "$LOCAL_REMOTE_LOG")")
+fi
+
+if [[ ${#packaged_adsb_files[@]} -eq 0 ]]; then
+    echo "Warning: no ADS-B truth files were packaged for session $SESSION_ID. Review the Pi log $REMOTE_LOG_FILE and the copied session logs before syncing to the development machine." >&2
 fi
 
 if [[ ${#packaged_radar_files[@]} -eq 0 ]]; then

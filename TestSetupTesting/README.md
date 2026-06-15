@@ -43,6 +43,7 @@ captures/<session_id>/session_manifest.json
 
 `adsb_capture/` is only a temporary staging directory for fetched ADS-B files. The packaged session folder is the supported handoff artifact for post-capture analysis.
 At the end of a successful run, the coordinator prints the exact development-machine sync command for that session. Use `--announce-host` if the testing machine needs to advertise a specific hostname or IP in that printed command.
+For Pi truth capture recovery, the coordinator first reads the Pi session log's `final artifact` path, then falls back to searching the Pi capture directory and the Pi user's home tree for `adsb_<session_id>` gzip files.
 
 To pull one packaged session to a development machine, run:
 
@@ -52,7 +53,9 @@ bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --user <t
 ```
 
 If the testing machine writes packaged sessions somewhere other than `~/agenticProjects/flightTest/captures`, also pass `--remote-root <path>`.
-In an interactive terminal on the development machine, the sync script then asks whether to launch `runBistaticAnalysisSession('<session_id>')` immediately. If you answer no, or pass `--no-ask-analysis`, it prints the exact MATLAB command instead. Pass `--matlab-bin <path>` if MATLAB is not on the default shell path.
+Large radar captures can take several minutes to transfer, and `rsync` may appear quiet while it copies the radar file.
+In an interactive terminal on the development machine, the sync script then asks whether to launch `runBistaticAnalysisSession('<session_id>')` immediately. If you answer no, or pass `--no-ask-analysis`, it prints the exact MATLAB command instead.
+On macOS, the script will try `/Applications/MATLAB*.app/bin/matlab` automatically if `matlab` is not already on `PATH`. Pass `--matlab-bin <path>` if you want to override that path or if MATLAB lives somewhere else.
 
 To analyze that synced session without editing the engine script, run:
 

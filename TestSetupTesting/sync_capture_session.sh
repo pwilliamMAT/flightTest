@@ -13,6 +13,7 @@ LOCAL_ROOT="$REPO_ROOT/captures"
 RSYNC_BIN="rsync"
 SSH_BIN="ssh"
 MATLAB_BIN="matlab"
+MATLAB_LAUNCH_BIN=""
 ASK_ANALYSIS=1
 
 SSH_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
@@ -49,6 +50,44 @@ quote_matlab_string() {
     printf "'%s'" "$(printf "%s" "$1" | sed "s/'/''/g")"
 }
 
+resolve_matlab_launch_bin() {
+    local candidate=""
+
+    if [[ -n "$MATLAB_LAUNCH_BIN" ]]; then
+        return 0
+    fi
+
+    if [[ -x "$MATLAB_BIN" ]]; then
+        MATLAB_LAUNCH_BIN="$MATLAB_BIN"
+        return 0
+    fi
+
+    set +e
+    candidate="$(command -v "$MATLAB_BIN" 2>/dev/null)"
+    local status=$?
+    set -e
+    if [[ $status -eq 0 && -n "$candidate" ]]; then
+        MATLAB_LAUNCH_BIN="$candidate"
+        return 0
+    fi
+
+    if [[ "$OSTYPE" == darwin* ]]; then
+        for candidate in /Applications/MATLAB*.app/bin/matlab; do
+            if [[ "$candidate" == "/Applications/MATLAB*.app/bin/matlab" ]]; then
+                continue
+            fi
+            if [[ -x "$candidate" ]]; then
+                MATLAB_LAUNCH_BIN="$candidate"
+            fi
+        done
+        if [[ -n "$MATLAB_LAUNCH_BIN" ]]; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 build_analysis_matlab_command() {
     printf "cd(%s); out = runBistaticAnalysisSession(%s);" \
         "$(quote_matlab_string "$REPO_ROOT/BistaticDataAnalysis")" \
@@ -60,8 +99,17 @@ print_analysis_commands() {
 
     matlab_cmd="$(build_analysis_matlab_command)"
 
-    echo "Analysis command from a terminal on this machine:"
-    printf "  %s -batch %s\n" "$(printf '%q' "$MATLAB_BIN")" "$(printf '%q' "$matlab_cmd")"
+    if resolve_matlab_launch_bin; then
+        echo "Analysis command from a terminal on this machine:"
+        printf "  %s -batch %s\n" "$(printf '%q' "$MATLAB_LAUNCH_BIN")" "$(printf '%q' "$matlab_cmd")"
+    else
+        echo "Terminal MATLAB launch is not configured on this shell."
+        if [[ "$OSTYPE" == darwin* ]]; then
+            echo "If MATLAB is installed on macOS, rerun with --matlab-bin /Applications/MATLAB_R20xx?.app/bin/matlab or add matlab to PATH."
+        else
+            echo "Rerun with --matlab-bin <path-to-matlab> or add matlab to PATH."
+        fi
+    fi
     echo "From inside MATLAB:"
     printf "  cd(%s)\n" "$(quote_matlab_string "$REPO_ROOT/BistaticDataAnalysis")"
     printf "  out = runBistaticAnalysisSession(%s)\n" "$(quote_matlab_string "$SESSION_ID")"
@@ -71,8 +119,22 @@ launch_analysis() {
     local matlab_cmd=""
 
     matlab_cmd="$(build_analysis_matlab_command)"
+    if ! resolve_matlab_launch_bin; then
+        echo "MATLAB auto-launch skipped: '$MATLAB_BIN' was not found."
+        if [[ "$OSTYPE" == darwin* ]]; then
+            echo "On macOS, pass --matlab-bin /Applications/MATLAB_R20xx?.app/bin/matlab if MATLAB is installed outside PATH."
+        else
+            echo "Pass --matlab-bin <path-to-matlab> if MATLAB is installed outside PATH."
+        fi
+        print_analysis_commands
+        return 0
+    fi
+
+    if [[ "$MATLAB_LAUNCH_BIN" != "$MATLAB_BIN" ]]; then
+        echo "Using MATLAB executable: $MATLAB_LAUNCH_BIN"
+    fi
     echo "Launching MATLAB analysis for session $SESSION_ID ..."
-    "$MATLAB_BIN" -batch "$matlab_cmd"
+    "$MATLAB_LAUNCH_BIN" -batch "$matlab_cmd"
 }
 
 prompt_for_analysis() {
@@ -175,6 +237,7 @@ fi
 
 mkdir -p "$LOCAL_ROOT"
 echo "Syncing $REMOTE_TARGET:$REMOTE_SESSION_DIR/ -> $LOCAL_SESSION_DIR/"
+echo "Note: large radar captures can take several minutes to transfer, and rsync may appear quiet while it copies radar files."
 "$RSYNC_BIN" -av -C -e "$SSH_BIN ${SSH_OPTIONS[*]}" "$REMOTE_TARGET:$REMOTE_SESSION_DIR/" "$LOCAL_SESSION_DIR/"
 
 [[ -d "$LOCAL_SESSION_DIR" ]] || die "Local sync completed but the session folder is missing: $LOCAL_SESSION_DIR"
