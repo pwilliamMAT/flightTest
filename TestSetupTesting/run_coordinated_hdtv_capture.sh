@@ -12,6 +12,8 @@ PI_LOGGER_SCRIPT="/home/pi2/flightTest/ADSB_GPS/gatherTCPcompress.py"
 SSH_BIN="ssh"
 SCP_BIN="scp"
 MATLAB_BIN="matlab"
+ANNOUNCE_HOST=""
+ANNOUNCE_USER=""
 
 CAPTURE_DURATION_S="30"
 LEAD_SECONDS_S="15"
@@ -52,6 +54,7 @@ Options:
   --capture-file <base>            Base name for local SDR files (default: n320_hdtv_capture)
   --gain <g>                       Gain as N or N,M (default: 30,50)
   --session-id <id>                Shared session ID (default: current timestamp)
+  --announce-host <host>           Hostname/IP to print in the development-machine sync command
   --adsb-stage-dir <path>          Local staging folder for fetched ADS-B files
   --session-root <path>            Root folder for packaged session outputs
   --matlab-bin <path>              MATLAB executable (default: matlab)
@@ -263,6 +266,69 @@ append_if_exists() {
     fi
 }
 
+resolve_local_user() {
+    local resolved=""
+
+    if [[ -n "${USER:-}" ]]; then
+        printf "%s" "$USER"
+        return 0
+    fi
+
+    if resolved="$(id -un 2>/dev/null)" && [[ -n "$resolved" ]]; then
+        printf "%s" "$resolved"
+        return 0
+    fi
+
+    if resolved="$(whoami 2>/dev/null)" && [[ -n "$resolved" ]]; then
+        printf "%s" "$resolved"
+        return 0
+    fi
+
+    return 1
+}
+
+resolve_announce_host() {
+    local resolved=""
+
+    if [[ -n "$ANNOUNCE_HOST" ]]; then
+        printf "%s" "$ANNOUNCE_HOST"
+        return 0
+    fi
+
+    if resolved="$(hostname -f 2>/dev/null)" && [[ -n "$resolved" ]]; then
+        printf "%s" "$resolved"
+        return 0
+    fi
+
+    if resolved="$(hostname 2>/dev/null)" && [[ -n "$resolved" ]]; then
+        printf "%s" "$resolved"
+        return 0
+    fi
+
+    return 1
+}
+
+print_development_handoff() {
+    local sync_cmd=""
+
+    sync_cmd+="bash TestSetupTesting/sync_capture_session.sh"
+    sync_cmd+=" --host $(printf '%q' "$ANNOUNCE_HOST")"
+    sync_cmd+=" --user $(printf '%q' "$ANNOUNCE_USER")"
+    sync_cmd+=" --session-id $(printf '%q' "$SESSION_ID")"
+    sync_cmd+=" --remote-root $(printf '%q' "$SESSION_ROOT")"
+    sync_cmd+=" --ask-analysis"
+
+    printf "\nNext on the development machine (run from the repo root):\n"
+    printf "  %s\n" "$sync_cmd"
+    printf "Manual MATLAB analysis after sync:\n"
+    printf "  cd BistaticDataAnalysis\n"
+    printf "  out = runBistaticAnalysisSession(%s);\n" "$(quote_matlab_string "$SESSION_ID")"
+
+    if [[ "$ANNOUNCE_HOST" == "<testing-machine>" || "$ANNOUNCE_USER" == "<testing-user>" ]]; then
+        printf "Review the printed host/user placeholders before running the sync command.\n"
+    fi
+}
+
 fallback_find_capture_files() {
     find "$SCRIPT_DIR" -maxdepth 1 -type f -name "*${SESSION_ID}*" \
         ! -name '*.m' ! -name '*.asv' ! -name '*.sh' ! -name '*.py' ! -name '*.log' \
@@ -323,6 +389,11 @@ while [[ $# -gt 0 ]]; do
             SESSION_ID="$2"
             shift 2
             ;;
+        --announce-host)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            ANNOUNCE_HOST="$2"
+            shift 2
+            ;;
         --adsb-stage-dir)
             [[ $# -ge 2 ]] || die "Missing value for $1"
             ADSB_STAGE_DIR="$2"
@@ -373,6 +444,11 @@ validate_nonnegative_number "lead seconds" "$LEAD_SECONDS_S"
 validate_nonnegative_number "tail seconds" "$TAIL_SECONDS_S"
 validate_nonnegative_number "remote wait timeout" "$REMOTE_WAIT_TIMEOUT_S"
 validate_positive_number "remote poll period" "$REMOTE_POLL_PERIOD_S"
+
+ANNOUNCE_USER="$(resolve_local_user || true)"
+ANNOUNCE_HOST="$(resolve_announce_host || true)"
+[[ -n "$ANNOUNCE_USER" ]] || ANNOUNCE_USER="<testing-user>"
+[[ -n "$ANNOUNCE_HOST" ]] || ANNOUNCE_HOST="<testing-machine>"
 
 SESSION_ID_REGEX="$(printf "%s" "$SESSION_ID" | sed -e 's/[][(){}.^$*+?|\\]/\\&/g')"
 ADSB_TARGET_WINDOW_S="$(sum_seconds "$LEAD_SECONDS_S" "$CAPTURE_DURATION_S" "$TAIL_SECONDS_S")"
@@ -586,6 +662,7 @@ echo "SESSION_ID=$SESSION_ID"
 echo "SESSION_DIR=$SESSION_DIR"
 echo "SESSION_MANIFEST=$MANIFEST_PATH"
 echo "REMOTE_LOG_FILE=$REMOTE_LOG_FILE"
+print_development_handoff
 
 if [[ $MATLAB_STATUS -ne 0 ]]; then
     exit "$MATLAB_STATUS"

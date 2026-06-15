@@ -12,6 +12,8 @@ REMOTE_ROOT="~/agenticProjects/flightTest/captures"
 LOCAL_ROOT="$REPO_ROOT/captures"
 RSYNC_BIN="rsync"
 SSH_BIN="ssh"
+MATLAB_BIN="matlab"
+ASK_ANALYSIS=1
 
 SSH_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
 
@@ -27,6 +29,9 @@ Options:
   --dest <path>               Local dataset root (default: <repo>/captures)
   --rsync-bin <path>          rsync executable (default: rsync)
   --ssh-bin <path>            SSH executable (default: ssh)
+  --matlab-bin <path>         MATLAB executable for optional analysis launch (default: matlab)
+  --ask-analysis              Prompt to launch analysis after sync (default in interactive shells)
+  --no-ask-analysis           Do not prompt; print the analysis command instead
   -h, --help                  Show this help text
 EOF
 }
@@ -38,6 +43,53 @@ die() {
 
 quote_posix_arg() {
     printf "'%s'" "$(printf "%s" "$1" | sed "s/'/'\"'\"'/g")"
+}
+
+quote_matlab_string() {
+    printf "'%s'" "$(printf "%s" "$1" | sed "s/'/''/g")"
+}
+
+build_analysis_matlab_command() {
+    printf "cd(%s); out = runBistaticAnalysisSession(%s);" \
+        "$(quote_matlab_string "$REPO_ROOT/BistaticDataAnalysis")" \
+        "$(quote_matlab_string "$SESSION_ID")"
+}
+
+print_analysis_commands() {
+    local matlab_cmd=""
+
+    matlab_cmd="$(build_analysis_matlab_command)"
+
+    echo "Analysis command from a terminal on this machine:"
+    printf "  %s -batch %s\n" "$(printf '%q' "$MATLAB_BIN")" "$(printf '%q' "$matlab_cmd")"
+    echo "From inside MATLAB:"
+    printf "  cd(%s)\n" "$(quote_matlab_string "$REPO_ROOT/BistaticDataAnalysis")"
+    printf "  out = runBistaticAnalysisSession(%s)\n" "$(quote_matlab_string "$SESSION_ID")"
+}
+
+launch_analysis() {
+    local matlab_cmd=""
+
+    matlab_cmd="$(build_analysis_matlab_command)"
+    echo "Launching MATLAB analysis for session $SESSION_ID ..."
+    "$MATLAB_BIN" -batch "$matlab_cmd"
+}
+
+prompt_for_analysis() {
+    local reply=""
+
+    printf "Run analysis for %s now? [y/N] " "$SESSION_ID"
+    if ! IFS= read -r reply; then
+        reply=""
+    fi
+    case "$reply" in
+        [yY]|[yY][eE][sS])
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
 }
 
 while [[ $# -gt 0 ]]; do
@@ -77,6 +129,19 @@ while [[ $# -gt 0 ]]; do
             SSH_BIN="$2"
             shift 2
             ;;
+        --matlab-bin)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            MATLAB_BIN="$2"
+            shift 2
+            ;;
+        --ask-analysis)
+            ASK_ANALYSIS=1
+            shift
+            ;;
+        --no-ask-analysis)
+            ASK_ANALYSIS=0
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
@@ -98,10 +163,13 @@ REMOTE_MANIFEST="$REMOTE_SESSION_DIR/session_manifest.json"
 
 echo "Preflight: verifying remote session $SESSION_ID on $REMOTE_TARGET ..."
 set +e
-"$SSH_BIN" "${SSH_OPTIONS[@]}" "$REMOTE_TARGET" "bash -lc $(quote_posix_arg "test -d $REMOTE_SESSION_DIR && test -f $REMOTE_MANIFEST && printf READY")"
+probe_output="$("$SSH_BIN" "${SSH_OPTIONS[@]}" "$REMOTE_TARGET" "bash -lc $(quote_posix_arg "test -d $REMOTE_SESSION_DIR && test -f $REMOTE_MANIFEST && printf READY")" 2>&1)"
 probe_status=$?
 set -e
 if [[ $probe_status -ne 0 ]]; then
+    die "SSH preflight failed for $REMOTE_TARGET. If the testing-machine username differs from your local username, pass --user <testing-user>. SSH output: $probe_output"
+fi
+if [[ "$probe_output" != *"READY"* ]]; then
     die "Remote session folder or manifest not found at $REMOTE_SESSION_DIR."
 fi
 
@@ -115,3 +183,13 @@ echo "Syncing $REMOTE_TARGET:$REMOTE_SESSION_DIR/ -> $LOCAL_SESSION_DIR/"
 echo "SESSION_ID=$SESSION_ID"
 echo "LOCAL_SESSION_DIR=$LOCAL_SESSION_DIR"
 echo "LOCAL_MANIFEST=$LOCAL_SESSION_DIR/session_manifest.json"
+
+if [[ $ASK_ANALYSIS -eq 1 && -t 0 && -t 1 ]]; then
+    if prompt_for_analysis; then
+        launch_analysis
+    else
+        print_analysis_commands
+    fi
+else
+    print_analysis_commands
+fi

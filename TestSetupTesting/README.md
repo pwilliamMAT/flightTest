@@ -42,13 +42,17 @@ captures/<session_id>/session_manifest.json
 ```
 
 `adsb_capture/` is only a temporary staging directory for fetched ADS-B files. The packaged session folder is the supported handoff artifact for post-capture analysis.
+At the end of a successful run, the coordinator prints the exact development-machine sync command for that session. Use `--announce-host` if the testing machine needs to advertise a specific hostname or IP in that printed command.
 
 To pull one packaged session to a development machine, run:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --session-id <id>
+bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --user <testing-user> --session-id <id>
 ```
+
+If the testing machine writes packaged sessions somewhere other than `~/agenticProjects/flightTest/captures`, also pass `--remote-root <path>`.
+In an interactive terminal on the development machine, the sync script then asks whether to launch `runBistaticAnalysisSession('<session_id>')` immediately. If you answer no, or pass `--no-ask-analysis`, it prints the exact MATLAB command instead. Pass `--matlab-bin <path>` if MATLAB is not on the default shell path.
 
 To analyze that synced session without editing the engine script, run:
 
@@ -461,4 +465,4 @@ This code is provided for evaluation and research purposes.
 
 ---
 
-*Last Updated: December 30, 2025*
+*Last Updated: June 15, 2026*

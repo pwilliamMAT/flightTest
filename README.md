@@ -49,6 +49,8 @@ captures/<session_id>/logs/
 captures/<session_id>/session_manifest.json
 ```
 
+At the end of a successful run, the coordinator also prints the exact `sync_capture_session.sh` command to run on the development machine for that packaged session.
+
 Important syntax notes:
 - The default Pi host is `192.168.10.131` and the default Pi user is `pi2`.
 - The default local SDR settings are hidden behind `runLocalHDTVCapture.m`:
@@ -62,6 +64,7 @@ Important syntax notes:
   - `tail = 5`
 - `--capture-file` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
 - `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `30,50`.
+- `--announce-host` overrides the hostname/IP that the coordinator prints into the development-machine sync command.
 - `adsb_capture/` is only a temporary staging area for fetched truth files.
 - The packaged session is written under `captures/` unless `--session-root` is provided.
 - `--adsb-stage-dir` overrides the temporary ADS-B staging folder.
@@ -79,10 +82,14 @@ To pull one packaged session onto a development machine, use:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --session-id <id>
+bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --user <testing-user> --session-id <id>
 ```
 
 This pulls `captures/<session_id>/` with `rsync -av -C`, preserves the packaged layout locally, and fails if the remote session folder or `session_manifest.json` is missing.
+In an interactive terminal, it then asks whether to run `runBistaticAnalysisSession('<session_id>')` immediately on the development machine. If you answer no, or pass `--no-ask-analysis`, it prints the exact MATLAB command instead.
+Pass `--user` whenever your username on the testing machine differs from your username on the development machine.
+Pass `--remote-root` whenever the testing machine stores packaged sessions somewhere other than `~/agenticProjects/flightTest/captures`.
+Pass `--matlab-bin` if the development machine needs a non-default MATLAB executable path.
 
 To run the analysis without editing `analyzeBistaticData.m`, use the MATLAB session wrapper:
 
@@ -125,7 +132,7 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 - [`log_iq_n320_2antennas.m`](TestSetupTesting/log_iq_n320_2antennas.m) - Dual-channel IQ data recording
 - [`runLocalHDTVCapture.m`](TestSetupTesting/runLocalHDTVCapture.m) - Local-only HDTV capture wrapper that keeps the standard SDR defaults in one place
 - [`run_coordinated_hdtv_capture.sh`](TestSetupTesting/run_coordinated_hdtv_capture.sh) - Recommended Ubuntu coordinator that starts Pi ADS-B logging over SSH, runs the local SDR capture through `matlab -batch`, and packages the session under `captures/<session_id>/`
-- [`sync_capture_session.sh`](TestSetupTesting/sync_capture_session.sh) - Pull one packaged session from the testing machine to a development machine with `rsync -av -C`
+- [`sync_capture_session.sh`](TestSetupTesting/sync_capture_session.sh) - Pull one packaged session from the testing machine to a development machine with `rsync -av -C`, then optionally launch session-based analysis
 - [`runCoordinatedHDTVCapture.m`](TestSetupTesting/runCoordinatedHDTVCapture.m) - Legacy MATLAB-owned Pi + SDR coordinator kept for backward compatibility
 - [`log_iq_n320.m`](TestSetupTesting/log_iq_n320.m) - Single-channel variant
 
@@ -229,6 +236,7 @@ cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
 This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture for 30 s, keeps ADS-B running until that local capture completes, lets ADS-B run a few seconds longer, then stops the Pi logger gracefully and writes a packaged session to `captures/<session_id>/`.
+When packaging completes, the script prints the exact sync command to copy that session onto the development machine.
 
 To tune gains or timing without rewriting a long MATLAB command:
 
@@ -240,8 +248,9 @@ bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --lead-second
 ### 1c. Sync One Packaged Session to a Development Machine
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --session-id <id>
+bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --user <testing-user> --session-id <id>
 ```
+In an interactive terminal, this script prompts to launch the session analysis immediately after the transfer succeeds.
 
 ### 2. Run Session-Based Analysis by Session ID
 ```matlab
@@ -386,4 +395,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: June 10, 2026*
+*Last Updated: June 15, 2026*
