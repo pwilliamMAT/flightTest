@@ -546,6 +546,10 @@ rdm_after_display = rdm_after - median(rdm_after, 2);
 
 CLIM_WHITE = [-10, 20];  % [dB] — fixed identical clim across all three figures
 
+static_rdm_axes    = gobjects(N_parts, 1);
+static_det_handles = gobjects(N_parts, 1);
+static_det_counts  = zeros(N_parts, 1);
+
 for i_fig = 1 : N_parts
     r_ax_fig  = part_res(i_fig).range_axis;
     d_ax_fig  = part_res(i_fig).doppler_axis;
@@ -554,9 +558,12 @@ for i_fig = 1 : N_parts
     rdm_w_fig = part_res(i_fig).rdm_after - median(part_res(i_fig).rdm_after, 2);
     dets_fig  = part_res(i_fig).detections;   % [N_det × 5+] or empty
 
+    static_det_counts(i_fig) = size(dets_fig, 1);
+
     figure('Name', sprintf('RDM - Part %d', i_fig), 'NumberTitle', 'off');
-    imagesc(d_ax_fig, r_ax_fig, rdm_w_fig);
-    set(gca, 'YDir', 'normal');   % bistatic range increases upward
+    static_rdm_axes(i_fig) = gca;
+    imagesc(static_rdm_axes(i_fig), d_ax_fig, r_ax_fig, rdm_w_fig);
+    set(static_rdm_axes(i_fig), 'YDir', 'normal');   % bistatic range increases upward
     title(sprintf('Post-ECA-C RDM (whitened) — Part %d of %d — %d detection(s)', ...
         i_fig, N_parts, size(dets_fig, 1)));
     xlabel('Doppler (Hz)');
@@ -570,7 +577,7 @@ for i_fig = 1 : N_parts
         hold on;
         % Red circles: clearly distinguishable against the cool-colour
         % background of the whitened noise floor.
-        scatter(dets_fig(:, 2), dets_fig(:, 1), 80, 'ro', ...
+        static_det_handles(i_fig) = scatter(dets_fig(:, 2), dets_fig(:, 1), 80, 'ro', ...
             'LineWidth', 2, 'DisplayName', sprintf('Detections (n=%d)', size(dets_fig,1)));
         legend('Location', 'northeast', 'TextColor', 'white', 'Color', [0.2 0.2 0.2]);
         hold off;
@@ -1013,21 +1020,14 @@ else
         adsb_bistatic = adsbToBistatic(adsb_tracks, config.txLLA, config.rxLLA, config.fc);
 
         % ── §8.4  Align truth to radar time axis ─────────────────────────
-        %  Build the full multi-part t_abs_s query vector from all_track_dets
-        %  (which spans all parts).
-        fprintf('\n[§8.4] Aligning truth to radar time axis…\n');
-        if exist('all_track_dets', 'var') && ~isempty(all_track_dets)
-            t_abs_query = sort(unique(all_track_dets(:, 5)));
-        else
-            % Fallback: use the nominal block cadence for each recording part.
-            t_abs_query = [];
-            block_dt_s = config.max_nci_looks * bistatic_consts.chunk_dur_s;
-            for ip8 = 1 : N_parts
-                t_start8 = part_start_offsets_s(ip8);
-                t_abs_query = [t_abs_query; ...
-                    (t_start8 + block_dt_s/2 : block_dt_s : t_start8 + part_dur_s - block_dt_s/2).']; %#ok<AGROW>
-            end
-        end
+        %  Build the full multi-part truth query vector on the CFAR block
+        %  cadence so truth is visible even when a part has zero detections.
+        fprintf('\n[8.4] Aligning truth to radar time axis...\n');
+        t_abs_query = helperBuildTruthQueryTimes( ...
+            part_start_offsets_s, part_dur_s, ...
+            bistatic_consts.chunk_dur_s, config.max_nci_looks);
+        fprintf('[8.4] Using %d block-centre truth query times across %d part(s).\n', ...
+            numel(t_abs_query), N_parts);
 
         adsb_aligned = alignTruthToRadar(adsb_bistatic, t_epoch_utc, t_abs_query);
 
@@ -1038,12 +1038,59 @@ else
             for s8 = 1 : numel(step_data)
                 step_data(s8).truth_data = adsb_aligned;
             end
-            fprintf('[§8.4b] truth_data populated into %d step_data entries.\n', ...
+            if exist('render_fn', 'var') && isa(render_fn, 'function_handle') && ...
+                    exist('ax_rdm', 'var') && isgraphics(ax_rdm, 'axes')
+                current_step = 1;
+                if exist('sld', 'var') && isgraphics(sld)
+                    current_step = max(1, min(N_steps, round(get(sld, 'Value'))));
+                end
+                render_fn(current_step);
+                fprintf('[8.4b] Interactive RDM viewer refreshed with ADS-B truth overlay.\n');
+            end
+            fprintf('[8.4b] truth_data populated into %d step_data entries.\n', ...
                 numel(step_data));
         end
 
         % ── §8.5  Assess detections and tracks vs truth ───────────────────
         fprintf('\n[§8.5] Computing truth-vs-detection metrics…\n');
+
+        if exist('static_rdm_axes', 'var') && ~isempty(static_rdm_axes)
+            fprintf('[8.4c] Overlaying ADS-B truth on per-part RDM figures...\n');
+            for ip8 = 1 : N_parts
+                ax_part = static_rdm_axes(ip8);
+                if ~isgraphics(ax_part, 'axes')
+                    continue
+                end
+
+                [n_truth_pts, h_truth] = helperPlotRDMTruthOverlay(ax_part, adsb_aligned, ...
+                    'TimeWindow', [part_start_offsets_s(ip8), part_end_offsets_s(ip8)], ...
+                    'ConnectSamples', true, ...
+                    'ShowLabels', true, ...
+                    'IncludeLegend', true, ...
+                    'DisplayName', 'ADS-B truth', ...
+                    'MarkerSize', 80, ...
+                    'LineWidth', 1.4, ...
+                    'LabelOffsetHz', 8);
+
+                legend_handles = gobjects(0, 1);
+                if ip8 <= numel(static_det_handles) && isgraphics(static_det_handles(ip8))
+                    legend_handles(end + 1, 1) = static_det_handles(ip8); %#ok<AGROW>
+                end
+                if isgraphics(h_truth)
+                    legend_handles(end + 1, 1) = h_truth; %#ok<AGROW>
+                end
+                if ~isempty(legend_handles)
+                    legend(ax_part, legend_handles, 'Location', 'northeast', ...
+                        'TextColor', 'white', 'Color', [0.2 0.2 0.2]);
+                end
+
+                title(ax_part, sprintf( ...
+                    'Post-ECA-C RDM (whitened) - Part %d of %d - %d detection(s) - ADS-B truth %d pt(s)', ...
+                    ip8, N_parts, static_det_counts(ip8), n_truth_pts));
+                fprintf('         Part %d/%d: %d truth point(s).\n', ...
+                    ip8, N_parts, n_truth_pts);
+            end
+        end
 
         % Wrap all_track_dets rows as a struct array for assessTruthVsDetections
         if exist('all_track_dets', 'var') && ~isempty(all_track_dets)

@@ -3,7 +3,7 @@
 This checklist documents the capture-workflow separation work so another agent can audit or extend it without rediscovering the design.
 
 Phase status:
-Coordinated capture, packaged-session handoff, and development-machine sync were validated in a live run on June 15, 2026. The remaining unchecked items are follow-up review tasks, not blockers for using the workflow.
+Coordinated capture, Pi-to-testing-machine truth recovery, packaged-session handoff, and development-machine sync were validated in live runs on June 15, 2026. The remaining unchecked item is a follow-up archive decision, not a blocker for using the workflow.
 
 ## Inventory and archive planning
 
@@ -43,6 +43,6 @@ Coordinated capture, packaged-session handoff, and development-machine sync were
 - [x] Run the new shell coordinator on the Ubuntu testing machine against the Pi.
 - [x] Run the packaged-session sync on the development machine against the testing machine.
 - [x] Clarify in the operator workflow that large radar-file `rsync` transfers can take several minutes and may appear quiet while the transfer is still active.
-- [ ] Re-run one coordinated capture after the Pi truth-artifact recovery fix and confirm that `captures/<session_id>/truth/` is populated on the testing machine.
-- [ ] Confirm that a single session ID appears in both the copied ADS-B truth file name and the local `.bb` file names when the packaged `truth/` folder is populated.
+- [x] Re-run one coordinated capture after the Pi truth-artifact recovery fix and confirm that `captures/<session_id>/truth/` is populated on the testing machine.
+- [x] Confirm that a single session ID appears in both the copied ADS-B truth file name and the local `.bb` file names when the packaged `truth/` folder is populated.
 - [ ] Decide whether `log_iq_n320.m`, `BenchmarkEngine.m`, and the visualization scripts remain active or move to archive.

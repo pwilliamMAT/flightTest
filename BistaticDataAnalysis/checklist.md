@@ -110,7 +110,7 @@
 - **[COMPLETED] D. Tracker runs end-to-end on Newton dataset**
   - **Result**: ✅ 26 detections → 11 tracker time steps → peak 10 confirmed tracks. `tracks_log` struct array populated. Console table printed per part. Globe renders in < 1 s. Interactive RD viewer opens with working slider.
 
-- **[COMPLETED — PIPELINE READY, AWAITING TRUTH DATA] E. Truth-data comparison**
+- **[COMPLETED - TRUTH OVERLAY IMPLEMENTED, REAL-SESSION VALIDATION PENDING] E. Truth-data comparison**
   - **ADS-B pipeline status**: ALL functions implemented and unit-tested. `test_adsbTruthPipeline.m` passes end-to-end (49/49 synthetic SBS-1 records parsed, TP=10, Pd=0.833).
   - **Functions implemented**:
     - `loadADSBTruth.m` — parses SBS-1/BaseStation dump1090 format. **Critical fix (R2025b)**: `strsplit(line, ',', 'CollapseDelimiters', false)` — MATLAB R2025b changed default to `CollapseDelimiters=true` for explicit delimiters, collapsing empty trailing fields; the fix is required for correct MSG field counting.
@@ -119,13 +119,16 @@
     - `alignTruthToRadar.m` — subtracts radar epoch from ADS-B UTC, resamples to radar CPI query times via `interp1` (linear, NaN outside data span).
     - `assessTruthVsDetections.m` — detection-level TP/FA/miss labelling + track-level range/Doppler RMSE.
     - `plotTruthComparison.m` — side-by-side truth vs radar track plots.
-    - `analyzeBistaticData.m §8` — integrated; skips gracefully with a message when `config.adsb_files` not set.
+    - `analyzeBistaticData.m` Section 8 - integrated; now aligns truth on the full CFAR block-centre cadence, refreshes the interactive RD viewer once truth is loaded, and overlays ADS-B truth on the static per-part RDM figures.
+    - `helperBuildTruthQueryTimes.m` - builds the multi-part block-centre time grid used for truth alignment.
+    - `helperPlotRDMTruthOverlay.m` - shared measurement-space overlay helper for the static RDM figures and `render_rdm_step.m`.
+  - **Current workflow status (June 15, 2026)**: coordinated capture and Pi truth-artifact recovery were validated on a live packaged session. Session `20260615T103437` is the active real-data target for confirming the new ADS-B-on-RDM overlay path on the development machine.
   - **Natick dataset truth status**: The compressed ADS-B files in `04_Natick_Ah_Pkg_May_21_26/` were inspected. Files `231_adsb...gz` through `281_adsb...gz` (51 files) were sampled and cover **May 24–25 2026**, NOT the radar collection window. `0_adsb_20260521_142051.txt` covers 18:20–18:21 UTC on May 21. `4_adsb_20260521_142633_anal.txt` (200k lines) covers 20:03–20:12 UTC. The radar data was collected at **~19:26–19:28 UTC on May 21 2026**. No captured ADS-B file covers this window.
-  - **Next steps to enable truth comparison**:
-    1. Check the remaining un-sampled gz files in the Natick folder — only 4 of 51 were inspected. Files `232`–`249` and `251`–`260` were not opened; some may cover 19:26 UTC May 21 (unlikely given the sampled files showed May 24–25, but worth a full scan).
-    2. Query OpenSky Network historical API for ICAO hex tracks over the Newton MA bounding box on 2026-05-21 19:26–19:30 UTC: `https://opensky-network.org/api/flights/arrival` or the state vectors endpoint.
-    3. Once ADS-B data is in hand: set `config.adsb_files = { '/path/to/file.txt' }` in `analyzeBistaticData.m §1`, run the script, and check §8 output.
-    4. Use truth to validate and tune tracker: compare `Track.State(1)` (R estimate) against ADS-B R_excess; check Doppler sign (positive track Doppler should correspond to receding aircraft).
+  - **Next steps for the next session**:
+    1. On the development machine, confirm the synced packaged session exists locally and run `runBistaticAnalysisSession('20260615T103437')`.
+    2. Verify the preflight reports a nonzero ADS-B file count and that Section 8 executes without skipping.
+    3. Inspect the static per-part RDM figures and the interactive RD viewer to confirm the ADS-B overlay falls in plausible `(R_excess, f_D)` locations relative to the radar energy.
+    4. Record any consistent range or Doppler bias and decide whether the next adjustment should target time alignment, geometry, or display styling.
 
 ---
 
@@ -330,5 +333,5 @@ A target with decreasing bistatic range (approaching) produces a **positive** f_
 
 **Expected after sign fix**: much fewer total tracks, some tracks spanning multiple parts with declining σ_v.
 
-**Next steps (for continuation session):** See §E above and `agents.md` §"Next Session: ADS-B Truth Incorporation".
+**Next steps (for continuation session):** See Section E above and `NEXT_SESSION_HANDOFF.md`.
 
