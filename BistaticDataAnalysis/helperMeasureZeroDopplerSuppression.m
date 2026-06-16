@@ -1,0 +1,100 @@
+function metrics = helperMeasureZeroDopplerSuppression(surv_cube, ref_cube, fs, prf, varargin)
+%HELPERMEASUREZERODOPPLERSUPPRESSION Measure pre/post ECA-C clutter ridge strength.
+%
+%  Before clutter mitigation, the direct path and static clutter should
+%  produce a strong zero-Doppler ridge. After ECA-C, that ridge should be
+%  substantially reduced or driven down to the noise floor. This helper
+%  measures that behaviour on the same RDM products used by the main
+%  passive-radar pipeline.
+
+p = inputParser;
+p.FunctionName = mfilename;
+addRequired(p, 'surv_cube', @(x) isnumeric(x) && ~isempty(x));
+addRequired(p, 'ref_cube', @(x) isnumeric(x) && ~isempty(x));
+addRequired(p, 'fs', @(x) isnumeric(x) && isscalar(x) && x > 0);
+addRequired(p, 'prf', @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'NearRangeLimitM', 5e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'NoiseRegionRangeM', [130e3, 150e3], @(x) isnumeric(x) && numel(x) == 2);
+addParameter(p, 'NoiseRegionDopplerHz', [200, 1000], @(x) isnumeric(x) && numel(x) == 2);
+addParameter(p, 'BeforeMarginMinDB', 15, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'SuppressionMinDB', 30, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'Verbose', false, @(x) islogical(x) && isscalar(x));
+parse(p, surv_cube, ref_cube, fs, prf, varargin{:});
+opts = p.Results;
+
+[rdm_before, doppler_axis, range_axis, dpi_lag] = createRDM( ...
+    surv_cube, ref_cube, fs, prf, [], opts.Verbose);
+surv_cube_filtered = mitigateClutter(surv_cube, ref_cube, dpi_lag, opts.Verbose);
+rdm_after = createRDM(surv_cube_filtered, ref_cube, fs, prf, dpi_lag, opts.Verbose);
+
+[~, zero_dopp_idx] = min(abs(doppler_axis));
+near_r_mask = range_axis <= opts.NearRangeLimitM;
+if ~any(near_r_mask)
+    near_r_mask(1:min(10, numel(near_r_mask))) = true;
+end
+
+noise_r_mask = range_axis >= opts.NoiseRegionRangeM(1) & range_axis <= opts.NoiseRegionRangeM(2);
+noise_d_mask = abs(doppler_axis) >= opts.NoiseRegionDopplerHz(1) & ...
+    abs(doppler_axis) <= opts.NoiseRegionDopplerHz(2);
+if sum(noise_r_mask) < 20
+    noise_r_mask = range_axis >= 0.85 * max(range_axis);
+end
+if sum(noise_d_mask) < 20
+    max_dopp = max(abs(doppler_axis));
+    noise_d_mask = abs(doppler_axis) >= 0.10 * max_dopp & ...
+        abs(doppler_axis) <= 0.40 * max_dopp;
+end
+
+noise_floor_db = median(rdm_after(noise_r_mask, noise_d_mask), 'all');
+window_coherent_loss_db = -20 * log10(mean(kaiser(size(surv_cube, 2), 6)));
+
+before_zero_cut_db = rdm_before(:, zero_dopp_idx);
+after_zero_cut_db = rdm_after(:, zero_dopp_idx);
+before_val = mean(before_zero_cut_db(near_r_mask)) + window_coherent_loss_db;
+after_val = mean(after_zero_cut_db(near_r_mask));
+suppression_db = before_val - after_val;
+
+before_margin_db = before_val - noise_floor_db;
+after_margin_db = after_val - noise_floor_db;
+after_at_noise_floor = after_val <= noise_floor_db + 6;
+
+near_range_doppler_before_db = mean(rdm_before(near_r_mask, :), 1);
+near_range_doppler_after_db = mean(rdm_after(near_r_mask, :), 1);
+
+pass = before_margin_db >= opts.BeforeMarginMinDB && ...
+    (suppression_db >= opts.SuppressionMinDB || after_at_noise_floor);
+
+if pass
+    verdict = 'PASS';
+else
+    verdict = 'WARN';
+end
+
+metrics = struct( ...
+    'rdm_before_db',                 rdm_before, ...
+    'rdm_after_db',                  rdm_after, ...
+    'range_axis_m',                  range_axis(:), ...
+    'doppler_axis_hz',               doppler_axis(:).', ...
+    'dpi_lag_samples',               dpi_lag, ...
+    'zero_dopp_idx',                 zero_dopp_idx, ...
+    'before_zero_cut_db',            before_zero_cut_db(:), ...
+    'after_zero_cut_db',             after_zero_cut_db(:), ...
+    'near_range_doppler_before_db',  near_range_doppler_before_db(:).', ...
+    'near_range_doppler_after_db',   near_range_doppler_after_db(:).', ...
+    'near_range_limit_m',            opts.NearRangeLimitM, ...
+    'noise_floor_db',                noise_floor_db, ...
+    'window_coherent_loss_db',       window_coherent_loss_db, ...
+    'before_val_db',                 before_val, ...
+    'after_val_db',                  after_val, ...
+    'before_margin_db',              before_margin_db, ...
+    'after_margin_db',               after_margin_db, ...
+    'suppression_db',                suppression_db, ...
+    'before_margin_min_db',          opts.BeforeMarginMinDB, ...
+    'suppression_min_db',            opts.SuppressionMinDB, ...
+    'after_at_noise_floor',          after_at_noise_floor, ...
+    'pass',                          pass, ...
+    'message', sprintf( ...
+        ['Before zero-Doppler ridge %.1f dB above the noise floor, ' ...
+         'suppression %.1f dB, after %.1f dB above the noise floor. %s'], ...
+        before_margin_db, suppression_db, after_margin_db, verdict));
+end

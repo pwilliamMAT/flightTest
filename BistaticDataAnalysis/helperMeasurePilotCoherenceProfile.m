@@ -1,0 +1,60 @@
+function profile = helperMeasurePilotCoherenceProfile(reference_cube, reference_channel, fs)
+%HELPERMEASUREPILOTCOHERENCEPROFILE Build spectrum and pilot-coherence traces.
+%
+%  A healthy ATSC reference has two distinct signatures:
+%  1. Broadband occupied spectrum across the HDTV channel.
+%  2. A single highly coherent pilot tone that rises above the incoherent
+%     data carriers when we average the FFT across many CPIs.
+%
+%  This helper returns both traces so the precheck can plot them and
+%  quantify how "ATSC-like" the reference looks before running ECA-C.
+
+reference_cube = double(reference_cube);
+reference_channel = double(reference_channel(:));
+
+n_fast = size(reference_cube, 1);
+n_slow = size(reference_cube, 2);
+
+% Coherent pilot profile: compare coherent and incoherent FFT averages
+% across the CPI columns. A true pilot remains phase-stable across slow
+% time, so it stands out strongly in this ratio.
+n_fft_coh = 2^nextpow2(max(n_fast, 2));
+fft_cube = fft(reference_cube, n_fft_coh, 1);
+mean_coh_fft = mean(fft_cube, 2);
+mean_incoh_power = mean(abs(fft_cube).^2, 2);
+coherence_ratio = abs(mean_coh_fft).^2 ./ max(mean_incoh_power, eps);
+coherence_snr_db = 10 * log10(coherence_ratio * max(n_slow, 1) + eps);
+
+coherence_freq_axis_hz = (-n_fft_coh/2 : n_fft_coh/2 - 1).' * (fs / n_fft_coh);
+coherence_snr_db = fftshift(coherence_snr_db);
+
+[pilot_coherence_snr_db, pilot_idx] = max(coherence_snr_db);
+pilot_freq_hz = coherence_freq_axis_hz(pilot_idx);
+
+% PSD trace for the same slice. Welch averaging gives a readable spectrum
+% without requiring the entire file to be loaded into one FFT.
+n_channel = numel(reference_channel);
+nfft_psd = 2^nextpow2(max(256, min(n_channel, 8192)));
+win_len = min(nfft_psd, max(64, min(n_channel, 4096)));
+if n_channel < win_len
+    win_len = n_channel;
+end
+overlap = floor(0.5 * win_len);
+[psd_linear, psd_freq_axis_hz] = pwelch( ...
+    reference_channel, ...
+    hamming(win_len), ...
+    overlap, ...
+    nfft_psd, ...
+    fs, ...
+    'centered');
+
+profile = struct( ...
+    'psd_freq_axis_hz',          psd_freq_axis_hz(:), ...
+    'psd_db_hz',                 10 * log10(psd_linear(:) + realmin), ...
+    'coherence_freq_axis_hz',    coherence_freq_axis_hz(:), ...
+    'coherence_snr_db',          coherence_snr_db(:), ...
+    'pilot_freq_hz',             pilot_freq_hz, ...
+    'pilot_coherence_snr_db',    pilot_coherence_snr_db, ...
+    'n_fast',                    n_fast, ...
+    'n_slow',                    n_slow);
+end

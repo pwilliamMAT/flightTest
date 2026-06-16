@@ -176,6 +176,36 @@ By default it also saves:
 The first artifact is for truth-only iteration; the second is for rerunning only the detector stage.
 The wrapper now always returns `out.truth_diag_snapshot` and `out.detector_replay_snapshot` status structs, even when an optional artifact could not be written. Check `.saved` and `.status` (`saved`, `unavailable`, or `error`) before assuming the on-disk snapshot exists.
 
+### 3a. Pre-Analysis Direct-Path Check
+
+Before running the full bistatic analysis, you can read only a short slice from one radar file and verify that the direct path looks usable:
+
+```matlab
+cd BistaticDataAnalysis
+pre = runDirectPathPrecheck('20260616T090717');
+```
+
+By default this reads the first radar file in the packaged session and only the first 1 second of IQ, so it is much faster than the full analysis path.
+The diagnostic produces three figures and pass/warn summaries for:
+- reference spectrum and pilot coherence
+- lag-domain direct-path peak dominance between surveillance and reference
+- zero-Doppler ridge strength before and after ECA-C
+
+If you want to probe a specific file directly:
+
+```matlab
+cd BistaticDataAnalysis
+pre = runDirectPathPrecheck('C:\path\to\capture_part1.bb', ...
+    'SliceDurationS', 1.0, ...
+    'PlotFigures', true);
+```
+
+If the channel-power diagnostic suggests the reference antenna is actually on `RX1`, rerun the precheck with:
+
+```matlab
+pre = runDirectPathPrecheck('20260616T090717', 'SwapChannels', true);
+```
+
 ### 3b. Re-run Only the Truth Diagnostics
 
 After one full session run, you can iterate on the detection-vs-truth plots without re-running the raw IQ pipeline:
@@ -544,6 +574,13 @@ cd BistaticDataAnalysis
 out = runBistaticAnalysisSession('20260611T101530');
 ```
 This also writes a compact truth snapshot to `captures/<session_id>/analysis/truth_diag_input.mat` and a detector replay snapshot to `captures/<session_id>/analysis/detector_replay_input.mat` by default.
+
+### 2a. Run the Fast Direct-Path Precheck
+```matlab
+cd BistaticDataAnalysis
+pre = runDirectPathPrecheck('20260611T101530');
+```
+Use this when you want a quick yes/no answer on reference quality, lag peak dominance, and zero-Doppler suppression before paying for the full analysis.
 
 ### 2b. Re-run Only the Detection-vs-Truth Diagnostics
 ```matlab
