@@ -1,4 +1,4 @@
-function profile = helperMeasurePilotCoherenceProfile(reference_cube, reference_channel, fs)
+function profile = helperMeasurePilotCoherenceProfile(reference_cube, reference_channel, fs, varargin)
 %HELPERMEASUREPILOTCOHERENCEPROFILE Build spectrum and pilot-coherence traces.
 %
 %  A healthy ATSC reference has two distinct signatures:
@@ -8,6 +8,19 @@ function profile = helperMeasurePilotCoherenceProfile(reference_cube, reference_
 %
 %  This helper returns both traces so the precheck can plot them and
 %  quantify how "ATSC-like" the reference looks before running ECA-C.
+
+p = inputParser;
+p.FunctionName = mfilename;
+addRequired(p, 'reference_cube', @(x) isnumeric(x));
+addRequired(p, 'reference_channel', @(x) isnumeric(x));
+addRequired(p, 'fs', @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'CaptureCenterFrequencyHz', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x)));
+addParameter(p, 'CaptureTuneFrequencyHz', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x)));
+addParameter(p, 'LOOffsetHz', 0, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'IlluminatorCenterFrequencyHz', [], @(x) isempty(x) || isnumeric(x));
+addParameter(p, 'PilotSearchHalfWidthHz', 150e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
+parse(p, reference_cube, reference_channel, fs, varargin{:});
+opts = p.Results;
 
 reference_cube = double(reference_cube);
 reference_channel = double(reference_channel(:));
@@ -28,8 +41,17 @@ coherence_snr_db = 10 * log10(coherence_ratio * max(n_slow, 1) + eps);
 coherence_freq_axis_hz = (-n_fft_coh/2 : n_fft_coh/2 - 1).' * (fs / n_fft_coh);
 coherence_snr_db = fftshift(coherence_snr_db);
 
-[pilot_coherence_snr_db, pilot_idx] = max(coherence_snr_db);
-pilot_freq_hz = coherence_freq_axis_hz(pilot_idx);
+pilot_selection = helperSelectATSCPilotCandidate( ...
+    coherence_freq_axis_hz, coherence_snr_db, ...
+    'SampleRateHz', fs, ...
+    'CaptureCenterFrequencyHz', opts.CaptureCenterFrequencyHz, ...
+    'CaptureTuneFrequencyHz', opts.CaptureTuneFrequencyHz, ...
+    'LOOffsetHz', opts.LOOffsetHz, ...
+    'IlluminatorCenterFrequencyHz', opts.IlluminatorCenterFrequencyHz, ...
+    'SearchHalfWidthHz', opts.PilotSearchHalfWidthHz);
+
+pilot_coherence_snr_db = pilot_selection.selected_snr_db;
+pilot_freq_hz = pilot_selection.selected_freq_hz;
 
 % PSD trace for the same slice. Welch averaging gives a readable spectrum
 % without requiring the entire file to be loaded into one FFT.
@@ -55,6 +77,9 @@ profile = struct( ...
     'coherence_snr_db',          coherence_snr_db(:), ...
     'pilot_freq_hz',             pilot_freq_hz, ...
     'pilot_coherence_snr_db',    pilot_coherence_snr_db, ...
+    'pilot_selection',           pilot_selection, ...
+    'strongest_coherent_freq_hz', pilot_selection.global_peak_freq_hz, ...
+    'strongest_coherent_snr_db', pilot_selection.global_peak_snr_db, ...
     'n_fast',                    n_fast, ...
     'n_slow',                    n_slow);
 end

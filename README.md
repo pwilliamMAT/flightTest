@@ -191,6 +191,12 @@ The diagnostic produces three figures and pass/warn summaries for:
 - lag-domain direct-path peak dominance between surveillance and reference
 - zero-Doppler ridge strength before and after ECA-C
 
+The reference-spectrum figure now distinguishes between:
+- the strongest coherent line anywhere in the baseband slice
+- the best ATSC-consistent pilot candidate based on the stored `LOOffset` and the nearest ATSC channel-center raster
+
+That matters when the header center is off the ATSC raster. For example, a header `Fc = 600 MHz` with `LOOffset = 200 kHz` can still contain a valid channel centered at `599 MHz`; in that case the ATSC pilot can wrap onto the positive-frequency side of baseband instead of appearing on the usual negative side.
+
 If you want to probe a specific file directly:
 
 ```matlab
@@ -204,6 +210,13 @@ If the channel-power diagnostic suggests the reference antenna is actually on `R
 
 ```matlab
 pre = runDirectPathPrecheck('20260616T090717', 'SwapChannels', true);
+```
+
+If you know the actual ATSC illuminator center, pass it explicitly so the pilot search uses the exact channel geometry instead of the nearest raster guess:
+
+```matlab
+pre = runDirectPathPrecheck('20260616T131954', ...
+    'IlluminatorCenterFrequencyHz', 599e6);
 ```
 
 ### 3b. Re-run Only the Truth Diagnostics

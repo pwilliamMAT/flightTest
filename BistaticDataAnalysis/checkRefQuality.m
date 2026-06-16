@@ -43,12 +43,18 @@ function results = checkRefQuality(reference_cube, config)
 %                        .ref_pilot_snr_threshold dB (default 10)
 %                        .ref_sfm_threshold_db   (default -15)
 %                        .ref_snr_threshold_db   legacy alias for pilot threshold
+%                        .capture_center_frequency_hz  header center
+%                        .capture_tune_frequency_hz    actual SDR tune
+%                        .capture_lo_offset_hz         metadata LO offset
+%                        .illuminator_center_frequency_hz optional ATSC
+%                        .pilot_search_half_width_hz   search half-width
 %
 %   Outputs:
 %     results   struct with fields:
 %       .level_dbfs          ADC level in dBFS
 %       .pilot_snr_db        pilot coherence SNR in dB
-%       .pilot_freq_hz       frequency of strongest coherent component (Hz)
+%       .pilot_freq_hz       frequency of the selected ATSC-consistent
+%                            coherent component (Hz)
 %       .sfm_db              spectral flatness in dB  (0 = flat)
 %       .level_pass / .pilot_pass / .sfm_pass / .pass
 %       .snr_db / .snr_pass  legacy aliases → pilot_snr_db / pilot_pass
@@ -60,6 +66,7 @@ if ~isfield(config, 'ref_level_min_dbfs'),    config.ref_level_min_dbfs    = -30
 if ~isfield(config, 'ref_level_max_dbfs'),    config.ref_level_max_dbfs    = -3;   end
 if ~isfield(config, 'ref_pilot_snr_threshold'), config.ref_pilot_snr_threshold = 10; end
 if ~isfield(config, 'ref_sfm_threshold_db'),  config.ref_sfm_threshold_db  = -15; end
+if ~isfield(config, 'pilot_search_half_width_hz'), config.pilot_search_half_width_hz = 150e3; end
 % Legacy alias: ref_snr_threshold_db → pilot threshold
 if isfield(config, 'ref_snr_threshold_db')
     config.ref_pilot_snr_threshold = config.ref_snr_threshold_db;
@@ -92,15 +99,49 @@ mean_coh_fft   = mean(FFT_cube, 2);                      % [N_fft × 1] complex
 mean_incoh_pwr = mean(abs(FFT_cube).^2, 2);              % [N_fft × 1] real
 
 coherence_ratio = abs(mean_coh_fft).^2 ./ max(mean_incoh_pwr, eps);
+coherence_snr_db = 10 * log10(coherence_ratio * N_slow + eps);
+freq_axis = (-N_fft_coh/2 : N_fft_coh/2 - 1).' * (config.fs / N_fft_coh);
+coherence_snr_db = fftshift(coherence_snr_db);
+
+capture_center_hz = NaN;
+if isfield(config, 'capture_center_frequency_hz') && ~isempty(config.capture_center_frequency_hz)
+    capture_center_hz = double(config.capture_center_frequency_hz);
+elseif isfield(config, 'fc') && ~isempty(config.fc)
+    capture_center_hz = double(config.fc);
+end
+
+capture_tune_hz = [];
+if isfield(config, 'capture_tune_frequency_hz') && ~isempty(config.capture_tune_frequency_hz)
+    capture_tune_hz = double(config.capture_tune_frequency_hz);
+end
+
+lo_offset_hz = 0;
+if isfield(config, 'capture_lo_offset_hz') && ~isempty(config.capture_lo_offset_hz)
+    lo_offset_hz = double(config.capture_lo_offset_hz);
+elseif isfield(config, 'lo_offset_hz') && ~isempty(config.lo_offset_hz)
+    lo_offset_hz = double(config.lo_offset_hz);
+elseif isfield(config, 'LOOffset') && ~isempty(config.LOOffset)
+    lo_offset_hz = double(config.LOOffset);
+end
+
+illuminator_center_hz = [];
+if isfield(config, 'illuminator_center_frequency_hz') && ~isempty(config.illuminator_center_frequency_hz)
+    illuminator_center_hz = double(config.illuminator_center_frequency_hz);
+end
+
+pilot_selection = helperSelectATSCPilotCandidate( ...
+    freq_axis, coherence_snr_db, ...
+    'SampleRateHz', config.fs, ...
+    'CaptureCenterFrequencyHz', capture_center_hz, ...
+    'CaptureTuneFrequencyHz', capture_tune_hz, ...
+    'LOOffsetHz', lo_offset_hz, ...
+    'IlluminatorCenterFrequencyHz', illuminator_center_hz, ...
+    'SearchHalfWidthHz', config.pilot_search_half_width_hz);
+
+pilot_snr_db = pilot_selection.selected_snr_db;
+pilot_freq_hz = pilot_selection.selected_freq_hz;
 
 % Pilot SNR: for ATSC ≈ 10*log10(N_slow); for noise ≈ 0–4 dB.
-[max_coh_ratio, pilot_bin] = max(coherence_ratio);
-pilot_snr_db = 10 * log10(max_coh_ratio * N_slow);
-
-% Pilot frequency (for diagnostic display).
-freq_axis = ((0:N_fft_coh-1)' / N_fft_coh) * config.fs;
-freq_axis(freq_axis > config.fs/2) = freq_axis(freq_axis > config.fs/2) - config.fs;
-pilot_freq_hz = freq_axis(pilot_bin);
 
 pilot_pass = pilot_snr_db >= config.ref_pilot_snr_threshold;
 
@@ -115,6 +156,13 @@ sfm_pass = sfm_db >= config.ref_sfm_threshold_db;
 results.level_dbfs    = level_dbfs;
 results.pilot_snr_db  = pilot_snr_db;
 results.pilot_freq_hz = pilot_freq_hz;
+results.pilot_selection = pilot_selection;
+results.pilot_expected_freq_hz = pilot_selection.selected_expected_freq_hz;
+results.pilot_channel_center_hz = pilot_selection.selected_channel_center_hz;
+results.pilot_is_mirrored = pilot_selection.selected_is_mirrored;
+results.pilot_detection_mode = char(pilot_selection.selected_source);
+results.strongest_coherent_freq_hz = pilot_selection.global_peak_freq_hz;
+results.strongest_coherent_snr_db = pilot_selection.global_peak_snr_db;
 results.sfm_db        = sfm_db;
 results.level_pass    = level_pass;
 results.pilot_pass    = pilot_pass;
@@ -126,8 +174,9 @@ results.snr_pass = pilot_pass;
 
 level_str = sprintf('ADC level = %.1f dBFS (range %.0f to %.0f) [%s]', ...
     level_dbfs, config.ref_level_min_dbfs, config.ref_level_max_dbfs, passstr(level_pass));
-pilot_str = sprintf('Pilot coherence SNR = %.1f dB @ %.3f MHz (threshold %.0f dB) [%s]', ...
-    pilot_snr_db, pilot_freq_hz/1e6, config.ref_pilot_snr_threshold, passstr(pilot_pass));
+pilot_str = sprintf('Pilot coherence SNR = %.1f dB @ %.3f MHz (%s, threshold %.0f dB) [%s]', ...
+    pilot_snr_db, pilot_freq_hz/1e6, localPilotModeString(pilot_selection), ...
+    config.ref_pilot_snr_threshold, passstr(pilot_pass));
 sfm_str   = sprintf('SFM = %.1f dB (threshold %.0f dB) [%s]', ...
     sfm_db, config.ref_sfm_threshold_db, passstr(sfm_pass));
 results.message = sprintf('%s  |  %s  |  %s', level_str, pilot_str, sfm_str);
@@ -155,6 +204,12 @@ if ~results.pass
                  '    Reference antenna may not be aimed at the ATSC tower,\n' ...
                  '    or the ATSC channel centre frequency does not match config.fc.\n'], ...
                  pilot_snr_db, config.ref_pilot_snr_threshold);
+        if isfinite(pilot_selection.header_center_off_raster_hz) && abs(pilot_selection.header_center_off_raster_hz) > 50e3
+            fprintf('    Header center %.3f MHz is %.3f MHz from nearest ATSC center %.3f MHz.\n', ...
+                pilot_selection.capture_center_frequency_hz / 1e6, ...
+                pilot_selection.header_center_off_raster_hz / 1e6, ...
+                pilot_selection.header_center_nearest_atsc_hz / 1e6);
+        end
     end
     if ~sfm_pass
         fprintf(['  WARNING: SFM = %.1f dB — deep spectral nulls detected.\n' ...
@@ -171,5 +226,16 @@ end % checkRefQuality
 %% ── Local helper ──────────────────────────────────────────────────────────
 function s = passstr(tf)
 if tf; s = 'PASS'; else; s = 'WARN'; end
+end
+
+function txt = localPilotModeString(pilot_selection)
+if strcmp(pilot_selection.selected_source, "atsc_geometry")
+    txt = 'ATSC candidate';
+    if pilot_selection.selected_is_mirrored
+        txt = 'ATSC mirrored candidate';
+    end
+else
+    txt = 'strongest coherent line';
+end
 end
 

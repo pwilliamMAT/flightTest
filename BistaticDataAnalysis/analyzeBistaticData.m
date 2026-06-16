@@ -223,10 +223,21 @@ try
     else
         config.numSamples = round(config.fs * 1.0);  % assume 1 s if field absent
     end
+    config.capture_center_frequency_hz = config.fc;
+    config.capture_lo_offset_hz = 0;
+    if isstruct(file_meta) && isfield(file_meta, 'LOOffset') && ~isempty(file_meta.LOOffset)
+        lo_offset_value = double(file_meta.LOOffset);
+        if isscalar(lo_offset_value) && isfinite(lo_offset_value)
+            config.capture_lo_offset_hz = lo_offset_value;
+        end
+    end
+    config.capture_tune_frequency_hz = config.capture_center_frequency_hz + config.capture_lo_offset_hz;
     fprintf('Auto-read from file header:\n');
     fprintf('  fs          = %.3f MSps\n', config.fs / 1e6);
     fprintf('  fc          = %.1f MHz\n',  config.fc / 1e6);
     fprintf('  numSamples  = %d  (%.2f s)\n', config.numSamples, config.numSamples/config.fs);
+    fprintf('  lo          = %.3f MHz  (tune %.3f MHz)\n', ...
+        config.capture_lo_offset_hz / 1e6, config.capture_tune_frequency_hz / 1e6);
     fprintf('\n');
 catch me_meta
     fprintf('  [WARN] Could not read .bb header from first file: %s\n', me_meta.message);

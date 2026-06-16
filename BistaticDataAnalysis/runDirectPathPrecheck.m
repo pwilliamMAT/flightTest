@@ -39,6 +39,8 @@ addParameter(p, 'ManifestPath', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'PartIndex', 1, @(x) isnumeric(x) && isscalar(x) && x >= 1 && mod(x, 1) == 0);
 addParameter(p, 'SliceDurationS', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'CPIDurationS', 0.5e-3, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'IlluminatorCenterFrequencyHz', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x)));
+addParameter(p, 'PilotSearchHalfWidthHz', 150e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'SwapChannels', false, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'MaxLagSamples', 500, @(x) isnumeric(x) && isscalar(x) && x >= 1);
 addParameter(p, 'LagCheckCPIs', 32, @(x) isnumeric(x) && isscalar(x) && x >= 1);
@@ -70,6 +72,9 @@ fs = header_reader.SampleRate;
 fc = header_reader.CenterFrequency;
 release(header_reader);
 
+lo_offset_hz = localGetNumericMetadataField(file_meta, 'LOOffset', 0);
+capture_tune_hz = fc + lo_offset_hz;
+
 requested_samples = max(1, round(opts.SliceDurationS * fs));
 available_samples = header_info.NumSamplesInData;
 samples_to_read = min(requested_samples, available_samples);
@@ -88,6 +93,8 @@ if strlength(source_info.session_id) > 0
 end
 fprintf('[runDirectPathPrecheck] Header ......... Fs=%.3f MSps  Fc=%.1f MHz  Samples=%d\n', ...
     fs / 1e6, fc / 1e6, available_samples);
+fprintf('[runDirectPathPrecheck] Frequency ...... Header Fc=%.3f MHz  |  LO=%.3f MHz  |  SDR tune=%.3f MHz\n', ...
+    fc / 1e6, lo_offset_hz / 1e6, capture_tune_hz / 1e6);
 fprintf('[runDirectPathPrecheck] Precheck slice .. %.3f s requested  ->  %.3f s loaded\n', ...
     opts.SliceDurationS, samples_to_read / fs);
 
@@ -112,10 +119,15 @@ end
 
 ref_config = struct( ...
     'fs', fs, ...
+    'capture_center_frequency_hz', fc, ...
+    'capture_tune_frequency_hz', capture_tune_hz, ...
+    'capture_lo_offset_hz', lo_offset_hz, ...
+    'illuminator_center_frequency_hz', opts.IlluminatorCenterFrequencyHz, ...
     'ref_level_min_dbfs', -30, ...
     'ref_level_max_dbfs', -3, ...
     'ref_pilot_snr_threshold', 10, ...
     'ref_sfm_threshold_db', -15, ...
+    'pilot_search_half_width_hz', opts.PilotSearchHalfWidthHz, ...
     'verbose', opts.Verbose);
 
 reference_quality = checkRefQuality(reference_cube, ref_config);
@@ -123,7 +135,13 @@ reference_quality.level_min_dbfs = ref_config.ref_level_min_dbfs;
 reference_quality.level_max_dbfs = ref_config.ref_level_max_dbfs;
 reference_quality.pilot_threshold_db = ref_config.ref_pilot_snr_threshold;
 reference_quality.sfm_threshold_db = ref_config.ref_sfm_threshold_db;
-reference_profile = helperMeasurePilotCoherenceProfile(reference_cube, reference_channel, fs);
+reference_profile = helperMeasurePilotCoherenceProfile( ...
+    reference_cube, reference_channel, fs, ...
+    'CaptureCenterFrequencyHz', fc, ...
+    'CaptureTuneFrequencyHz', capture_tune_hz, ...
+    'LOOffsetHz', lo_offset_hz, ...
+    'IlluminatorCenterFrequencyHz', opts.IlluminatorCenterFrequencyHz, ...
+    'PilotSearchHalfWidthHz', opts.PilotSearchHalfWidthHz);
 
 cross_correlation = helperMeasureCrossCorrelationPeak( ...
     surveillance_cube, reference_cube, fs, ...
@@ -159,6 +177,9 @@ results = struct( ...
     'metadata', struct( ...
         'fs_hz', fs, ...
         'fc_hz', fc, ...
+        'lo_offset_hz', lo_offset_hz, ...
+        'capture_tune_hz', capture_tune_hz, ...
+        'illuminator_center_hz', opts.IlluminatorCenterFrequencyHz, ...
         'header_metadata', file_meta, ...
         'requested_slice_duration_s', opts.SliceDurationS, ...
         'requested_samples', requested_samples, ...
@@ -179,6 +200,7 @@ results = struct( ...
     'figure_handles', figure_handles);
 
 fprintf('[runDirectPathPrecheck] (a) Reference ..... %s\n', reference_quality.message);
+fprintf('[runDirectPathPrecheck] Frequency note .. %s\n', reference_profile.pilot_selection.message);
 fprintf('[runDirectPathPrecheck] (b) Lag peak ...... %s\n', cross_correlation.message);
 fprintf('[runDirectPathPrecheck] (c) ECA-C ridge ... %s\n', zero_doppler.message);
 fprintf('[runDirectPathPrecheck] Overall .......... %s\n', localPassString(overall_pass));
@@ -196,13 +218,21 @@ fig = figure( ...
     'NumberTitle', 'off', ...
     'Visible', opts.FigureVisibility);
 tlo = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+pilot_selection = reference_profile.pilot_selection;
 
 ax1 = nexttile(tlo);
 plot(ax1, reference_profile.psd_freq_axis_hz / 1e6, reference_profile.psd_db_hz, 'k', 'LineWidth', 1.1);
 hold(ax1, 'on');
-xline(ax1, reference_profile.pilot_freq_hz / 1e6, '--r', 'Pilot');
+if isfinite(reference_profile.strongest_coherent_freq_hz)
+    xl = xline(ax1, reference_profile.strongest_coherent_freq_hz / 1e6, ':', 'Strongest coherent');
+    xl.Color = [0.35, 0.35, 0.35];
+end
+if isfinite(pilot_selection.selected_expected_freq_hz)
+    xline(ax1, pilot_selection.selected_expected_freq_hz / 1e6, ':g', 'Expected ATSC');
+end
+xline(ax1, reference_profile.pilot_freq_hz / 1e6, '--r', 'Selected pilot');
 grid(ax1, 'on');
-xlabel(ax1, 'Frequency relative to center (MHz)');
+xlabel(ax1, 'Baseband frequency (MHz)');
 ylabel(ax1, 'PSD (dB/Hz)');
 title(ax1, 'Reference Spectrum');
 
@@ -210,19 +240,27 @@ ax2 = nexttile(tlo);
 plot(ax2, reference_profile.coherence_freq_axis_hz / 1e6, reference_profile.coherence_snr_db, ...
     'b', 'LineWidth', 1.1);
 hold(ax2, 'on');
-xline(ax2, reference_profile.pilot_freq_hz / 1e6, '--r', 'Pilot');
+if isfinite(reference_profile.strongest_coherent_freq_hz)
+    xl = xline(ax2, reference_profile.strongest_coherent_freq_hz / 1e6, ':', 'Strongest coherent');
+    xl.Color = [0.35, 0.35, 0.35];
+end
+if isfinite(pilot_selection.selected_expected_freq_hz)
+    xline(ax2, pilot_selection.selected_expected_freq_hz / 1e6, ':g', 'Expected ATSC');
+end
+xline(ax2, reference_profile.pilot_freq_hz / 1e6, '--r', 'Selected pilot');
 yline(ax2, reference_quality.pilot_threshold_db, ':k', 'Threshold');
 grid(ax2, 'on');
-xlabel(ax2, 'Frequency relative to center (MHz)');
+xlabel(ax2, 'Baseband frequency (MHz)');
 ylabel(ax2, 'Pilot coherence SNR (dB)');
 title(ax2, 'Coherent Pilot Diagnostic');
 
 sgtitle(tlo, sprintf([ ...
-    '%s  |  %s  |  Fc=%.1f MHz  |  Pilot %.3f MHz  |  ' ...
+    '%s  |  %s  |  Header Fc=%.1f MHz  |  Tune=%.3f MHz  |  Selected %.3f MHz  |  ' ...
     'Level %.1f dBFS  |  SFM %.1f dB'], ...
     localPassString(reference_quality.pass), ...
     localSourceLabel(source_info), ...
     fc / 1e6, ...
+    pilot_selection.capture_tune_frequency_hz / 1e6, ...
     reference_profile.pilot_freq_hz / 1e6, ...
     reference_quality.level_dbfs, ...
     reference_quality.sfm_db));
@@ -315,6 +353,19 @@ if ~reference_quality.pilot_pass
     recommendations{end + 1} = 'Reference channel does not show a coherent ATSC pilot. Check band selection, antenna aim, and capture center frequency.';
 end
 
+if isfield(reference_quality, 'pilot_selection')
+    pilot_selection = reference_quality.pilot_selection;
+    if isfinite(pilot_selection.header_center_off_raster_hz) && abs(pilot_selection.header_center_off_raster_hz) > 50e3
+        recommendations{end + 1} = sprintf( ...
+            'Header center %.3f MHz is off the ATSC raster. Nearest ATSC center is %.3f MHz; confirm the intended illuminator channel center.', ...
+            pilot_selection.capture_center_frequency_hz / 1e6, ...
+            pilot_selection.header_center_nearest_atsc_hz / 1e6);
+    end
+    if pilot_selection.selected_is_mirrored
+        recommendations{end + 1} = 'The best ATSC-like pilot is on the mirrored side of baseband. Check for spectral inversion or I/Q sign convention issues before trusting the frequency-axis orientation.';
+    end
+end
+
 if ~reference_quality.sfm_pass
     recommendations{end + 1} = 'Reference spectrum shows deep frequency-selective nulls. A cleaner or more directional reference antenna may help.';
 end
@@ -342,4 +393,23 @@ if tf
 else
     txt = 'WARN';
 end
+end
+
+function value = localGetNumericMetadataField(file_meta, field_name, default_value)
+value = default_value;
+if ~isstruct(file_meta) || ~isfield(file_meta, field_name)
+    return
+end
+
+raw_value = file_meta.(field_name);
+if isempty(raw_value)
+    return
+end
+
+raw_value = double(raw_value);
+if ~isscalar(raw_value) || ~isfinite(raw_value)
+    return
+end
+
+value = raw_value;
 end
