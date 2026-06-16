@@ -141,7 +141,10 @@ for rr = 1:args.reps
         bbw(data);
     end
     release(bbw);
-    pause(args.repspace); % Short pause between repetitions
+    if rr < args.reps && args.repspace > 0
+        fprintf('Pausing %.2f s before next repetition...\n', args.repspace);
+        pause(args.repspace);
+    end
 end
 
 fprintf('Done: %s\n', args.file);

@@ -47,7 +47,7 @@ cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
 
-This script verifies SSH access to the Pi, starts `gatherTCPcompress.py` remotely, waits 15 s, runs the local HDTV capture for 30 s through `matlab -batch`, keeps ADS-B running until the local SDR step actually finishes, leaves ADS-B running for 5 s after that capture, and then stops the Pi logger gracefully before packaging the session locally as:
+This script verifies SSH access to the Pi, starts `gatherTCPcompress.py` remotely, waits 15 s, runs the local HDTV capture through `matlab -batch`, keeps ADS-B running until the local SDR step actually finishes, leaves ADS-B running for 5 s after that capture, and then stops the Pi logger gracefully before packaging the session locally as:
 
 ```text
 captures/<session_id>/radar/
@@ -58,6 +58,7 @@ captures/<session_id>/session_manifest.json
 
 At the end of a successful run, the coordinator also prints the exact `sync_capture_session.sh` command to run on the development machine for that packaged session.
 For Pi truth capture recovery, the coordinator now reads the Pi session log's `final artifact` record first, then falls back to searching the Pi capture folder and the Pi user's home tree for `adsb_<session_id>` gzip files.
+By default the coordinator uses `--repetitions 1`, so `--capture-duration 30` records one continuous 30 s radar file. The lower-level logger still streams that capture in 1 s chunks internally for write safety, but those chunks are appended into the same `.bb` file and do not reduce the analysis size.
 
 Important syntax notes:
 - The default Pi host is `192.168.10.131` and the default Pi user is `pi2`.
@@ -68,8 +69,13 @@ Important syntax notes:
   - `lo = 200e3`
   - `gain = [30 50]`
   - `capture-duration = 30`
+  - `repetitions = 1`
+  - `repetition-spacing = 1.0`
   - `lead = 15`
   - `tail = 5`
+- `--capture-duration <seconds>` is the duration of each radar file, not the total wall-clock session span.
+- `--repetitions <count>` controls how many radar files are recorded in one coordinated session.
+- `--repetition-spacing <seconds>` inserts a gap only between repetitions, not after the final one.
 - `--center-frequency <hz>` overrides the local radar capture center frequency and is written into the packaged session manifest.
 - `--capture-file` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
 - `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `30,50`.
@@ -80,12 +86,21 @@ Important syntax notes:
 - The Pi-side logger writes its session log to `/home/pi2/flightTest/ADSB_GPS/adsb_capture_<session>.log`.
 - The testing machine must be able to SSH to the Pi without an interactive password prompt. Verify this first with `ssh -o BatchMode=yes -o ConnectTimeout=10 pi2@192.168.10.131 "echo READY"`.
 
-Typical capture overrides:
+Continuous 30 s capture:
 
 ```bash
 cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
 ```
+
+Burst-style capture to reduce analysis time:
+
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --capture-file n320_hdtv_capture
+```
+
+That burst example spans about 29 s wall-clock, but it records only 15 s of radar IQ and packages 15 separate radar files instead of one long continuous file.
 
 Recommended clean 600 MHz recapture workflow:
 
@@ -93,7 +108,7 @@ Testing machine:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --capture-file n320_hdtv_capture
 ```
 
 Development machine after the sync command is printed:
@@ -139,6 +154,7 @@ Large radar captures can take several minutes to transfer, and `rsync` may appea
 In an interactive terminal, it then asks whether to run `runBistaticAnalysisSession('<session_id>')` immediately on the development machine. If you answer no, or pass `--no-ask-analysis`, it prints the exact MATLAB command instead.
 Pass `--user` whenever your username on the testing machine differs from your username on the development machine.
 Pass `--remote-root` whenever the testing machine stores packaged sessions somewhere other than `~/agenticProjects/flightTest/captures`.
+If the sync preflight fails and the script suggests that `--user` may be wrong, also check `--remote-root`; the preflight currently uses one generic SSH error message for both username/access failures and missing remote session paths.
 On macOS, the sync script will try `/Applications/MATLAB*.app/bin/matlab` automatically if `matlab` is not already on `PATH`.
 Pass `--matlab-bin` if the development machine needs a non-default MATLAB executable path or if you want to override the auto-detected MATLAB binary.
 
@@ -283,6 +299,7 @@ If a replay sweep drives `n_detections` up by 10x-30x while `n_tp` stays near ze
 - The replay truth model may be using the wrong carrier frequency. Check the saved session metadata and the `adsbToBistatic` console line. If the capture was actually centered at 600 MHz but truth projection is using 540 MHz, the expected Doppler will be scaled low by about 11%.
 - The surveillance antenna may be badly mismatched to the broadcast band. A 978 MHz surveillance antenna used on a roughly 540-600 MHz HDTV illuminator can still receive energy, but with reduced gain and pattern quality, which lowers aircraft echo SNR before CFAR ever runs.
 - A fixed range or timing alignment error may still be present. Large false-alarm growth with almost no Pd improvement is more consistent with a localization bias than with an overly strict threshold.
+- The channel assignment may be wrong even if the nominal reference-quality check passes. If `loadIQData` prints `CH1 is ... dB stronger than CH2` while the default mapping is `CH1=Surveillance, CH2=Reference`, treat that as a strong sign that the reference antenna may actually be on `RX1`. In that case, rerun the full session with `config.swap_channels = true` before drawing conclusions from detector truth scoring.
 
 In that situation, prioritize:
 
@@ -496,7 +513,8 @@ PassiveRadarCollection_wPreFlightChecks  % Runs pre-flight checks and captures d
 cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh
 ```
-This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture for 30 s, keeps ADS-B running until that local capture completes, lets ADS-B run a few seconds longer, then stops the Pi logger gracefully and writes a packaged session to `captures/<session_id>/`.
+This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture, keeps ADS-B running until that local capture completes, lets ADS-B run a few seconds longer, then stops the Pi logger gracefully and writes a packaged session to `captures/<session_id>/`.
+With the defaults, that local SDR step is one continuous 30 s radar file. For shorter burst-style sessions, set `--capture-duration`, `--repetitions`, and `--repetition-spacing` explicitly.
 When packaging completes, the script prints the exact sync command to copy that session onto the development machine.
 
 To tune gains or timing without rewriting a long MATLAB command:
@@ -504,6 +522,13 @@ To tune gains or timing without rewriting a long MATLAB command:
 ```bash
 cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --lead-seconds 15 --tail-seconds 5
+```
+
+To collect 15 one-second radar files across about 29 seconds of wall-clock time:
+
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1
 ```
 
 ### 1c. Sync One Packaged Session to a Development Machine
@@ -679,4 +704,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: June 15, 2026*
+*Last Updated: June 16, 2026*

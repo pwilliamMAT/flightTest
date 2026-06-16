@@ -16,6 +16,8 @@ ANNOUNCE_HOST=""
 ANNOUNCE_USER=""
 
 CAPTURE_DURATION_S="30"
+REPETITIONS="1"
+REPETITION_SPACING_S="1.0"
 LEAD_SECONDS_S="15"
 TAIL_SECONDS_S="5"
 CAPTURE_FILE="n320_hdtv_capture"
@@ -37,6 +39,7 @@ SCP_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=acce
 REMOTE_LOGGER_STARTED=0
 SESSION_ID_REGEX=""
 ADSB_TARGET_WINDOW_S="0.0"
+RADAR_ACTIVE_WINDOW_S="0.0"
 ADSB_START_WALLCLOCK_S=""
 ADSB_STOP_WALLCLOCK_S=""
 ADSB_ACTUAL_RUN_SECONDS_S=""
@@ -48,7 +51,9 @@ Usage: bash TestSetupTesting/run_coordinated_hdtv_capture.sh [options]
 Options:
   --pi-host <host>                 Raspberry Pi host or IP (default: 192.168.10.131)
   --pi-user <user>                 Raspberry Pi SSH user (default: pi2)
-  --capture-duration <seconds>     Local SDR capture duration (default: 30)
+  --capture-duration <seconds>     Local SDR capture duration per repetition (default: 30)
+  --repetitions <count>            Number of local SDR repetitions/files (default: 1)
+  --repetition-spacing <seconds>   Gap between repetitions (default: 1.0)
   --center-frequency <hz>          Local SDR center frequency in Hz (default: 540000000)
   --lead-seconds <seconds>         ADS-B lead time before SDR capture (default: 15)
   --tail-seconds <seconds>         ADS-B tail time after SDR capture (default: 5)
@@ -88,6 +93,14 @@ diff_seconds() {
     awk -v start="$1" -v finish="$2" 'BEGIN { printf "%.1f", finish - start }'
 }
 
+product_seconds() {
+    awk -v a="$1" -v b="$2" 'BEGIN { printf "%.1f", a * b }'
+}
+
+capture_window_seconds() {
+    awk -v dur="$1" -v reps="$2" -v gap="$3" 'BEGIN { printf "%.1f", reps * dur + ((reps > 1) ? (reps - 1) * gap : 0) }'
+}
+
 is_nonnegative_number() {
     [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]]
 }
@@ -108,6 +121,15 @@ validate_positive_number() {
         return
     fi
     die "$label must be greater than zero."
+}
+
+validate_positive_integer() {
+    local label="$1"
+    local value="$2"
+
+    if [[ ! "$value" =~ ^[0-9]+$ ]] || ! ((10#$value > 0)); then
+        die "$label must be a positive integer."
+    fi
 }
 
 normalize_gain_spec() {
@@ -401,6 +423,16 @@ while [[ $# -gt 0 ]]; do
             CAPTURE_DURATION_S="$2"
             shift 2
             ;;
+        --repetitions)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            REPETITIONS="$2"
+            shift 2
+            ;;
+        --repetition-spacing)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            REPETITION_SPACING_S="$2"
+            shift 2
+            ;;
         --center-frequency)
             [[ $# -ge 2 ]] || die "Missing value for $1"
             CENTER_FREQUENCY_HZ="$2"
@@ -482,6 +514,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 validate_positive_number "capture duration" "$CAPTURE_DURATION_S"
+validate_positive_integer "repetitions" "$REPETITIONS"
+validate_nonnegative_number "repetition spacing" "$REPETITION_SPACING_S"
 validate_positive_number "center frequency" "$CENTER_FREQUENCY_HZ"
 validate_nonnegative_number "lead seconds" "$LEAD_SECONDS_S"
 validate_nonnegative_number "tail seconds" "$TAIL_SECONDS_S"
@@ -494,7 +528,9 @@ ANNOUNCE_HOST="$(resolve_announce_host || true)"
 [[ -n "$ANNOUNCE_HOST" ]] || ANNOUNCE_HOST="<testing-machine>"
 
 SESSION_ID_REGEX="$(printf "%s" "$SESSION_ID" | sed -e 's/[][(){}.^$*+?|\\]/\\&/g')"
-ADSB_TARGET_WINDOW_S="$(sum_seconds "$LEAD_SECONDS_S" "$CAPTURE_DURATION_S" "$TAIL_SECONDS_S")"
+RADAR_ACTIVE_WINDOW_S="$(capture_window_seconds "$CAPTURE_DURATION_S" "$REPETITIONS" "$REPETITION_SPACING_S")"
+TOTAL_RADAR_CAPTURE_S="$(product_seconds "$CAPTURE_DURATION_S" "$REPETITIONS")"
+ADSB_TARGET_WINDOW_S="$(sum_seconds "$LEAD_SECONDS_S" "$RADAR_ACTIVE_WINDOW_S" "$TAIL_SECONDS_S")"
 MATLAB_GAIN_EXPR="$(gain_to_matlab_expr "$GAIN_SPEC")"
 REMOTE_LOG_FILE="$PI_WORKDIR/adsb_capture_${SESSION_ID}.log"
 
@@ -544,8 +580,8 @@ ADSB_START_WALLCLOCK_S="$(date +%s.%N)"
 echo "[2/5] Waiting $LEAD_SECONDS_S s before the local SDR capture ..."
 sleep "$LEAD_SECONDS_S"
 
-echo "[3/5] Running local SDR capture for $CAPTURE_DURATION_S s (session $SESSION_ID) ..."
-matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'Gain', $MATLAB_GAIN_EXPR);"
+echo "[3/5] Running local SDR capture: $REPETITIONS repetition(s) x $CAPTURE_DURATION_S s with $REPETITION_SPACING_S s spacing (active window $RADAR_ACTIVE_WINDOW_S s, recorded IQ $TOTAL_RADAR_CAPTURE_S s, session $SESSION_ID) ..."
+matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'Gain', $MATLAB_GAIN_EXPR, 'Repetitions', $REPETITIONS, 'RepetitionSpacing_s', $REPETITION_SPACING_S);"
 set +e
 "$MATLAB_BIN" -batch "$matlab_cmd" > >(tee "$MATLAB_OUTPUT_LOG") 2>&1
 MATLAB_STATUS=$?
@@ -675,6 +711,10 @@ fi
     printf '  "session_folder": "%s",\n' "$(json_escape "$SESSION_ID")"
     printf '  "session_created_utc": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf '  "capture_duration_s": %s,\n' "$CAPTURE_DURATION_S"
+    printf '  "capture_repetitions": %s,\n' "$REPETITIONS"
+    printf '  "capture_repetition_spacing_s": %s,\n' "$REPETITION_SPACING_S"
+    printf '  "radar_active_window_s": %s,\n' "$RADAR_ACTIVE_WINDOW_S"
+    printf '  "radar_recorded_iq_seconds_s": %s,\n' "$TOTAL_RADAR_CAPTURE_S"
     printf '  "lead_seconds_s": %s,\n' "$LEAD_SECONDS_S"
     printf '  "tail_seconds_s": %s,\n' "$TAIL_SECONDS_S"
     printf '  "adsb_target_window_s": %s,\n' "$ADSB_TARGET_WINDOW_S"
