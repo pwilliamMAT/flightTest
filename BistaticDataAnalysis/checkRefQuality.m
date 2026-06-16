@@ -66,7 +66,7 @@ if ~isfield(config, 'ref_level_min_dbfs'),    config.ref_level_min_dbfs    = -30
 if ~isfield(config, 'ref_level_max_dbfs'),    config.ref_level_max_dbfs    = -3;   end
 if ~isfield(config, 'ref_pilot_snr_threshold'), config.ref_pilot_snr_threshold = 10; end
 if ~isfield(config, 'ref_sfm_threshold_db'),  config.ref_sfm_threshold_db  = -15; end
-if ~isfield(config, 'pilot_search_half_width_hz'), config.pilot_search_half_width_hz = 150e3; end
+if ~isfield(config, 'pilot_search_half_width_hz'), config.pilot_search_half_width_hz = 300e3; end
 % Legacy alias: ref_snr_threshold_db → pilot threshold
 if isfield(config, 'ref_snr_threshold_db')
     config.ref_pilot_snr_threshold = config.ref_snr_threshold_db;
@@ -102,6 +102,7 @@ coherence_ratio = abs(mean_coh_fft).^2 ./ max(mean_incoh_pwr, eps);
 coherence_snr_db = 10 * log10(coherence_ratio * N_slow + eps);
 freq_axis = (-N_fft_coh/2 : N_fft_coh/2 - 1).' * (config.fs / N_fft_coh);
 coherence_snr_db = fftshift(coherence_snr_db);
+spectral_power_db = fftshift(10 * log10(mean_incoh_pwr + eps));
 
 capture_center_hz = NaN;
 if isfield(config, 'capture_center_frequency_hz') && ~isempty(config.capture_center_frequency_hz)
@@ -136,6 +137,7 @@ pilot_selection = helperSelectATSCPilotCandidate( ...
     'CaptureTuneFrequencyHz', capture_tune_hz, ...
     'LOOffsetHz', lo_offset_hz, ...
     'IlluminatorCenterFrequencyHz', illuminator_center_hz, ...
+    'SpectralPowerDB', spectral_power_db, ...
     'SearchHalfWidthHz', config.pilot_search_half_width_hz);
 
 pilot_snr_db = pilot_selection.selected_snr_db;

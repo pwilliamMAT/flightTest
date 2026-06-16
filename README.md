@@ -77,6 +77,7 @@ Important syntax notes:
 - `--repetitions <count>` controls how many radar files are recorded in one coordinated session.
 - `--repetition-spacing <seconds>` inserts a gap only between repetitions, not after the final one.
 - `--center-frequency <hz>` overrides the local radar capture center frequency and is written into the packaged session manifest.
+- `--lo-offset <hz>` overrides the local SDR LO offset and is passed through to `runLocalHDTVCapture`.
 - `--capture-file` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
 - `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `30,50`.
 - `--announce-host` overrides the hostname/IP that the coordinator prints into the development-machine sync command.
@@ -90,14 +91,14 @@ Continuous 30 s capture:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --lo-offset 200000 --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
 ```
 
 Burst-style capture to reduce analysis time:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --capture-file n320_hdtv_capture
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --lo-offset 200000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --capture-file n320_hdtv_capture
 ```
 
 That burst example spans about 29 s wall-clock, but it records only 15 s of radar IQ and packages 15 separate radar files instead of one long continuous file.
@@ -108,7 +109,7 @@ Testing machine:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --capture-file n320_hdtv_capture
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 599000000 --lo-offset 0 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --capture-file n320_hdtv_capture
 ```
 
 Development machine after the sync command is printed:
@@ -193,9 +194,10 @@ The diagnostic produces three figures and pass/warn summaries for:
 
 The reference-spectrum figure now distinguishes between:
 - the strongest coherent line anywhere in the baseband slice
-- the best ATSC-consistent pilot candidate based on the stored `LOOffset` and the nearest ATSC channel-center raster
+- the best ATSC-consistent pilot candidate based on the stored `LOOffset`, the nearest ATSC channel-center raster, and the local narrow-line prominence in the spectrum
 
 That matters when the header center is off the ATSC raster. For example, a header `Fc = 600 MHz` with `LOOffset = 200 kHz` can still contain a valid channel centered at `599 MHz`; in that case the ATSC pilot can wrap onto the positive-frequency side of baseband instead of appearing on the usual negative side.
+The printed `pilot_selection` struct also now reports the best non-mirrored score, the best mirrored score, and `mirrored_minus_nonmirrored_score` so you can see whether the data prefers a normal or spectrally inverted interpretation.
 
 If you want to probe a specific file directly:
 

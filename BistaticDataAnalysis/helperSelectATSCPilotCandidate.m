@@ -27,6 +27,14 @@ function selection = helperSelectATSCPilotCandidate(coherence_freq_axis_hz, cohe
 %    'ATSCChannelBandwidthHz'      Default 6e6.
 %    'ATSCPilotOffsetHz'           Default 309.441e3 from lower edge.
 %    'SearchHalfWidthHz'           Half-width around each expected pilot.
+%    'SpectralPowerDB'             Incoherent spectral power trace (dB) on
+%                                  the same axis as the coherence trace, or
+%                                  supplied through SpectralPowerFreqAxisHz.
+%    'SpectralPowerFreqAxisHz'     Frequency axis for SpectralPowerDB.
+%    'ProminenceWeight'            Weight for narrow-line prominence score.
+%    'DeltaPenaltyWeight'          Penalty weight for frequency mismatch.
+%    'ProminenceInnerHz'           Guard region around the line.
+%    'ProminenceOuterHz'           Outer shoulder region for baseline.
 %    'MaxRasterCandidates'         Number of nearest ATSC centers to test
 %                                  when the illuminator center is unknown.
 %
@@ -45,7 +53,13 @@ addParameter(p, 'LOOffsetHz', 0, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'IlluminatorCenterFrequencyHz', [], @(x) isempty(x) || isnumeric(x));
 addParameter(p, 'ATSCChannelBandwidthHz', 6e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'ATSCPilotOffsetHz', 309.441e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
-addParameter(p, 'SearchHalfWidthHz', 150e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'SearchHalfWidthHz', 300e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'SpectralPowerDB', [], @(x) isempty(x) || isnumeric(x));
+addParameter(p, 'SpectralPowerFreqAxisHz', [], @(x) isempty(x) || isnumeric(x));
+addParameter(p, 'ProminenceWeight', 1.0, @(x) isnumeric(x) && isscalar(x) && x >= 0);
+addParameter(p, 'DeltaPenaltyWeight', 2.0, @(x) isnumeric(x) && isscalar(x) && x >= 0);
+addParameter(p, 'ProminenceInnerHz', 20e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'ProminenceOuterHz', 120e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'MaxRasterCandidates', 3, @(x) isnumeric(x) && isscalar(x) && x >= 1 && mod(x, 1) == 0);
 parse(p, coherence_freq_axis_hz, coherence_snr_db, varargin{:});
 opts = p.Results;
@@ -57,6 +71,8 @@ if numel(freq_axis_hz) ~= numel(snr_db)
     error('helperSelectATSCPilotCandidate:sizeMismatch', ...
         'coherence_freq_axis_hz and coherence_snr_db must have the same length.');
 end
+
+[spectral_power_db, spectral_available] = localResolveSpectralPower(freq_axis_hz, opts);
 
 [global_peak_snr_db, global_idx] = max(snr_db);
 global_peak_freq_hz = freq_axis_hz(global_idx);
@@ -90,6 +106,11 @@ selection = struct( ...
     'header_center_off_raster_hz', header_off_raster_hz, ...
     'search_half_width_hz', opts.SearchHalfWidthHz, ...
     'candidate_source', string(candidate_source), ...
+    'best_nonmirrored_score', NaN, ...
+    'best_nonmirrored_freq_hz', NaN, ...
+    'best_mirrored_score', NaN, ...
+    'best_mirrored_freq_hz', NaN, ...
+    'mirrored_minus_nonmirrored_score', NaN, ...
     'expected_candidates', repmat(localEmptyCandidate(), 0, 1), ...
     'message', "");
 
@@ -105,11 +126,11 @@ for idx_center = 1:numel(candidate_centers_hz)
     expected_freq_hz = localWrapToBaseband(pilot_rf_hz - capture_tune_hz, sample_rate_hz);
 
     normal_candidate = localEvaluateCandidate( ...
-        freq_axis_hz, snr_db, expected_freq_hz, false, ...
-        channel_center_hz, sample_rate_hz, opts.SearchHalfWidthHz);
+        freq_axis_hz, snr_db, spectral_power_db, spectral_available, ...
+        expected_freq_hz, false, channel_center_hz, sample_rate_hz, opts);
     mirror_candidate = localEvaluateCandidate( ...
-        freq_axis_hz, snr_db, -expected_freq_hz, true, ...
-        channel_center_hz, sample_rate_hz, opts.SearchHalfWidthHz);
+        freq_axis_hz, snr_db, spectral_power_db, spectral_available, ...
+        -expected_freq_hz, true, channel_center_hz, sample_rate_hz, opts);
 
     candidates(end + 1, 1) = normal_candidate; %#ok<AGROW>
     candidates(end + 1, 1) = mirror_candidate; %#ok<AGROW>
@@ -117,13 +138,14 @@ end
 
 selection.expected_candidates = candidates;
 selection.used_atsc_geometry = ~isempty(candidates);
+selection = localAttachOrientationSummary(selection, candidates);
 
 if isempty(candidates)
     selection.message = sprintf('Strongest coherent line at %.3f MHz.', global_peak_freq_hz / 1e6);
     return
 end
 
-[~, best_idx] = max([candidates.measured_snr_db]);
+[~, best_idx] = max([candidates.combined_score]);
 best_candidate = candidates(best_idx);
 
 selection.selected_freq_hz = best_candidate.measured_freq_hz;
@@ -136,17 +158,21 @@ selection.illuminator_center_frequency_hz = best_candidate.channel_center_hz;
 selection.message = localBuildSelectionMessage(best_candidate, selection);
 end
 
-function candidate = localEvaluateCandidate(freq_axis_hz, snr_db, expected_freq_hz, is_mirrored, channel_center_hz, sample_rate_hz, search_half_width_hz)
+function candidate = localEvaluateCandidate(freq_axis_hz, snr_db, spectral_power_db, spectral_available, expected_freq_hz, is_mirrored, channel_center_hz, sample_rate_hz, opts)
 distance_hz = abs(localWrapToBaseband(freq_axis_hz - expected_freq_hz, sample_rate_hz));
-mask = distance_hz <= search_half_width_hz;
+mask = distance_hz <= opts.SearchHalfWidthHz;
 if ~any(mask)
     [~, nearest_idx] = min(distance_hz);
     mask(nearest_idx) = true;
 end
 
 masked_indices = find(mask);
-[measured_snr_db, local_idx] = max(snr_db(mask));
+[candidate_scores, line_prominence_db] = localScoreCandidateBins( ...
+    freq_axis_hz, snr_db, spectral_power_db, spectral_available, masked_indices, ...
+    distance_hz, sample_rate_hz, opts);
+[combined_score, local_idx] = max(candidate_scores);
 measured_idx = masked_indices(local_idx);
+measured_snr_db = snr_db(measured_idx);
 measured_freq_hz = freq_axis_hz(measured_idx);
 
 candidate = struct( ...
@@ -154,8 +180,69 @@ candidate = struct( ...
     'expected_freq_hz', expected_freq_hz, ...
     'measured_freq_hz', measured_freq_hz, ...
     'measured_snr_db', measured_snr_db, ...
+    'line_prominence_db', line_prominence_db(local_idx), ...
+    'combined_score', combined_score, ...
     'delta_freq_hz', localWrapToBaseband(measured_freq_hz - expected_freq_hz, sample_rate_hz), ...
     'is_mirrored', is_mirrored);
+end
+
+function [candidate_scores, line_prominence_db] = localScoreCandidateBins(freq_axis_hz, snr_db, spectral_power_db, spectral_available, masked_indices, distance_hz, sample_rate_hz, opts)
+candidate_scores = -inf(numel(masked_indices), 1);
+line_prominence_db = zeros(numel(masked_indices), 1);
+
+for idx = 1:numel(masked_indices)
+    bin_idx = masked_indices(idx);
+    delta_penalty_db = opts.DeltaPenaltyWeight * (distance_hz(bin_idx) / max(opts.SearchHalfWidthHz, eps));
+    prominence_db = 0;
+    if spectral_available
+        prominence_db = localMeasureLineProminence( ...
+            freq_axis_hz, spectral_power_db, bin_idx, sample_rate_hz, ...
+            opts.ProminenceInnerHz, opts.ProminenceOuterHz);
+    end
+    line_prominence_db(idx) = prominence_db;
+    candidate_scores(idx) = snr_db(bin_idx) + opts.ProminenceWeight * max(prominence_db, 0) - delta_penalty_db;
+end
+end
+
+function prominence_db = localMeasureLineProminence(freq_axis_hz, spectral_power_db, center_idx, sample_rate_hz, inner_hz, outer_hz)
+delta_hz = abs(localWrapToBaseband(freq_axis_hz - freq_axis_hz(center_idx), sample_rate_hz));
+shoulder_mask = delta_hz >= inner_hz & delta_hz <= outer_hz;
+if ~any(shoulder_mask)
+    prominence_db = 0;
+    return
+end
+
+baseline_db = median(spectral_power_db(shoulder_mask), 'omitnan');
+prominence_db = spectral_power_db(center_idx) - baseline_db;
+end
+
+function [spectral_power_db, spectral_available] = localResolveSpectralPower(freq_axis_hz, opts)
+spectral_power_db = zeros(size(freq_axis_hz));
+spectral_available = false;
+
+if isempty(opts.SpectralPowerDB)
+    return
+end
+
+spectral_values_db = double(opts.SpectralPowerDB(:));
+if isempty(opts.SpectralPowerFreqAxisHz)
+    if numel(spectral_values_db) ~= numel(freq_axis_hz)
+        return
+    end
+    spectral_power_db = spectral_values_db;
+    spectral_available = true;
+    return
+end
+
+spectral_freq_hz = double(opts.SpectralPowerFreqAxisHz(:));
+if numel(spectral_freq_hz) ~= numel(spectral_values_db)
+    return
+end
+
+[spectral_freq_hz, unique_idx] = unique(spectral_freq_hz, 'stable');
+spectral_values_db = spectral_values_db(unique_idx);
+spectral_power_db = interp1(spectral_freq_hz, spectral_values_db, freq_axis_hz, 'linear', 'extrap');
+spectral_available = all(isfinite(spectral_power_db));
 end
 
 function [nearest_raster_hz, off_raster_hz, candidate_centers_hz, candidate_source] = localResolveCandidateCenters(capture_center_hz, capture_tune_hz, opts)
@@ -247,8 +334,36 @@ candidate = struct( ...
     'expected_freq_hz', NaN, ...
     'measured_freq_hz', NaN, ...
     'measured_snr_db', -Inf, ...
+    'line_prominence_db', NaN, ...
+    'combined_score', -Inf, ...
     'delta_freq_hz', NaN, ...
     'is_mirrored', false);
+end
+
+function selection = localAttachOrientationSummary(selection, candidates)
+if isempty(candidates)
+    return
+end
+
+mirror_mask = [candidates.is_mirrored];
+nonmirror_mask = ~mirror_mask;
+
+if any(nonmirror_mask)
+    nonmirrored_candidates = candidates(nonmirror_mask);
+    [selection.best_nonmirrored_score, idx] = max([nonmirrored_candidates.combined_score]);
+    selection.best_nonmirrored_freq_hz = nonmirrored_candidates(idx).measured_freq_hz;
+end
+
+if any(mirror_mask)
+    mirrored_candidates = candidates(mirror_mask);
+    [selection.best_mirrored_score, idx] = max([mirrored_candidates.combined_score]);
+    selection.best_mirrored_freq_hz = mirrored_candidates(idx).measured_freq_hz;
+end
+
+if isfinite(selection.best_mirrored_score) && isfinite(selection.best_nonmirrored_score)
+    selection.mirrored_minus_nonmirrored_score = ...
+        selection.best_mirrored_score - selection.best_nonmirrored_score;
+end
 end
 
 function message = localBuildSelectionMessage(best_candidate, selection)
@@ -257,12 +372,21 @@ if best_candidate.is_mirrored
     mirror_str = ', mirrored candidate';
 end
 
+orientation_str = '';
+if isfinite(selection.mirrored_minus_nonmirrored_score)
+    orientation_str = sprintf(', mirror-minus-normal score %.1f dB', ...
+        selection.mirrored_minus_nonmirrored_score);
+end
+
 message = sprintf([ ...
-    'ATSC candidate %.3f MHz (expected %.3f MHz, channel center %.3f MHz%s). ' ...
-    'Strongest line anywhere is %.3f MHz.'], ...
+    'ATSC candidate %.3f MHz (expected %.3f MHz, channel center %.3f MHz%s, ' ...
+    'coherence %.1f dB, line prominence %.1f dB%s). Strongest line anywhere is %.3f MHz.'], ...
     best_candidate.measured_freq_hz / 1e6, ...
     best_candidate.expected_freq_hz / 1e6, ...
     best_candidate.channel_center_hz / 1e6, ...
     mirror_str, ...
+    best_candidate.measured_snr_db, ...
+    best_candidate.line_prominence_db, ...
+    orientation_str, ...
     selection.global_peak_freq_hz / 1e6);
 end

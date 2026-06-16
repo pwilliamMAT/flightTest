@@ -40,7 +40,7 @@ addParameter(p, 'PartIndex', 1, @(x) isnumeric(x) && isscalar(x) && x >= 1 && mo
 addParameter(p, 'SliceDurationS', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'CPIDurationS', 0.5e-3, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'IlluminatorCenterFrequencyHz', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x)));
-addParameter(p, 'PilotSearchHalfWidthHz', 150e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'PilotSearchHalfWidthHz', 300e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'SwapChannels', false, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'MaxLagSamples', 500, @(x) isnumeric(x) && isscalar(x) && x >= 1);
 addParameter(p, 'LagCheckCPIs', 32, @(x) isnumeric(x) && isscalar(x) && x >= 1);

@@ -55,6 +55,7 @@ Options:
   --repetitions <count>            Number of local SDR repetitions/files (default: 1)
   --repetition-spacing <seconds>   Gap between repetitions (default: 1.0)
   --center-frequency <hz>          Local SDR center frequency in Hz (default: 540000000)
+  --lo-offset <hz>                 Local SDR LO offset in Hz (default: 200000)
   --lead-seconds <seconds>         ADS-B lead time before SDR capture (default: 15)
   --tail-seconds <seconds>         ADS-B tail time after SDR capture (default: 5)
   --capture-file <base>            Base name for local SDR files (default: n320_hdtv_capture)
@@ -438,6 +439,11 @@ while [[ $# -gt 0 ]]; do
             CENTER_FREQUENCY_HZ="$2"
             shift 2
             ;;
+        --lo-offset)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            LO_OFFSET_HZ="$2"
+            shift 2
+            ;;
         --lead-seconds)
             [[ $# -ge 2 ]] || die "Missing value for $1"
             LEAD_SECONDS_S="$2"
@@ -517,6 +523,7 @@ validate_positive_number "capture duration" "$CAPTURE_DURATION_S"
 validate_positive_integer "repetitions" "$REPETITIONS"
 validate_nonnegative_number "repetition spacing" "$REPETITION_SPACING_S"
 validate_positive_number "center frequency" "$CENTER_FREQUENCY_HZ"
+validate_nonnegative_number "LO offset" "$LO_OFFSET_HZ"
 validate_nonnegative_number "lead seconds" "$LEAD_SECONDS_S"
 validate_nonnegative_number "tail seconds" "$TAIL_SECONDS_S"
 validate_nonnegative_number "remote wait timeout" "$REMOTE_WAIT_TIMEOUT_S"
@@ -581,7 +588,7 @@ echo "[2/5] Waiting $LEAD_SECONDS_S s before the local SDR capture ..."
 sleep "$LEAD_SECONDS_S"
 
 echo "[3/5] Running local SDR capture: $REPETITIONS repetition(s) x $CAPTURE_DURATION_S s with $REPETITION_SPACING_S s spacing (active window $RADAR_ACTIVE_WINDOW_S s, recorded IQ $TOTAL_RADAR_CAPTURE_S s, session $SESSION_ID) ..."
-matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'Gain', $MATLAB_GAIN_EXPR, 'Repetitions', $REPETITIONS, 'RepetitionSpacing_s', $REPETITION_SPACING_S);"
+matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'LOOffset_Hz', $LO_OFFSET_HZ, 'Gain', $MATLAB_GAIN_EXPR, 'Repetitions', $REPETITIONS, 'RepetitionSpacing_s', $REPETITION_SPACING_S);"
 set +e
 "$MATLAB_BIN" -batch "$matlab_cmd" > >(tee "$MATLAB_OUTPUT_LOG") 2>&1
 MATLAB_STATUS=$?
