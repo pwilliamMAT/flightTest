@@ -35,4 +35,10 @@ assert(all(timing_info.used_metadata));
 assert(all(abs(fallback_offsets - [0; 4; 8]) < 1e-12));
 assert(strcmp(fallback_info.source, 'fallback_gap'));
 
+[burst_offsets, burst_info] = helperGetPartStartOffsets( ...
+    {'part1', 'part2', 'part3'}, 1.0, 2.0, ...
+    'StartDateTimes', NaT(3, 1), 'Verbose', false);
+assert(all(abs(burst_offsets - [0; 3; 6]) < 1e-12));
+assert(strcmp(burst_info.source, 'fallback_gap'));
+
 fprintf('test_bistaticHelpers passed.\n');

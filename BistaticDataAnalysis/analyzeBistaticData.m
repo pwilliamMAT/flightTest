@@ -150,12 +150,17 @@ if exist('analysisSetup', 'var')
     if isfield(analysisSetup, 'radar_epoch_utc') && ~isempty(analysisSetup.radar_epoch_utc)
         config.radar_epoch_utc = analysisSetup.radar_epoch_utc;
     end
+    if isfield(analysisSetup, 'capture_repetition_spacing_s') && ...
+            ~isempty(analysisSetup.capture_repetition_spacing_s)
+        config.inter_part_gap_s = double(analysisSetup.capture_repetition_spacing_s);
+    end
 
     fprintf('1. Configuring session-based analysis...\n');
     fprintf('  Session ID ........ %s\n', session_id);
     fprintf('  Radar folder ...... %s\n', data_folder);
     fprintf('  Radar files ....... %d\n', numel(explicit_data_parts));
     fprintf('  ADS-B truth files . %d\n', numel(config.adsb_files));
+    fprintf('  Gap fallback ...... %.3f s\n', config.inter_part_gap_s);
 end
 
 %% 2. Multi-Part Processing

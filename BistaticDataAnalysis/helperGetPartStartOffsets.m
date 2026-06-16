@@ -134,15 +134,8 @@ end
 function dt = read_part_start_datetime(data_file_path)
 dt = NaT;
 
-if ~(exist('BasebandFileReader', 'file') || exist('BasebandFileReader', 'builtin'))
-    return
-end
-
-try
-    reader = BasebandFileReader(data_file_path);
-    info_struct = info(reader);
-    release(reader);
-catch
+[info_struct, metadata_struct] = read_baseband_header(data_file_path);
+if isempty(fieldnames(info_struct)) && isempty(fieldnames(metadata_struct))
     return
 end
 
@@ -151,12 +144,57 @@ candidate_values = append_candidate_fields(candidate_values, info_struct);
 if isfield(info_struct, 'Metadata') && isstruct(info_struct.Metadata)
     candidate_values = append_candidate_fields(candidate_values, info_struct.Metadata);
 end
+candidate_values = append_candidate_fields(candidate_values, metadata_struct);
 
 for k = 1 : numel(candidate_values)
     dt = parse_metadata_datetime(candidate_values{k});
     if ~isnat(dt)
         return
     end
+end
+
+function [info_struct, metadata_struct] = read_baseband_header(data_file_path)
+info_struct = struct();
+metadata_struct = struct();
+
+try
+    reader = comm.BasebandFileReader(data_file_path, 'SamplesPerFrame', 1);
+    cleanup = onCleanup(@() localReleaseReader(reader)); %#ok<NASGU>
+    info_struct = info(reader);
+    metadata_struct = localReadMetadataStruct(reader);
+    return
+catch
+end
+
+try
+    reader = BasebandFileReader(data_file_path);
+    cleanup = onCleanup(@() localReleaseReader(reader)); %#ok<NASGU>
+    info_struct = info(reader);
+    metadata_struct = localReadMetadataStruct(reader);
+catch
+    info_struct = struct();
+    metadata_struct = struct();
+end
+end
+
+function metadata_struct = localReadMetadataStruct(reader)
+metadata_struct = struct();
+
+if ~isprop(reader, 'Metadata')
+    return
+end
+
+raw_metadata = reader.Metadata;
+if isstruct(raw_metadata)
+    metadata_struct = raw_metadata;
+end
+end
+
+function localReleaseReader(reader)
+try
+    release(reader);
+catch
+end
 end
 end
 

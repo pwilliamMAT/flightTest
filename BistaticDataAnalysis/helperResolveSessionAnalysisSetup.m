@@ -121,6 +121,16 @@ end
 if isfield(manifest, 'capture_duration_s')
     analysis_setup.capture_duration_s = manifest.capture_duration_s;
 end
+
+if isfield(manifest, 'capture_repetition_spacing_s')
+    capture_gap_s = manifest.capture_repetition_spacing_s;
+    if ~isnumeric(capture_gap_s)
+        capture_gap_s = str2double(string(capture_gap_s));
+    end
+    if isnumeric(capture_gap_s) && isscalar(capture_gap_s) && isfinite(capture_gap_s) && capture_gap_s >= 0
+        analysis_setup.capture_repetition_spacing_s = double(capture_gap_s);
+    end
+end
 end
 
 function resolved = helperResolveManifestPaths(session_folder, rel_paths)
