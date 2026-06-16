@@ -1032,6 +1032,9 @@ else
         'GateDopplerBins', 3, ...
         'Verbose', config.verbose);
 
+    % Preserve any header-refreshed metadata so saved truth/replay snapshots
+    % do not keep stale carrier-frequency or sample-rate values.
+    truth_diag_input = truth_diag_output.truth_diag_input;
     adsb_tracks = truth_diag_output.adsb_tracks;
     adsb_bistatic = truth_diag_output.adsb_bistatic;
     adsb_aligned = truth_diag_output.adsb_aligned;

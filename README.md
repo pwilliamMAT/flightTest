@@ -70,6 +70,7 @@ Important syntax notes:
   - `capture-duration = 30`
   - `lead = 15`
   - `tail = 5`
+- `--center-frequency <hz>` overrides the local radar capture center frequency and is written into the packaged session manifest.
 - `--capture-file` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
 - `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `30,50`.
 - `--announce-host` overrides the hostname/IP that the coordinator prints into the development-machine sync command.
@@ -83,7 +84,45 @@ Typical capture overrides:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
+```
+
+Recommended clean 600 MHz recapture workflow:
+
+Testing machine:
+
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
+```
+
+Development machine after the sync command is printed:
+
+```bash
+cd /path/to/flightTest
+bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --user <testing-user> --session-id <new-session-id>
+```
+
+First MATLAB verification on the development machine:
+
+```matlab
+cd BistaticDataAnalysis
+out = runBistaticAnalysisSession('<new-session-id>');
+replay_path = out.detector_replay_snapshot.path
+```
+
+Then confirm the baseline replay is using the saved header frequency:
+
+```matlab
+baseline = runDetectorReplaySweep( ...
+    replay_path, ...
+    'Cases', struct('Name', 'baseline'), ...
+    'PlotDetectionTimeSeries', true, ...
+    'PlotRDMOverlays', false, ...
+    'Verbose', true);
+
+b = baseline.case_results(1);
+b.truth_diag_output.truth_diag_input.fc
 ```
 
 ### 2. Sync on the Development Machine
@@ -171,6 +210,7 @@ diag = runDetectionTruthDiagnostics(out.truth_diag_snapshot.full_path, ...
 
 This replay path skips the expensive raw IQ, ECA-C, CAF, and CFAR stages. It reruns only ADS-B loading, bistatic truth projection, truth alignment, detection matching, and the comparison plots. The compact snapshot is the default because it is smaller; the full snapshot is optional when you want standalone RDM overlay figures as well.
 When cached detector axes are available, truth matching now derives the range and Doppler bin spacing from those saved products instead of relying only on nominal config constants. This keeps the TP gates aligned with the replayed detector geometry.
+When the original radar file paths are still accessible, `runDetectionTruthDiagnostics` also refreshes `fs` and `fc` from the first `.bb` header before ADS-B projection. New session snapshots now preserve that header-refreshed metadata so truth replays do not silently keep a stale carrier frequency.
 
 ### 3c. Re-run Only the Detector Stage
 
@@ -206,6 +246,7 @@ replay = runDetectorReplaySweep(replay_source, ...
 
 This replay path starts from the saved per-block whitened detector inputs, reruns `detectTargets`, rebuilds the detection table, and can still score the new detections against ADS-B truth. Use it when you are iterating on `Pfa`, guard/train cells, local-max suppression, minimum SNR, or related detector parameters.
 During truth scoring, `runDetectorReplaySweep` now refreshes the truth-bundle range and Doppler cell spacing from the saved detector axes before calling `runDetectionTruthDiagnostics`, so replay TP/FA counts use the actual replay grid.
+When the saved radar file paths are available, the truth diagnostics invoked by detector replay also refresh `fs` and `fc` from the first `.bb` header before ADS-B projection. This prevents a stale replay snapshot from continuing to score truth at the wrong carrier frequency.
 
 `Cases` is a struct array of per-case detector overrides. Each case starts from the detector defaults saved in the replay snapshot and only overrides the fields you specify.
 
@@ -234,6 +275,21 @@ Important syntax notes:
 - Common lower-camel case aliases such as `minSNRDB` are accepted inside `Cases` for compatibility, but the canonical field names shown here are still preferred.
 - Typos in outer name-value options still error; the parser now suggests the closest supported option name when it can.
 - Malformed MATLAB struct syntax is still a MATLAB error, so keep the `cases = struct(...)` field/value pattern exactly as shown in the examples.
+
+Troubleshooting note: when sweeps increase false alarms but not truth hits
+
+If a replay sweep drives `n_detections` up by 10x-30x while `n_tp` stays near zero, do not assume the next fix is an even looser detector. That pattern usually means the limiting problem is upstream of CFAR:
+
+- The replay truth model may be using the wrong carrier frequency. Check the saved session metadata and the `adsbToBistatic` console line. If the capture was actually centered at 600 MHz but truth projection is using 540 MHz, the expected Doppler will be scaled low by about 11%.
+- The surveillance antenna may be badly mismatched to the broadcast band. A 978 MHz surveillance antenna used on a roughly 540-600 MHz HDTV illuminator can still receive energy, but with reduced gain and pattern quality, which lowers aircraft echo SNR before CFAR ever runs.
+- A fixed range or timing alignment error may still be present. Large false-alarm growth with almost no Pd improvement is more consistent with a localization bias than with an overly strict threshold.
+
+In that situation, prioritize:
+
+1. Verify capture `fc` from the `.bb` header or packaged session metadata.
+2. Check both reference-channel health and surveillance-channel signal level on the raw capture.
+3. Run one-case truth overlays to look for a consistent range or Doppler offset.
+4. Only then spend more time on targeted detector changes such as `LocalMaxima`, ATSC guard, notch guard, or `MinRangeM`.
 
 Example: sweep detector sensitivity first
 

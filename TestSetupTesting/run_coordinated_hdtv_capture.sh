@@ -49,6 +49,7 @@ Options:
   --pi-host <host>                 Raspberry Pi host or IP (default: 192.168.10.131)
   --pi-user <user>                 Raspberry Pi SSH user (default: pi2)
   --capture-duration <seconds>     Local SDR capture duration (default: 30)
+  --center-frequency <hz>          Local SDR center frequency in Hz (default: 540000000)
   --lead-seconds <seconds>         ADS-B lead time before SDR capture (default: 15)
   --tail-seconds <seconds>         ADS-B tail time after SDR capture (default: 5)
   --capture-file <base>            Base name for local SDR files (default: n320_hdtv_capture)
@@ -400,6 +401,11 @@ while [[ $# -gt 0 ]]; do
             CAPTURE_DURATION_S="$2"
             shift 2
             ;;
+        --center-frequency)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            CENTER_FREQUENCY_HZ="$2"
+            shift 2
+            ;;
         --lead-seconds)
             [[ $# -ge 2 ]] || die "Missing value for $1"
             LEAD_SECONDS_S="$2"
@@ -476,6 +482,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 validate_positive_number "capture duration" "$CAPTURE_DURATION_S"
+validate_positive_number "center frequency" "$CENTER_FREQUENCY_HZ"
 validate_nonnegative_number "lead seconds" "$LEAD_SECONDS_S"
 validate_nonnegative_number "tail seconds" "$TAIL_SECONDS_S"
 validate_nonnegative_number "remote wait timeout" "$REMOTE_WAIT_TIMEOUT_S"
@@ -538,7 +545,7 @@ echo "[2/5] Waiting $LEAD_SECONDS_S s before the local SDR capture ..."
 sleep "$LEAD_SECONDS_S"
 
 echo "[3/5] Running local SDR capture for $CAPTURE_DURATION_S s (session $SESSION_ID) ..."
-matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'Gain', $MATLAB_GAIN_EXPR);"
+matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'Gain', $MATLAB_GAIN_EXPR);"
 set +e
 "$MATLAB_BIN" -batch "$matlab_cmd" > >(tee "$MATLAB_OUTPUT_LOG") 2>&1
 MATLAB_STATUS=$?

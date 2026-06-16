@@ -72,6 +72,7 @@ truth_diag_input = localResolveDiagnosticInput(diag_input);
 verbose = localResolveVerbose(opts.Verbose, truth_diag_input);
 
 localValidateBundle(truth_diag_input);
+truth_diag_input = localRefreshSignalMetadataFromFileHeader(truth_diag_input, verbose);
 [range_cell_m, doppler_bin_hz] = localResolveMeasurementGrid(truth_diag_input);
 truth_diag_input.range_cell_m = range_cell_m;
 truth_diag_input.doppler_bin_hz = doppler_bin_hz;
@@ -235,6 +236,59 @@ if isempty(truth_diag_input.adsb_files)
 end
 end
 
+function truth_diag_input = localRefreshSignalMetadataFromFileHeader(truth_diag_input, verbose)
+data_parts = {};
+if isfield(truth_diag_input, 'data_parts') && ~isempty(truth_diag_input.data_parts)
+    data_parts = cellstr(string(truth_diag_input.data_parts(:).'));
+end
+if isempty(data_parts)
+    return
+end
+
+probe_path = char(string(data_parts{1}));
+if exist(probe_path, 'file') ~= 2
+    return
+end
+
+try
+    meta_reader = comm.BasebandFileReader(probe_path, 'SamplesPerFrame', 1);
+    header_fs = double(meta_reader.SampleRate);
+    header_fc = double(meta_reader.CenterFrequency);
+    release(meta_reader);
+catch ME
+    if verbose
+        fprintf(['[runDetectionTruthDiagnostics] Could not refresh signal metadata ' ...
+            'from %s: %s\n'], probe_path, ME.message);
+    end
+    return
+end
+
+prev_fs = localGetPositiveScalarField(truth_diag_input, 'fs');
+prev_fc = localGetPositiveScalarField(truth_diag_input, 'fc');
+
+fs_changed = isfinite(header_fs) && header_fs > 0 && ...
+    ~(isfinite(prev_fs) && abs(prev_fs - header_fs) <= localMetadataToleranceHz(header_fs));
+fc_changed = isfinite(header_fc) && header_fc > 0 && ...
+    ~(isfinite(prev_fc) && abs(prev_fc - header_fc) <= localMetadataToleranceHz(header_fc));
+
+if isfinite(header_fs) && header_fs > 0
+    truth_diag_input.fs = header_fs;
+end
+if isfinite(header_fc) && header_fc > 0
+    truth_diag_input.fc = header_fc;
+end
+
+if verbose && (fs_changed || fc_changed)
+    fprintf('[runDetectionTruthDiagnostics] Refreshed signal metadata from first radar file header:\n');
+    if fs_changed
+        fprintf('  fs: %.6f MHz -> %.6f MHz\n', prev_fs / 1e6, header_fs / 1e6);
+    end
+    if fc_changed
+        fprintf('  fc: %.6f MHz -> %.6f MHz\n', prev_fc / 1e6, header_fc / 1e6);
+    end
+end
+end
+
 function [range_cell_m, doppler_bin_hz] = localResolveMeasurementGrid(truth_diag_input)
 range_cell_m = NaN;
 doppler_bin_hz = NaN;
@@ -304,6 +358,20 @@ for ip = 1 : numel(rdm_parts)
         return
     end
 end
+end
+
+function value = localGetPositiveScalarField(struct_in, field_name)
+value = NaN;
+if isstruct(struct_in) && isfield(struct_in, field_name)
+    candidate = struct_in.(field_name);
+    if isnumeric(candidate) && isscalar(candidate) && isfinite(candidate) && candidate > 0
+        value = double(candidate);
+    end
+end
+end
+
+function tol_hz = localMetadataToleranceHz(value_hz)
+tol_hz = max(1, 1e-9 * abs(value_hz));
 end
 
 function figure_title = localResolveFigureTitle(truth_diag_input)
