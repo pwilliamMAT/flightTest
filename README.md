@@ -181,6 +181,14 @@ cmp.comparison.delta_table
 ```
 
 That helper runs both timing modes, preserves each run's part-start summary in the returned output struct, and optionally compares both results against the saved pre-patch console log `C:\Users\pwilliam\agenticProjects\bistaticOutput.txt`.
+If both timing modes still produce `TP=0`, the next check is whether detections are simply displaced from truth by a nearly constant measurement-space offset:
+
+```matlab
+off = estimateTruthMeasurementOffset(cmp.metadata_output);
+off.summary
+```
+
+That diagnostic builds a residual heatmap of `detection - truth` in `(ΔR, Δf)` space for time-near candidate pairs, estimates the strongest constant offset cluster, and re-scores the detections after compensating by that offset. If compensated TP jumps sharply, the remaining problem is detector localization or projection bias rather than timing alone.
 When ADS-B truth is present, the analysis now overlays the projected truth directly on both the static per-part Range-Doppler maps and the interactive RD viewer in bistatic `(R_excess, f_D)` space.
 The shared convention for that truth/tracker path is now:
 - `R_excess = R_tx + R_rx - L_3D`

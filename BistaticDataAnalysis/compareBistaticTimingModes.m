@@ -348,6 +348,13 @@ else
     notes(end + 1) = "Metadata and fallback timing produced the same top-level metrics.";
 end
 
+if isfinite(metadata_summary.n_tp) && isfinite(fallback_summary.n_tp) && ...
+        isfinite(metadata_summary.n_fa) && isfinite(fallback_summary.n_fa) && ...
+        metadata_summary.n_tp == fallback_summary.n_tp && ...
+        metadata_summary.n_fa == fallback_summary.n_fa
+    notes(end + 1) = "Because TP and FA are unchanged, timing is unlikely to be the main explanation for TP=0.";
+end
+
 metadata_improved_vs_reference = false;
 fallback_improved_vs_reference = false;
 

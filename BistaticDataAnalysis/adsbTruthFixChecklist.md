@@ -202,6 +202,17 @@ Decision rule:
 If geometry fixes materially improve only one timing mode, timing remains an active bug.
 If neither timing mode improves, revisit detector localization and truth gates only after confirming the Doppler convention patch was applied everywhere.
 
+If both timing modes still produce the same `TP` and `FA`, timing is probably not the dominant blocker anymore. In that case, check for a systematic measurement-space offset before doing more CFAR sweeps:
+
+```matlab
+off = estimateTruthMeasurementOffset(cmp.metadata_output);
+off.summary
+```
+
+Interpretation:
+- if compensated `TP` rises sharply, detector localization or truth projection is biased by an approximately constant `(ΔR, Δf)`
+- if compensated `TP` stays near zero, the remaining problem is more likely weak target energy / RF front-end quality than a simple global offset
+
 ### 7. Pre-patch versus post-patch comparison  `[pending]`
 
 - [ ] Keep `C:\Users\pwilliam\agenticProjects\bistaticOutput.txt` as the pre-patch reference log.
