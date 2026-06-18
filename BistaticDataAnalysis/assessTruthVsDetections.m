@@ -58,8 +58,8 @@ function metrics = assessTruthVsDetections(detections, tracks_log, adsb_aligned,
 %   'StateIsVelocity'  Logical.  If true, tracks_log.State(:,3) is
 %                      range-rate [m/s]; convert using f_D = -α·Rdot.
 %                      Default: false (State(:,3) already in Hz).
-%   'Alpha'            Doppler coupling factor α = 2fc/c [Hz/(m/s)].
-%                      Only used when StateIsVelocity=true.  Default: 4.0.
+%   'Alpha'            Doppler coupling factor alpha = fc/c [Hz/(m/s)].
+%                      Only used when StateIsVelocity=true.  Default: 2.0.
 %   'Verbose'          Logical.  Print per-aircraft table.  Default: true.
 %
 % ── OUTPUT ──────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ addParameter(p, 'GateRangeCells',  3,     @(x) isnumeric(x) && x > 0);
 addParameter(p, 'GateDopplerBins', 3,     @(x) isnumeric(x) && x > 0);
 addParameter(p, 'TimeGateS',       [],    @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x > 0));
 addParameter(p, 'StateIsVelocity', false, @islogical);
-addParameter(p, 'Alpha',           4.0,   @(x) isnumeric(x) && x > 0);
+addParameter(p, 'Alpha',           2.0,   @(x) isnumeric(x) && x > 0);
 addParameter(p, 'Verbose',         true,  @islogical);
 parse(p, detections, tracks_log, adsb_aligned, varargin{:});
 opts = p.Results;

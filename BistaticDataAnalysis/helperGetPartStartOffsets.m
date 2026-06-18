@@ -7,6 +7,10 @@ function [part_start_offsets_s, timing_info] = helperGetPartStartOffsets(data_pa
 %  Offsets are relative to part 1 start and are expressed in seconds.
 %  When metadata is unavailable, the helper falls back to a fixed
 %  start-to-start spacing of part_dur_s + fallback_gap_s.
+%  Set 'TimingSource' to:
+%    'auto'     - use metadata when available, else fallback gap
+%    'metadata' - prefer metadata, but still fallback if metadata is absent
+%    'fallback' - ignore metadata and use the fixed fallback spacing
 
 p = inputParser;
 p.FunctionName = mfilename;
@@ -15,11 +19,13 @@ addRequired(p, 'part_dur_s', @(x) isnumeric(x) && isscalar(x) && x > 0);
 addRequired(p, 'fallback_gap_s', @(x) isnumeric(x) && isscalar(x) && x >= 0);
 addParameter(p, 'Verbose', true, @islogical);
 addParameter(p, 'StartDateTimes', [], @(x) isempty(x) || isdatetime(x) || isnumeric(x) || iscell(x));
+addParameter(p, 'TimingSource', 'auto', @(x) any(strcmpi(string(x), ["auto", "metadata", "fallback"])));
 parse(p, data_parts, part_dur_s, fallback_gap_s, varargin{:});
 opts = p.Results;
 
 data_parts = normalize_paths(data_parts);
 N_parts    = numel(data_parts);
+timing_source = lower(char(string(opts.TimingSource)));
 
 part_start_offsets_s = (0 : N_parts - 1).' * (part_dur_s + fallback_gap_s);
 timing_info = struct();
@@ -27,10 +33,21 @@ timing_info.source          = 'fallback_gap';
 timing_info.start_datetimes = NaT(N_parts, 1);
 timing_info.used_metadata   = false(N_parts, 1);
 timing_info.metadata_source = repmat({''}, N_parts, 1);
+timing_info.requested_source = timing_source;
 
 if N_parts <= 1
     if N_parts == 1
         timing_info.start_datetimes(1) = NaT;
+    end
+    return
+end
+
+if strcmp(timing_source, 'fallback')
+    timing_info.source = 'forced_fallback_gap';
+    timing_info.metadata_source(:) = {'forced_fallback_gap'};
+    if opts.Verbose
+        fprintf('[helperGetPartStartOffsets] Timing source forced to fallback gap %.3f s.\n', ...
+            part_dur_s + fallback_gap_s);
     end
     return
 end

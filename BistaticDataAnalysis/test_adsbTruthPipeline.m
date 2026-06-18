@@ -238,6 +238,10 @@ fprintf('[§4] adsbToBistatic\n');
 adsb_bistatic = adsbToBistatic(adsb_tracks, txLLA, rxLLA, fc);
 assert(numel(adsb_bistatic) == numel(adsb_tracks));
 
+geom_truth = helperDeriveTxRxGeometry(txLLA, rxLLA);
+assert(abs(adsb_bistatic(1).L_m - geom_truth.baseline_3d_m) < 1e-9);
+assert(geom_truth.baseline_3d_m > geom_truth.baseline_horizontal_m);
+
 for k = 1 : numel(adsb_bistatic)
     ac = adsb_bistatic(k);
     if numel(ac.t_utc) < 3
@@ -263,8 +267,8 @@ adsb_aligned = alignTruthToRadar(adsb_bistatic, t_epoch, t_abs_query);
 fprintf('[§6] Synthesising fake CFAR detections…\n');
 
 c_light   = physconst('LightSpeed');
-alpha     = 2 * fc / c_light;
-range_cell_m  = c_light / (2 * fs);    % 30 m
+alpha     = helperBistaticDopplerCoupling(fc);
+range_cell_m  = c_light / fs;          % bistatic range-cell spacing
 doppler_bin_hz = 2.0;                  % 2 Hz bins (simplified)
 
 rng(42);   % reproducible random numbers

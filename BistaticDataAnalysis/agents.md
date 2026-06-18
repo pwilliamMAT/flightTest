@@ -78,8 +78,8 @@ The filename `n320_599_8Msps_100ms_1` contains no date. `getRadarEpoch` needs ei
 
 **Step 5 — Validate Doppler sign against truth:**  
 After running with truth, check the `assessTruthVsDetections` output:
-- A track with **negative Doppler** in the RDM should correspond to an **approaching** aircraft (ADS-B range decreasing). If the signs are reversed, the −α fix in `initMeasurementSpaceKF` may need to be re-examined vs the sign in `adsbToBistatic`.
-- `adsbToBistatic` computes Doppler as `f_D = (2fc/c) · ΔR_excess/Δt`. If ADS-B range is decreasing (approaching), this gives **negative** f_D — which is the **opposite** of what `createRDM.m` produces for the same aircraft. In that case, negate f_D in `adsbToBistatic` or negate the raw detections before passing to `objectDetection` in `trackTargets`.
+- An **approaching** aircraft should appear at **positive Doppler** in the RDM because the shared passive-radar convention is `f_D = -(fc/c) * dR_excess/dt`.
+- `adsbToBistatic` now computes Doppler with that same convention, so an ADS-B track whose bistatic range is shrinking should also produce **positive** truth Doppler.
 - The ground truth is: check the aircraft's ADS-B velocity vs the sign of its RDM Doppler bin. Pick one aircraft, note whether it's heading toward or away from the Rx, and verify the RDM Doppler bin sign matches.
 
 **Step 6 — Tune tracker parameters using truth feedback:**  
@@ -96,8 +96,8 @@ config.fs  = 8e6;                      % 8 Msps
 config.txLLA = [42.310278, -71.236667, 431.9];
 config.rxLLA = [42.2999333, -71.349333, 15.0];
 config.inter_part_gap_s = 3.0;         % measured ~2.85 s avg (5.96 s for file 1→2)
-% range_bin = c/(2*fs) = 18.75 m
-% alpha = 2*599e6/3e8 = 3.993 Hz/(m/s)
+% range_bin = c/fs = 37.47 m
+% alpha = 599e6 / c ~= 1.998 Hz/(m/s)
 % Doppler bin = 10 Hz (N_slow=200, T_cpi=0.5 ms)
 % H(2,2) = -alpha  (passive CAF convention: positive f_D = approaching = Rdot < 0)
 ```

@@ -170,7 +170,23 @@ out = runBistaticAnalysisSession('20260611T101530');
 
 The wrapper loads `session_manifest.json`, resolves radar and `adsb_*` files automatically, ignores any `nmea_*` files that appear in the truth list, and preserves direct use of `analyzeBistaticData.m` for manual debugging.
 For multi-part burst sessions, the analysis now derives part start offsets from each `.bb` file's `RecordingUTC` metadata when available. If that metadata cannot be read, the session wrapper falls back to the packaged manifest's `capture_repetition_spacing_s` instead of reusing the legacy fixed 3 s gap assumption.
+If you need to compare timing assumptions on the same packaged session, run `runBistaticAnalysisSession(..., 'PartTimingSource', 'metadata')` or `runBistaticAnalysisSession(..., 'PartTimingSource', 'fallback')`.
+For the ADS-B truth-fix rerun, use the dedicated helper instead of running those two passes by hand:
+
+```matlab
+cd BistaticDataAnalysis
+cmp = runTruthFixTimingComparison('20260616T160702');
+cmp.comparison.summary_table
+cmp.comparison.delta_table
+```
+
+That helper runs both timing modes, preserves each run's part-start summary in the returned output struct, and optionally compares both results against the saved pre-patch console log `C:\Users\pwilliam\agenticProjects\bistaticOutput.txt`.
 When ADS-B truth is present, the analysis now overlays the projected truth directly on both the static per-part Range-Doppler maps and the interactive RD viewer in bistatic `(R_excess, f_D)` space.
+The shared convention for that truth/tracker path is now:
+- `R_excess = R_tx + R_rx - L_3D`
+- `f_D = -(fc/c) * dR_excess/dt`
+- `range_cell_m = c/fs`
+- `createRDM` Doppler axes are reported at the true FFT bin centers
 By default it also saves:
 - a compact post-detection truth snapshot at `captures/<session_id>/analysis/truth_diag_input.mat`
 - a detector replay snapshot at `captures/<session_id>/analysis/detector_replay_input.mat`
@@ -504,6 +520,11 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 - [`plotDetectionTruthDiagnostics.m`](BistaticDataAnalysis/plotDetectionTruthDiagnostics.m) - Plots `R_excess` vs time and `f_D` vs time with matched and unmatched detections overlaid on truth
 - [`helperBuildTruthQueryTimes.m`](BistaticDataAnalysis/helperBuildTruthQueryTimes.m) - Builds the block-center time grid used to align ADS-B truth to the radar processing cadence
 - [`helperPlotRDMTruthOverlay.m`](BistaticDataAnalysis/helperPlotRDMTruthOverlay.m) - Overlays ADS-B truth directly on Range-Doppler figures in bistatic measurement space
+- [`helperBistaticDopplerCoupling.m`](BistaticDataAnalysis/helperBistaticDopplerCoupling.m), [`helperBistaticDopplerFromRangeRate.m`](BistaticDataAnalysis/helperBistaticDopplerFromRangeRate.m), [`helperBistaticRangeRateFromDoppler.m`](BistaticDataAnalysis/helperBistaticRangeRateFromDoppler.m) - Shared Doppler conversion helpers for the passive CAF convention
+- [`helperDeriveTxRxGeometry.m`](BistaticDataAnalysis/helperDeriveTxRxGeometry.m) - Shared Tx/Rx ENU geometry helper used by truth projection and ellipse rendering
+- [`adsbTruthFixChecklist.md`](BistaticDataAnalysis/adsbTruthFixChecklist.md) - Current session-start checklist for the ADS-B `LLA -> bistatic range/Doppler` work, with completed local convention fixes checked off and the remaining development-machine timing/validation steps left open
+- [`bistaticTruthConventionTest.m`](BistaticDataAnalysis/bistaticTruthConventionTest.m) - Focused regression suite for Doppler coupling, range-cell spacing, 3D baseline usage, and `createRDM` Doppler-axis bin centers
+- [`adsbTruthFixTestPlan.md`](BistaticDataAnalysis/adsbTruthFixTestPlan.md) - Review-oriented test plan, executed verification record, and remaining real-data validation steps
 - [`helperLoadSessionManifest.m`](BistaticDataAnalysis/helperLoadSessionManifest.m) - Loads and validates `session_manifest.json`
 - [`helperResolveSessionAnalysisSetup.m`](BistaticDataAnalysis/helperResolveSessionAnalysisSetup.m) - Resolves one packaged session into radar files, truth files, and analysis preflight settings
 - [`test_adsbTruthPipeline.m`](BistaticDataAnalysis/test_adsbTruthPipeline.m) - Synthetic end-to-end regression test for the ADS-B truth and standalone diagnostic workflow
@@ -757,4 +778,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: June 16, 2026*
+*Last Updated: June 18, 2026*

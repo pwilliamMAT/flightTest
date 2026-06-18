@@ -26,7 +26,8 @@ function [rdm, doppler_axis, range_axis, dpi_lag] = createRDM(surv_cube, ref_cub
 %
 %   Outputs:
 %   - rdm:          Range-Doppler Map, power in dB.
-%   - doppler_axis: Doppler frequency axis in Hz  (length = num_cpis).
+%   - doppler_axis: Doppler frequency axis in Hz at the FFT bin centres
+%                   (length = num_cpis).
 %   - range_axis:   Bistatic range axis in metres (length = fast_time_samples).
 %
 
@@ -154,11 +155,15 @@ rdm_complex = fftshift(fft(range_profiles .* win_slow, N_slow, 2), 2);
 % range excess. This is the physically meaningful quantity for target detection.
 range_axis   = (0:N_fast-1).' / fs * c;           % [m], column vector
 
-% Doppler: N_slow bins spanning -PRF/2 to +PRF/2 (Nyquist limits for the
-% slow-time sample rate, which equals the PRF). The Kaiser(β=6) window
-% widens the 3 dB resolution by ~2× but limits Doppler sidelobes to -44 dB,
-% protecting CFAR training cells from residual zero-Doppler clutter leakage.
-doppler_axis = linspace(-prf/2, prf/2, N_slow);   % [Hz], row vector
+% Doppler: use the actual fftshifted FFT bin centres, not an endpoint-
+% inclusive linspace. The spacing must remain PRF/N_slow so the reported
+% Doppler values match the detector bins, tracker constants, and truth gates.
+% For even N_slow the positive limit is PRF/2 - PRF/N_slow.
+%
+% The Kaiser(beta=6) window widens the 3 dB resolution by ~2x but limits
+% Doppler sidelobes to -44 dB, protecting CFAR training cells from
+% residual zero-Doppler clutter leakage.
+doppler_axis = ((0:N_slow-1) - floor(N_slow / 2)) * (prf / N_slow);  % [Hz], row vector
 
 % --- 4. Convert to power in dB ---
 % eps prevents log10(0) = -Inf when the correlation magnitude is zero,

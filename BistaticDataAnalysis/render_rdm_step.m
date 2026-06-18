@@ -36,10 +36,10 @@ for ii = 1 : n_trk
     P     = conf_trks(ii).StateCovariance;
     tid   = conf_trks(ii).TrackID;
     R_est = st(1);
-    D_est = p.alpha_trk * st(2);
+    D_est = -p.alpha_trk * st(2);
 
     sigma_R = min(sqrt(max(0, P(1, 1))), 5000);
-    sigma_D = min(p.alpha_trk * sqrt(max(0, P(2, 2))), 500);
+    sigma_D = min(abs(p.alpha_trk) * sqrt(max(0, P(2, 2))), 500);
     clr     = p.TRK_ID_COLORS(mod(tid - 1, p.N_ID_COLORS) + 1, :);
 
     scatter(ax, D_est, R_est, 160, clr, 'filled', 'HandleVisibility', 'off');

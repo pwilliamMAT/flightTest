@@ -62,7 +62,6 @@ bistatic_consts = helperDeriveBistaticConstants(config);
 init_fcn = @(det) initMeasurementSpaceKF( ...
     det, config.fc, config.fs, bistatic_consts.doppler_bin_hz);
 
-c_light     = bistatic_consts.c_light;
 range_bin_m = bistatic_consts.range_cell_m;
 dopp_bin_hz = bistatic_consts.doppler_bin_hz;
 % R_meas must match the variance used inside initMeasurementSpaceKF.
@@ -107,7 +106,7 @@ for k = 1 : N_steps
 
     % Wrap each detection as an objectDetection.
     %   Measurement = [range_m; dopp_hz] — the 2-element vector expected by
-    %   initMeasurementSpaceKF via H = [1 0; 0 alpha].
+    %   initMeasurementSpaceKF via H = [1 0; 0 -alpha].
     n_k      = size(dets_k, 1);
     det_cell = cell(1, n_k);
     for j = 1 : n_k

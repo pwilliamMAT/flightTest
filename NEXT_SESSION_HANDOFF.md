@@ -1,6 +1,76 @@
 # Next Session Handoff
 
-Updated: June 16, 2026
+Updated: June 18, 2026
+
+## June 18, 2026 Review Handoff
+
+This file is superseded by the new review-oriented test and validation record at `BistaticDataAnalysis/adsbTruthFixTestPlan.md`.
+
+### Current Status
+
+- The ADS-B truth convention patch is now implemented locally.
+- Shared conventions are unified around:
+  - `R_excess = R_tx + R_rx - L_3D`
+  - `f_D = -(fc/c) * dR_excess/dt`
+  - `Rdot = -f_D / (fc/c)`
+  - `range_cell_m = c/fs`
+- Shared helper functions were added so truth conversion, tracker initialization, track-history export, and display code all use the same formulas.
+- `createRDM.m` was also corrected to report Doppler at the true FFT-bin centers instead of an endpoint-inclusive `linspace`, because the old axis did not match the actual detector bins.
+
+### Verification Completed On This Machine
+
+- `bistaticTruthConventionTest.m`: `6/6` passed
+- `runDetectorReplaySweepTest.m`: `3/3` passed
+- `test_bistaticHelpers.m`: passed
+- `test_adsbTruthPipeline.m`: passed
+- MATLAB Code Analyzer clean on the touched convention/helper files
+
+### Validation Still Blocked Locally
+
+- The packaged session data is not present on this machine:
+  - `captures/` does not exist
+  - `captures/20260616T160702` does not exist
+- Because of that, the required real-data timing A/B rerun remains outstanding and must still be run on the development machine.
+
+### Required Development-Machine Validation
+
+Run both timing modes on session `20260616T160702`:
+
+```matlab
+cd BistaticDataAnalysis
+
+clear functions
+out_meta = runBistaticAnalysisSession('20260616T160702', ...
+    'Verbose', true, ...
+    'PartTimingSource', 'metadata');
+
+clear functions
+out_fallback = runBistaticAnalysisSession('20260616T160702', ...
+    'Verbose', true, ...
+    'PartTimingSource', 'fallback');
+```
+
+Compare at minimum:
+
+- `n_tp`
+- `n_fa`
+- `n_miss`
+- track-level range and Doppler bias / RMSE
+- output against the pre-patch reference log `C:\Users\pwilliam\agenticProjects\bistaticOutput.txt`
+
+### Code Review Focus
+
+- Review `createRDM.m` carefully. The Doppler-axis correction is the only detector-side behavior change discovered during regression.
+- Review the new shared helpers and confirm all shared truth/tracker conversions use them.
+- Treat `plotBistaticEllipses3D.m` as visualization-only. It now uses the shared 3D baseline scalar, but the fixed-altitude contour drawing still uses horizontal midpoint/bearing as an approximation.
+
+## New Pending Fix Checklist
+
+- A dedicated implementation checklist now lives at `BistaticDataAnalysis/adsbTruthFixChecklist.md`.
+- That file is now the current source of truth for the next session:
+  - locally completed convention fixes are checked off
+  - remaining real-data timing and validation tasks are left open
+  - the next agent should start at the pending rerun items, not re-open the local convention patch by default
 
 ## Current Status
 

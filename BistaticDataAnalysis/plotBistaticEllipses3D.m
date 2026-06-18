@@ -1,6 +1,6 @@
 function plotBistaticEllipses3D(txLLA, rxLLA, detectionTable, varargin)
-%PLOTBISTATICELLIPSES3D  Map passive-bistatic-radar iso-range ellipses onto
-%  a 3-D geographic globe, colour-coded by file part.
+%PLOTBISTATICELLIPSES3D  Map passive-bistatic-radar iso-range contours onto
+%  a 3-D geographic globe, colour-coded by Doppler.
 %
 % ── BACKGROUND ──────────────────────────────────────────────────────────
 %  In a passive bistatic radar (PBR) every constant-range locus is an
@@ -116,7 +116,6 @@ end
 
 range_m  = dtMat(:, 1);
 dopp_hz  = dtMat(:, 2);
-t_abs_s  = dtMat(:, 5);
 part_idx = round(dtMat(:, 6));
 N_dets   = size(dtMat, 1);
 
@@ -137,34 +136,28 @@ end
 % on the receiver.  Error vs. full ellipsoidal geometry is < 0.05 % for
 % baselines under 200 km — well within the ~30 m range-cell resolution.
 
-spheroid = wgs84Ellipsoid('meter');
-
-% Transform Tx into ENU.  geodetic2enu returns displacement [East, North, Up]
-% of the query point relative to the reference point (rxLLA), in metres.
-[txE, txN, txU] = geodetic2enu( ...
-    txLLA(1), txLLA(2), txLLA(3), ...
-    rxLLA(1), rxLLA(2), rxLLA(3), spheroid);
-
-% Horizontal baseline length and bearing (ignoring small vertical component)
-L     = hypot(txE, txN);      % [m] — Tx-Rx horizontal separation
-theta = atan2(txN, txE);      % [rad] — baseline angle, CCW from East
+geom = helperDeriveTxRxGeometry(txLLA, rxLLA);
+spheroid = geom.spheroid;
+txE = geom.tx_enu_m(1);
+txN = geom.tx_enu_m(2);
+txU = geom.tx_enu_m(3);
+L = geom.baseline_3d_m;       % [m] - shared numeric baseline used by truth conversion
 
 % 2-D rotation matrix: local ellipse frame ──> ENU horizontal plane
 %   In the local frame: x̂ points along the Tx-Rx baseline (major axis),
 %                       ŷ is perpendicular (minor axis).
-R2 = [cos(theta), -sin(theta);
-      sin(theta),  cos(theta)];
+R2 = geom.rotation_matrix;
 
 % Ellipse centre in ENU: the midpoint of the two foci (Rx at origin, Tx at
 % [txE, txN]), so the centre is at [txE/2, txN/2].
-midE = txE / 2;
-midN = txN / 2;
+midE = geom.midpoint_horizontal_m(1);
+midN = geom.midpoint_horizontal_m(2);
 
 if vb
     fprintf('\n[%s] Bistatic geometry:\n', mfilename);
     fprintf('  Tx ENU from Rx  :  E=%.1f m,  N=%.1f m,  U=%.1f m\n', txE, txN, txU);
-    fprintf('  Baseline L      :  %.3f km   bearing  %.1f\u00b0 (CCW from East)\n', ...
-        L/1e3, rad2deg(theta));
+    fprintf('  Baseline L_3D   :  %.3f km   bearing  %.1f\u00b0 (CCW from East)\n', ...
+        L/1e3, rad2deg(geom.theta_rad));
 end
 
 % =========================================================================
@@ -196,7 +189,7 @@ for k = 1 : N_dets
     % bistatic path is shorter than the baseline — impossible in free space).
     if a <= c
         warning('plotBistaticEllipses3D:insideBaseline', ...
-            'Detection %d: R_excess=%.0f m gives a=%.0f m ≤ c=%.0f m. Skipped.', ...
+            'Detection %d: R_excess=%.0f m gives a=%.0f m <= c=%.0f m. Skipped.', ...
             k, r_exc, a, c);
         ellipse_lat{k} = NaN;
         ellipse_lon{k} = NaN;

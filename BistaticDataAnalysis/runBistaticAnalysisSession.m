@@ -28,6 +28,7 @@ addParameter(p, 'DatasetRoot', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'SessionFolder', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'ManifestPath', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'Verbose', false, @islogical);
+addParameter(p, 'PartTimingSource', 'auto', @localIsPartTimingSource);
 addParameter(p, 'SaveTruthDiagnosticSnapshot', true, @islogical);
 addParameter(p, 'TruthDiagnosticSnapshotMode', 'compact', @localIsSnapshotMode);
 addParameter(p, 'TruthDiagnosticSnapshotFolder', "", @(x) ischar(x) || isstring(x));
@@ -51,6 +52,7 @@ analysisSetup = helperResolveSessionAnalysisSetup(opts.session_id, ...
     'ManifestPath', opts.ManifestPath, ...
     'Verbose', opts.Verbose);
 analysisSetup.session_wrapper_options = localBuildWrapperOptions(opts);
+analysisSetup.part_timing_source = char(string(opts.PartTimingSource));
 
 fprintf('Session analysis preflight:\n');
 fprintf('  session_id   : %s\n', analysisSetup.session_id);
@@ -58,12 +60,18 @@ fprintf('  session_dir  : %s\n', analysisSetup.session_folder);
 fprintf('  manifest     : %s\n', analysisSetup.manifest_path);
 fprintf('  radar files  : %d\n', numel(analysisSetup.data_parts));
 fprintf('  ADS-B files  : %d\n', numel(analysisSetup.adsb_files));
+fprintf('  part timing  : %s\n', analysisSetup.part_timing_source);
 if isfield(analysisSetup, 'radar_epoch_utc') && ~isempty(analysisSetup.radar_epoch_utc)
     fprintf('  radar epoch  : %.6f UTC Unix seconds\n', analysisSetup.radar_epoch_utc);
 else
-    fprintf('  radar epoch  : auto-read from the first radar file when available\n');
+fprintf('  radar epoch  : auto-read from the first radar file when available\n');
 end
 fprintf('\n');
+
+part_start_offsets_s = [];
+part_end_offsets_s = [];
+part_dur_s = [];
+part_timing_info = struct();
 
 run(fullfile(fileparts(mfilename('fullpath')), 'analyzeBistaticData.m'));
 session_opts = localResolveWrapperOptions(analysisSetup);
@@ -98,6 +106,26 @@ if exist('adsb_aligned', 'var')
 end
 if exist('truth_metrics', 'var')
     analysis_output.truth_metrics = truth_metrics;
+end
+if exist('part_start_offsets_s', 'var')
+    analysis_output.part_start_offsets_s = part_start_offsets_s(:);
+end
+if exist('part_end_offsets_s', 'var')
+    analysis_output.part_end_offsets_s = part_end_offsets_s(:);
+end
+if exist('part_dur_s', 'var') && ~isempty(part_dur_s)
+    analysis_output.part_duration_s = part_dur_s;
+end
+if exist('part_timing_info', 'var') && isstruct(part_timing_info)
+    analysis_output.part_timing_info = part_timing_info;
+end
+if exist('part_start_offsets_s', 'var') && exist('part_dur_s', 'var')
+    part_timing_info_local = struct();
+    if exist('part_timing_info', 'var') && isstruct(part_timing_info)
+        part_timing_info_local = part_timing_info;
+    end
+    analysis_output.part_timing_summary = localBuildPartTimingSummary( ...
+        part_start_offsets_s, part_dur_s, part_timing_info_local);
 end
 if exist('truth_diag_input', 'var')
     analysis_output.truth_diag_input = truth_diag_input;
@@ -217,6 +245,11 @@ end
 function tf = localIsSnapshotMode(value)
 mode = char(string(value));
 tf = any(strcmpi(mode, {'compact', 'full', 'both', 'off'}));
+end
+
+function tf = localIsPartTimingSource(value)
+mode = char(string(value));
+tf = any(strcmpi(mode, {'auto', 'metadata', 'fallback'}));
 end
 
 function wrapper_opts = localBuildWrapperOptions(opts)
@@ -362,5 +395,49 @@ override_fields = fieldnames(override_struct);
 for k = 1 : numel(override_fields)
     field_name = override_fields{k};
     merged.(field_name) = override_struct.(field_name);
+end
+end
+
+function timing_summary = localBuildPartTimingSummary(part_start_offsets_s, part_dur_s, part_timing_info)
+part_start_offsets_s = part_start_offsets_s(:);
+start_spacing_s = diff(part_start_offsets_s);
+inter_part_gap_s = start_spacing_s - part_dur_s;
+
+requested_source = "";
+resolved_source = "";
+used_metadata = false(numel(part_start_offsets_s), 1);
+
+if isstruct(part_timing_info)
+    if isfield(part_timing_info, 'requested_source')
+        requested_source = string(part_timing_info.requested_source);
+    end
+    if isfield(part_timing_info, 'source')
+        resolved_source = string(part_timing_info.source);
+    end
+    if isfield(part_timing_info, 'used_metadata') && ...
+            numel(part_timing_info.used_metadata) == numel(part_start_offsets_s)
+        used_metadata = logical(part_timing_info.used_metadata(:));
+    end
+end
+
+timing_summary = struct( ...
+    'requested_source', requested_source, ...
+    'resolved_source', resolved_source, ...
+    'n_parts', numel(part_start_offsets_s), ...
+    'part_duration_s', part_dur_s, ...
+    'part_start_offsets_s', part_start_offsets_s, ...
+    'start_spacing_s', start_spacing_s, ...
+    'inter_part_gap_s', inter_part_gap_s, ...
+    'median_start_spacing_s', localMedianOrNaN(start_spacing_s), ...
+    'median_gap_s', localMedianOrNaN(inter_part_gap_s), ...
+    'used_metadata', used_metadata, ...
+    'n_metadata_parts', nnz(used_metadata));
+end
+
+function value = localMedianOrNaN(x)
+if isempty(x)
+    value = NaN;
+else
+    value = median(x, 'omitnan');
 end
 end

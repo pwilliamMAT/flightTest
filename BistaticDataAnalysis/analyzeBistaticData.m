@@ -134,6 +134,7 @@ config.rxLLA = [42.2999333, -71.349333,  15.0];   % [lat °N, lon °W(−), alt 
 %   helperGetPartStartOffsets reads per-file metadata when available and
 %   falls back to this steady-state average only when headers are missing.
 config.inter_part_gap_s = 3.0;  % [s] fallback idle gap when per-file metadata is unavailable
+config.part_timing_source = 'auto';  % 'auto', 'metadata', or 'fallback'
 config.adsb_files = {};   % set to {'/path/to/adsb_<session>.txt.gz', ...} to enable truth integration
 
 explicit_data_parts = {};
@@ -154,6 +155,10 @@ if exist('analysisSetup', 'var')
             ~isempty(analysisSetup.capture_repetition_spacing_s)
         config.inter_part_gap_s = double(analysisSetup.capture_repetition_spacing_s);
     end
+    if isfield(analysisSetup, 'part_timing_source') && ...
+            ~isempty(analysisSetup.part_timing_source)
+        config.part_timing_source = char(string(analysisSetup.part_timing_source));
+    end
 
     fprintf('1. Configuring session-based analysis...\n');
     fprintf('  Session ID ........ %s\n', session_id);
@@ -161,6 +166,7 @@ if exist('analysisSetup', 'var')
     fprintf('  Radar files ....... %d\n', numel(explicit_data_parts));
     fprintf('  ADS-B truth files . %d\n', numel(config.adsb_files));
     fprintf('  Gap fallback ...... %.3f s\n', config.inter_part_gap_s);
+    fprintf('  Part timing ....... %s\n', config.part_timing_source);
 end
 
 %% 2. Multi-Part Processing
@@ -252,8 +258,10 @@ end
 config.dataFile = data_parts{1};  % keep for any legacy callers
 N_parts    = numel(data_parts);
 part_dur_s = config.numSamples / config.fs;   % 1.0 s per part
-[part_start_offsets_s, ~] = helperGetPartStartOffsets( ...
-    data_parts, part_dur_s, config.inter_part_gap_s, 'Verbose', config.verbose);
+[part_start_offsets_s, part_timing_info] = helperGetPartStartOffsets( ...
+    data_parts, part_dur_s, config.inter_part_gap_s, ...
+    'TimingSource', config.part_timing_source, ...
+    'Verbose', config.verbose);
 part_end_offsets_s = part_start_offsets_s + part_dur_s;
 if N_parts > 1
     part_gap_report_s = median(diff(part_start_offsets_s) - part_dur_s);
@@ -307,16 +315,15 @@ for i_part = 1 : N_parts
     end
 end
 
-c_light_traj = physconst('LightSpeed');
 fprintf('\n=== Consolidated Detection Trajectory  |  %d parts  |  %d detection(s) ===\n', ...
     N_parts, size(all_track_dets, 1));
 if config.verbose
     fprintf('NF: CFAR noise floor — same absolute scale as RDM (raw ADC power, dB).\n');
-    fprintf('Vel: Doppler-to-velocity uses monostatic approx: v = f_d * c / (2*fc).\n');
+    fprintf('Rdot: bistatic excess-path rate from the CAF convention: Rdot = -f_D / alpha.\n');
 end
 fprintf('\n');
 fprintf('%4s %4s  %9s  %10s  %10s  %8s  %8s\n', ...
-    'Part', 'Blk', 'T_abs(s)', 'Range(km)', 'Dopp(Hz)', 'Vel(m/s)', 'SNR(dB)');
+    'Part', 'Blk', 'T_abs(s)', 'Range(km)', 'Dopp(Hz)', 'Rdot(m/s)', 'SNR(dB)');
 fprintf('%s\n', repmat('-', 1, 64));
 if isempty(all_track_dets)
     fprintf('  (no detections across any part)\n');
@@ -331,7 +338,7 @@ else
         blk   = all_track_dets(k, 4);
         t_abs = all_track_dets(k, 5);
         nf    = part_res(i_p).cfar_nf_db;
-        vel   = dop * c_light_traj / (2 * config.fc);
+        vel   = helperBistaticRangeRateFromDoppler(dop, config.fc);
         fprintf('  %3d  %3d   %7.3f   %10.3f   %9.1f   %7.1f   %6.1f\n', ...
             i_p, blk, t_abs, rng_m/1e3, dop, vel, pwr - nf);
     end
@@ -527,7 +534,8 @@ rdm_after_display = rdm_after - median(rdm_after, 2);
 %   - Range > 0:              echoes from targets or static reflectors at
 %                             that bistatic range excess. Aircraft at 10 km
 %                             bistatic range excess appear at 10,000 m.
-%   Range resolution: c / (2 * fs) = 30 m/bin at 5 Msps.
+%   Range resolution: c / fs because the CAF delay axis measures bistatic
+%   excess path directly (for this 8 Msps session: 37.5 m/bin).
 %   Note: the absolute hardware timing offset between the USRP N320's two
 %   ADC channels (~6387 samples, ~383 km) has been removed; range = 0 is
 %   the DPI location, not absolute lag = 0.
@@ -707,15 +715,14 @@ end
 
 % ── 7.3  Pre-compute ENU bistatic geometry (shared across all frames) ─────
 spheroid_trk = wgs84Ellipsoid('meter');
-[txE_trk, txN_trk, ~] = geodetic2enu( ...
-    config.txLLA(1), config.txLLA(2), config.txLLA(3), ...
-    config.rxLLA(1), config.rxLLA(2), config.rxLLA(3), spheroid_trk);
-L_trk     = hypot(txE_trk, txN_trk);
-theta_trk = atan2(txN_trk, txE_trk);
-R2_trk    = [cos(theta_trk), -sin(theta_trk); ...
-             sin(theta_trk),  cos(theta_trk)];
-midE_trk  = txE_trk / 2;
-midN_trk  = txN_trk / 2;
+geom_trk = helperDeriveTxRxGeometry(config.txLLA, config.rxLLA);
+txE_trk   = geom_trk.tx_enu_m(1);
+txN_trk   = geom_trk.tx_enu_m(2);
+L_trk     = geom_trk.baseline_3d_m;
+theta_trk = geom_trk.theta_rad;
+R2_trk    = geom_trk.rotation_matrix;
+midE_trk  = geom_trk.midpoint_horizontal_m(1);
+midN_trk  = geom_trk.midpoint_horizontal_m(2);
 phi_trk   = linspace(0, 2*pi, 180)';   % [180 × 1] parametric angle
 TGT_ALT_M = 3000;   % assumed target altitude MSL [m]
 
@@ -799,14 +806,14 @@ for i_part = 1 : N_parts
         fprintf('    (none)\n');
     else
         fprintf('  %-6s  %-10s  %-10s  %-11s  %-8s  %-9s  %-4s\n', ...
-            'T#', 'R_est(km)', 'D_est(Hz)', 'v_est(m/s)', ...
+            'T#', 'R_est(km)', 'D_est(Hz)', 'Rdot(m/s)', ...
             'σ_R(m)', 'σ_v(m/s)', 'Age');
         for ii = 1 : n_trk
             st  = conf_trks(ii).State;
             P   = conf_trks(ii).StateCovariance;
             tid = conf_trks(ii).TrackID;
             fprintf('  T%-5d  %-10.3f  %-10.1f  %-11.1f  %-8.1f  %-9.2f  %-4d\n', ...
-                tid, st(1)/1e3, alpha_trk*st(2), st(2), ...
+                tid, st(1)/1e3, -alpha_trk * st(2), st(2), ...
                 sqrt(max(0, P(1,1))), sqrt(max(0, P(2,2))), ...
                 conf_trks(ii).Age);
         end
@@ -896,7 +903,7 @@ for k = 1 : n_unique_tracks
     scatter(ax_tl, 0.07, y_k, 70, clr, 'filled');
     text(ax_tl, 0.16, y_k, ...
         sprintf('T%-4d  %6.1f  %+8.0f', ...
-        tid, trk.State(1)/1e3, alpha_trk * trk.State(2)), ...
+        tid, trk.State(1)/1e3, -alpha_trk * trk.State(2)), ...
         'Color', 'w', 'FontSize', 9, 'FontName', 'Courier', ...
         'VerticalAlignment', 'middle');
 end
@@ -909,7 +916,7 @@ for k = 1 : n_unique_tracks
     tid  = all_tid_seen(k);
     trk  = all_last_trks{k};
     fprintf('  T%-5d  %-10.3f  %-10.1f  %s\n', ...
-        tid, trk.State(1)/1e3, alpha_trk * trk.State(2), ...
+        tid, trk.State(1)/1e3, -alpha_trk * trk.State(2), ...
         CLR_NAMES{mod(tid - 1, N_ID_COLORS) + 1});
 end
 
@@ -1028,6 +1035,7 @@ else
     truth_diag_input = buildDetectionTruthDiagnosticInput( ...
         config, data_parts, ...
         part_start_offsets_s, part_end_offsets_s, all_track_dets, ...
+        'PartTimingInfo', part_timing_info, ...
         'TracksLog', tracks_log_for_truth, ...
         'PartResults', part_res, ...
         'PartDurationS', part_dur_s, ...

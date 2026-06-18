@@ -6,7 +6,7 @@ function adsb_bistatic = adsbToBistatic(adsb_tracks, txLLA, rxLLA, fc)
 %  The passive bistatic radar measures two scalars per detection:
 %
 %    R_excess  =  R_tx + R_rx  −  L       [m]   (from CAF range axis)
-%    f_D       = -(2·fc/c) · dR_excess/dt [Hz]  (passive-radar CAF sign)
+%    f_D       = -(fc/c) · dR_excess/dt [Hz]  (passive-radar CAF sign)
 %
 %  where R_tx is the slant range from the HDTV transmitter (Tx) to the
 %  target, R_rx is the slant range from the surveillance receiver (Rx) to
@@ -17,12 +17,11 @@ function adsb_bistatic = adsbToBistatic(adsb_tracks, txLLA, rxLLA, fc)
 %  R_excess directly from geometry.  The bistatic Doppler is then derived
 %  by numerically differentiating the R_excess time series:
 %
-%    f_D ≈ -(2·fc/c) · ΔR_excess / Δt
+%    f_D ≈ -(fc/c) · ΔR_excess / Δt
 %
-%  This avoids any ambiguity in the bistatic Doppler formula (monostatic
-%  factor of 2 vs. bistatic (cos β_tx + cos β_rx)) and is exactly
-%  consistent with the radar code's Doppler axis convention:
-%    α = 2·fc/c   [Hz/(m/s)] used throughout analyzeBistaticData.m
+%  This avoids any ambiguity in closed-form bistatic-angle formulas and is
+%  exactly consistent with the radar code's Doppler axis convention:
+%    α = fc/c   [Hz/(m/s)] used throughout analyzeBistaticData.m
 %
 % ── ENU GEOMETRY ────────────────────────────────────────────────────────
 %  All computations use the same WGS-84 ENU frame as plotBistaticEllipses3D:
@@ -44,7 +43,7 @@ function adsb_bistatic = adsbToBistatic(adsb_tracks, txLLA, rxLLA, fc)
 %
 %   rxLLA         [1×3] Receiver position    [lat_deg, lon_deg, alt_m_MSL].
 %
-%   fc            Carrier frequency [Hz].  Needed for the α = 2fc/c
+%   fc            Carrier frequency [Hz].  Needed for the α = fc/c
 %                 Doppler coupling factor.
 %
 % ── OUTPUTS ─────────────────────────────────────────────────────────────
@@ -104,20 +103,14 @@ end
 % =========================================================================
 %  1.  One-time bistatic geometry setup (same as plotBistaticEllipses3D §1)
 % =========================================================================
-spheroid = wgs84Ellipsoid('meter');
-c_light  = physconst('LightSpeed');   % 299 792 458 m/s
-alpha    = 2 * fc / c_light;          % Doppler coupling [Hz/(m/s)], α = 2fc/c
+geom     = helperDeriveTxRxGeometry(txLLA, rxLLA);
+spheroid = geom.spheroid;
+alpha    = helperBistaticDopplerCoupling(fc);
+L        = geom.baseline_3d_m;
 
-% Locate Tx in the Rx-centred ENU frame.
-[txE, txN, txU] = geodetic2enu( ...
-    txLLA(1), txLLA(2), txLLA(3), ...
-    rxLLA(1), rxLLA(2), rxLLA(3), spheroid);
-
-% Horizontal baseline (same approximation as plotBistaticEllipses3D)
-L = hypot(txE, txN);   % [m]
-
-fprintf('[adsbToBistatic] Baseline L = %.3f km  |  α = %.4f Hz/(m/s)  |  fc = %.0f MHz\n', ...
-    L/1e3, alpha, fc/1e6);
+fprintf(['[adsbToBistatic] Baseline L_3D = %.3f km  |  L_xy = %.3f km' ...
+    '  |  alpha = %.4f Hz/(m/s)  |  fc = %.0f MHz\n'], ...
+    L/1e3, geom.baseline_horizontal_m/1e3, alpha, fc/1e6);
 
 % =========================================================================
 %  2.  Per-aircraft bistatic projection
@@ -208,7 +201,7 @@ for k = 1 : N_aircraft
     N_valid = numel(t_pos);
 
     % ── Bistatic Doppler via numerical differentiation of R_excess ────────
-    %  f_D = -α · dR_excess/dt   where  α = 2·fc/c
+    %  f_D = -α · dR_excess/dt   where  α = fc/c
     %
     %  Numerical scheme: central differences at interior points, forward/
     %  backward differences at the endpoints.  This is equivalent to
@@ -243,7 +236,7 @@ for k = 1 : N_aircraft
                 (t_pos(3:end)      - t_pos(1:end-2));
         end
     end
-    f_D_hz = -alpha * dRdt;   % [N_valid×1]  Hz
+    f_D_hz = helperBistaticDopplerFromRangeRate(dRdt, fc);   % [N_validx1]  Hz
 
     % ── Store results ─────────────────────────────────────────────────────
     adsb_bistatic(k).t_utc      = t_pos;

@@ -17,7 +17,7 @@ function filter = initMeasurementSpaceKF(detection, fc, fs, doppler_bin_hz)
 %   Bistatic Doppler (Hz) and bistatic range rate (m/s) are related by the
 %   carrier frequency and a sign that follows from the passive-radar CAF:
 %
-%       f_D  =  −(2·fc / c) · Ṙ  =  −α · Ṙ        (monostatic approx.)
+%       f_D  =  −(fc / c) · Ṙ  =  −α · Ṙ
 %
 %   SIGN CONVENTION (verified from createRDM.m):
 %     createRDM builds the RDM as fftshift(fft(IFFT(FFT_surv × conj(FFT_ref)))).
@@ -58,8 +58,8 @@ function filter = initMeasurementSpaceKF(detection, fc, fs, doppler_bin_hz)
 %   AND the hardcoded 10 s inter-part gap without any manual adjustment.
 %
 % ── SYSTEM CONSTANTS (passed via closure; defaults are legacy 5 Msps/600 MHz)
-%   fc         → α = 2·fc/c   (Doppler coupling)
-%   fs         → range bin = c/(2·fs)
+%   fc         → α = fc/c   (Doppler coupling for R_excess)
+%   fs         → range bin = c/fs
 %   N_slow_cpi = 200,  T_cpi = 0.5 ms  → Doppler bin = 1/(200·0.5e-3) = 10 Hz
 %
 % ── USAGE ─────────────────────────────────────────────────────────────────
@@ -77,10 +77,10 @@ if nargin < 2 || isempty(fc),             fc = 600e6; end   % legacy default
 if nargin < 3 || isempty(fs),             fs = 5e6;   end   % legacy default
 if nargin < 4 || isempty(doppler_bin_hz), doppler_bin_hz = 10; end
 c_light = physconst('LightSpeed');    % speed of light  [m/s]
-alpha   = 2 * fc / c_light;           % Doppler coupling [Hz/(m/s)]
+alpha   = helperBistaticDopplerCoupling(fc);   % Doppler coupling [Hz/(m/s)]
 
 % ── Resolution cell sizes ────────────────────────────────────────────────
-range_bin_m  = c_light / (2 * fs);   % range bin [m] — depends on sample rate
+range_bin_m  = c_light / fs;         % bistatic range-cell spacing [m]
 dopp_bin_hz  = doppler_bin_hz;
 
 % ── Measurement model  H : z = H · x ────────────────────────────────────
@@ -118,14 +118,14 @@ R0    = z0(1);                   % initial bistatic range  [m]
 %   Ṙ₀ = -f_D / α.  Sign is critical: positive f_D = approaching = Ṙ < 0.
 %   Using +f_D/α would seed range-rate with the wrong sign, making the
 %   filter predict range moving in the opposite direction to all measurements.
-Rdot0 = -z0(2) / alpha;          % seed Ṙ₀: Ṙ = -f_D / α  [m/s]
+Rdot0 = helperBistaticRangeRateFromDoppler(z0(2), fc);   % [m/s]
 x0    = [R0; Rdot0];
 
 % ── Initial state covariance  P₀ ─────────────────────────────────────────
 %   Range:      1 bin² variance — range measurement is well-localised.
 %   Range rate: wide uncertainty (±50 bins) — we trust the Doppler seed
-%               but allow for bistatic geometry effects not captured by the
-%               monostatic approximation.
+%               but allow for geometry effects beyond the simple excess-path
+%               Doppler mapping.
 P0 = diag([range_bin_m^2, (50 * range_bin_m / alpha)^2]);
 
 % ── Construct trackingKF ──────────────────────────────────────────────────

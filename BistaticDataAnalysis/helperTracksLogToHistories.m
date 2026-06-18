@@ -31,8 +31,6 @@ if isempty(tracks_log)
     return
 end
 
-alpha = 2 * fc / physconst('LightSpeed');
-
 for s = 1 : numel(tracks_log)
     t_step = tracks_log(s).time;
     trks   = tracks_log(s).tracks;
@@ -59,17 +57,18 @@ for s = 1 : numel(tracks_log)
             track_histories(idx).StateCovDiag = zeros(0, 0);
         end
 
-        track_histories(idx).t_abs_s(end + 1, 1)    = t_step; %#ok<AGROW>
-        track_histories(idx).R_excess_m(end + 1, 1) = state(1); %#ok<AGROW>
-        track_histories(idx).Rdot_mps(end + 1, 1)   = state(2); %#ok<AGROW>
-        track_histories(idx).f_D_hz(end + 1, 1)     = -alpha * state(2); %#ok<AGROW>
+        track_histories(idx).t_abs_s(end + 1, 1)    = t_step;
+        track_histories(idx).R_excess_m(end + 1, 1) = state(1);
+        track_histories(idx).Rdot_mps(end + 1, 1)   = state(2);
+        track_histories(idx).f_D_hz(end + 1, 1)     = ...
+            helperBistaticDopplerFromRangeRate(state(2), fc);
 
         if isprop_or_field(trks(ii), 'StateCovariance')
             diagP = diag(trks(ii).StateCovariance).';
             if isempty(track_histories(idx).StateCovDiag)
                 track_histories(idx).StateCovDiag = zeros(0, numel(diagP));
             end
-            track_histories(idx).StateCovDiag(end + 1, 1:numel(diagP)) = diagP; %#ok<AGROW>
+            track_histories(idx).StateCovDiag(end + 1, 1:numel(diagP)) = diagP;
         end
     end
 end
