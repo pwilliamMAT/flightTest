@@ -246,6 +246,33 @@ pre = runDirectPathPrecheck('20260616T131954', ...
     'IlluminatorCenterFrequencyHz', 599e6);
 ```
 
+To audit an entire packaged session instead of one representative slice:
+
+```matlab
+cd BistaticDataAnalysis
+rf = runSessionRFQualityAudit('20260616T160702');
+rf.part_table
+rf.summary
+rf.assessment
+```
+
+This session-level audit keeps the RF-only questions separate from later detector/truth diagnostics. It checks whether the capture is consistently usable for passive radar by measuring, per part:
+- reference-channel level, ATSC pilot coherence, and spectral flatness
+- direct-path lag dominance between surveillance and reference
+- zero-Doppler ridge strength before ECA-C and suppression after ECA-C
+
+Then it rolls those into one sufficiency decision for either `aircraft_detection` or `tracking_validation`. Use this before spending time on CFAR sweeps or truth debugging.
+
+Use the stricter goal when the intended outcome is track-quality validation or quantitative truth comparison, not just "can the session support aircraft detection at all?":
+
+```matlab
+rf_track = runSessionRFQualityAudit('20260616T160702', ...
+    'Goal', 'tracking_validation');
+rf_track.assessment
+```
+
+By default, `tracking_validation` requires every audited part to clear the RF bars, while `aircraft_detection` allows a high pass fraction across the session.
+
 ### 3b. Re-run Only the Truth Diagnostics
 
 After one full session run, you can iterate on the detection-vs-truth plots without re-running the raw IQ pipeline:

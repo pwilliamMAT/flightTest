@@ -213,6 +213,27 @@ Interpretation:
 - if compensated `TP` rises sharply, detector localization or truth projection is biased by an approximately constant `(ΔR, Δf)`
 - if compensated `TP` stays near zero, the remaining problem is more likely weak target energy / RF front-end quality than a simple global offset
 
+At that point, run the RF session audit before spending more time on CFAR or truth-gate tuning:
+
+```matlab
+rf = runSessionRFQualityAudit('20260616T160702');
+rf.part_table
+rf.summary
+rf.assessment
+```
+
+Use the stricter goal when the intent is tracking-quality validation rather than only aircraft-presence detection:
+
+```matlab
+rf_track = runSessionRFQualityAudit('20260616T160702', ...
+    'Goal', 'tracking_validation');
+rf_track.assessment
+```
+
+Decision rule:
+- if `rf.assessment.sufficient_for_goal` is false, fix RF/reference/cancellation quality before more detector tuning
+- if the RF audit passes and compensated `TP` is still near zero, the next suspect is detector localization or thresholding rather than front-end sufficiency
+
 ### 7. Pre-patch versus post-patch comparison  `[pending]`
 
 - [ ] Keep `C:\Users\pwilliam\agenticProjects\bistaticOutput.txt` as the pre-patch reference log.
