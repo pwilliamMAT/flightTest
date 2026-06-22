@@ -123,7 +123,11 @@ if opts.Verbose
     fprintf('[runSessionRFQualityAudit] Parts .......... %s\n', mat2str(part_indices));
 end
 
-per_part_results = repmat(struct(), 1, numel(part_indices));
+% Use a cell accumulator first. Assigning a fielded struct into a
+% preallocated zero-field struct array throws "Subscripted assignment
+% between dissimilar structures" on MATLAB, which is exactly what a
+% session audit does on its first part.
+per_part_results = cell(1, numel(part_indices));
 for k = 1 : numel(part_indices)
     part_idx = part_indices(k);
     if opts.Verbose
@@ -131,7 +135,7 @@ for k = 1 : numel(part_indices)
             k, numel(part_indices), part_idx);
     end
 
-    per_part_results(k) = runDirectPathPrecheck(source_str, ...
+    per_part_results{k} = runDirectPathPrecheck(source_str, ...
         'DatasetRoot', opts.DatasetRoot, ...
         'SessionFolder', opts.SessionFolder, ...
         'ManifestPath', opts.ManifestPath, ...
@@ -154,6 +158,7 @@ for k = 1 : numel(part_indices)
         'FigureVisibility', opts.FigureVisibility, ...
         'Verbose', false);
 end
+per_part_results = [per_part_results{:}];
 
 rf_audit = summarizeRFQualityAudit(per_part_results, ...
     'Goal', opts.Goal, ...

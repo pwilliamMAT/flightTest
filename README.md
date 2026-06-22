@@ -262,6 +262,7 @@ This session-level audit keeps the RF-only questions separate from later detecto
 - zero-Doppler ridge strength before ECA-C and suppression after ECA-C
 
 Then it rolls those into one sufficiency decision for either `aircraft_detection` or `tracking_validation`. Use this before spending time on CFAR sweeps or truth debugging.
+Per-part warnings are preserved in `rf.part_table` and rolled into the session summary; one weak part should not stop the audit from evaluating the rest of the session.
 
 Use the stricter goal when the intended outcome is track-quality validation or quantitative truth comparison, not just "can the session support aircraft detection at all?":
 

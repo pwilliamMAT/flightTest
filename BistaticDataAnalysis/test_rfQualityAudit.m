@@ -3,6 +3,19 @@
 
 clear; clc;
 
+% Regression for the session wrapper's part-result accumulation.
+cell_results = cell(1, 3);
+for k = 1 : 3
+    tmp = localMakeResult();
+    tmp.source_info.session_id = "wrapper_regression";
+    tmp.source_info.part_index = k;
+    cell_results{k} = tmp;
+end
+
+wrapper_style_results = [cell_results{:}];
+assert(numel(wrapper_style_results) == 3);
+assert(wrapper_style_results(3).source_info.part_index == 3);
+
 good_results = repmat(localMakeResult(), 1, 3);
 for k = 1 : 3
     good_results(k).source_info.session_id = "good_session";
