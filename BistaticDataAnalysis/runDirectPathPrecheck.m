@@ -11,7 +11,7 @@ function results = runDirectPathPrecheck(source, varargin)
 %    (b) one dominant correlation peak between surveillance and reference,
 %        which means the direct path is easy to identify in lag, and
 %    (c) a strong zero-Doppler ridge before ECA-C that is clearly reduced
-%        after clutter mitigation.
+%        and left close enough to the noise floor after clutter mitigation.
 %
 %  The function reads only a short slice from one radar file (default 1 s)
 %  so it stays fast even when the full session is a long continuous capture.
@@ -51,6 +51,7 @@ addParameter(p, 'NoiseRegionRangeM', [130e3, 150e3], @(x) isnumeric(x) && numel(
 addParameter(p, 'NoiseRegionDopplerHz', [200, 1000], @(x) isnumeric(x) && numel(x) == 2);
 addParameter(p, 'DirectPathBeforeMarginMinDB', 15, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'ZeroDopplerSuppressionMinDB', 30, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'ZeroDopplerAfterMarginMaxDB', 15, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'PlotFigures', true, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'FigureVisibility', 'on', @(x) any(strcmpi(string(x), ["on", "off"])));
 addParameter(p, 'Verbose', false, @(x) islogical(x) && isscalar(x));
@@ -157,6 +158,7 @@ zero_doppler = helperMeasureZeroDopplerSuppression( ...
     'NoiseRegionDopplerHz', opts.NoiseRegionDopplerHz, ...
     'BeforeMarginMinDB', opts.DirectPathBeforeMarginMinDB, ...
     'SuppressionMinDB', opts.ZeroDopplerSuppressionMinDB, ...
+    'AfterMarginMaxDB', opts.ZeroDopplerAfterMarginMaxDB, ...
     'Verbose', opts.Verbose);
 
 figure_handles = struct('reference', [], 'cross_correlation', [], 'zero_doppler', []);
@@ -350,7 +352,8 @@ if ~reference_quality.level_pass
 end
 
 if ~reference_quality.pilot_pass
-    recommendations{end + 1} = 'Reference channel does not show a coherent ATSC pilot. Check band selection, antenna aim, and capture center frequency.';
+    recommendations{end + 1} = ['Reference channel does not show a coherent ATSC pilot. Check band selection, antenna aim, ' ...
+        'capture center frequency, and whether the reference path needs more direct-path gain or an inline LNA.'];
 end
 
 if isfield(reference_quality, 'pilot_selection')
@@ -375,7 +378,9 @@ if ~cross_correlation.pass
 end
 
 if ~zero_doppler.pass
-    recommendations{end + 1} = 'Zero-Doppler ridge is not being cleanly driven down by ECA-C on this slice. Check reference quality, swap_channels, and CPI stationarity.';
+    recommendations{end + 1} = ['Residual zero-Doppler ridge remains too strong after ECA-C on this slice. ' ...
+        'Check reference quality, reference-path gain/LNA, illuminator alignment, and CPI stationarity. ' ...
+        'Use swap_channels only if pilot coherence improves materially when swapped.'];
 end
 end
 

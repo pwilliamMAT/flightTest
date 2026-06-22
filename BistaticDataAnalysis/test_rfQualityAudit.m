@@ -37,6 +37,7 @@ assert(height(good_audit.part_table) == 3);
 assert(good_audit.summary.reference_chain_ok);
 assert(good_audit.summary.direct_path_ok);
 assert(good_audit.summary.clutter_cancel_ok);
+assert(good_audit.summary.after_margin_pass_fraction == 1);
 assert(good_audit.summary.session_stable_ok);
 assert(good_audit.assessment.sufficient_for_goal);
 
@@ -75,6 +76,26 @@ assert(~bad_audit.summary.frequency_consistency_ok);
 assert(~bad_audit.summary.session_stable_ok);
 assert(~bad_audit.assessment.sufficient_for_goal);
 
+residual_results = repmat(localMakeResult(), 1, 3);
+for k = 1 : 3
+    residual_results(k).source_info.session_id = "residual_session";
+    residual_results(k).source_info.part_index = k;
+    residual_results(k).reference_quality.level_dbfs = -21;
+    residual_results(k).reference_quality.level_pass = true;
+    residual_results(k).reference_quality.pilot_snr_db = 8.5;
+    residual_results(k).reference_quality.pilot_pass = false;
+    residual_results(k).zero_doppler.suppression_db = 35;
+    residual_results(k).zero_doppler.after_margin_db = 28;
+    residual_results(k).zero_doppler.after_margin_pass = false;
+    residual_results(k).zero_doppler.after_at_noise_floor = false;
+    residual_results(k).zero_doppler.pass = false;
+end
+
+residual_audit = summarizeRFQualityAudit(residual_results, 'Verbose', false);
+assert(residual_audit.summary.after_margin_pass_fraction == 0);
+assert(any(contains(residual_audit.assessment.notes, "residual ridge")));
+assert(any(contains(residual_audit.assessment.notes, "LNA/preamplifier")));
+
 fprintf('test_rfQualityAudit passed.\n');
 
 function result = localMakeResult()
@@ -103,6 +124,8 @@ result = struct( ...
         'before_margin_db', 28, ...
         'suppression_db', 31, ...
         'after_margin_db', 3, ...
+        'after_margin_max_db', 15, ...
+        'after_margin_pass', true, ...
         'after_at_noise_floor', true, ...
         'pass', true));
 end

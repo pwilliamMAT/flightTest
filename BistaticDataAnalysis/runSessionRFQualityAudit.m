@@ -34,7 +34,8 @@ function audit = runSessionRFQualityAudit(source, varargin)
 %   'LagCheckCPIs', 'CrossCorrelationPeakMinDB',
 %   'CrossCorrelationIsolationMinDB', 'NearRangeLimitM',
 %   'NoiseRegionRangeM', 'NoiseRegionDopplerHz',
-%   'DirectPathBeforeMarginMinDB', 'ZeroDopplerSuppressionMinDB'
+%   'DirectPathBeforeMarginMinDB', 'ZeroDopplerSuppressionMinDB',
+%   'ZeroDopplerAfterMarginMaxDB'
 %
 % Output
 %   audit   Struct containing:
@@ -76,6 +77,7 @@ addParameter(p, 'NoiseRegionRangeM', [130e3, 150e3], @(x) isnumeric(x) && numel(
 addParameter(p, 'NoiseRegionDopplerHz', [200, 1000], @(x) isnumeric(x) && numel(x) == 2);
 addParameter(p, 'DirectPathBeforeMarginMinDB', 15, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'ZeroDopplerSuppressionMinDB', 30, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'ZeroDopplerAfterMarginMaxDB', 15, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'PlotFigures', false, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'FigureVisibility', 'on', @(x) any(strcmpi(string(x), ["on", "off"])));
 addParameter(p, 'Verbose', true, @(x) islogical(x) && isscalar(x));
@@ -154,6 +156,7 @@ for k = 1 : numel(part_indices)
         'NoiseRegionDopplerHz', opts.NoiseRegionDopplerHz, ...
         'DirectPathBeforeMarginMinDB', opts.DirectPathBeforeMarginMinDB, ...
         'ZeroDopplerSuppressionMinDB', opts.ZeroDopplerSuppressionMinDB, ...
+        'ZeroDopplerAfterMarginMaxDB', opts.ZeroDopplerAfterMarginMaxDB, ...
         'PlotFigures', opts.PlotFigures, ...
         'FigureVisibility', opts.FigureVisibility, ...
         'Verbose', false);

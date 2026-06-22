@@ -233,11 +233,13 @@ pre = runDirectPathPrecheck('C:\path\to\capture_part1.bb', ...
     'PlotFigures', true);
 ```
 
-If the channel-power diagnostic suggests the reference antenna is actually on `RX1`, rerun the precheck with:
+If the channel-power diagnostic, pilot-coherence plot, and ECA-C behaviour together suggest the better ATSC reference is actually on `RX1`, rerun the precheck with:
 
 ```matlab
 pre = runDirectPathPrecheck('20260616T090717', 'SwapChannels', true);
 ```
+
+Power asymmetry alone is not enough to infer a swap. In this project's default hardware, the surveillance channel may be stronger because it uses a higher-gain / amplified Yagi while the reference channel may be a small unamplified omni.
 
 If you know the actual ATSC illuminator center, pass it explicitly so the pilot search uses the exact channel geometry instead of the nearest raster guess:
 
@@ -259,10 +261,12 @@ rf.assessment
 This session-level audit keeps the RF-only questions separate from later detector/truth diagnostics. It checks whether the capture is consistently usable for passive radar by measuring, per part:
 - reference-channel level, ATSC pilot coherence, and spectral flatness
 - direct-path lag dominance between surveillance and reference
-- zero-Doppler ridge strength before ECA-C and suppression after ECA-C
+- zero-Doppler ridge strength before ECA-C, suppression after ECA-C, and whether the residual ridge still sits too far above the post-ECA noise floor
 
 Then it rolls those into one sufficiency decision for either `aircraft_detection` or `tracking_validation`. Use this before spending time on CFAR sweeps or truth debugging.
 Per-part warnings are preserved in `rf.part_table` and rolled into the session summary; one weak part should not stop the audit from evaluating the rest of the session.
+The audit intentionally does not use raw inter-channel power asymmetry as a sufficiency metric, because in this hardware the surveillance Yagi may legitimately be much stronger than the small reference omni.
+If the reference ADC level looks acceptable but pilot coherence stays weak, a reference-side LNA / amplifier is a valid hardware adjustment and should be treated as in scope.
 
 Use the stricter goal when the intended outcome is track-quality validation or quantitative truth comparison, not just "can the session support aircraft detection at all?":
 
@@ -397,7 +401,7 @@ If a replay sweep drives `n_detections` up by 10x-30x while `n_tp` stays near ze
 - The replay truth model may be using the wrong carrier frequency. Check the saved session metadata and the `adsbToBistatic` console line. If the capture was actually centered at 600 MHz but truth projection is using 540 MHz, the expected Doppler will be scaled low by about 11%.
 - The surveillance antenna may be badly mismatched to the broadcast band. A 978 MHz surveillance antenna used on a roughly 540-600 MHz HDTV illuminator can still receive energy, but with reduced gain and pattern quality, which lowers aircraft echo SNR before CFAR ever runs.
 - A fixed range or timing alignment error may still be present. Large false-alarm growth with almost no Pd improvement is more consistent with a localization bias than with an overly strict threshold.
-- The channel assignment may be wrong even if the nominal reference-quality check passes. If `loadIQData` prints `CH1 is ... dB stronger than CH2` while the default mapping is `CH1=Surveillance, CH2=Reference`, treat that as a strong sign that the reference antenna may actually be on `RX1`. In that case, rerun the full session with `config.swap_channels = true` before drawing conclusions from detector truth scoring.
+- The channel assignment may still be wrong even if the nominal reference-quality check passes, but do not use channel power alone to infer that. In this project, an amplified surveillance Yagi can make `CH1` much stronger than `CH2` even when the default mapping is correct. Treat a swap as plausible only if the pilot-coherence / direct-path prechecks improve materially when `config.swap_channels = true`.
 
 In that situation, prioritize:
 

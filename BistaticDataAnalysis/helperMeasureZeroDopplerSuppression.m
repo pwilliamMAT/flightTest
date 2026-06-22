@@ -3,8 +3,9 @@ function metrics = helperMeasureZeroDopplerSuppression(surv_cube, ref_cube, fs, 
 %
 %  Before clutter mitigation, the direct path and static clutter should
 %  produce a strong zero-Doppler ridge. After ECA-C, that ridge should be
-%  substantially reduced or driven down to the noise floor. This helper
-%  measures that behaviour on the same RDM products used by the main
+%  substantially reduced and the residual ridge should sit close enough to
+%  the noise floor that it no longer dominates detector thresholding. This
+%  helper measures that behaviour on the same RDM products used by the main
 %  passive-radar pipeline.
 
 p = inputParser;
@@ -18,6 +19,7 @@ addParameter(p, 'NoiseRegionRangeM', [130e3, 150e3], @(x) isnumeric(x) && numel(
 addParameter(p, 'NoiseRegionDopplerHz', [200, 1000], @(x) isnumeric(x) && numel(x) == 2);
 addParameter(p, 'BeforeMarginMinDB', 15, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'SuppressionMinDB', 30, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'AfterMarginMaxDB', 15, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'Verbose', false, @(x) islogical(x) && isscalar(x));
 parse(p, surv_cube, ref_cube, fs, prf, varargin{:});
 opts = p.Results;
@@ -57,12 +59,15 @@ suppression_db = before_val - after_val;
 before_margin_db = before_val - noise_floor_db;
 after_margin_db = after_val - noise_floor_db;
 after_at_noise_floor = after_val <= noise_floor_db + 6;
+before_margin_pass = before_margin_db >= opts.BeforeMarginMinDB;
+suppression_pass = suppression_db >= opts.SuppressionMinDB;
+after_margin_pass = after_margin_db <= opts.AfterMarginMaxDB;
 
 near_range_doppler_before_db = mean(rdm_before(near_r_mask, :), 1);
 near_range_doppler_after_db = mean(rdm_after(near_r_mask, :), 1);
 
-pass = before_margin_db >= opts.BeforeMarginMinDB && ...
-    (suppression_db >= opts.SuppressionMinDB || after_at_noise_floor);
+pass = before_margin_pass && after_margin_pass && ...
+    (suppression_pass || after_at_noise_floor);
 
 if pass
     verdict = 'PASS';
@@ -91,6 +96,10 @@ metrics = struct( ...
     'suppression_db',                suppression_db, ...
     'before_margin_min_db',          opts.BeforeMarginMinDB, ...
     'suppression_min_db',            opts.SuppressionMinDB, ...
+    'after_margin_max_db',           opts.AfterMarginMaxDB, ...
+    'before_margin_pass',            before_margin_pass, ...
+    'suppression_pass',              suppression_pass, ...
+    'after_margin_pass',             after_margin_pass, ...
     'after_at_noise_floor',          after_at_noise_floor, ...
     'pass',                          pass, ...
     'message', sprintf( ...

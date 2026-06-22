@@ -72,9 +72,13 @@ end
 if verbose, fprintf('  %d complex samples available per channel.\n', n_actual); end
 
 %% 2b. Per-channel power diagnostic
-% Compare mean signal power of CH1 (RX1) and CH2 (RX2).
-% The reference antenna (aimed at the ATSC tower) should be the stronger channel.
-% If CH1 is significantly stronger, the cables may be swapped.
+% Compare mean signal power of CH1 and CH2.
+% This is only a rough topology check, not a channel-role oracle. In this
+% project, the surveillance path may legitimately be stronger because it
+% uses a higher-gain / amplified Yagi while the reference path may be a
+% small omnidirectional antenna without inline gain. Use power asymmetry
+% together with the pilot-coherence and direct-path prechecks, not by
+% itself, to decide whether swap_channels is worth testing.
 ch1_pwr      = mean(abs(ch1_raw).^2);
 ch2_pwr      = mean(abs(ch2_raw).^2);
 pwr_ratio_db = 10 * log10(ch1_pwr / max(ch2_pwr, eps));
@@ -85,12 +89,14 @@ if verbose
 end
 if pwr_ratio_db > 10
     fprintf(['  CHANNEL DIAGNOSTIC: CH1 is %.0f dB stronger than CH2.\n' ...
-             '  Default: CH1=Surveillance, CH2=Reference.\n' ...
-             '  If the reference antenna is on RX1, set config.swap_channels = true.\n'], ...
+             '  With an amplified surveillance Yagi on CH1 and a weaker omni reference on CH2, this can be normal.\n' ...
+             '  Do not infer swapped channels from power alone; compare pilot coherence and precheck plots before setting config.swap_channels = true.\n'], ...
              pwr_ratio_db);
 elseif pwr_ratio_db < -10
     if verbose
-        fprintf('  Channel powers nominal: CH2 (Reference) is %.0f dB stronger than CH1.\n', -pwr_ratio_db);
+        fprintf(['  CHANNEL DIAGNOSTIC: CH2 is %.0f dB stronger than CH1.\n' ...
+                 '  That is compatible with a strong direct-path reference on CH2, but power alone still does not prove channel roles.\n'], ...
+                 -pwr_ratio_db);
     end
 end
 
