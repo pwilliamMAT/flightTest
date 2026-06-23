@@ -46,6 +46,8 @@ function results = checkRefQuality(reference_cube, config)
 %                        .capture_center_frequency_hz  header center
 %                        .capture_tune_frequency_hz    actual SDR tune
 %                        .capture_lo_offset_hz         metadata LO offset
+%                        .session_manifest_center_frequency_hz
+%                        .session_manifest_lo_offset_hz
 %                        .illuminator_center_frequency_hz optional ATSC
 %                        .pilot_search_half_width_hz   search half-width
 %
@@ -111,11 +113,6 @@ elseif isfield(config, 'fc') && ~isempty(config.fc)
     capture_center_hz = double(config.fc);
 end
 
-capture_tune_hz = [];
-if isfield(config, 'capture_tune_frequency_hz') && ~isempty(config.capture_tune_frequency_hz)
-    capture_tune_hz = double(config.capture_tune_frequency_hz);
-end
-
 lo_offset_hz = 0;
 if isfield(config, 'capture_lo_offset_hz') && ~isempty(config.capture_lo_offset_hz)
     lo_offset_hz = double(config.capture_lo_offset_hz);
@@ -130,13 +127,32 @@ if isfield(config, 'illuminator_center_frequency_hz') && ~isempty(config.illumin
     illuminator_center_hz = double(config.illuminator_center_frequency_hz);
 end
 
+session_manifest_center_hz = [];
+if isfield(config, 'session_manifest_center_frequency_hz') && ...
+        ~isempty(config.session_manifest_center_frequency_hz)
+    session_manifest_center_hz = double(config.session_manifest_center_frequency_hz);
+end
+
+session_manifest_lo_offset_hz = [];
+if isfield(config, 'session_manifest_lo_offset_hz') && ...
+        ~isempty(config.session_manifest_lo_offset_hz)
+    session_manifest_lo_offset_hz = double(config.session_manifest_lo_offset_hz);
+end
+
+frequency_context = helperResolveCaptureFrequencyContext( ...
+    'RequestedIlluminatorCenterHz', illuminator_center_hz, ...
+    'HeaderCenterFrequencyHz', capture_center_hz, ...
+    'HeaderLOOffsetHz', lo_offset_hz, ...
+    'SessionManifestCenterFrequencyHz', session_manifest_center_hz, ...
+    'SessionManifestLOOffsetHz', session_manifest_lo_offset_hz);
+
 pilot_selection = helperSelectATSCPilotCandidate( ...
     freq_axis, coherence_snr_db, ...
     'SampleRateHz', config.fs, ...
     'CaptureCenterFrequencyHz', capture_center_hz, ...
-    'CaptureTuneFrequencyHz', capture_tune_hz, ...
-    'LOOffsetHz', lo_offset_hz, ...
-    'IlluminatorCenterFrequencyHz', illuminator_center_hz, ...
+    'CaptureTuneFrequencyHz', frequency_context.capture_tune_frequency_hz, ...
+    'LOOffsetHz', frequency_context.capture_lo_offset_hz, ...
+    'IlluminatorCenterFrequencyHz', frequency_context.illuminator_center_frequency_hz, ...
     'SpectralPowerDB', spectral_power_db, ...
     'SearchHalfWidthHz', config.pilot_search_half_width_hz);
 
@@ -165,6 +181,7 @@ results.pilot_is_mirrored = pilot_selection.selected_is_mirrored;
 results.pilot_detection_mode = char(pilot_selection.selected_source);
 results.strongest_coherent_freq_hz = pilot_selection.global_peak_freq_hz;
 results.strongest_coherent_snr_db = pilot_selection.global_peak_snr_db;
+results.frequency_context = frequency_context;
 results.sfm_db        = sfm_db;
 results.level_pass    = level_pass;
 results.pilot_pass    = pilot_pass;
@@ -212,10 +229,13 @@ if ~results.pass
                      '    on the reference channel is a valid hardware adjustment.\n']);
         end
         if isfinite(pilot_selection.header_center_off_raster_hz) && abs(pilot_selection.header_center_off_raster_hz) > 50e3
-            fprintf('    Header center %.3f MHz is %.3f MHz from nearest ATSC center %.3f MHz.\n', ...
+            fprintf('    Capture header center %.3f MHz is %.3f MHz from nearest ATSC center %.3f MHz.\n', ...
                 pilot_selection.capture_center_frequency_hz / 1e6, ...
                 pilot_selection.header_center_off_raster_hz / 1e6, ...
                 pilot_selection.header_center_nearest_atsc_hz / 1e6);
+        end
+        if ~isempty(results.frequency_context.notes)
+            fprintf('    Frequency context: %s\n', results.frequency_context.message);
         end
     end
     if ~sfm_pass

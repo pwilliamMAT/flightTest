@@ -159,6 +159,19 @@ if exist('analysisSetup', 'var')
             ~isempty(analysisSetup.part_timing_source)
         config.part_timing_source = char(string(analysisSetup.part_timing_source));
     end
+    if isfield(analysisSetup, 'session_manifest_center_frequency_hz') && ...
+            ~isempty(analysisSetup.session_manifest_center_frequency_hz)
+        config.session_manifest_center_frequency_hz = ...
+            double(analysisSetup.session_manifest_center_frequency_hz);
+        config.fc = config.session_manifest_center_frequency_hz;
+    end
+    if isfield(analysisSetup, 'session_manifest_lo_offset_hz') && ...
+            ~isempty(analysisSetup.session_manifest_lo_offset_hz)
+        config.session_manifest_lo_offset_hz = ...
+            double(analysisSetup.session_manifest_lo_offset_hz);
+        config.capture_lo_offset_hz = config.session_manifest_lo_offset_hz;
+        config.capture_tune_frequency_hz = config.fc + config.capture_lo_offset_hz;
+    end
 
     fprintf('1. Configuring session-based analysis...\n');
     fprintf('  Session ID ........ %s\n', session_id);
@@ -252,8 +265,25 @@ try
     fprintf('\n');
 catch me_meta
     fprintf('  [WARN] Could not read .bb header from first file: %s\n', me_meta.message);
-    fprintf('  Using fallback config.fs=%.3f MSps, config.fc=%.1f MHz\n', ...
-        config.fs/1e6, config.fc/1e6);
+    if isfield(config, 'session_manifest_center_frequency_hz') && ...
+            ~isempty(config.session_manifest_center_frequency_hz)
+        config.capture_center_frequency_hz = config.session_manifest_center_frequency_hz;
+        if isfield(config, 'session_manifest_lo_offset_hz') && ...
+                ~isempty(config.session_manifest_lo_offset_hz)
+            config.capture_lo_offset_hz = config.session_manifest_lo_offset_hz;
+        elseif ~isfield(config, 'capture_lo_offset_hz')
+            config.capture_lo_offset_hz = 0;
+        end
+        config.capture_tune_frequency_hz = ...
+            config.capture_center_frequency_hz + config.capture_lo_offset_hz;
+        fprintf(['  Falling back to packaged session metadata: fs=%.3f MSps, ' ...
+            'fc=%.3f MHz, lo=%.3f MHz, tune=%.3f MHz\n'], ...
+            config.fs/1e6, config.capture_center_frequency_hz/1e6, ...
+            config.capture_lo_offset_hz/1e6, config.capture_tune_frequency_hz/1e6);
+    else
+        fprintf('  Using fallback config.fs=%.3f MSps, config.fc=%.1f MHz\n', ...
+            config.fs/1e6, config.fc/1e6);
+    end
 end
 config.dataFile = data_parts{1};  % keep for any legacy callers
 N_parts    = numel(data_parts);

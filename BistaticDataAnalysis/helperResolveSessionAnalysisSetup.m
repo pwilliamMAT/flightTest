@@ -114,6 +114,14 @@ analysis_setup = struct( ...
     'log_files', {existing_logs(:).'}, ...
     'verbose', logical(opts.Verbose));
 
+[manifest_center_hz, manifest_lo_offset_hz] = localResolveManifestFrequencyMetadata(manifest);
+if isfinite(manifest_center_hz)
+    analysis_setup.session_manifest_center_frequency_hz = manifest_center_hz;
+end
+if isfinite(manifest_lo_offset_hz)
+    analysis_setup.session_manifest_lo_offset_hz = manifest_lo_offset_hz;
+end
+
 if ~isempty(manifest.radar_epoch_utc)
     analysis_setup.radar_epoch_utc = manifest.radar_epoch_utc;
 end
@@ -130,6 +138,47 @@ if isfield(manifest, 'capture_repetition_spacing_s')
     if isnumeric(capture_gap_s) && isscalar(capture_gap_s) && isfinite(capture_gap_s) && capture_gap_s >= 0
         analysis_setup.capture_repetition_spacing_s = double(capture_gap_s);
     end
+end
+
+end
+
+function [center_hz, lo_offset_hz] = localResolveManifestFrequencyMetadata(manifest)
+center_hz = localNestedScalarOrNaN(manifest, {'sdr_defaults', 'center_frequency_hz'});
+lo_offset_hz = localNestedScalarOrNaN(manifest, {'sdr_defaults', 'lo_offset_hz'});
+
+if ~isfinite(center_hz)
+    center_hz = localNestedScalarOrNaN(manifest, {'header_readback', 'center_frequency_hz'});
+end
+
+if ~isfinite(lo_offset_hz)
+    lo_offset_hz = localNestedScalarOrNaN(manifest, {'header_readback', 'lo_offset_hz'});
+end
+end
+
+function value = localNestedScalarOrNaN(data, field_path)
+value = NaN;
+cursor = data;
+
+for k = 1:numel(field_path)
+    field_name = field_path{k};
+    if ~isstruct(cursor) || ~isfield(cursor, field_name)
+        return
+    end
+    cursor = cursor.(field_name);
+end
+
+if isempty(cursor)
+    return
+end
+
+if isnumeric(cursor)
+    cursor = double(cursor);
+    cursor = cursor(1);
+else
+    cursor = str2double(string(cursor));
+end
+if isfinite(cursor)
+    value = cursor;
 end
 end
 

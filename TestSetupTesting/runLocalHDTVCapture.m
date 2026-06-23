@@ -53,13 +53,26 @@ for k = 1:numel(written_files)
 end
 
 recording_utc = NaN;
+header_center_frequency_hz = NaN;
+header_lo_offset_hz = NaN;
+header_tune_frequency_hz = NaN;
+header_sample_rate_hz = NaN;
 if ~isempty(absolute_files)
     try
         meta_reader = comm.BasebandFileReader(char(absolute_files(1)), 'SamplesPerFrame', 1);
+        header_center_frequency_hz = double(meta_reader.CenterFrequency);
+        header_sample_rate_hz = double(meta_reader.SampleRate);
         file_meta = meta_reader.Metadata;
         release(meta_reader);
         if isstruct(file_meta) && isfield(file_meta, 'RecordingUTC') && ~isempty(file_meta.RecordingUTC)
             recording_utc = double(file_meta.RecordingUTC);
+        end
+        if isstruct(file_meta) && isfield(file_meta, 'LOOffset') && ~isempty(file_meta.LOOffset)
+            header_lo_offset_hz = double(file_meta.LOOffset);
+        end
+        if isfinite(header_center_frequency_hz)
+            header_tune_frequency_hz = header_center_frequency_hz + ...
+                localFiniteOrZero(header_lo_offset_hz);
         end
     catch me_meta
         warning('runLocalHDTVCapture:recordingTimeUnavailable', ...
@@ -80,6 +93,10 @@ capture_info = struct( ...
     'center_frequency_hz', opts.CenterFrequency_Hz, ...
     'sample_rate_hz', opts.SampleRate_Hz, ...
     'lo_offset_hz', opts.LOOffset_Hz, ...
+    'header_center_frequency_hz', header_center_frequency_hz, ...
+    'header_lo_offset_hz', header_lo_offset_hz, ...
+    'header_tune_frequency_hz', header_tune_frequency_hz, ...
+    'header_sample_rate_hz', header_sample_rate_hz, ...
     'gain', opts.Gain, ...
     'recording_utc', recording_utc, ...
     'local_capture_files', absolute_files);
@@ -88,8 +105,29 @@ fprintf('CAPTURE_SESSION_ID=%s\n', session_id);
 if isfinite(recording_utc)
     fprintf('CAPTURE_RECORDING_UTC=%.6f\n', recording_utc);
 end
+if isfinite(header_center_frequency_hz)
+    fprintf('CAPTURE_HEADER_CENTER_FREQUENCY_HZ=%.12g\n', header_center_frequency_hz);
+end
+if isfinite(header_lo_offset_hz)
+    fprintf('CAPTURE_HEADER_LO_OFFSET_HZ=%.12g\n', header_lo_offset_hz);
+end
+if isfinite(header_tune_frequency_hz)
+    fprintf('CAPTURE_HEADER_TUNE_FREQUENCY_HZ=%.12g\n', header_tune_frequency_hz);
+end
+if isfinite(header_sample_rate_hz)
+    fprintf('CAPTURE_HEADER_SAMPLE_RATE_HZ=%.12g\n', header_sample_rate_hz);
+end
 for k = 1:numel(absolute_files)
     fprintf('CAPTURE_FILE_%d=%s\n', k, absolute_files(k));
+end
+
+if isfinite(header_center_frequency_hz)
+    fprintf(['Header readback: center=%.3f MHz, lo=%.3f MHz, tune=%.3f MHz, ' ...
+        'sampleRate=%.3f MSps\n'], ...
+        header_center_frequency_hz / 1e6, ...
+        localFiniteOrZero(header_lo_offset_hz) / 1e6, ...
+        header_tune_frequency_hz / 1e6, ...
+        header_sample_rate_hz / 1e6);
 end
 end
 
@@ -107,5 +145,12 @@ if is_absolute
     abs_path = file_path;
 else
     abs_path = fullfile(pwd, file_path);
+end
+end
+
+function value = localFiniteOrZero(value_in)
+value = 0;
+if isfinite(value_in)
+    value = value_in;
 end
 end

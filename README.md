@@ -58,6 +58,7 @@ captures/<session_id>/session_manifest.json
 
 At the end of a successful run, the coordinator also prints the exact `sync_capture_session.sh` command to run on the development machine for that packaged session.
 For Pi truth capture recovery, the coordinator now reads the Pi session log's `final artifact` record first, then falls back to searching the Pi capture folder and the Pi user's home tree for `adsb_<session_id>` gzip files.
+The packaged `session_manifest.json` now records both the requested SDR settings under `sdr_defaults` and a `header_readback` block from the first captured `.bb` file so later analysis can compare the intended capture settings against the actual file header metadata.
 By default the coordinator uses `--repetitions 1`, so `--capture-duration 30` records one continuous 30 s radar file. The lower-level logger still streams that capture in 1 s chunks internally for write safety, but those chunks are appended into the same `.bb` file and do not reduce the analysis size.
 
 Important syntax notes:
@@ -169,6 +170,7 @@ out = runBistaticAnalysisSession('20260611T101530');
 ```
 
 The wrapper loads `session_manifest.json`, resolves radar and `adsb_*` files automatically, ignores any `nmea_*` files that appear in the truth list, and preserves direct use of `analyzeBistaticData.m` for manual debugging.
+When packaged session frequency metadata is available, the wrapper now carries the manifest center frequency and LO offset into the analysis config so the reference-quality and pilot-selection logic can use session metadata instead of falling back immediately to a hard-coded carrier.
 For multi-part burst sessions, the analysis now derives part start offsets from each `.bb` file's `RecordingUTC` metadata when available. If that metadata cannot be read, the session wrapper falls back to the packaged manifest's `capture_repetition_spacing_s` instead of reusing the legacy fixed 3 s gap assumption.
 If you need to compare timing assumptions on the same packaged session, run `runBistaticAnalysisSession(..., 'PartTimingSource', 'metadata')` or `runBistaticAnalysisSession(..., 'PartTimingSource', 'fallback')`.
 For the ADS-B truth-fix rerun, use the dedicated helper instead of running those two passes by hand:
@@ -223,6 +225,7 @@ The reference-spectrum figure now distinguishes between:
 
 That matters when the header center is off the ATSC raster. For example, a header `Fc = 600 MHz` with `LOOffset = 200 kHz` can still contain a valid channel centered at `599 MHz`; in that case the ATSC pilot can wrap onto the positive-frequency side of baseband instead of appearing on the usual negative side.
 The printed `pilot_selection` struct also now reports the best non-mirrored score, the best mirrored score, and `mirrored_minus_nonmirrored_score` so you can see whether the data prefers a normal or spectrally inverted interpretation.
+The frequency-resolution path is now metadata-first but not metadata-blind: it uses an explicit `IlluminatorCenterFrequencyHz` override when you provide one, otherwise it locks to a file-header center only when that center is plausibly on the ATSC raster, otherwise it falls back to the packaged session metadata, and only then does it broaden to a nearby-raster search. That keeps normal sessions tied to their stored capture metadata without hard-coding one channel center into the audit.
 
 If you want to probe a specific file directly:
 
@@ -267,6 +270,8 @@ Then it rolls those into one sufficiency decision for either `aircraft_detection
 Per-part warnings are preserved in `rf.part_table` and rolled into the session summary; one weak part should not stop the audit from evaluating the rest of the session.
 The audit intentionally does not use raw inter-channel power asymmetry as a sufficiency metric, because in this hardware the surveillance Yagi may legitimately be much stronger than the small reference omni.
 If the reference ADC level looks acceptable but pilot coherence stays weak, a reference-side LNA / amplifier is a valid hardware adjustment and should be treated as in scope.
+For the current hardware baseline, `RX0/CH1` is typically the surveillance HDTV Yagi with a built-in amplifier and `RX1/CH2` is the small unamplified telescoping reference antenna. That means a reference-gain sweep such as `28,48 -> 28,54 -> 28,60` is a valid experiment, but it should be judged primarily by pilot coherence, pilot-frequency consistency, mirrored-pilot incidence, and the post-ECA residual ridge rather than by channel-power ratio alone.
+When comparing multiple gain-sweep sessions, use the same explicit `IlluminatorCenterFrequencyHz` for every run if the actual HDTV channel center is known. If a higher SDR gain improves ADC level but does not materially improve coherent pilot quality, the next in-scope fix is a better reference front end such as a reference-side LNA / amplifier, better antenna, or better placement.
 
 Use the stricter goal when the intended outcome is track-quality validation or quantitative truth comparison, not just "can the session support aircraft detection at all?":
 
@@ -818,4 +823,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: June 18, 2026*
+*Last Updated: June 22, 2026*

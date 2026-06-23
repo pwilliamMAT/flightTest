@@ -561,6 +561,10 @@ MANIFEST_PATH="$SESSION_DIR/session_manifest.json"
 MATLAB_OUTPUT_LOG="$(mktemp "${TMPDIR:-/tmp}/flighttest_capture_${SESSION_ID}_XXXX.log")"
 LOCAL_REMOTE_LOG="$LOG_DIR/adsb_capture_${SESSION_ID}.log"
 REPORTED_RECORDING_UTC=""
+REPORTED_HEADER_CENTER_FREQUENCY_HZ=""
+REPORTED_HEADER_LO_OFFSET_HZ=""
+REPORTED_HEADER_TUNE_FREQUENCY_HZ=""
+REPORTED_HEADER_SAMPLE_RATE_HZ=""
 
 echo "Preflight: verifying non-interactive SSH access to $PI_USER@$PI_HOST ..."
 set +e
@@ -600,6 +604,10 @@ done < <(grep '^CAPTURE_FILE_' "$MATLAB_OUTPUT_LOG" || true)
 
 reported_session_id="$(grep '^CAPTURE_SESSION_ID=' "$MATLAB_OUTPUT_LOG" | tail -n 1 | cut -d= -f2- || true)"
 REPORTED_RECORDING_UTC="$(grep '^CAPTURE_RECORDING_UTC=' "$MATLAB_OUTPUT_LOG" | tail -n 1 | cut -d= -f2- || true)"
+REPORTED_HEADER_CENTER_FREQUENCY_HZ="$(grep '^CAPTURE_HEADER_CENTER_FREQUENCY_HZ=' "$MATLAB_OUTPUT_LOG" | tail -n 1 | cut -d= -f2- || true)"
+REPORTED_HEADER_LO_OFFSET_HZ="$(grep '^CAPTURE_HEADER_LO_OFFSET_HZ=' "$MATLAB_OUTPUT_LOG" | tail -n 1 | cut -d= -f2- || true)"
+REPORTED_HEADER_TUNE_FREQUENCY_HZ="$(grep '^CAPTURE_HEADER_TUNE_FREQUENCY_HZ=' "$MATLAB_OUTPUT_LOG" | tail -n 1 | cut -d= -f2- || true)"
+REPORTED_HEADER_SAMPLE_RATE_HZ="$(grep '^CAPTURE_HEADER_SAMPLE_RATE_HZ=' "$MATLAB_OUTPUT_LOG" | tail -n 1 | cut -d= -f2- || true)"
 
 if [[ -n "$reported_session_id" && "$reported_session_id" != "$SESSION_ID" ]]; then
     echo "Warning: MATLAB reported session $reported_session_id but the coordinator requested $SESSION_ID." >&2
@@ -746,6 +754,28 @@ fi
     printf '    "center_frequency_hz": %s,\n' "$CENTER_FREQUENCY_HZ"
     printf '    "sample_rate_hz": %s,\n' "$SAMPLE_RATE_HZ"
     printf '    "lo_offset_hz": %s\n' "$LO_OFFSET_HZ"
+    printf '  },\n'
+    printf '  "header_readback": {\n'
+    if [[ -n "$REPORTED_HEADER_CENTER_FREQUENCY_HZ" ]]; then
+        printf '    "center_frequency_hz": %s,\n' "$REPORTED_HEADER_CENTER_FREQUENCY_HZ"
+    else
+        printf '    "center_frequency_hz": null,\n'
+    fi
+    if [[ -n "$REPORTED_HEADER_SAMPLE_RATE_HZ" ]]; then
+        printf '    "sample_rate_hz": %s,\n' "$REPORTED_HEADER_SAMPLE_RATE_HZ"
+    else
+        printf '    "sample_rate_hz": null,\n'
+    fi
+    if [[ -n "$REPORTED_HEADER_LO_OFFSET_HZ" ]]; then
+        printf '    "lo_offset_hz": %s,\n' "$REPORTED_HEADER_LO_OFFSET_HZ"
+    else
+        printf '    "lo_offset_hz": null,\n'
+    fi
+    if [[ -n "$REPORTED_HEADER_TUNE_FREQUENCY_HZ" ]]; then
+        printf '    "tune_frequency_hz": %s\n' "$REPORTED_HEADER_TUNE_FREQUENCY_HZ"
+    else
+        printf '    "tune_frequency_hz": null\n'
+    fi
     printf '  },\n'
     printf '  "radar_files": %s,\n' "$(write_json_array "${packaged_radar_files[@]}")"
     printf '  "adsb_files": %s,\n' "$(write_json_array "${packaged_adsb_files[@]}")"

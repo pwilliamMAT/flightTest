@@ -1,6 +1,94 @@
 # Next Session Handoff
 
-Updated: June 18, 2026
+Updated: June 22, 2026
+
+## June 22, 2026 RF Gain-Sweep Handoff
+
+This is the current top-priority handoff. Older ADS-B truth notes remain below for background, but the immediate blocker is RF sufficiency on the capture chain.
+
+### Current RF Blocker
+
+- Session `20260618T160532` was audited with `runSessionRFQualityAudit` and did not clear the RF sufficiency bar for `aircraft_detection`.
+- Key summary fields from that audit:
+  - `overall_pass_fraction = 0`
+  - `reference_pass_fraction = 0`
+  - `level_pass_fraction = 1`
+  - `pilot_pass_fraction = 0`
+  - `lag_pass_fraction = 1`
+  - `zero_doppler_pass_fraction = 0.6`
+  - `pilot_freq_span_hz = 5.676e6`
+  - `any_pilot_mirrored = true`
+  - `sufficient_for_goal = false`
+- Interpretation:
+  - the direct path is present and lag-isolated
+  - the blocker is weak or inconsistent coherent pilot quality on the reference chain
+  - ECA-C suppression is only partially consistent after cancellation
+  - raw channel-power asymmetry is not a valid failure signal by itself on this hardware
+
+### Hardware Context That Must Carry Forward
+
+- `RX0 / CH1`: surveillance antenna is an HDTV Yagi with a built-in amplifier
+- `RX1 / CH2`: reference antenna is a small telescoping omni with no amplifier
+- Because of that hardware split:
+  - `CH1` being materially stronger than `CH2` is expected
+  - do not use power asymmetry alone to argue for a channel swap
+  - raising SDR gain on the reference channel is a valid bounded test
+  - a reference-side LNA / amplifier is still an in-scope hardware fix if coherence stays weak
+
+### Gain Sweep Already Performed By The Operator
+
+- The user has already run three coordinated capture sessions with fixed surveillance gain and stepped reference gain:
+  - `--gain 28,48`
+  - `--gain 28,54`
+  - `--gain 28,60`
+- The outputs and session IDs from those runs had not yet been shared in-thread at the time this handoff was written.
+
+### What The Next Agent Should Do When Sweep Outputs Arrive
+
+1. Map each gain setting to its packaged session ID.
+2. For each session, run the RF audit and capture both summary and per-part metrics:
+
+```matlab
+cd BistaticDataAnalysis
+
+rf = runSessionRFQualityAudit('<session_id>', ...
+    'Goal', 'aircraft_detection');
+
+rf.summary
+rf.assessment
+rf.part_table(:, {'part_index','level_dbfs','pilot_snr_db','pilot_pass', ...
+    'pilot_freq_hz','pilot_mirrored','lag_pass','suppression_db', ...
+    'after_margin_db','after_margin_pass','zero_doppler_pass', ...
+    'overall_pass'})
+```
+
+3. If the actual HDTV illuminator center frequency is known, pass the same explicit `IlluminatorCenterFrequencyHz` for every compared session so the pilot search uses the same channel geometry across the sweep.
+4. Compare the sweep primarily on:
+  - `pilot_snr_db`
+  - `pilot_pass_fraction`
+  - `pilot_freq_span_hz`
+  - `any_pilot_mirrored`
+  - `zero_doppler_pass_fraction`
+  - `after_margin_pass_fraction`
+  - `sufficient_for_goal`
+5. Treat `level_dbfs` as secondary. A healthier ADC level does not matter if pilot coherence and pilot-frequency consistency stay poor.
+
+### Expected Interpretations
+
+- If higher reference gain materially improves pilot coherence and frequency consistency, SDR gain was part of the problem.
+- If `level_dbfs` rises but `pilot_pass_fraction` stays near zero and the pilot remains mirrored or unstable, more SDR gain alone is not enough and the next step is hardware:
+  - reference-side LNA / preamplifier
+  - better reference antenna
+  - better reference antenna placement / aim
+- If `60 dB` improves pilot metrics but worsens residual ridge cleanup or stability, do not assume max gain is best. Pick the lowest gain that improves coherence without degrading the post-ECA residual.
+
+### Relevant Files
+
+- `BistaticDataAnalysis/runDirectPathPrecheck.m`
+- `BistaticDataAnalysis/runSessionRFQualityAudit.m`
+- `BistaticDataAnalysis/summarizeRFQualityAudit.m`
+- `TestSetupTesting/run_coordinated_hdtv_capture.sh`
+- `TestSetupTesting/runLocalHDTVCapture.m`
 
 ## June 18, 2026 Review Handoff
 
