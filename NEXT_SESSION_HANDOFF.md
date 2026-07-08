@@ -1,10 +1,234 @@
 # Next Session Handoff
 
-Updated: June 22, 2026
+Updated: June 26, 2026
+
+## June 26, 2026 Toolbox Replacement-Assessment Handoff
+
+This is now the top-priority handoff. The goal for the next session is not to migrate the production workflow to toolbox TDOA or toolbox CFAR. The goal is to tighten the replacement assessment, keep the offline benchmark harness useful, and only continue toolbox TDOA work if a narrow localized refinement path shows materially better cost.
+
+### Current Engineering Position
+
+- The supported production workflow remains the custom CAF/RDM detector plus custom measurement extraction.
+- `phased.TDOAEstimator` produced numeric delay estimates on the captured replay, but it was too slow to act as a per-detection replacement for the current custom range-delay path.
+- `phased.CFARDetector2D` was also slower on the tested offline replay cases.
+- The detailed write-up now lives in `BistaticDataAnalysis/toolboxReplacementAssessment.md`.
+- `README.md` now includes a short toolbox-evaluation status section that points to that memo.
+
+### Evidence Already Established
+
+- Evidence base:
+  - captured session: `BistaticDataAnalysis/captures/20260622T102123`
+  - replay snapshot: `BistaticDataAnalysis/detector_replay_20260622T102123.mat`
+  - benchmark artifacts:
+    - `BistaticDataAnalysis/bench_20260622T102123.mat`
+    - `BistaticDataAnalysis/bench_20260622T102123.log`
+    - `BistaticDataAnalysis/bench_full_20260622T102123_snapshot.mat`
+    - `BistaticDataAnalysis/bench_full_20260622T102123_snapshot.log`
+    - `BistaticDataAnalysis/bench_tdoa_20260622T102123.mat`
+    - `BistaticDataAnalysis/bench_tdoa_20260622T102123.log`
+    - `BistaticDataAnalysis/tdoa_probe_20260622T102123.mat`
+    - `BistaticDataAnalysis/tdoa_probe_20260622T102123.log`
+- Measured runtime facts:
+  - full replay toolbox TDOA probe: `1489.625 s` for `434` detections, about `3.432 s/detection`
+  - sparse profiler slice: part `7`, `8` detections, `42.415 s` total, `TDOAEstimator.stepImpl = 40.376 s`
+  - hotspot profiler slice: part `6`, block `4`, first `20` detections from a `98`-detection block, `73.737 s` total, `TDOAEstimator.stepImpl = 72.414 s`
+  - full-session custom baseline: `32.613 s`
+  - full-session toolbox CFAR: `882.480 s`
+  - full-scope replay-snapshot toolbox attempts hit `Out of memory.` after `682.200 s` and `742.220 s`
+- Hotspot structure in the replay:
+  - part `6` contains `240` detections
+  - the densest blocks are part `6` block `4` with `98` detections and part `6` block `3` with `93` detections
+- Engineering conclusion already supported by the profiler:
+  - the dominant cost sits inside toolbox internals such as `TDOAEstimator.stepImpl`, `tdoaspectrum`, `tdoagccphat`, and peak search
+  - this is not primarily a wrapper inefficiency
+
+### What Must Not Change Next Session
+
+- Do not change the supported production wrapper behavior in this cycle.
+- Do not present toolbox TDOA as the likely future production front end.
+- Keep new controls benchmark-only and offline-only.
+- Do not rerun a full-session toolbox TDOA replacement attempt unless narrow slices first show a real reduction in per-call cost.
+
+### Next-Session Goal
+
+1. Add enough benchmark scoping to isolate exact sparse and hotspot slices cleanly.
+2. Add explicit run labeling so evidence is clearly separated into:
+   - `replacement_assessment`
+   - `localized_refinement_experiment`
+3. Test whether local-support cropping around the CAF-derived delay guess reduces toolbox TDOA cost materially.
+4. Decide whether toolbox TDOA remains closed as a replacement no-go, or whether a narrow localized refinement experiment is justified.
+
+### Concrete Work Plan
+
+#### Stage 1: Tighten Offline Assessment Controls
+
+Files most likely involved:
+
+- `BistaticDataAnalysis/runOfflineToolboxBenchmark.m`
+- `BistaticDataAnalysis/helperRestrictDetectorReplayInput.m`
+- `BistaticDataAnalysis/tests/OfflineToolboxBenchmarkTest.m`
+
+Implement benchmark-only scoping that is more precise than the current `PartIndices` + `MaxBlocksPerPart` limit:
+
+- add exact block selection support, for example `BlockNumbers` or `BlockNumbersByPart`
+- add a benchmark-only detection cap, for example `MaxDetectionsPerBlock` or `MaxDetectionsTotal`
+- preserve the existing summary-table shape and carry the applied scope metadata into the output struct
+
+Reason:
+
+- the current helper can limit to the first `N` blocks of a part, but it cannot cleanly isolate hotspot block `4` in part `6`
+- the next assessment needs exact sparse and hotspot slices, not broad part-level reruns
+
+#### Stage 2: Add Explicit Assessment Labels
+
+Files most likely involved:
+
+- `BistaticDataAnalysis/runOfflineToolboxBenchmark.m`
+- `BistaticDataAnalysis/plotOfflineToolboxBenchmarkSummary.m`
+- optionally the saved benchmark output struct fields and figure titles
+
+Add an explicit label or mode field with allowed values:
+
+- `replacement_assessment`
+- `localized_refinement_experiment`
+
+Propagate that label into:
+
+- the returned benchmark struct
+- figure titles
+- console/log output
+
+Reason:
+
+- the repo should stop treating all toolbox runs as generic `benchmarking`
+- the next session needs to separate replacement viability evidence from any narrow refinement experiment
+
+#### Stage 3: Test Local-Support TDOA Inputs
+
+Files most likely involved:
+
+- `BistaticDataAnalysis/helperEstimateToolboxTDOARange.m`
+- `BistaticDataAnalysis/helperApplyToolboxTDOARefinement.m`
+- `BistaticDataAnalysis/tests/OfflineToolboxBenchmarkTest.m`
+
+Implement a benchmark-only path that crops the reference/surveillance support around the existing CAF-derived delay guess before calling `phased.TDOAEstimator`.
+
+Constraints:
+
+- keep the current full-support path available for comparison
+- do not change the production detector or supported measurement workflow
+- keep the crop controlled by an explicit option so the experiment is easy to turn on and off
+
+Reason:
+
+- the only plausible near-term technical value left for toolbox TDOA is narrow local refinement, not full replacement
+- the next session needs hard evidence about whether local support reduces cost enough to matter
+
+#### Stage 4: Run Two Bounded Assessment Slices
+
+Use the captured replay `detector_replay_20260622T102123.mat`.
+
+Run at least these two slices after the new controls exist:
+
+1. Sparse slice:
+   - part `7`
+   - all detections in that part
+   - `RunTruthDiagnostics = false`
+   - label as `replacement_assessment`
+2. Hotspot slice:
+   - part `6`
+   - exact block `4`
+   - cap at `20` detections initially
+   - `RunTruthDiagnostics = false`
+   - label as `replacement_assessment`
+
+For each slice, compare:
+
+- current full-support toolbox TDOA path
+- local-support cropped toolbox TDOA path
+- total runtime
+- per-detection runtime
+- top profiler hotspots
+
+#### Stage 5: Decide Whether To Stop Or Narrow Further
+
+Decision gate:
+
+- if runtime stays on the order of seconds per detection and profiler time still stays overwhelmingly inside `TDOAEstimator.stepImpl`, stop the replacement path and update the memo with the strengthened evidence
+- only if the cropped local-support path shows a material drop in cost should the next session proceed to a `localized_refinement_experiment`
+
+Recommended bar before any wider rerun:
+
+- roughly an order-of-magnitude improvement from the current hotspot cost, or at minimum something near sub-second per-detection behavior on the hotspot slice
+
+If that bar is not met:
+
+- do not rerun full-session toolbox TDOA
+- do not broaden toolbox CFAR work beyond offline parity characterization
+
+### Suggested MATLAB Commands After Stage 1 And Stage 2
+
+Sparse slice:
+
+```matlab
+cd BistaticDataAnalysis
+
+bench_sparse = runOfflineToolboxBenchmark( ...
+    'detector_replay_20260622T102123.mat', ...
+    'Variants', {'toolbox_tdoa'}, ...
+    'AssessmentMode', 'replacement_assessment', ...
+    'PartIndices', 7, ...
+    'RunTruthDiagnostics', false, ...
+    'PlotSummary', false, ...
+    'Verbose', true);
+```
+
+Hotspot slice:
+
+```matlab
+cd BistaticDataAnalysis
+
+bench_hot = runOfflineToolboxBenchmark( ...
+    'detector_replay_20260622T102123.mat', ...
+    'Variants', {'toolbox_tdoa'}, ...
+    'AssessmentMode', 'replacement_assessment', ...
+    'PartIndices', 6, ...
+    'BlockNumbers', 4, ...
+    'MaxDetectionsPerBlock', 20, ...
+    'RunTruthDiagnostics', false, ...
+    'PlotSummary', false, ...
+    'Verbose', true);
+```
+
+These examples assume the next session adds the missing `AssessmentMode`, exact block selection, and detection-cap controls.
+
+### Files Likely To Be Touched Next Session
+
+- `BistaticDataAnalysis/runOfflineToolboxBenchmark.m`
+- `BistaticDataAnalysis/helperRestrictDetectorReplayInput.m`
+- `BistaticDataAnalysis/helperEstimateToolboxTDOARange.m`
+- `BistaticDataAnalysis/helperApplyToolboxTDOARefinement.m`
+- `BistaticDataAnalysis/tests/OfflineToolboxBenchmarkTest.m`
+- `BistaticDataAnalysis/toolboxReplacementAssessment.md`
+- `README.md`
+- `NEXT_SESSION_HANDOFF.md`
+
+### Success Criteria For The Next Session
+
+- the benchmark harness can isolate exact sparse and hotspot slices
+- assessment outputs are explicitly labeled as `replacement_assessment` or `localized_refinement_experiment`
+- local-support cropping is benchmarked against the current full-support toolbox TDOA path
+- the repo has a clear decision, backed by measured evidence, on whether any toolbox TDOA work should continue beyond narrow refinement experiments
+
+### Secondary References
+
+- `BistaticDataAnalysis/toolboxReplacementAssessment.md`
+- `README.md` toolbox evaluation section
+- `BistaticDataAnalysis/tests/OfflineToolboxBenchmarkTest.m`
 
 ## June 22, 2026 RF Gain-Sweep Handoff
 
-This is the current top-priority handoff. Older ADS-B truth notes remain below for background, but the immediate blocker is RF sufficiency on the capture chain.
+This section is preserved for background. It is no longer the top-priority handoff.
 
 ### Current RF Blocker
 

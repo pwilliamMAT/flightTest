@@ -136,6 +136,20 @@ config.rxLLA = [42.2999333, -71.349333,  15.0];   % [lat °N, lon °W(−), alt 
 config.inter_part_gap_s = 3.0;  % [s] fallback idle gap when per-file metadata is unavailable
 config.part_timing_source = 'auto';  % 'auto', 'metadata', or 'fallback'
 config.adsb_files = {};   % set to {'/path/to/adsb_<session>.txt.gz', ...} to enable truth integration
+% Graphics profile:
+%   full     - every supported figure path
+%   core     - keep the highest-value figures, disable globe rendering and
+%              extra companion windows
+%   headless - no interactive figures; metrics and snapshots still run
+config.visualization_profile = 'core';
+config.plot_assessment_figures = [];
+config.plot_per_part_rdm = [];
+config.plot_ellipse_globe = [];
+config.plot_tracker_globe = [];
+config.plot_track_legend = [];
+config.plot_interactive_rdm_viewer = [];
+config.plot_truth_diagnostics = [];
+config.force_2d_geographic_fallback = [];
 
 explicit_data_parts = {};
 if exist('analysisSetup', 'var')
@@ -300,6 +314,38 @@ else
 end
 bistatic_consts = helperDeriveBistaticConstants(config);
 
+if exist('analysisSetup', 'var') && isfield(analysisSetup, 'visualization_options') && ...
+        isstruct(analysisSetup.visualization_options)
+    visualization = analysisSetup.visualization_options;
+else
+    visualization = helperResolveVisualizationProfile( ...
+        'VisualizationProfile', config.visualization_profile, ...
+        'PlotAssessmentFigures', config.plot_assessment_figures, ...
+        'PlotPerPartRDM', config.plot_per_part_rdm, ...
+        'PlotEllipseGlobe', config.plot_ellipse_globe, ...
+        'PlotTrackerGlobe', config.plot_tracker_globe, ...
+        'PlotTrackLegend', config.plot_track_legend, ...
+        'PlotInteractiveRDViewer', config.plot_interactive_rdm_viewer, ...
+        'PlotTruthDiagnostics', config.plot_truth_diagnostics, ...
+        'Force2DGeographicFallback', config.force_2d_geographic_fallback, ...
+        'ExpectedPartCount', N_parts);
+end
+config.visualization = visualization;
+config.plot_figures = visualization.plot_assessment_figures;
+
+fprintf('  Visualization ... %s\n', char(visualization.profile));
+fprintf('  Max figures ..... %d\n', visualization.max_expected_open_figure_count);
+if visualization.plot_ellipse_globe || visualization.plot_tracker_globe
+    if visualization.force_2d_geographic_fallback
+        fprintf('  Geographic ...... geoaxes 2-D fallback\n');
+    else
+        fprintf('  Geographic ...... geoglobe enabled when available\n');
+    end
+else
+    fprintf('  Geographic ...... disabled by profile\n');
+end
+fprintf('\n');
+
 % Pre-allocate per-part result storage.
 part_res = struct( ...
     'detections',   cell(1, N_parts), ...
@@ -423,7 +469,8 @@ else
     dets_p3 = part_res(3).detections;
 
     % ── E10 / E11 (original) ─────────────────────────────────────────────
-    e10_matches = zeros(0, 2);   % [range_p1, dopp_p1] for each match
+    e10_matches = zeros(size(dets_p1, 1), 2);   % [range_p1, dopp_p1] for each match
+    n_e10_matches = 0;
     for k_chk = 1 : size(dets_p1, 1)
         r1 = dets_p1(k_chk, 1);
         d1 = dets_p1(k_chk, 2);
@@ -432,9 +479,11 @@ else
         in_p3 = any(abs(dets_p3(:,1) - r1) < tol_range_e10 & ...
                     abs(dets_p3(:,2) - d1) < tol_dopp_e10);
         if in_p2 && in_p3
-            e10_matches(end+1, :) = [r1, d1]; %#ok<AGROW>
+            n_e10_matches = n_e10_matches + 1;
+            e10_matches(n_e10_matches, :) = [r1, d1];
         end
     end
+    e10_matches = e10_matches(1:n_e10_matches, :);
 
     fprintf('=== E10 / E11 (original checklist definition) ===\n');
     fprintf('  Tolerance: ±%.0f m range  AND  ±%.0f Hz Doppler\n', ...
@@ -471,7 +520,8 @@ else
 
     % ── E12: kinematic consistency for moving targets ─────────────────────
     % cols: [range_p1, dopp_p1, range_p2, range_p3, e12_kine_pass]
-    e12_matches = zeros(0, 5);
+    e12_matches = zeros(size(dets_p1, 1), 5);
+    n_e12_matches = 0;
     for k_chk = 1 : size(dets_p1, 1)
         d1 = dets_p1(k_chk, 2);
         in_p2 = find(abs(dets_p2(:,2) - d1) < tol_dopp_e12, 1, 'first');
@@ -483,9 +533,11 @@ else
             range_incr = (r2 > r1) && (r3 > r2);
             range_decr = (r2 < r1) && (r3 < r2);
             kine_pass  = (d1 < 0 && range_incr) || (d1 >= 0 && range_decr);
-            e12_matches(end+1, :) = [r1, d1, r2, r3, double(kine_pass)]; %#ok<AGROW>
+            n_e12_matches = n_e12_matches + 1;
+            e12_matches(n_e12_matches, :) = [r1, d1, r2, r3, double(kine_pass)];
         end
     end
+    e12_matches = e12_matches(1:n_e12_matches, :);
 
     fprintf('=== E12 (kinematic consistency — moving targets) ===\n');
     fprintf('  Tolerance: Doppler ±%.0f Hz across %.0f s inter-part gap\n', ...
@@ -604,9 +656,14 @@ rdm_after_display = rdm_after - median(rdm_after, 2);
 
 CLIM_WHITE = [-10, 20];  % [dB] — fixed identical clim across all three figures
 
-static_rdm_axes    = gobjects(N_parts, 1);
-static_det_handles = gobjects(N_parts, 1);
-static_det_counts  = zeros(N_parts, 1);
+part_rdm_view_data = repmat(struct( ...
+    'part_index', 0, ...
+    'time_window_s', [0, 0], ...
+    'rdm_image', zeros(0, 0), ...
+    'range_axis', zeros(0, 1), ...
+    'doppler_axis', zeros(1, 0), ...
+    'detections', zeros(0, 5), ...
+    'truth_data', struct([])), N_parts, 1);
 
 for i_fig = 1 : N_parts
     r_ax_fig  = part_res(i_fig).range_axis;
@@ -616,30 +673,20 @@ for i_fig = 1 : N_parts
     rdm_w_fig = part_res(i_fig).rdm_after - median(part_res(i_fig).rdm_after, 2);
     dets_fig  = part_res(i_fig).detections;   % [N_det × 5+] or empty
 
-    static_det_counts(i_fig) = size(dets_fig, 1);
+    part_rdm_view_data(i_fig).part_index = i_fig;
+    part_rdm_view_data(i_fig).time_window_s = ...
+        [part_start_offsets_s(i_fig), part_end_offsets_s(i_fig)];
+    part_rdm_view_data(i_fig).rdm_image = rdm_w_fig;
+    part_rdm_view_data(i_fig).range_axis = r_ax_fig;
+    part_rdm_view_data(i_fig).doppler_axis = d_ax_fig;
+    part_rdm_view_data(i_fig).detections = dets_fig;
+end
 
-    figure('Name', sprintf('RDM - Part %d', i_fig), 'NumberTitle', 'off');
-    static_rdm_axes(i_fig) = gca;
-    imagesc(static_rdm_axes(i_fig), d_ax_fig, r_ax_fig, rdm_w_fig);
-    set(static_rdm_axes(i_fig), 'YDir', 'normal');   % bistatic range increases upward
-    title(sprintf('Post-ECA-C RDM (whitened) — Part %d of %d — %d detection(s)', ...
-        i_fig, N_parts, size(dets_fig, 1)));
-    xlabel('Doppler (Hz)');
-    ylabel('Bistatic range excess (m)');
-    cb_fig = colorbar;
-    cb_fig.Label.String = 'dB above local noise floor (whitened)';
-    clim(CLIM_WHITE);
-    ylim([0, config.max_display_range_m]);
-
-    if ~isempty(dets_fig)
-        hold on;
-        % Red circles: clearly distinguishable against the cool-colour
-        % background of the whitened noise floor.
-        static_det_handles(i_fig) = scatter(dets_fig(:, 2), dets_fig(:, 1), 80, 'ro', ...
-            'LineWidth', 2, 'DisplayName', sprintf('Detections (n=%d)', size(dets_fig,1)));
-        legend('Location', 'northeast', 'TextColor', 'white', 'Color', [0.2 0.2 0.2]);
-        hold off;
-    end
+if visualization.plot_per_part_rdm
+    fprintf('[§5] Prepared %d per-part RDM frame(s) for the single-window viewer.\n', ...
+        N_parts);
+else
+    fprintf('[§5] Per-part RDM viewer disabled by visualization profile.\n');
 end
 
 fprintf('\nProcessing complete.\n');
@@ -658,12 +705,12 @@ fprintf('\nProcessing complete.\n');
 %   Tx: CBS Tower, Newton MA  (599 MHz ATSC)
 %   Rx: Parking-garage rooftop, 4 Apple Hill Dr, Newton MA
 %   Coordinates are defined once in §1 config and reused here.
-txLLA_plot = config.txLLA;
-rxLLA_plot = config.rxLLA;
 
 MAX_ELLIPSES = 10;   % cap: above this the geoglobe renderer becomes sluggish
 
-if isempty(all_track_dets)
+if ~visualization.plot_ellipse_globe
+    fprintf('[Geographic plot] Disabled by visualization profile.\n');
+elseif isempty(all_track_dets)
     fprintf('[Geographic plot] No detections — skipping ellipse globe.\n');
 else
     dets_to_plot = all_track_dets;
@@ -689,6 +736,7 @@ else
         'TargetAlt_m',    3000, ...   % assumed ~10 000 ft MSL
         'NEllipsePoints',  180, ...   % 180 pts: smooth at globe zoom; keeps call count low
         'Basemap',        'satellite', ...
+        'Use2DFallback',  visualization.force_2d_geographic_fallback, ...
         'Verbose',         config.verbose);
 end
 
@@ -710,6 +758,27 @@ end
 %   Tracker runs at the sub-CPI block level (~100 ms per update step).
 %   Visualization is refreshed once per file part (1 s of data), showing
 %   the fully NCI-integrated whitened RDM alongside the latest track states.
+TRK_ID_COLORS = [ ...
+    0.929, 0.165, 0.165;  %  1  red
+    0.216, 0.494, 0.722;  %  2  blue
+    0.180, 0.722, 0.310;  %  3  green
+    0.780, 0.220, 0.780;  %  4  magenta
+    0.980, 0.600, 0.100;  %  5  orange
+    0.220, 0.820, 0.820;  %  6  cyan
+    0.750, 0.500, 0.150;  %  7  brown
+    0.550, 0.850, 0.200;  %  8  lime
+    0.950, 0.400, 0.700;  %  9  pink
+    0.400, 0.200, 0.700;  % 10  purple
+    0.700, 0.700, 0.200;  % 11  yellow
+    0.500, 0.500, 0.900]; % 12  lavender
+N_ID_COLORS = size(TRK_ID_COLORS, 1);
+CLR_NAMES = {'red','blue','green','magenta','orange','cyan', ...
+    'brown','lime','pink','purple','yellow','lavender'};
+CLIM_TRK = [-10, 20];
+
+step_data = struct([]);
+render_fn = [];
+
 if isempty(all_track_dets)
     fprintf('[§7] No detections — tracking and visualization skipped.\n');
 else
@@ -718,9 +787,11 @@ else
 [tracks_log, ~] = trackTargets(all_track_dets, config);
 
 % ── 7.2  Pre-create globe figure ─────────────────────────────────────────
-use_globe_trk = exist('geoglobe', 'file') == 2 || ...
-                exist('geoglobe', 'builtin') == 3;
-if use_globe_trk
+geo_view_enabled = visualization.plot_tracker_globe;
+use_globe_trk = geo_view_enabled && ...
+    ~visualization.force_2d_geographic_fallback && ...
+    (exist('geoglobe', 'file') == 2 || exist('geoglobe', 'builtin') == 3);
+if geo_view_enabled && use_globe_trk
     uif_globe = uifigure( ...
         'Name',     'Tracker — Geographic Ellipses (All Tracks)', ...
         'Position', [970, 100, 900, 580]);
@@ -730,7 +801,7 @@ if use_globe_trk
         'ro', 'MarkerSize', 16, 'LineWidth', 2);
     geoplot3(g_ax, config.rxLLA(1), config.rxLLA(2), config.rxLLA(3)+200, ...
         'bo', 'MarkerSize', 12, 'LineWidth', 2);
-else
+elseif geo_view_enabled
     fig_globe = figure( ...
         'Name',     'Tracker — Geographic Ellipses (2D Map)', ...
         'Position', [970, 100, 900, 580], 'NumberTitle', 'off');
@@ -740,21 +811,26 @@ else
         'r^', 'MarkerSize', 14, 'MarkerFaceColor', 'red', 'LineWidth', 2);
     geoplot(g_ax, config.rxLLA(1), config.rxLLA(2), ...
         'bs', 'MarkerSize', 12, 'MarkerFaceColor', [0.20 0.45 0.90], 'LineWidth', 2);
-    fprintf('[§7] geoglobe unavailable — using geoaxes 2-D map fallback.\n');
+    if visualization.force_2d_geographic_fallback
+        fprintf('[§7] Tracker geographic view forced to geoaxes 2-D fallback.\n');
+    else
+        fprintf('[§7] geoglobe unavailable — using geoaxes 2-D map fallback.\n');
+    end
+else
+    fprintf('[§7] Geographic track viewer disabled by visualization profile.\n');
 end
 
 % ── 7.3  Pre-compute ENU bistatic geometry (shared across all frames) ─────
-spheroid_trk = wgs84Ellipsoid('meter');
+if geo_view_enabled
+    spheroid_trk = wgs84Ellipsoid('meter');
 geom_trk = helperDeriveTxRxGeometry(config.txLLA, config.rxLLA);
-txE_trk   = geom_trk.tx_enu_m(1);
-txN_trk   = geom_trk.tx_enu_m(2);
-L_trk     = geom_trk.baseline_3d_m;
-theta_trk = geom_trk.theta_rad;
-R2_trk    = geom_trk.rotation_matrix;
+    L_trk     = geom_trk.baseline_3d_m;
+    R2_trk    = geom_trk.rotation_matrix;
 midE_trk  = geom_trk.midpoint_horizontal_m(1);
 midN_trk  = geom_trk.midpoint_horizontal_m(2);
 phi_trk   = linspace(0, 2*pi, 180)';   % [180 × 1] parametric angle
 TGT_ALT_M = 3000;   % assumed target altitude MSL [m]
+end
 
 % Per-track colour palette — 12 qualitative colours indexed by TrackID.
 % The SAME colour is used for the RDM marker and globe ellipse so both
@@ -783,6 +859,7 @@ alpha_trk = bistatic_consts.alpha;
 % One struct entry per tracks_log step: t_abs_s, which part, whitened RDM,
 % axis vectors, only the CFAR detections at that exact time, and track array.
 N_steps = numel(tracks_log);
+if visualization.plot_interactive_rdm_viewer
 step_data = struct( ...
     't_abs_s',     cell(N_steps, 1), ...
     'i_part',      cell(N_steps, 1), ...
@@ -815,6 +892,7 @@ for s = 1 : N_steps
     step_data(s).dets         = all_track_dets(mask_t, :);
     step_data(s).conf_trks    = tracks_log(s).tracks;
     step_data(s).truth_data   = [];   % populated by §8 if ADS-B data is available
+end
 end
 
 % ── 7.4  Part-level console quality table ─────────────────────────────────
@@ -854,23 +932,28 @@ end
 % Iterate through all tracker steps, keeping the most recent objectTrack
 % state for each unique TrackID.  Tracks deleted before the final part
 % (e.g. T7) still appear at their last-known position.
-all_tid_seen  = zeros(1, 0, 'double');
-all_last_trks = {};
+max_track_states = sum(arrayfun(@(log_entry) numel(log_entry.tracks), tracks_log));
+all_tid_seen  = zeros(1, max_track_states, 'double');
+all_last_trks = cell(1, max_track_states);
+n_unique_tracks = 0;
 for s = 1 : N_steps
     trks = tracks_log(s).tracks;
     for ii = 1 : numel(trks)
         tid_d = double(trks(ii).TrackID);
-        idx   = find(all_tid_seen == tid_d, 1);
+        idx   = find(all_tid_seen(1:n_unique_tracks) == tid_d, 1);
         if isempty(idx)
-            all_tid_seen(end+1)  = tid_d;    %#ok<AGROW>
-            all_last_trks{end+1} = trks(ii); %#ok<AGROW>
+            n_unique_tracks = n_unique_tracks + 1;
+            all_tid_seen(n_unique_tracks) = tid_d;
+            all_last_trks{n_unique_tracks} = trks(ii);
         else
             all_last_trks{idx}   = trks(ii);  % overwrite with later state
         end
     end
 end
-n_unique_tracks = numel(all_tid_seen);
+all_tid_seen = all_tid_seen(1:n_unique_tracks);
+all_last_trks = all_last_trks(1:n_unique_tracks);
 
+if geo_view_enabled
 fprintf('\n[§7] Rendering globe — %d unique tracks (last-known state)...\n', ...
     n_unique_tracks);
 for k = 1 : n_unique_tracks
@@ -904,40 +987,45 @@ for k = 1 : n_unique_tracks
 end
 drawnow;
 fprintf('[§7] Globe render complete.\n');
+end
 
 % ── Track colour legend companion figure ──────────────────────────────────
-leg_fig_h = max(180, 70 + n_unique_tracks * 26);
-fig_trk_leg = figure('Name', 'Track Colour Legend', ...
-    'Position',   [1880, 100, 300, leg_fig_h], ...
-    'Color',      [0.10, 0.10, 0.10], ...
-    'MenuBar',    'none', 'ToolBar', 'none', 'NumberTitle', 'off');
-ax_tl = axes(fig_trk_leg, ...
-    'Position',  [0.02, 0.02, 0.96, 0.96], ...
-    'Color',     [0.10, 0.10, 0.10], ...
-    'XColor',    'none', 'YColor', 'none', ...
-    'XLim',      [0, 1], 'YLim', [0, 1]);
-hold(ax_tl, 'on');
-text(ax_tl, 0.5, 0.98, 'Track Colour Legend', ...
-    'HorizontalAlignment', 'center', 'Color', [0.85, 0.85, 0.85], ...
-    'FontSize', 10, 'FontWeight', 'bold', 'VerticalAlignment', 'top');
-text(ax_tl, 0.16, 0.90, ...
-    sprintf('%-5s  %-9s  %-10s', 'T#', 'R (km)', 'D (Hz)'), ...
-    'Color', [0.55, 0.55, 0.55], 'FontSize', 8, 'FontName', 'Courier', ...
-    'VerticalAlignment', 'top');
-y_spacing = min(0.08, 0.82 / max(n_unique_tracks, 1));
-for k = 1 : n_unique_tracks
-    tid  = all_tid_seen(k);
-    trk  = all_last_trks{k};
-    clr  = TRK_ID_COLORS(mod(tid - 1, N_ID_COLORS) + 1, :);
-    y_k  = 0.86 - (k - 1) * y_spacing;
-    scatter(ax_tl, 0.07, y_k, 70, clr, 'filled');
-    text(ax_tl, 0.16, y_k, ...
-        sprintf('T%-4d  %6.1f  %+8.0f', ...
-        tid, trk.State(1)/1e3, -alpha_trk * trk.State(2)), ...
-        'Color', 'w', 'FontSize', 9, 'FontName', 'Courier', ...
-        'VerticalAlignment', 'middle');
+if visualization.plot_track_legend && n_unique_tracks > 0
+    leg_fig_h = max(180, 70 + n_unique_tracks * 26);
+    fig_trk_leg = figure('Name', 'Track Colour Legend', ...
+        'Position',   [1880, 100, 300, leg_fig_h], ...
+        'Color',      [0.10, 0.10, 0.10], ...
+        'MenuBar',    'none', 'ToolBar', 'none', 'NumberTitle', 'off');
+    ax_tl = axes(fig_trk_leg, ...
+        'Position',  [0.02, 0.02, 0.96, 0.96], ...
+        'Color',     [0.10, 0.10, 0.10], ...
+        'XColor',    'none', 'YColor', 'none', ...
+        'XLim',      [0, 1], 'YLim', [0, 1]);
+    hold(ax_tl, 'on');
+    text(ax_tl, 0.5, 0.98, 'Track Colour Legend', ...
+        'HorizontalAlignment', 'center', 'Color', [0.85, 0.85, 0.85], ...
+        'FontSize', 10, 'FontWeight', 'bold', 'VerticalAlignment', 'top');
+    text(ax_tl, 0.16, 0.90, ...
+        sprintf('%-5s  %-9s  %-10s', 'T#', 'R (km)', 'D (Hz)'), ...
+        'Color', [0.55, 0.55, 0.55], 'FontSize', 8, 'FontName', 'Courier', ...
+        'VerticalAlignment', 'top');
+    y_spacing = min(0.08, 0.82 / max(n_unique_tracks, 1));
+    for k = 1 : n_unique_tracks
+        tid  = all_tid_seen(k);
+        trk  = all_last_trks{k};
+        clr  = TRK_ID_COLORS(mod(tid - 1, N_ID_COLORS) + 1, :);
+        y_k  = 0.86 - (k - 1) * y_spacing;
+        scatter(ax_tl, 0.07, y_k, 70, clr, 'filled');
+        text(ax_tl, 0.16, y_k, ...
+            sprintf('T%-4d  %6.1f  %+8.0f', ...
+            tid, trk.State(1)/1e3, -alpha_trk * trk.State(2)), ...
+            'Color', 'w', 'FontSize', 9, 'FontName', 'Courier', ...
+            'VerticalAlignment', 'middle');
+    end
+    hold(ax_tl, 'off');
+elseif ~visualization.plot_track_legend
+    fprintf('[§7] Track legend figure disabled by visualization profile.\n');
 end
-hold(ax_tl, 'off');
 
 % Console colour legend
 fprintf('\n  Track-to-colour mapping:\n');
@@ -952,6 +1040,7 @@ end
 
 % ── 7.6  Interactive Range-Doppler Map Viewer ─────────────────────────────
 % Pack rendering parameters into one struct for the callback closure.
+if visualization.plot_interactive_rdm_viewer
 rdm_params.alpha_trk           = alpha_trk;
 rdm_params.TRK_ID_COLORS       = TRK_ID_COLORS;
 rdm_params.N_ID_COLORS         = N_ID_COLORS;
@@ -1025,6 +1114,9 @@ render_fn(1);
 fprintf('\n[§7] Visualization complete — %d parts, %d tracker steps.\n', ...
     N_parts, N_steps);
 fprintf('       Drag the slider or use < Prev / Next > buttons to step through time.\n\n');
+else
+    fprintf('[§7] Interactive RD viewer disabled; tracker output remains available for replay and truth scoring.\n\n');
+end
 end  % if ~isempty(all_track_dets)
 
 %% §8  ADS-B Truth Integration  (optional — runs only when config.adsb_files is set)
@@ -1078,9 +1170,9 @@ else
     truth_diag_output = runDetectionTruthDiagnostics( ...
         truth_diag_input, ...
         'FigureTitle', analysis_label, ...
-        'PlotDetectionTimeSeries', true, ...
+        'PlotDetectionTimeSeries', visualization.plot_truth_detection_time_series, ...
         'PlotRDMOverlays', false, ...
-        'PlotTrackComparison', true, ...
+        'PlotTrackComparison', visualization.plot_truth_track_comparison, ...
         'TrackColors', TRK_ID_COLORS, ...
         'GateRangeCells', 3, ...
         'GateDopplerBins', 3, ...
@@ -1115,48 +1207,89 @@ else
                 numel(step_data));
         end
 
-        if exist('static_rdm_axes', 'var') && ~isempty(static_rdm_axes)
-            fprintf('[8.4] Overlaying ADS-B truth on per-part RDM figures...\n');
-            for ip8 = 1 : N_parts
-                ax_part = static_rdm_axes(ip8);
-                if ~isgraphics(ax_part, 'axes')
-                    continue
-                end
-
-                [n_truth_pts, h_truth] = helperPlotRDMTruthOverlay(ax_part, adsb_aligned, ...
-                    'TimeWindow', [part_start_offsets_s(ip8), part_end_offsets_s(ip8)], ...
-                    'ConnectSamples', true, ...
-                    'ShowLabels', true, ...
-                    'IncludeLegend', true, ...
-                    'DisplayName', 'ADS-B truth', ...
-                    'MarkerSize', 80, ...
-                    'LineWidth', 1.4, ...
-                    'LabelOffsetHz', 8);
-
-                legend_handles = gobjects(2, 1);
-                n_legend_handles = 0;
-                if ip8 <= numel(static_det_handles) && isgraphics(static_det_handles(ip8))
-                    n_legend_handles = n_legend_handles + 1;
-                    legend_handles(n_legend_handles, 1) = static_det_handles(ip8);
-                end
-                if isgraphics(h_truth)
-                    n_legend_handles = n_legend_handles + 1;
-                    legend_handles(n_legend_handles, 1) = h_truth;
-                end
-                if n_legend_handles > 0
-                    legend_handles = legend_handles(1:n_legend_handles);
-                    legend(ax_part, legend_handles, 'Location', 'northeast', ...
-                        'TextColor', 'white', 'Color', [0.2 0.2 0.2]);
-                end
-
-                title(ax_part, sprintf( ...
-                    'Post-ECA-C RDM (whitened) - Part %d of %d - %d detection(s) - ADS-B truth %d pt(s)', ...
-                    ip8, N_parts, static_det_counts(ip8), n_truth_pts));
-                fprintf('       Part %d/%d: %d truth point(s).\n', ...
-                    ip8, N_parts, n_truth_pts);
+        if exist('part_rdm_view_data', 'var') && ~isempty(part_rdm_view_data)
+            for ip8 = 1 : numel(part_rdm_view_data)
+                part_rdm_view_data(ip8).truth_data = adsb_aligned;
             end
+            fprintf('[8.4] Per-part RDM viewer prepared with ADS-B truth overlays.\n');
         end
     end
 
     fprintf('\n[§8] ADS-B truth pipeline complete.\n\n');
 end  % §8
+
+%% 9. Per-Part RDM Viewer (optional single-window viewer)
+if visualization.plot_per_part_rdm && ~isempty(part_rdm_view_data)
+    part_rdm_params.clim = CLIM_WHITE;
+    part_rdm_params.max_display_range_m = config.max_display_range_m;
+
+    fig_part_rdm = figure( ...
+        'Name',        'Per-Part RDM Viewer', ...
+        'Position',    [60, 120, 960, 640], ...
+        'NumberTitle', 'off', ...
+        'Color',       [0.13, 0.13, 0.13]);
+    ax_part_rdm = axes(fig_part_rdm, ...
+        'Units',    'normalized', ...
+        'Position', [0.08, 0.20, 0.85, 0.72], ...
+        'Color',    [0.05, 0.05, 0.05], ...
+        'XColor',   'w', ...
+        'YColor',   'w', ...
+        'FontSize', 9);
+
+    lbl_part_rdm = uicontrol(fig_part_rdm, ...
+        'Style',               'text', ...
+        'Units',               'normalized', ...
+        'Position',            [0.08, 0.94, 0.84, 0.04], ...
+        'BackgroundColor',     [0.13, 0.13, 0.13], ...
+        'ForegroundColor',     [0.90, 0.90, 0.90], ...
+        'FontSize',            10, ...
+        'FontWeight',          'bold', ...
+        'HorizontalAlignment', 'center', ...
+        'String',              '');
+
+    if N_parts > 1
+        sld_part_step = [1 / (N_parts - 1), 1 / (N_parts - 1)];
+    else
+        sld_part_step = [1, 1];
+    end
+    sld_part = uicontrol(fig_part_rdm, ...
+        'Style',      'slider', ...
+        'Units',      'normalized', ...
+        'Position',   [0.18, 0.10, 0.64, 0.03], ...
+        'Min',        1, ...
+        'Max',        N_parts, ...
+        'Value',      1, ...
+        'SliderStep', sld_part_step);
+
+    btn_part_prev = uicontrol(fig_part_rdm, ...
+        'Style',           'pushbutton', ...
+        'String',          '< Prev', ...
+        'Units',           'normalized', ...
+        'Position',        [0.04, 0.085, 0.12, 0.055], ...
+        'FontSize',        10, ...
+        'BackgroundColor', [0.25, 0.25, 0.25], ...
+        'ForegroundColor', 'w');
+    btn_part_next = uicontrol(fig_part_rdm, ...
+        'Style',           'pushbutton', ...
+        'String',          'Next >', ...
+        'Units',           'normalized', ...
+        'Position',        [0.84, 0.085, 0.12, 0.055], ...
+        'FontSize',        10, ...
+        'BackgroundColor', [0.25, 0.25, 0.25], ...
+        'ForegroundColor', 'w');
+
+    render_part_fn = @(n) render_rdm_part( ...
+        ax_part_rdm, lbl_part_rdm, sld_part, part_rdm_view_data, n, N_parts, part_rdm_params);
+
+    set(sld_part, 'Callback', ...
+        @(src, ~) render_part_fn(max(1, min(N_parts, round(src.Value)))));
+    set(btn_part_prev, 'Callback', ...
+        @(~, ~) render_part_fn(max(1, round(sld_part.Value) - 1)));
+    set(btn_part_next, 'Callback', ...
+        @(~, ~) render_part_fn(min(N_parts, round(sld_part.Value) + 1)));
+
+    render_part_fn(1);
+    fprintf('[§9] Per-part RDM viewer ready — single window for %d part(s).\n', N_parts);
+else
+    fprintf('[§9] Per-part RDM viewer disabled by visualization profile.\n');
+end

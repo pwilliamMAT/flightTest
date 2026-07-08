@@ -126,8 +126,8 @@ surv_eca   = ifft(SURV_F_eca, [], 1);     % [N_fast x N_slow], complex
 %   N_slow=200  (10 Hz/bin) → N_cancel=1  (±1 bin  = ±10 Hz)
 N_cancel = max(1, round(3 * N_slow / 2000));
 if verbose
-    fprintf('  Stage 2: Zero-Doppler slow-time subspace notch (N_slow=%d \u2192 N_cancel=%d, notch %c%d bins)...\n', ...
-        N_slow, N_cancel, char(177), N_cancel);
+    fprintf('  Stage 2: Zero-Doppler slow-time subspace notch (N_slow=%d -> N_cancel=%d, notch +/- %d bins)...\n', ...
+        N_slow, N_cancel, N_cancel);
 end
 
 k_vec = (-N_cancel:N_cancel).';    % [(2*N_cancel+1) x 1] bin indices

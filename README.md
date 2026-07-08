@@ -170,6 +170,9 @@ out = runBistaticAnalysisSession('20260611T101530');
 ```
 
 The wrapper loads `session_manifest.json`, resolves radar and `adsb_*` files automatically, ignores any `nmea_*` files that appear in the truth list, and preserves direct use of `analyzeBistaticData.m` for manual debugging.
+The wrapper now defaults to the safer `core` visualization profile. That profile keeps the interactive RD viewer and truth-comparison figures, disables the `geoglobe` / `uifigure` paths and other lower-value companion windows, and avoids the old one-window-per-part RDM fan-out. Use `runBistaticAnalysisSession(..., 'VisualizationProfile', 'full')` to re-enable every figure path, or `... 'VisualizationProfile', 'headless'` to run a snapshot-first session with no interactive figures.
+Direct runs of `analyzeBistaticData.m` now resolve the same visualization-profile logic, so manual debugging and the packaged-session wrapper use the same graphics defaults unless you override the per-plot switches in the config block.
+The returned struct now also includes `out.visualization`, `out.figure_inventory`, and `out.ranked_crash_causes` so a post-sync audit can confirm which figure paths were active and which graphics risks were suppressed by the chosen profile.
 When packaged session frequency metadata is available, the wrapper now carries the manifest center frequency and LO offset into the analysis config so the reference-quality and pilot-selection logic can use session metadata instead of falling back immediately to a hard-coded carrier.
 For multi-part burst sessions, the analysis now derives part start offsets from each `.bb` file's `RecordingUTC` metadata when available. If that metadata cannot be read, the session wrapper falls back to the packaged manifest's `capture_repetition_spacing_s` instead of reusing the legacy fixed 3 s gap assumption.
 If you need to compare timing assumptions on the same packaged session, run `runBistaticAnalysisSession(..., 'PartTimingSource', 'metadata')` or `runBistaticAnalysisSession(..., 'PartTimingSource', 'fallback')`.
@@ -191,7 +194,7 @@ off.summary
 ```
 
 That diagnostic builds a residual heatmap of `detection - truth` in `(ΔR, Δf)` space for time-near candidate pairs, estimates the strongest constant offset cluster, and re-scores the detections after compensating by that offset. If compensated TP jumps sharply, the remaining problem is detector localization or projection bias rather than timing alone.
-When ADS-B truth is present, the analysis now overlays the projected truth directly on both the static per-part Range-Doppler maps and the interactive RD viewer in bistatic `(R_excess, f_D)` space.
+When ADS-B truth is present, the analysis now overlays the projected truth directly on both the single-window per-part Range-Doppler viewer and the interactive RD viewer in bistatic `(R_excess, f_D)` space.
 The shared convention for that truth/tracker path is now:
 - `R_excess = R_tx + R_rx - L_3D`
 - `f_D = -(fc/c) * dR_excess/dt`
@@ -203,6 +206,7 @@ By default it also saves:
 
 The first artifact is for truth-only iteration; the second is for rerunning only the detector stage.
 The wrapper now always returns `out.truth_diag_snapshot` and `out.detector_replay_snapshot` status structs, even when an optional artifact could not be written. Check `.saved` and `.status` (`saved`, `unavailable`, or `error`) before assuming the on-disk snapshot exists.
+After the first full run, the wrapper also prints and returns `out.restart_commands.truth_only` and `out.restart_commands.detector_only`, which point directly at those saved snapshot paths so post-sync iteration can restart from the compact truth bundle or the detector replay bundle instead of repeating IQ, ECA-C, CAF, and CFAR.
 
 ### 3a. Pre-Analysis Direct-Path Check
 
@@ -470,6 +474,86 @@ replay = runDetectorReplaySweep(out.detector_replay_snapshot.path, ...
 ```
 
 For a detector-tuning playbook and ready-to-paste sweep examples, see [radarExpertDetectorTuning.md](radarExpertDetectorTuning.md). The segmented rerun workflow is also captured in [BistaticDataAnalysis/checklist.md](BistaticDataAnalysis/checklist.md).
+
+### 3d. Run the Offline Toolbox Benchmark
+
+When you want to compare the current custom measurement path against toolbox-backed timing and CFAR alternatives without changing the supported production wrapper:
+
+```matlab
+cd BistaticDataAnalysis
+out = runBistaticAnalysisSession('20260615T103437', ...
+    'SaveTruthDiagnosticSnapshot', false, ...
+    'SaveDetectorReplaySnapshot', false);
+
+bench = runOfflineToolboxBenchmark(out.detector_replay_input, ...
+    'PlotSummary', true, ...
+    'Verbose', true);
+
+bench.summary_table
+```
+
+You can also point the benchmark directly at a saved replay snapshot or a packaged session:
+
+```matlab
+bench = runOfflineToolboxBenchmark(out.detector_replay_snapshot.path);
+
+bench = runOfflineToolboxBenchmark('20260615T103437');
+```
+
+Supported source types:
+- a detector replay bundle struct
+- an analysis-output struct that contains `.detector_replay_input`
+- a MAT-file containing `detector_replay_input`
+- a packaged session ID, session folder, or manifest path
+
+The harness always includes `custom_baseline` and then benchmarks up to three toolbox variants on the same input:
+- `custom_baseline`
+- `toolbox_tdoa`
+- `toolbox_cfar`
+- `toolbox_tdoa_cfar`
+
+The summary table has fixed fields for:
+- detector, TDOA, truth-scoring, and total runtime
+- detection count
+- `n_tp`, `n_fa`, `n_miss`
+- mean `Pd`
+- deltas versus `custom_baseline`
+
+For fast development iterations, point the harness at a saved replay snapshot and limit the replay scope instead of rerunning the full session:
+
+```matlab
+bench = runOfflineToolboxBenchmark( ...
+    'detector_replay_20260622T102123.mat', ...
+    'Variants', {'toolbox_tdoa'}, ...
+    'PartIndices', 1:2, ...
+    'MaxBlocksPerPart', 1, ...
+    'RunTruthDiagnostics', false, ...
+    'PlotSummary', false, ...
+    'Verbose', true);
+```
+
+Scoped replay slices keep the same summary-table schema, but they are intended for code iteration rather than final metrics:
+- `PartIndices` selects which replay parts to exercise.
+- `MaxBlocksPerPart` keeps only the first N cached detector blocks from each selected part.
+- Truth diagnostics are automatically disabled for scoped replay slices, because partial part/block runs are not acceptance-quality accuracy measurements.
+- To minimize startup cost, use a saved detector replay snapshot or `out.detector_replay_input`; a packaged session folder still has to rebuild the replay input before these limits can apply.
+
+Important behavior notes:
+- `toolbox_tdoa` and `toolbox_tdoa_cfar` reload the original radar `.bb` files from the replay bundle so they can re-measure delay with `phased.TDOAEstimator`. If those file paths are no longer reachable, the harness reports an error row for the affected variant instead of silently skipping it.
+- `toolbox_cfar` and `toolbox_tdoa_cfar` use `phased.CFARDetector2D` on the saved replay blocks, but they keep the project-specific wrapper logic outside the toolbox object: zero-Doppler notch fill, ATSC ghost-range penalties, minimum-SNR gating, and local-max suppression.
+- If the replay bundle has no usable ADS-B truth template, the harness still runs and reports runtime plus detection counts, but the truth metrics stay `NaN`.
+
+### 3e. Toolbox Evaluation Status
+
+The toolbox benchmark is currently an offline assessment path only. It does not change the supported production wrapper.
+
+- Toolbox TDOA was assessed on the captured `20260622T102123` replay and returned numeric delay measurements, but it is currently too slow to replace the custom measurement path on this workload.
+- Toolbox CFAR was also slower in the tested offline replay cases, so it should be treated as parity characterization rather than a speed-improvement path.
+- The supported workflow remains the custom CAF/RDM detector plus custom measurement extraction.
+- If toolbox TDOA is revisited, treat it as a localized refinement experiment rather than the main production front-end replacement track.
+
+Detailed rationale and measured evidence are documented in [BistaticDataAnalysis/toolboxReplacementAssessment.md](BistaticDataAnalysis/toolboxReplacementAssessment.md).
+The current execution plan for the next session is tracked in [NEXT_SESSION_HANDOFF.md](NEXT_SESSION_HANDOFF.md).
 
 ### 4. Other Entry Points
 
@@ -802,6 +886,16 @@ sudo ./start_adsb_gps_loggers.sh --adsb-only --adsb-session-id 20260610T094500 -
 
 ---
 
+## Example Review Notes
+
+Review date: June 26, 2026
+
+- The MathWorks passive bistatic OFDM example adds a true localization stage after measurement extraction: bistatic range plus angle-of-arrival are fused into a 3-D position estimate. The current project stops at bistatic ellipse visualization and range-Doppler tracking, so it does not yet produce a solved target position.
+- The example's most relevant toolbox updates for this repository are not a direct swap to `phased.RangeDopplerResponse`. The better fit is to benchmark the existing direct/reflected delay measurement against `phased.TDOAEstimator`, and to compare the custom 2-D CFAR logic against `phased.CFARDetector2D`.
+- A direct port of the example's AOA localization stage is blocked by hardware. The current capture path is dual-channel (`RX1` surveillance and `RX2` reference), not a 2-D surveillance array, so azimuth/elevation estimation would require a new coherent multi-element surveillance front end.
+
+---
+
 ## References
 
 - **Bistatic Radar Theory:** Willis, N. J., & Griffiths, H. D. (2007). *Advances in Bistatic Radar*
@@ -823,4 +917,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: June 22, 2026*
+*Last Updated: June 26, 2026*

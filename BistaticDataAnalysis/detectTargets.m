@@ -130,7 +130,7 @@ if options.min_snr_db > 0
     extra = [extra, sprintf(', min_snr=%.0f dB', options.min_snr_db)];
 end
 if options.notch_guard_dopp_bins > 0
-    extra = [extra, sprintf(', notch_guard=%c%d bins', char(177), options.notch_guard_dopp_bins)];
+    extra = [extra, sprintf(', notch_guard=+/- %d bins', options.notch_guard_dopp_bins)];
 end
 if options.nci_looks > 1
     extra = [extra, sprintf(', NCI=%d looks', options.nci_looks)];

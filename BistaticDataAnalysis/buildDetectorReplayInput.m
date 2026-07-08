@@ -80,6 +80,7 @@ truth_diag_template = localResolveTruthTemplate(opts, config, data_parts, ...
     part_start_offsets_s, part_end_offsets_s, part_results, ...
     original_all_track_dets, part_dur_s);
 detector_defaults = localBuildDetectorDefaults(config);
+signal_config = localBuildSignalConfig(config, truth_diag_template);
 
 detector_replay_input = struct( ...
     'schema_version',         1, ...
@@ -92,6 +93,7 @@ detector_replay_input = struct( ...
     'part_end_offsets_s',     part_end_offsets_s, ...
     'part_dur_s',             part_dur_s, ...
     'detector_defaults',      detector_defaults, ...
+    'signal_config',          signal_config, ...
     'detector_parts',         detector_parts, ...
     'original_all_track_dets', original_all_track_dets, ...
     'truth_diag_template',    truth_diag_template);
@@ -168,7 +170,15 @@ end
 end
 
 function original_all_track_dets = localCollectOriginalDetections(part_results)
-original_all_track_dets = zeros(0, 6);
+rows_per_part = zeros(numel(part_results), 1);
+for ip = 1 : numel(part_results)
+    if isfield(part_results(ip), 'detections') && ~isempty(part_results(ip).detections)
+        rows_per_part(ip) = size(part_results(ip).detections, 1);
+    end
+end
+
+original_all_track_dets = zeros(sum(rows_per_part), 6);
+row_cursor = 0;
 
 for ip = 1 : numel(part_results)
     if ~isfield(part_results(ip), 'detections') || isempty(part_results(ip).detections)
@@ -181,9 +191,13 @@ for ip = 1 : numel(part_results)
             'part_results(%d).detections must have at least 5 columns.', ip);
     end
 
-    original_all_track_dets = [original_all_track_dets; ... %#ok<AGROW>
-        dets_ip(:, 1:5), repmat(ip, size(dets_ip, 1), 1)];
+    row_count = size(dets_ip, 1);
+    row_sel = row_cursor + (1 : row_count);
+    original_all_track_dets(row_sel, :) = [dets_ip(:, 1:5), repmat(ip, row_count, 1)];
+    row_cursor = row_cursor + row_count;
 end
+
+original_all_track_dets = original_all_track_dets(1:row_cursor, :);
 end
 
 function truth_diag_template = localResolveTruthTemplate(opts, config, data_parts, ...
@@ -219,6 +233,47 @@ detector_defaults = struct( ...
     'train_cells', localGetConfigField(config, 'cfar_train_cells', [20, 4]), ...
     'min_range_m', localGetConfigField(config, 'cfar_min_range_m', 5e3), ...
     'cfar_options', cfar_options);
+end
+
+function signal_config = localBuildSignalConfig(config, truth_diag_template)
+fs = localGetConfigField(config, 'fs', NaN);
+fc = localGetConfigField(config, 'fc', NaN);
+num_samples = localGetConfigField(config, 'numSamples', NaN);
+cpi_duration_s = localGetConfigField(config, 'cpi_duration_s', NaN);
+prf = localGetConfigField(config, 'prf', NaN);
+n_slow_cpi = localGetConfigField(config, 'N_slow_cpi', NaN);
+max_nci_looks = localGetConfigField(config, 'max_nci_looks', NaN);
+swap_channels = logical(localGetConfigField(config, 'swap_channels', false));
+
+if ~(isfinite(prf) && prf > 0) && isfinite(cpi_duration_s) && cpi_duration_s > 0
+    prf = 1 / cpi_duration_s;
+end
+
+if ~(isfinite(n_slow_cpi) && n_slow_cpi > 0) && ...
+        isfield(truth_diag_template, 'chunk_dur_s') && ...
+        isfinite(truth_diag_template.chunk_dur_s) && truth_diag_template.chunk_dur_s > 0 && ...
+        isfinite(cpi_duration_s) && cpi_duration_s > 0
+    n_slow_cpi = round(truth_diag_template.chunk_dur_s / cpi_duration_s);
+end
+
+chunk_dur_s = NaN;
+if isfinite(n_slow_cpi) && n_slow_cpi > 0 && isfinite(prf) && prf > 0
+    chunk_dur_s = n_slow_cpi / prf;
+elseif isstruct(truth_diag_template) && isfield(truth_diag_template, 'chunk_dur_s') && ...
+        isfinite(truth_diag_template.chunk_dur_s) && truth_diag_template.chunk_dur_s > 0
+    chunk_dur_s = truth_diag_template.chunk_dur_s;
+end
+
+signal_config = struct( ...
+    'fs', fs, ...
+    'fc', fc, ...
+    'num_samples', num_samples, ...
+    'cpi_duration_s', cpi_duration_s, ...
+    'prf', prf, ...
+    'N_slow_cpi', n_slow_cpi, ...
+    'max_nci_looks', max_nci_looks, ...
+    'chunk_dur_s', chunk_dur_s, ...
+    'swap_channels', swap_channels);
 end
 
 function value = localGetConfigField(config, field_name, default_value)
