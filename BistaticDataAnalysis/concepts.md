@@ -34,6 +34,8 @@ This document captures both **what** each algorithm does and **why** each design
 | **Toolbox CFAR Parity Wrapper** | `phased.CFARDetector2D` can replace the custom CFAR core on the same replay blocks, but the passive-radar workflow still needs explicit wrapper logic around it: notch fill before training, ATSC ghost-range penalties after thresholding, minimum-SNR gating, and local-max suppression. Keeping those steps outside the object makes the comparison fair and keeps the toolbox object focused on the 2-D CFAR statistic itself. | `detectTargetsToolboxCFAR2D.m`, `helperRunDetectorReplayVariant.m`, `runOfflineToolboxBenchmark.m`, `tests/OfflineToolboxBenchmarkTest.m` |
 | **Offline Variant Benchmark Harness** | The offline benchmark runs four fixed variants — `custom_baseline`, `toolbox_tdoa`, `toolbox_cfar`, and `toolbox_tdoa_cfar` — against the same replay/truth input and reports per-stage runtime, total runtime, detection count, TP/FA/miss, mean Pd, and deltas versus the baseline. That keeps evaluation work out of the production wrapper while still using the same downstream truth scoring. | `runOfflineToolboxBenchmark.m`, `plotOfflineToolboxBenchmarkSummary.m`, `helperRunDetectorReplayVariant.m`, `helperApplyToolboxTDOARefinement.m` |
 
+| **System Composer Pipeline Quick Reference** | A lightweight logical architecture that makes the packaged-session main path, ADS-B truth alignment, truth snapshot replay, and detector replay sweep visible in one model. It is intended for orientation and session handoff, not for executable signal processing. | `architecture/buildBistaticAnalysisArchitecture.m`, `architecture/bistaticAnalysisQuickReference.slx`, `architecture/bistaticAnalysisQuickReference.png` |
+
 ---
 
 ## Clutter Mitigation: ECA-C

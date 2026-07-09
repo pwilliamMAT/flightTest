@@ -11,6 +11,32 @@ This repository contains a complete passive bistatic radar system and multi-sens
 3. **Multi-Sensor Fusion:** Integrate passive radar with RF beacon tracking for enhanced situational awareness
 4. **Toolbox Validation:** Generate real-world datasets for testing MathWorks radar and tracking algorithms
 
+## Integration Checkpoint and Architecture Reference
+
+The branch `checkpoint/working-integration-nonfunctional-detector-2026-07-08` is the preservation milestone for the current integrated replay, truth-diagnostic, visualization-profile, and offline-toolbox-evaluation work. Treat it as a durable handoff point for a **working integration with a still non-functional detector**, not as a release or detector-tuned baseline.
+
+The System Composer quick-reference model lives under `BistaticDataAnalysis/architecture/`:
+
+- `bistaticAnalysisQuickReference.slx` - logical pipeline reference model
+- `bistaticAnalysisQuickReference.png` - exported static snapshot of that diagram
+- `buildBistaticAnalysisArchitecture.m` - reproducible create/open helper
+
+Open the current model without rebuilding it:
+
+```matlab
+cd BistaticDataAnalysis/architecture
+buildBistaticAnalysisArchitecture('OpenModel', true, 'ExportDiagram', true);
+```
+
+Force a full rebuild of the model and refresh the PNG snapshot:
+
+```matlab
+cd BistaticDataAnalysis/architecture
+info = buildBistaticAnalysisArchitecture('ForceRebuild', true, 'OpenModel', true, 'ExportDiagram', true);
+```
+
+This architecture artifact is a **pipeline reference only**. It is not an executable processing model, and it does not replace the MATLAB analysis entrypoints under `BistaticDataAnalysis/`.
+
 ### Hardware Platform
 
 - **USRP N320:** Phase-coherent dual-channel software-defined radio for HDTV passive radar (540 MHz, 6 MHz bandwidth)
