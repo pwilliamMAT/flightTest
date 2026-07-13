@@ -143,9 +143,10 @@ for k = 1 : N_aircraft
     overlap_lo = max(adsb_min, t_radar_min);
     overlap_hi = min(adsb_max, t_radar_max);
     overlap_s  = max(0, overlap_hi - overlap_lo);
+    has_query_overlap = any(t_abs_query >= adsb_min & t_abs_query <= adsb_max);
     adsb_aligned(k).overlap_s = overlap_s;
 
-    if overlap_s == 0
+    if ~has_query_overlap
         fprintf('[alignTruthToRadar]   %s (%s): NO overlap  (ADS-B span %.1f–%.1f s)\n', ...
             bist.hex, bist.callsign, adsb_min, adsb_max);
         continue
@@ -169,8 +170,11 @@ for k = 1 : N_aircraft
     adsb_aligned(k).f_D_hz     = f_interp;
 
     n_valid = sum(~isnan(R_interp));
+    if overlap_s == 0 && n_valid > 0
+        adsb_aligned(k).overlap_s = eps(max(abs([adsb_min, adsb_max, t_radar_min, t_radar_max, 1])));
+    end
     fprintf('[alignTruthToRadar]   %s (%s): %.1f s overlap  →  %d/%d valid query points\n', ...
-        bist.hex, bist.callsign, overlap_s, n_valid, P);
+        bist.hex, bist.callsign, adsb_aligned(k).overlap_s, n_valid, P);
 end
 
 % ── Summary ───────────────────────────────────────────────────────────────

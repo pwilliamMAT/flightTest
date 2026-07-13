@@ -4,6 +4,43 @@
 
 This repository contains a complete passive bistatic radar system and multi-sensor data collection platform for aircraft detection, localization, and tracking validation. The system is designed to generate shareable datasets for verifying MATLAB Radar and Sensor Fusion and Tracking Toolbox functions.
 
+## Phase Status
+
+The project now has an approved CODRTIV v2 `CONOPS` baseline, an approved `Requirements_Packet.md`, an approved `Requirements_Review_Packet.md`, an approved [Design_Packet.md](Design_Packet.md), an approved [Verification_Spec.md](Verification_Spec.md) from the `Independent Quality Gatekeeper`, and a final [Red_Team_Report.md](Red_Team_Report.md) for a tight synthetic HDTV simulation effort tied to the current passive bistatic radar workflow. The project is now in `Implementation Loop`, with the packaged-session baseline and the seed-backed HDTV synthesis path implemented for the approved Apple Hill and CBS scenario.
+
+- Related brief: [CONOPS_Brief.md](CONOPS_Brief.md)
+- Context model: [SyntheticHDTVSimulation_CONOPS_Context.slx](SyntheticHDTVSimulation_CONOPS_Context.slx)
+- Current diagram export: [docs/CONOPS-SystemContextDiagram.png](docs/CONOPS-SystemContextDiagram.png)
+- Approved submitted requirements packet: [Requirements_Packet.md](Requirements_Packet.md)
+- Approved requirements review packet: [Requirements_Review_Packet.md](Requirements_Review_Packet.md)
+- Approved design packet: [Design_Packet.md](Design_Packet.md)
+- Gatekeeper-approved verification spec: [Verification_Spec.md](Verification_Spec.md)
+- Final red-team report: [Red_Team_Report.md](Red_Team_Report.md)
+- Current execution record: [Execution_Packet.md](Execution_Packet.md)
+
+Current requirements baseline decisions:
+- Output contract: synthetic radar session data, truth, and compatible metadata
+- Workflow boundary: the existing passive radar analysis workflow remains the detector and tracker of record
+- Site fidelity: include DTED-derived terrain-surface context near the approved Tx/Rx locations in v1; no building models required
+- Terrain asset status: the Apple Hill terrain tile `n42_w072_1arc_v3.dt2` is now present in the repo root and has been smoke-tested successfully with both `readgeoraster` and `addCustomTerrain`; the file spans latitude `[42, 43]` and longitude `[-72, -71]`, which covers the Apple Hill / Needham geometry for v1 terrain-backed simulation inputs
+- Provenance: require manifest-level fields for `data_origin`, `scenario_id`, `generator_name`, `generation_time_utc`, `truth_source`, and `random_seed` when stochastic generation is used
+- Reproducibility boundary: truth and metadata must reproduce across reruns; synthetic radar session data itself does not need to reproduce across reruns
+- Current implementation status: the generator now supports `zero_channels_v1` and `seed_backed_bistatic_v1`, emits seed provenance into the session manifest, and includes a user-facing walkthrough live script at [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m)
+- Current open gap: the seed-backed probe path replays through the existing wrapper and produces detections plus aligned truth, but the detections are still displaced enough from truth that `TP` remains `0` under the current scoring gates; detector-tuning work should therefore use a real field seed next
+
+Caption: The approved `CONOPS` view keeps the diagram at the context boundary only. It shows the simulation effort as an operational bridge between the existing field setup and the downstream detector-evaluation workflow, without committing to algorithm internals or implementation structure.
+
+![Synthetic HDTV Simulation CONOPS System Context Diagram](docs/CONOPS-SystemContextDiagram.png)
+
+### Synthetic HDTV Simulation Quick Start
+
+Open [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m) in the MATLAB Live Editor to generate a synthetic packaged session.
+
+- Leave `seedSourcePath` empty to create a deterministic probe seed for smoke testing, or point it to a real dual-channel `.bb` field capture to drive the seed-backed mode with real illuminator structure.
+- The walkthrough builds the approved Apple Hill / CBS baseline with [SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m](SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m) and generates the packaged session with [SyntheticHDTVSimulation/generateSyntheticHDTVSession.m](SyntheticHDTVSimulation/generateSyntheticHDTVSession.m).
+- The walkthrough now resolves the repo root from the installed helper path instead of the Live Editor temp copy, and the terrain helper bounds the DTED load to the scenario footprint so the Apple Hill tile can be used without loading the full tile into the radar scene.
+- Set `runWrapperReplay = true` inside the walkthrough when you want it to call the existing packaged-session entrypoint `runBistaticAnalysisSession`; leave it `false` while iterating on generation settings to avoid the full analysis and figure load.
+
 ### System Goals
 
 1. **Passive Bistatic Radar:** Detect and localize aircraft using TV broadcast signals (ATSC) as illuminators of opportunity
@@ -823,4 +860,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: June 22, 2026*
+*Last Updated: July 10, 2026*

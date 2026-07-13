@@ -1,0 +1,47 @@
+{
+  "manifest_version": 1,
+  "session_id": "probe_20260710T231714640",
+  "session_folder": "probe_20260710T231714640",
+  "session_created_utc": "2026-07-10T23:17:16Z",
+  "capture_duration_s": 1,
+  "capture_repetitions": 1,
+  "capture_repetition_spacing_s": 0,
+  "radar_active_window_s": 1,
+  "radar_recorded_iq_seconds_s": 1,
+  "lead_seconds_s": 0,
+  "tail_seconds_s": 0,
+  "adsb_target_window_s": 1,
+  "adsb_run_seconds_s": 1,
+  "adsb_stop_mode": "synthetic",
+  "capture_file_base": "capture",
+  "gain_spec": "synthetic",
+  "pi_host": "synthetic",
+  "pi_user": "synthetic",
+  "remote_log_file": "",
+  "radar_epoch_utc": 1.7836848E+9,
+  "sdr_defaults": {
+    "radio_name": "Synthetic Probe",
+    "center_frequency_hz": 5.99E+8,
+    "sample_rate_hz": 8.0E+6,
+    "lo_offset_hz": 0
+  },
+  "header_readback": {
+    "center_frequency_hz": 5.99E+8,
+    "sample_rate_hz": 8.0E+6,
+    "lo_offset_hz": 0,
+    "tune_frequency_hz": 5.99E+8
+  },
+  "radar_files": [
+    "radar/capture_part1.bb"
+  ],
+  "adsb_files": [
+    "truth/adsb_probe_20260710T231714640.txt"
+  ],
+  "log_files": [],
+  "data_origin": "synthetic",
+  "scenario_id": "probe",
+  "generator_name": "probe",
+  "generation_time_utc": "2026-07-10T23:17:16Z",
+  "truth_source": "synthetic_sbs1",
+  "random_seed": []
+}

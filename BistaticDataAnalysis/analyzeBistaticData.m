@@ -644,6 +644,11 @@ end
 
 fprintf('\nProcessing complete.\n');
 
+% Default TrackID palette for both the tracker replay and the standalone
+% truth-diagnostic plots. This must be available even when there are zero
+% detections and §7 is skipped.
+TRK_ID_COLORS = helperDefaultTrackIdColors();
+
 %% 6. Geographic Ellipse Visualization
 % Map each CFAR detection's bistatic iso-range ellipse onto a 3-D globe
 % using plotBistaticEllipses3D.m, colour-coded by data part.
@@ -759,19 +764,6 @@ TGT_ALT_M = 3000;   % assumed target altitude MSL [m]
 % Per-track colour palette — 12 qualitative colours indexed by TrackID.
 % The SAME colour is used for the RDM marker and globe ellipse so both
 % figures are cross-referenceable by colour.
-TRK_ID_COLORS = [ ...
-    0.929, 0.165, 0.165;  %  1  red
-    0.216, 0.494, 0.722;  %  2  blue
-    0.180, 0.722, 0.310;  %  3  green
-    0.780, 0.220, 0.780;  %  4  magenta
-    0.980, 0.600, 0.100;  %  5  orange
-    0.220, 0.820, 0.820;  %  6  cyan
-    0.750, 0.500, 0.150;  %  7  brown
-    0.550, 0.850, 0.200;  %  8  lime
-    0.950, 0.400, 0.700;  %  9  pink
-    0.400, 0.200, 0.700;  % 10  purple
-    0.700, 0.700, 0.200;  % 11  yellow
-    0.500, 0.500, 0.900]; % 12  lavender
 N_ID_COLORS = size(TRK_ID_COLORS, 1);
 CLR_NAMES   = {'red','blue','green','magenta','orange','cyan', ...
                'brown','lime','pink','purple','yellow','lavender'};

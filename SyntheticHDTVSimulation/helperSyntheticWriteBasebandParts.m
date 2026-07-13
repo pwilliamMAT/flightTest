@@ -1,0 +1,159 @@
+function [radar_files_rel, header_readback, part_start_offsets_s] = helperSyntheticWriteBasebandParts( ...
+    session_folder, scenario_config, truth_bundle)
+%HELPERSYNTHETICWRITEBASEBANDPARTS Write minimal dual-channel .bb artifacts.
+%
+% Plain language:
+% This helper packages one or more radar parts as `.bb` files while
+% preserving the existing session layout and header conventions. The same
+% packager supports both the original placeholder mode and the newer
+% seed-backed synthesis mode so downstream workflow compatibility remains
+% fixed while the signal content becomes more realistic.
+
+validateattributes(session_folder, {'char', 'string'}, {'scalartext'}, mfilename, 'session_folder');
+validateattributes(scenario_config, {'struct'}, {'scalar'}, mfilename, 'scenario_config');
+validateattributes(truth_bundle, {'struct'}, {'scalar'}, mfilename, 'truth_bundle');
+
+session_folder = char(string(session_folder));
+radar_folder = fullfile(session_folder, 'radar');
+if exist(radar_folder, 'dir') ~= 7
+    error('helperSyntheticWriteBasebandParts:missingRadarFolder', ...
+        'Radar output folder does not exist: %s', radar_folder);
+end
+
+n_parts = scenario_config.capture_repetitions;
+part_start_offsets_s = (0 : n_parts - 1).' * ...
+    (scenario_config.part_duration_s + scenario_config.capture_repetition_spacing_s);
+n_samples = round(scenario_config.sample_rate_hz * scenario_config.part_duration_s);
+radar_files_rel = cell(n_parts, 1);
+
+for part_idx = 1 : n_parts
+    recording_utc = scenario_config.radar_epoch_utc + part_start_offsets_s(part_idx);
+    file_name = sprintf('%s_%s_part%d.bb', ...
+        scenario_config.capture_file_base, scenario_config.session_id, part_idx);
+    file_path = fullfile(radar_folder, file_name);
+    metadata = localBuildMetadata(scenario_config, part_idx, recording_utc);
+    samples = localBuildSamples( ...
+        n_samples, scenario_config, truth_bundle, part_idx, part_start_offsets_s(part_idx));
+
+    try
+        bbw = comm.BasebandFileWriter(file_path, ...
+            'SampleRate', scenario_config.sample_rate_hz, ...
+            'CenterFrequency', scenario_config.center_frequency_hz, ...
+            'Metadata', metadata);
+        bbw(samples);
+        release(bbw);
+    catch ME
+        error('helperSyntheticWriteBasebandParts:basebandWriteFailed', ...
+            'Could not write baseband file %s: %s', file_path, ME.message);
+    end
+
+    radar_files_rel{part_idx} = localManifestPath('radar', file_name);
+end
+
+header_readback = localReadHeaderReadback(fullfile(radar_folder, file_name));
+end
+
+function metadata = localBuildMetadata(scenario_config, part_idx, recording_utc)
+recording_dt = datetime(recording_utc, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+metadata = struct( ...
+    'Label', 'SyntheticHDTVSession', ...
+    'SessionID', scenario_config.session_id, ...
+    'ScenarioID', scenario_config.scenario_id, ...
+    'LOOffset', scenario_config.lo_offset_hz, ...
+    'DateTime', char(string(recording_dt, 'yyyy-MM-dd_HH-mm-ss.SSS')), ...
+    'RecordingUTC', recording_utc, ...
+    'Duration_s', scenario_config.part_duration_s, ...
+    'Repetition', part_idx, ...
+    'DataOrigin', 'synthetic', ...
+    'SignalMode', scenario_config.signal_mode, ...
+    'SeedSourcePath', localMetadataSeedPath(scenario_config), ...
+    'SeedChannelIndex', localMetadataSeedChannel(scenario_config));
+end
+
+function samples = localBuildSamples(n_samples, scenario_config, truth_bundle, part_idx, part_start_offset_s)
+signal_mode = char(string(scenario_config.signal_mode));
+
+switch signal_mode
+    case 'zero_channels_v1'
+        [surveillance_channel, reference_channel] = localBuildZeroChannels( ...
+            n_samples, scenario_config, part_idx);
+
+    case 'seed_backed_bistatic_v1'
+        [seed_waveform, ~] = helperSyntheticLoadSeedWaveform( ...
+            scenario_config, n_samples, part_start_offset_s);
+        [surveillance_channel, reference_channel] = helperSyntheticSynthesizeSeedBackedChannels( ...
+            seed_waveform, scenario_config, truth_bundle, part_idx, part_start_offset_s);
+
+    otherwise
+        error('helperSyntheticWriteBasebandParts:unsupportedSignalMode', ...
+            'Unsupported signal_mode: %s', signal_mode);
+end
+
+% Match the current workflow contract: CH1 = surveillance, CH2 = reference.
+samples = [surveillance_channel, reference_channel];
+end
+
+function [surveillance_channel, reference_channel] = localBuildZeroChannels(n_samples, scenario_config, part_idx)
+reference_channel = complex(zeros(n_samples, 1, 'single'));
+surveillance_channel = complex(zeros(n_samples, 1, 'single'));
+
+if scenario_config.use_stochastic_noise
+    if isempty(scenario_config.random_seed)
+        error('helperSyntheticWriteBasebandParts:missingRandomSeed', ...
+            'random_seed is required when use_stochastic_noise is true.');
+    end
+    rng(double(scenario_config.random_seed) + part_idx - 1, 'twister');
+    surveillance_channel = complex( ...
+        randn(n_samples, 1, 'single'), ...
+        randn(n_samples, 1, 'single')) ./ sqrt(2);
+    reference_channel = complex( ...
+        randn(n_samples, 1, 'single'), ...
+        randn(n_samples, 1, 'single')) ./ sqrt(2);
+end
+end
+
+function header_readback = localReadHeaderReadback(radar_file_path)
+try
+    reader = comm.BasebandFileReader(radar_file_path, 'SamplesPerFrame', 1);
+    cleanup_reader = onCleanup(@() release(reader)); %#ok<NASGU>
+    metadata = reader.Metadata;
+    header_readback = struct( ...
+        'center_frequency_hz', double(reader.CenterFrequency), ...
+        'sample_rate_hz', double(reader.SampleRate), ...
+        'lo_offset_hz', localScalarOrZero(metadata, 'LOOffset'), ...
+        'tune_frequency_hz', double(reader.CenterFrequency) + localScalarOrZero(metadata, 'LOOffset'));
+catch ME
+    error('helperSyntheticWriteBasebandParts:headerReadbackFailed', ...
+        'Could not read header metadata from %s: %s', radar_file_path, ME.message);
+end
+end
+
+function value = localScalarOrZero(source_struct, field_name)
+value = 0;
+if isstruct(source_struct) && isfield(source_struct, field_name) && ...
+        ~isempty(source_struct.(field_name))
+    candidate = double(source_struct.(field_name));
+    if isscalar(candidate) && isfinite(candidate)
+        value = candidate;
+    end
+end
+end
+
+function seed_path = localMetadataSeedPath(scenario_config)
+seed_path = '';
+if isfield(scenario_config, 'seed_source_path') && ...
+        strlength(string(scenario_config.seed_source_path)) > 0
+    seed_path = char(string(scenario_config.seed_source_path));
+end
+end
+
+function seed_channel = localMetadataSeedChannel(scenario_config)
+seed_channel = [];
+if isfield(scenario_config, 'seed_channel_index') && ~isempty(scenario_config.seed_channel_index)
+    seed_channel = double(scenario_config.seed_channel_index);
+end
+end
+
+function rel_path = localManifestPath(folder_name, file_name)
+rel_path = strrep(fullfile(folder_name, file_name), '\', '/');
+end
