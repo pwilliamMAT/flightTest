@@ -34,10 +34,11 @@ Caption: The approved `CONOPS` view keeps the diagram at the context boundary on
 
 ### Synthetic HDTV Simulation Quick Start
 
-Open [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m) in the MATLAB Live Editor to generate a synthetic packaged session.
+Open [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m) in MATLAB to step through the synthetic-session walkthrough sections.
 
 - Leave `seedSourcePath` empty to create a deterministic probe seed for smoke testing, or point it to a real dual-channel `.bb` field capture to drive the seed-backed mode with real illuminator structure.
-- The walkthrough builds the approved Apple Hill / CBS baseline with [SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m](SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m) and generates the packaged session with [SyntheticHDTVSimulation/generateSyntheticHDTVSession.m](SyntheticHDTVSimulation/generateSyntheticHDTVSession.m).
+- Edit `captureDurationS`, `captureRepetitions`, `captureRepetitionSpacingS`, `truthSamplePeriodS`, and the explicit `targets` struct array in the walkthrough when you want to change the active window, waypoint timing, or per-target echo strength used for downstream testing.
+- The walkthrough builds the approved Apple Hill / CBS baseline with [SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m](SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m), applies those walkthrough edits as authoritative overrides, previews the resulting static site and bistatic truth, and then generates the packaged session with [SyntheticHDTVSimulation/generateSyntheticHDTVSession.m](SyntheticHDTVSimulation/generateSyntheticHDTVSession.m).
 - The walkthrough now resolves the repo root from the installed helper path instead of the Live Editor temp copy, and the terrain helper bounds the DTED load to the scenario footprint so the Apple Hill tile can be used without loading the full tile into the radar scene.
 - Set `runWrapperReplay = true` inside the walkthrough when you want it to call the existing packaged-session entrypoint `runBistaticAnalysisSession`; leave it `false` while iterating on generation settings to avoid the full analysis and figure load.
 

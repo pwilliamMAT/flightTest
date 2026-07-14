@@ -175,6 +175,82 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             testCase.verifyEqual(manifest.direct_path_gain_db, artifact.scenario_config.direct_path_gain_db);
         end
 
+        function testTimingOverridesPropagateAcrossTruthAndManifest(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            capture_duration_s = 0.05;
+            capture_repetitions = 3;
+            capture_spacing_s = 0.10;
+            truth_sample_period_s = 0.01;
+            expected_active_window_s = capture_duration_s * capture_repetitions + ...
+                (capture_repetitions - 1) * capture_spacing_s;
+
+            cfg = buildSyntheticHDTVBaselineScenarioConfig( ...
+                'OutputRoot', fixture.Folder, ...
+                'SessionID', 'timing_override_session', ...
+                'CaptureDurationS', capture_duration_s, ...
+                'CaptureRepetitions', capture_repetitions, ...
+                'CaptureRepetitionSpacingS', capture_spacing_s, ...
+                'TruthSamplePeriodS', truth_sample_period_s);
+            truth_bundle = helperSyntheticGenerateTruth(cfg);
+            artifact = generateSyntheticHDTVSession('ScenarioConfig', cfg);
+            manifest = helperLoadSessionManifest(artifact.manifest_path);
+
+            testCase.verifyEqual(cfg.expected_overlap_window_s(2), expected_active_window_s, AbsTol=1e-12);
+            testCase.verifyEqual(max(truth_bundle.sample_times_s), expected_active_window_s, AbsTol=1e-12);
+            testCase.verifyEqual(artifact.part_start_offsets_s, [0; 0.15; 0.30], AbsTol=1e-12);
+            testCase.verifyEqual(numel(artifact.radar_files), capture_repetitions);
+            testCase.verifyEqual(manifest.capture_duration_s, capture_duration_s, AbsTol=1e-12);
+            testCase.verifyEqual(manifest.capture_repetitions, capture_repetitions);
+            testCase.verifyEqual(manifest.capture_repetition_spacing_s, capture_spacing_s, AbsTol=1e-12);
+            testCase.verifyEqual(manifest.radar_active_window_s, expected_active_window_s, AbsTol=1e-12);
+        end
+
+        function testCustomTargetsDriveSavedTruthAndADSBOutput(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            cfg = buildSyntheticHDTVBaselineScenarioConfig( ...
+                'OutputRoot', fixture.Folder, ...
+                'SessionID', 'custom_target_session');
+            custom_targets = cfg.targets;
+            capture_window_s = cfg.expected_overlap_window_s(2);
+
+            custom_targets(1).target_id = 'TGT901';
+            custom_targets(1).icao_hex = 'ABC901';
+            custom_targets(1).callsign = 'EDIT901';
+            custom_targets(1).echo_gain_db = -18;
+            custom_targets(1).waypoints_lla_deg_m = [ ...
+                42.314500, -71.332000, 3100; ...
+                42.316000, -71.322000, 3200; ...
+                42.317500, -71.312000, 3300];
+            custom_targets(1).time_of_arrival_s = [0; capture_window_s / 2; capture_window_s];
+            cfg.targets = custom_targets;
+
+            artifact = generateSyntheticHDTVSession('ScenarioConfig', cfg);
+            traceability_truth = load(artifact.traceability_truth_path, 'truth_bundle');
+            adsb_truth_path = SyntheticHDTVSessionGeneratorTest.localResolveRelativePath( ...
+                artifact.session_folder, artifact.adsb_files{1});
+            loaded_adsb_tracks = loadADSBTruth({adsb_truth_path}, 'Verbose', false);
+
+            adsb_idx = SyntheticHDTVSessionGeneratorTest.localFindTrackIndexByCallsign( ...
+                loaded_adsb_tracks, 'EDIT901');
+
+            testCase.verifyEqual(traceability_truth.truth_bundle.targets(1).target_id, 'TGT901');
+            testCase.verifyEqual(traceability_truth.truth_bundle.targets(1).callsign, 'EDIT901');
+            testCase.verifyEqual( ...
+                traceability_truth.truth_bundle.targets(1).lat_deg(1), ...
+                custom_targets(1).waypoints_lla_deg_m(1, 1), AbsTol=1e-9);
+            testCase.verifyEqual( ...
+                traceability_truth.truth_bundle.targets(1).lon_deg(end), ...
+                custom_targets(1).waypoints_lla_deg_m(end, 2), AbsTol=1e-9);
+            testCase.verifyEqual(loaded_adsb_tracks(adsb_idx).callsign, 'EDIT901');
+            testCase.verifyEqual(loaded_adsb_tracks(adsb_idx).hex, 'ABC901');
+            testCase.verifyEqual( ...
+                loaded_adsb_tracks(adsb_idx).lat_deg(1), ...
+                custom_targets(1).waypoints_lla_deg_m(1, 1), AbsTol=1e-6);
+            testCase.verifyEqual( ...
+                loaded_adsb_tracks(adsb_idx).lon_deg(end), ...
+                custom_targets(1).waypoints_lla_deg_m(end, 2), AbsTol=1e-6);
+        end
+
         function testPackagedSessionReplaysThroughCurrentWrapper(testCase)
             fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
             artifact = SyntheticHDTVSessionGeneratorTest.localGenerateSession( ...
@@ -209,6 +285,45 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             testCase.verifyEqual(numel(out.radar_files), 1);
             testCase.verifyEqual(numel(out.adsb_files), 1);
             testCase.verifyGreaterThanOrEqual(n_aligned_tracks, 1);
+        end
+
+        function testScenarioSummaryHelperReportsWaypointEndpoints(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            cfg = buildSyntheticHDTVBaselineScenarioConfig( ...
+                'OutputRoot', fixture.Folder, ...
+                'CaptureDurationS', 0.08, ...
+                'CaptureRepetitions', 2, ...
+                'CaptureRepetitionSpacingS', 0.12);
+
+            [scenario_summary, target_summary_table] = helperSyntheticSummarizeScenarioConfig(cfg);
+
+            testCase.verifyEqual(scenario_summary.part_duration_s, 0.08, AbsTol=1e-12);
+            testCase.verifyEqual(scenario_summary.capture_repetitions, 2);
+            testCase.verifyEqual(scenario_summary.capture_repetition_spacing_s, 0.12, AbsTol=1e-12);
+            testCase.verifyEqual(scenario_summary.radar_active_window_s, 0.28, AbsTol=1e-12);
+            testCase.verifyEqual(scenario_summary.n_targets, numel(cfg.targets));
+            testCase.verifyEqual(target_summary_table.TargetID(1), string(cfg.targets(1).target_id));
+            testCase.verifyEqual(target_summary_table.Callsign(2), string(cfg.targets(2).callsign));
+            testCase.verifyEqual( ...
+                target_summary_table.StartLatDeg(1), ...
+                cfg.targets(1).waypoints_lla_deg_m(1, 1), AbsTol=1e-12);
+            testCase.verifyEqual( ...
+                target_summary_table.EndLonDeg(2), ...
+                cfg.targets(2).waypoints_lla_deg_m(end, 2), AbsTol=1e-12);
+        end
+
+        function testScenarioOverviewPlotHelperRunsForConfiguredTruth(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            cfg = buildSyntheticHDTVBaselineScenarioConfig('OutputRoot', fixture.Folder);
+            truth_bundle = helperSyntheticGenerateTruth(cfg);
+            plot_handles = helperSyntheticPlotScenarioOverview(cfg, truth_bundle);
+            testCase.addTeardown(@() close(plot_handles.figure));
+
+            testCase.verifyTrue(isgraphics(plot_handles.figure));
+            testCase.verifyTrue(isgraphics(plot_handles.geometry_axes, 'axes'));
+            testCase.verifyTrue(isgraphics(plot_handles.altitude_axes, 'axes'));
+            testCase.verifyTrue(isgraphics(plot_handles.range_axes, 'axes'));
+            testCase.verifyTrue(isgraphics(plot_handles.doppler_axes, 'axes'));
         end
 
         function testTruthAndMetadataRepeatAcrossReruns(testCase)
@@ -287,6 +402,10 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             if isfield(manifest, 'generation_time_utc')
                 manifest = rmfield(manifest, 'generation_time_utc');
             end
+        end
+
+        function idx = localFindTrackIndexByCallsign(track_struct, callsign)
+            idx = find(arrayfun(@(track) strcmp(track.callsign, callsign), track_struct), 1, 'first');
         end
     end
 end

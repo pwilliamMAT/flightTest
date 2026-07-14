@@ -8,6 +8,15 @@ function artifact = generateSyntheticHDTVSession(varargin)
 % both the original zero-channel compatibility mode and the approved
 % seed-backed bistatic mode, where a captured HDTV seed drives the
 % reference channel and the surveillance echoes.
+%
+% Where to find things:
+% - Scenario-definition defaults live in `buildSyntheticHDTVBaselineScenarioConfig`.
+% - Truth generation lives in `helperSyntheticGenerateTruth`.
+% - Signal synthesis and `.bb` writing live in
+%   `helperSyntheticWriteBasebandParts` and
+%   `helperSyntheticSynthesizeSeedBackedChannels`.
+% - The user-facing orchestration lives in
+%   `seedBackedSyntheticHDTVSessionWalkthrough`.
 
 p = inputParser;
 p.FunctionName = mfilename;
@@ -17,15 +26,21 @@ addParameter(p, 'SessionID', "", @(x) ischar(x) || isstring(x));
 parse(p, varargin{:});
 opts = p.Results;
 
+%% Resolve and validate scenario configuration
 helperSyntheticEnsureProjectPaths();
 scenario_config = localResolveScenarioConfig(opts);
+
+%% Validate terrain coverage
 terrain_info = helperSyntheticBuildSceneTerrain(scenario_config);
 if ~terrain_info.tx_in_coverage || ~terrain_info.rx_in_coverage
     error('generateSyntheticHDTVSession:terrainCoverageMismatch', ...
         'The approved transmitter or receiver location falls outside the DTED coverage.');
 end
 
+%% Generate truth bundle
 truth_bundle = helperSyntheticGenerateTruth(scenario_config);
+
+%% Create packaged-session folder layout
 session_folder = fullfile(scenario_config.output_root, scenario_config.session_id);
 radar_folder = fullfile(session_folder, 'radar');
 truth_folder = fullfile(session_folder, 'truth');
@@ -41,6 +56,7 @@ localCreateFolderIfNeeded(radar_folder);
 localCreateFolderIfNeeded(truth_folder);
 localCreateFolderIfNeeded(logs_folder);
 
+%% Write compatibility and traceability truth artifacts
 adsb_file_name = sprintf('adsb_%s.txt', scenario_config.session_id);
 adsb_file_path = fullfile(truth_folder, adsb_file_name);
 helperSyntheticWriteADSBTruth(adsb_file_path, truth_bundle.adsb_tracks);
@@ -57,9 +73,11 @@ catch ME
 end
 traceability_truth_rel = localManifestPath('truth', traceability_truth_name);
 
+%% Synthesize and write radar `.bb` artifacts
 [radar_files_rel, header_readback, part_start_offsets_s] = helperSyntheticWriteBasebandParts( ...
     session_folder, scenario_config, truth_bundle);
 
+%% Build and write session manifest
 manifest = helperSyntheticBuildManifest( ...
     scenario_config, radar_files_rel, adsb_files_rel, traceability_truth_rel, header_readback);
 manifest_path = fullfile(session_folder, 'session_manifest.json');
@@ -77,6 +95,7 @@ catch ME
         'Could not write session manifest %s: %s', manifest_path, ME.message);
 end
 
+%% Return artifact summary
 artifact = struct( ...
     'scenario_config', scenario_config, ...
     'session_id', scenario_config.session_id, ...
