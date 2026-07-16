@@ -53,12 +53,10 @@ if nargin < 1
     source = "";
 end
 
-repo_root = fileparts(fileparts(mfilename('fullpath')));
-
 p = inputParser;
 p.FunctionName = mfilename;
 addRequired(p, 'source', @(x) ischar(x) || isstring(x));
-addParameter(p, 'DatasetRoot', fullfile(repo_root, 'captures'), @(x) ischar(x) || isstring(x));
+addParameter(p, 'DatasetRoot', helperResolvePackagedCaptureRoot(), @(x) ischar(x) || isstring(x));
 addParameter(p, 'SessionFolder', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'ManifestPath', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'PartIndices', [], @(x) isempty(x) || (isnumeric(x) && isvector(x) && all(x >= 1) && all(mod(x,1)==0)));

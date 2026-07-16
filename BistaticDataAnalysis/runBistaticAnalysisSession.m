@@ -58,9 +58,8 @@ addParameter(p, 'Force2DGeographicFallback', [], @localIsOptionalLogicalScalar);
 parse(p, session_id, varargin{:});
 opts = p.Results;
 
-repo_root = fileparts(fileparts(mfilename('fullpath')));
 if strlength(string(opts.DatasetRoot)) == 0
-    dataset_root = fullfile(repo_root, 'captures');
+    dataset_root = helperResolvePackagedCaptureRoot();
 else
     dataset_root = char(string(opts.DatasetRoot));
 end

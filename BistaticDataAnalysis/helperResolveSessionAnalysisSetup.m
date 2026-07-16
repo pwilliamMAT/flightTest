@@ -1,12 +1,10 @@
 function analysis_setup = helperResolveSessionAnalysisSetup(session_id, varargin)
 %HELPERRESOLVESESSIONANALYSISSETUP Resolve one packaged session into inputs for analysis.
 
-repo_root = fileparts(fileparts(mfilename('fullpath')));
-
 p = inputParser;
 p.FunctionName = mfilename;
 addOptional(p, 'session_id', session_id, @(x) isempty(x) || ischar(x) || isstring(x));
-addParameter(p, 'DatasetRoot', fullfile(repo_root, 'captures'), @(x) ischar(x) || isstring(x));
+addParameter(p, 'DatasetRoot', helperResolvePackagedCaptureRoot(), @(x) ischar(x) || isstring(x));
 addParameter(p, 'SessionFolder', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'ManifestPath', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'Verbose', false, @islogical);

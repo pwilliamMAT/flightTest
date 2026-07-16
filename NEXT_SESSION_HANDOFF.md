@@ -1,6 +1,35 @@
 # Next Session Handoff
 
-Updated: June 26, 2026
+Updated: July 10, 2026
+
+## July 10, 2026 ATSC Pilot Audit Status Correction
+
+This section corrects the current status of the ATSC pilot-audit upgrade.
+
+### What Is Actually Complete
+
+- The implementation work is present in the current worktree.
+- Automated verification completed:
+  - `BistaticDataAnalysis/tests/ATSCPilotAuditTest.m`
+  - `BistaticDataAnalysis/test_rfQualityAudit.m`
+  - `BistaticDataAnalysis/runATSCPilotAuditValidation.m` on session `20260622T102123`
+- Manual review update:
+  - the top spectrum / pilot-evidence figure has now been reviewed on real capture data
+  - the selected PSD peak on the normal side was confirmed by the operator to land on the expected ATSC pilot tone
+  - that manual check should be treated as evidence that the new PSD-first selector is behaving correctly on the reference spectrum
+
+### What Is Not Complete
+
+- Full manual review has **not** been completed yet.
+- Do **not** treat the ATSC pilot-audit upgrade as fully manually verified.
+- The required pending review is:
+  - run the revised precheck with figures enabled on at least parts `1` and `5`
+  - confirm the bottom stability panel and the figure-level HOLD/CONTINUE summary match the returned structured outputs
+  - confirm the same PSD-first pilot-selection behavior remains sensible on more than one part
+
+### Next Action
+
+- The next session should begin with the remaining manual review of the stability panel and multi-part figure summaries before claiming the ATSC pilot-audit work is fully verified.
 
 ## June 26, 2026 Toolbox Replacement-Assessment Handoff
 
@@ -295,11 +324,11 @@ rf.part_table(:, {'part_index','level_dbfs','pilot_snr_db','pilot_pass', ...
   - `zero_doppler_pass_fraction`
   - `after_margin_pass_fraction`
   - `sufficient_for_goal`
-5. Treat `level_dbfs` as secondary. A healthier ADC level does not matter if pilot coherence and pilot-frequency consistency stay poor.
+5. Treat `level_dbfs` as secondary. A healthier ADC level does not matter if pilot evidence and pilot-frequency consistency stay poor.
 
 ### Expected Interpretations
 
-- If higher reference gain materially improves pilot coherence and frequency consistency, SDR gain was part of the problem.
+- If higher reference gain materially improves pilot evidence and frequency consistency, SDR gain was part of the problem.
 - If `level_dbfs` rises but `pilot_pass_fraction` stays near zero and the pilot remains mirrored or unstable, more SDR gain alone is not enough and the next step is hardware:
   - reference-side LNA / preamplifier
   - better reference antenna

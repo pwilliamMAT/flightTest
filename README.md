@@ -21,6 +21,18 @@ The System Composer quick-reference model lives under `BistaticDataAnalysis/arch
 - `bistaticAnalysisQuickReference.png` - exported static snapshot of that diagram
 - `buildBistaticAnalysisArchitecture.m` - reproducible create/open helper
 
+The coordinated capture presentation flowchart also lives there:
+
+- `coordinatedCaptureAnalysisFlowchart.pptx` - single-slide 16:9 PowerPoint flowchart for the testing-machine to MATLAB handoff
+- `coordinatedCaptureAnalysisFlowchart.png` - exported slide preview for quick review
+- `buildCoordinatedCaptureAnalysisFlowchart.ps1` - reproducible PowerPoint generator
+
+The active analysis presentation flowchart also lives there:
+
+- `bistaticDataAnalysisPipelineFlowchart.pptx` - single-slide 16:9 PowerPoint flowchart for the current `BistaticDataAnalysis` mainline plus ADS-B truth evaluation branch
+- `bistaticDataAnalysisPipelineFlowchart.png` - exported slide preview for quick review
+- `buildBistaticDataAnalysisPipelineFlowchart.ps1` - reproducible PowerPoint generator
+
 Open the current model without rebuilding it:
 
 ```matlab
@@ -33,6 +45,18 @@ Force a full rebuild of the model and refresh the PNG snapshot:
 ```matlab
 cd BistaticDataAnalysis/architecture
 info = buildBistaticAnalysisArchitecture('ForceRebuild', true, 'OpenModel', true, 'ExportDiagram', true);
+```
+
+Rebuild the coordinated-capture PowerPoint slide and refresh its PNG preview:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File BistaticDataAnalysis\architecture\buildCoordinatedCaptureAnalysisFlowchart.ps1
+```
+
+Rebuild the active-analysis PowerPoint slide and refresh its PNG preview:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File BistaticDataAnalysis\architecture\buildBistaticDataAnalysisPipelineFlowchart.ps1
 ```
 
 This architecture artifact is a **pipeline reference only**. It is not an executable processing model, and it does not replace the MATLAB analysis entrypoints under `BistaticDataAnalysis/`.
@@ -244,18 +268,43 @@ pre = runDirectPathPrecheck('20260616T090717');
 ```
 
 By default this reads the first radar file in the packaged session and only the first 1 second of IQ, so it is much faster than the full analysis path.
+In this repository, session IDs now resolve directly against `BistaticDataAnalysis/captures`, so `runDirectPathPrecheck('20260622T102123')` works without a manual `DatasetRoot` override.
 The diagnostic produces three figures and pass/warn summaries for:
-- reference spectrum and pilot coherence
+- reference spectrum and PSD-based pilot evidence
 - lag-domain direct-path peak dominance between surveillance and reference
 - zero-Doppler ridge strength before and after ECA-C
 
-The reference-spectrum figure now distinguishes between:
-- the strongest coherent line anywhere in the baseband slice
-- the best ATSC-consistent pilot candidate based on the stored `LOOffset`, the nearest ATSC channel-center raster, and the local narrow-line prominence in the spectrum
+Why this matters for passive bistatic HDTV signals:
+- ATSC 8-VSB payload data is intentionally broad and noise-like in the spectrum, so "one coherent FFT bin stayed strong across CPIs" is not the right primary test for whether the direct-path reference is healthy.
+- The ATSC pilot is the one narrow, always-transmitted spectral feature tied to the broadcast waveform itself. If the reference channel shows that pilot at the expected transmitted location, the capture is much more likely to be correctly tuned, correctly oriented in frequency, and strong enough to support direct-path-based processing.
+- In this passive-radar workflow the reference channel anchors ECA-C clutter cancellation, direct-path lag calibration, and the interpretation of later range-Doppler products. A cleaner pilot audit is therefore relevant even when the final WARN is caused by residual clutter rather than by pilot selection.
+
+The reference-spectrum figure and returned pilot-audit struct now distinguish between:
+- the expected normal-orientation ATSC pilot location
+- the expected mirrored-orientation ATSC pilot location
+- the final selected candidate
+- the mirrored diagnostic-only candidate
+- the residual-frequency stability trace after centering the selected pilot
+- the legacy FFT-bin coherence metric as secondary text only
 
 That matters when the header center is off the ATSC raster. For example, a header `Fc = 600 MHz` with `LOOffset = 200 kHz` can still contain a valid channel centered at `599 MHz`; in that case the ATSC pilot can wrap onto the positive-frequency side of baseband instead of appearing on the usual negative side.
-The printed `pilot_selection` struct also now reports the best non-mirrored score, the best mirrored score, and `mirrored_minus_nonmirrored_score` so you can see whether the data prefers a normal or spectrally inverted interpretation.
-The frequency-resolution path is now metadata-first but not metadata-blind: it uses an explicit `IlluminatorCenterFrequencyHz` override when you provide one, otherwise it locks to a file-header center only when that center is plausibly on the ATSC raster, otherwise it falls back to the packaged session metadata, and only then does it broaden to a nearby-raster search. That keeps normal sessions tied to their stored capture metadata without hard-coding one channel center into the audit.
+The returned `pre.reference_profile` struct and `pre.pilot_diagnostic_table` now report the selected pilot frequency, PSD prominence, peak power, frequency error, advisory residual-frequency statistics, and the mirrored diagnostic candidate. That makes the selection explainable without reverse-engineering ambiguous plot labels.
+The figure-level summary and `pre.precheck_summary` now use passive-radar language such as `Passive-radar recommendation: HOLD - pilot evidence not yet trustworthy`, rather than only saying that a plot looks good or bad.
+The frequency-resolution path is metadata-first but not metadata-blind: it uses an explicit `IlluminatorCenterFrequencyHz` override when you provide one, otherwise it locks to a file-header center only when that center is plausibly on the ATSC raster, otherwise it falls back to the nearest raster as a diagnostic search center. Under the current `Normal only` policy, mirrored candidates remain diagnostic-only even if they look stronger than the normal-side line.
+
+To run the capture-backed engineering validation that samples parts `[1 5 10 15]` from the packaged session and summarizes pilot stability:
+
+```matlab
+cd BistaticDataAnalysis
+val = runATSCPilotAuditValidation('20260622T102123');
+val.part_table
+val.summary
+```
+
+Status note as of July 10, 2026:
+- automated verification for this upgrade is complete
+- manual review of the top spectrum/pilot-evidence figure on real capture data now confirms that the selected PSD peak lands on the expected pilot tone
+- full manual review is still not complete until an operator also checks the stability panel plus the HOLD/CONTINUE summary text against the returned structured outputs, ideally on more than one part
 
 If you want to probe a specific file directly:
 
@@ -266,7 +315,7 @@ pre = runDirectPathPrecheck('C:\path\to\capture_part1.bb', ...
     'PlotFigures', true);
 ```
 
-If the channel-power diagnostic, pilot-coherence plot, and ECA-C behaviour together suggest the better ATSC reference is actually on `RX1`, rerun the precheck with:
+If the channel-power diagnostic, pilot-evidence plot, and ECA-C behaviour together suggest the better ATSC reference is actually on `RX1`, rerun the precheck with:
 
 ```matlab
 pre = runDirectPathPrecheck('20260616T090717', 'SwapChannels', true);
@@ -292,16 +341,17 @@ rf.assessment
 ```
 
 This session-level audit keeps the RF-only questions separate from later detector/truth diagnostics. It checks whether the capture is consistently usable for passive radar by measuring, per part:
-- reference-channel level, ATSC pilot coherence, and spectral flatness
+- reference-channel level, PSD-based ATSC pilot evidence, and spectral flatness
 - direct-path lag dominance between surveillance and reference
 - zero-Doppler ridge strength before ECA-C, suppression after ECA-C, and whether the residual ridge still sits too far above the post-ECA noise floor
 
 Then it rolls those into one sufficiency decision for either `aircraft_detection` or `tracking_validation`. Use this before spending time on CFAR sweeps or truth debugging.
 Per-part warnings are preserved in `rf.part_table` and rolled into the session summary; one weak part should not stop the audit from evaluating the rest of the session.
 The audit intentionally does not use raw inter-channel power asymmetry as a sufficiency metric, because in this hardware the surveillance Yagi may legitimately be much stronger than the small reference omni.
-If the reference ADC level looks acceptable but pilot coherence stays weak, a reference-side LNA / amplifier is a valid hardware adjustment and should be treated as in scope.
-For the current hardware baseline, `RX0/CH1` is typically the surveillance HDTV Yagi with a built-in amplifier and `RX1/CH2` is the small unamplified telescoping reference antenna. That means a reference-gain sweep such as `28,48 -> 28,54 -> 28,60` is a valid experiment, but it should be judged primarily by pilot coherence, pilot-frequency consistency, mirrored-pilot incidence, and the post-ECA residual ridge rather than by channel-power ratio alone.
-When comparing multiple gain-sweep sessions, use the same explicit `IlluminatorCenterFrequencyHz` for every run if the actual HDTV channel center is known. If a higher SDR gain improves ADC level but does not materially improve coherent pilot quality, the next in-scope fix is a better reference front end such as a reference-side LNA / amplifier, better antenna, or better placement.
+If the reference ADC level looks acceptable but pilot evidence stays weak or badly misplaced, a reference-side LNA / amplifier is a valid hardware adjustment and should be treated as in scope.
+For the current hardware baseline, `RX0/CH1` is typically the surveillance HDTV Yagi with a built-in amplifier and `RX1/CH2` is the small unamplified telescoping reference antenna. That means a reference-gain sweep such as `28,48 -> 28,54 -> 28,60` is a valid experiment, but it should be judged primarily by pilot prominence, pilot-frequency consistency, mirrored-pilot incidence, and the post-ECA residual ridge rather than by channel-power ratio alone.
+When comparing multiple gain-sweep sessions, use the same explicit `IlluminatorCenterFrequencyHz` for every run if the actual HDTV channel center is known. If a higher SDR gain improves ADC level but does not materially improve PSD-based pilot evidence, the next in-scope fix is a better reference front end such as a reference-side LNA / amplifier, better antenna, or better placement.
+For passive bistatic HDTV in particular, this is the right order of operations: first confirm that the broadcast pilot looks like a valid direct-path reference, then worry about how much residual zero-Doppler clutter remains after ECA-C. A session can legitimately "win" on pilot identification while still warning on clutter suppression, which is exactly the distinction this audit is trying to preserve.
 
 Use the stricter goal when the intended outcome is track-quality validation or quantitative truth comparison, not just "can the session support aircraft detection at all?":
 
@@ -436,7 +486,7 @@ If a replay sweep drives `n_detections` up by 10x-30x while `n_tp` stays near ze
 - The replay truth model may be using the wrong carrier frequency. Check the saved session metadata and the `adsbToBistatic` console line. If the capture was actually centered at 600 MHz but truth projection is using 540 MHz, the expected Doppler will be scaled low by about 11%.
 - The surveillance antenna may be badly mismatched to the broadcast band. A 978 MHz surveillance antenna used on a roughly 540-600 MHz HDTV illuminator can still receive energy, but with reduced gain and pattern quality, which lowers aircraft echo SNR before CFAR ever runs.
 - A fixed range or timing alignment error may still be present. Large false-alarm growth with almost no Pd improvement is more consistent with a localization bias than with an overly strict threshold.
-- The channel assignment may still be wrong even if the nominal reference-quality check passes, but do not use channel power alone to infer that. In this project, an amplified surveillance Yagi can make `CH1` much stronger than `CH2` even when the default mapping is correct. Treat a swap as plausible only if the pilot-coherence / direct-path prechecks improve materially when `config.swap_channels = true`.
+- The channel assignment may still be wrong even if the nominal reference-quality check passes, but do not use channel power alone to infer that. In this project, an amplified surveillance Yagi can make `CH1` much stronger than `CH2` even when the default mapping is correct. Treat a swap as plausible only if the pilot-evidence / direct-path prechecks improve materially when `config.swap_channels = true`.
 
 In that situation, prioritize:
 
@@ -943,4 +993,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: June 26, 2026*
+*Last Updated: July 10, 2026*
