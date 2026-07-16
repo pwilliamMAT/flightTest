@@ -7,6 +7,13 @@ function truth_bundle = helperSyntheticGenerateTruth(scenario_config)
 % shared scenario timeline, converts that motion into an ADS-B-like truth
 % struct, and derives measurement-space truth with the same bistatic
 % conventions already enforced by the current analysis workflow.
+%
+% The truth chain is explicit:
+%   1. user-defined waypoints -> sampled native trajectory truth
+%   2. sampled native trajectory truth -> ADS-B-compatible structs
+%   3. ADS-B-compatible structs -> bistatic range/Doppler truth
+% That same bistatic truth later drives seed-backed echo synthesis, so the
+% preview, written truth artifacts, and generated IQ stay tied together.
 
 validateattributes(scenario_config, {'struct'}, {'scalar'}, mfilename, 'scenario_config');
 
@@ -45,6 +52,9 @@ traceability_targets = repmat(struct( ...
 
 for idx = 1 : n_targets
     target_def = targets(idx);
+
+    % Step 1: sample the user-declared waypoint motion on the shared
+    % scenario timeline so every downstream artifact sees the same motion.
     trajectory = geoTrajectory( ...
         target_def.waypoints_lla_deg_m, ...
         target_def.time_of_arrival_s, ...
@@ -56,6 +66,9 @@ for idx = 1 : n_targets
     vrate_mps = -velocity_ned_mps(:, 3);
     t_utc = scenario_config.radar_epoch_utc + sample_times_s;
 
+    % Step 2: store the sampled motion in an ADS-B-compatible struct so
+    % the existing truth-alignment workflow can consume it without a new
+    % file format.
     adsb_tracks(idx) = struct( ...
         'hex', char(string(target_def.icao_hex)), ...
         'callsign', char(string(target_def.callsign)), ...
@@ -84,6 +97,9 @@ for idx = 1 : n_targets
         'vrate_mps', vrate_mps);
 end
 
+% Step 3: convert the ADS-B-compatible truth into bistatic measurement
+% truth. These range-excess and Doppler arrays are what later drive the
+% synthetic target delays and Doppler shifts in the generated IQ.
 adsb_bistatic = adsbToBistatic( ...
     adsb_tracks, ...
     scenario_config.tx_lla_deg_m, ...
@@ -107,7 +123,7 @@ n_steps = floor(capture_window_s / truth_sample_period_s) + 1;
 sample_times_s = (0 : n_steps - 1).' * truth_sample_period_s;
 
 if sample_times_s(end) < capture_window_s
-    sample_times_s(end + 1, 1) = capture_window_s; %#ok<AGROW>
+    sample_times_s(end + 1, 1) = capture_window_s;
 else
     sample_times_s(end, 1) = capture_window_s;
 end

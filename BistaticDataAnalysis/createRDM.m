@@ -25,7 +25,8 @@ function [rdm, doppler_axis, range_axis, dpi_lag] = createRDM(surv_cube, ref_cub
 %   - prf:        Pulse Repetition Frequency (= 1/CPI_duration) in Hz.
 %
 %   Outputs:
-%   - rdm:          Range-Doppler Map, power in dB.
+%   - rdm:          Range-Doppler Map, CAF magnitude in dB
+%                   (20*log10(|CAF| + eps)).
 %   - doppler_axis: Doppler frequency axis in Hz at the FFT bin centres
 %                   (length = num_cpis).
 %   - range_axis:   Bistatic range axis in metres (length = fast_time_samples).
@@ -165,7 +166,7 @@ range_axis   = (0:N_fast-1).' / fs * c;           % [m], column vector
 % residual zero-Doppler clutter leakage.
 doppler_axis = ((0:N_slow-1) - floor(N_slow / 2)) * (prf / N_slow);  % [Hz], row vector
 
-% --- 4. Convert to power in dB ---
+% --- 4. Convert CAF magnitude to amplitude dB ---
 % eps prevents log10(0) = -Inf when the correlation magnitude is zero,
 % flooring the minimum representable level at ~-300 dB.
 rdm = 20 * log10(abs(rdm_complex) + eps);

@@ -6,9 +6,13 @@ function [surveillance_channel, reference_channel, synthesis_summary] = helperSy
 % The seed waveform is treated as the illuminator-of-opportunity snapshot.
 % CH2 (reference) is a scaled copy of that seed. CH1 (surveillance) starts
 % with a direct-path copy of the same seed and then adds one echo per
-% synthetic target using the approved bistatic truth: the truth sets the
-% excess delay and the bistatic Doppler, so the signal synthesis and the
-% truth artifacts stay tied to the same scenario definition.
+% synthetic target using the approved bistatic truth. The reference and
+% direct-path channels keep the full seed so the illuminator remains
+% realistic, while the target echoes use a lightly conditioned copy of the
+% seed so a dominant pilot-like line does not replay into full-height
+% Doppler columns. The truth still sets the excess delay and the bistatic
+% Doppler, so the signal synthesis and the truth artifacts stay tied to the
+% same scenario definition.
 
 validateattributes(seed_waveform, {'single', 'double'}, {'column', 'nonempty'}, mfilename, 'seed_waveform');
 validateattributes(scenario_config, {'struct'}, {'scalar'}, mfilename, 'scenario_config');
@@ -19,6 +23,10 @@ validateattributes(part_start_offset_s, {'numeric'}, {'scalar', 'real', 'finite'
 fs = double(scenario_config.sample_rate_hz);
 n_samples = numel(seed_waveform);
 sample_times_s = double(part_start_offset_s) + (0 : n_samples - 1).' ./ fs;
+[echo_conditioning_config, seed_echo_source_mode] = localResolveSeedEchoConditioning( ...
+    scenario_config, fs);
+[echo_source_seed, echo_seed_conditioning] = helperSyntheticBuildConditionedEchoSeed( ...
+    seed_waveform, fs, echo_conditioning_config);
 
 reference_channel = localApplyGain(seed_waveform, double(scenario_config.reference_gain_db));
 surveillance_channel = localApplyGain( ...
@@ -44,7 +52,7 @@ for idx = 1 : n_tracks
     echo_gain_db = localResolveEchoGainDB(track.hex, scenario_targets);
 
     if any(valid_mask)
-        delayed_seed = localApplyDelay(seed_waveform, delay_samples);
+        delayed_seed = localApplyDelay(echo_source_seed, delay_samples);
         doppler_rotation = localBuildDopplerRotation(doppler_hz, valid_mask, fs);
         echo_waveform = localApplyGain(delayed_seed .* doppler_rotation, echo_gain_db);
         echo_waveform(~valid_mask) = 0;
@@ -89,6 +97,8 @@ synthesis_summary = struct( ...
     'part_idx', double(part_idx), ...
     'part_start_offset_s', double(part_start_offset_s), ...
     'signal_mode', char(string(scenario_config.signal_mode)), ...
+    'seed_echo_source_mode', char(string(seed_echo_source_mode)), ...
+    'echo_seed_conditioning', echo_seed_conditioning, ...
     'track_summaries', {track_summaries});
 end
 
@@ -135,5 +145,42 @@ for idx = 1 : numel(scenario_targets)
         echo_gain_db = double(scenario_targets(idx).echo_gain_db);
         return
     end
+end
+end
+
+function [echo_conditioning_config, seed_echo_source_mode] = localResolveSeedEchoConditioning( ...
+    scenario_config, sample_rate_hz)
+echo_conditioning_config = struct( ...
+    'enabled', true, ...
+    'reference_source', 'full_seed', ...
+    'direct_path_source', 'full_seed', ...
+    'target_echo_source', 'conditioned_seed', ...
+    'method', 'dominant_line_notch_then_rms_match_v1', ...
+    'minimum_prominence_db', 10, ...
+    'notch_half_width_hz', min(50e3, 0.01 * double(sample_rate_hz)), ...
+    'dc_highpass_cutoff_hz', min(50e3, 0.01 * double(sample_rate_hz)), ...
+    'max_analysis_samples', 65536, ...
+    'baseline_span_bins', 129, ...
+    'note', ['Reference and direct-path channels keep the full seed. ' ...
+        'Synthetic target echoes use a lightly conditioned seed copy so a dominant ' ...
+        'pilot-like line does not create full-height Doppler columns.']);
+
+if isfield(scenario_config, 'seed_echo_conditioning') && ...
+        isstruct(scenario_config.seed_echo_conditioning) && ...
+        isscalar(scenario_config.seed_echo_conditioning)
+    field_names = fieldnames(scenario_config.seed_echo_conditioning);
+    for idx = 1 : numel(field_names)
+        echo_conditioning_config.(field_names{idx}) = scenario_config.seed_echo_conditioning.(field_names{idx});
+    end
+end
+
+echo_conditioning_config.enabled = logical(echo_conditioning_config.enabled);
+if isfield(scenario_config, 'seed_echo_source_mode') && ...
+        strlength(string(scenario_config.seed_echo_source_mode)) > 0
+    seed_echo_source_mode = char(string(scenario_config.seed_echo_source_mode));
+elseif echo_conditioning_config.enabled
+    seed_echo_source_mode = 'conditioned_target_echoes_v1';
+else
+    seed_echo_source_mode = 'full_seed_target_echoes_v1';
 end
 end

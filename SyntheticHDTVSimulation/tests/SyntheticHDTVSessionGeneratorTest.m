@@ -37,6 +37,8 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             testCase.verifyEqual(cfg.purpose, 'detector_truth_projection_triage');
             testCase.verifyEqual(cfg.capture_repetitions, 1);
             testCase.verifyGreaterThan(cfg.part_duration_s, 0);
+            testCase.verifyEqual(cfg.seed_echo_source_mode, 'not_applicable');
+            testCase.verifyFalse(cfg.seed_echo_conditioning.enabled);
         end
 
         function testTerrainSceneCoversApprovedGeometry(testCase)
@@ -69,6 +71,18 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
                 geometry.baseline_3d_m, AbsTol=1e-9);
             testCase.verifyEqual(numel(truth_bundle.targets(1).t_rel_s), ...
                 numel(truth_bundle.targets(1).t_utc));
+        end
+
+        function testBaselineTargetsStayOutsideNearRangeGuard(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            cfg = buildSyntheticHDTVBaselineScenarioConfig('OutputRoot', fixture.Folder);
+            truth_bundle = helperSyntheticGenerateTruth(cfg);
+
+            min_range_excess_m = arrayfun( ...
+                @(track) min(track.R_excess_m), ...
+                truth_bundle.bistatic_tracks);
+
+            testCase.verifyGreaterThan(min(min_range_excess_m), 5e3);
         end
 
         function testBasebandArtifactsReadBackAsTwoChannelFiles(testCase)
@@ -128,6 +142,42 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             testCase.verifyEqual(seed_info.seed_channel_index, cfg.seed_channel_index);
         end
 
+        function testEchoSeedConditioningSuppressesProbePilotAndPreservesRMS(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            probe_seed_folder = fullfile(fixture.Folder, 'probe_seed');
+            [seed_path, seed_info] = helperSyntheticCreateProbeSeed( ...
+                'OutputFolder', probe_seed_folder, ...
+                'FileName', 'probe_seed.bb');
+            cfg = buildSyntheticHDTVBaselineScenarioConfig( ...
+                'OutputRoot', fixture.Folder, ...
+                'SeedSourcePath', seed_path, ...
+                'SignalMode', 'seed_backed_bistatic_v1');
+            n_output_samples = round(cfg.sample_rate_hz * cfg.part_duration_s);
+
+            [seed_waveform, ~] = helperSyntheticLoadSeedWaveform(cfg, n_output_samples, 0);
+            [conditioned_seed, conditioning_summary] = helperSyntheticBuildConditionedEchoSeed( ...
+                seed_waveform, ...
+                cfg.sample_rate_hz, ...
+                cfg.seed_echo_conditioning);
+
+            raw_tone_power_db = SyntheticHDTVSessionGeneratorTest.localMeasureTonePower( ...
+                seed_waveform, ...
+                cfg.sample_rate_hz, ...
+                seed_info.pilot_offset_hz);
+            conditioned_tone_power_db = SyntheticHDTVSessionGeneratorTest.localMeasureTonePower( ...
+                conditioned_seed, ...
+                cfg.sample_rate_hz, ...
+                seed_info.pilot_offset_hz);
+
+            testCase.verifyTrue(conditioning_summary.enabled);
+            testCase.verifyTrue(conditioning_summary.pilot_suppression_applied);
+            testCase.verifyLessThan(conditioned_tone_power_db, raw_tone_power_db - 10);
+            testCase.verifyEqual( ...
+                rms(double(conditioned_seed)), ...
+                rms(double(seed_waveform)), ...
+                RelTol=5e-2);
+        end
+
         function testManifestPreservesWorkflowFieldsAndSyntheticProvenance(testCase)
             fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
             artifact = SyntheticHDTVSessionGeneratorTest.localGenerateSession( ...
@@ -171,8 +221,41 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             testCase.verifyEqual(manifest.signal_mode, 'seed_backed_bistatic_v1');
             testCase.verifyEqual(manifest.seed_source_path, artifact.scenario_config.seed_source_path);
             testCase.verifyEqual(manifest.seed_channel_index, artifact.scenario_config.seed_channel_index);
+            testCase.verifyEqual(manifest.seed_echo_source_mode, artifact.scenario_config.seed_echo_source_mode);
+            testCase.verifyTrue(manifest.seed_echo_conditioning.enabled);
+            testCase.verifyEqual( ...
+                manifest.seed_echo_conditioning.target_echo_source, ...
+                artifact.scenario_config.seed_echo_conditioning.target_echo_source);
             testCase.verifyEqual(manifest.reference_gain_db, artifact.scenario_config.reference_gain_db);
             testCase.verifyEqual(manifest.direct_path_gain_db, artifact.scenario_config.direct_path_gain_db);
+        end
+
+        function testSeedBackedArtifactKeepsPartSynthesisSummaries(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            artifact = SyntheticHDTVSessionGeneratorTest.localGenerateValidationSeedBackedSession( ...
+                fixture.Folder, 'validation_summary_session');
+
+            testCase.verifyTrue(isfield(artifact, 'part_synthesis_summaries'));
+            testCase.verifyEqual(numel(artifact.part_synthesis_summaries), 1);
+            testCase.verifyEqual(artifact.part_synthesis_summaries{1}.signal_mode, 'seed_backed_bistatic_v1');
+            testCase.verifyEqual( ...
+                artifact.part_synthesis_summaries{1}.seed_echo_source_mode, ...
+                'conditioned_target_echoes_v1');
+            testCase.verifyTrue(artifact.part_synthesis_summaries{1}.echo_seed_conditioning.enabled);
+            testCase.verifyTrue( ...
+                artifact.part_synthesis_summaries{1}.echo_seed_conditioning.pilot_suppression_applied);
+            testCase.verifyEqual( ...
+                artifact.part_synthesis_summaries{1}.echo_seed_conditioning.reference_source, ...
+                'full_seed');
+            testCase.verifyEqual( ...
+                artifact.part_synthesis_summaries{1}.echo_seed_conditioning.direct_path_source, ...
+                'full_seed');
+            testCase.verifyEqual( ...
+                numel(artifact.part_synthesis_summaries{1}.track_summaries), ...
+                numel(artifact.scenario_config.targets));
+            testCase.verifyTrue(all(arrayfun( ...
+                @(track) all(isfinite(track.delay_samples_range)), ...
+                artifact.part_synthesis_summaries{1}.track_summaries)));
         end
 
         function testTimingOverridesPropagateAcrossTruthAndManifest(testCase)
@@ -326,6 +409,235 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             testCase.verifyTrue(isgraphics(plot_handles.doppler_axes, 'axes'));
         end
 
+        function testScenarioOverviewPlotUsesSyntheticTruthLabels(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            cfg = SyntheticHDTVSessionGeneratorTest.localBuildValidationSeedBackedConfig( ...
+                fixture.Folder, 'preview_label_session');
+            truth_bundle = helperSyntheticGenerateTruth(cfg);
+            plot_handles = helperSyntheticPlotScenarioOverview(cfg, truth_bundle);
+            testCase.addTeardown(@() close(plot_handles.figure));
+
+            geometry_title = string(plot_handles.geometry_axes.Title.String);
+            range_lines = findobj(plot_handles.range_axes, 'Type', 'line');
+            range_labels = string(get(range_lines, 'DisplayName'));
+
+            testCase.verifyTrue(any(contains(geometry_title, "Sampled Target Motion")));
+            testCase.verifyTrue(any(contains(range_labels, "Synthetic Truth:")));
+        end
+
+        function testValidationFigureOverlaysTruthOnBothRDMs(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            artifact = SyntheticHDTVSessionGeneratorTest.localGenerateValidationSeedBackedSession( ...
+                fixture.Folder, 'validation_overlay_session');
+
+            validation_summary = helperSyntheticValidateGeneratedIQ( ...
+                artifact, ...
+                'PlotFigures', true, ...
+                'PrecheckFigures', false, ...
+                'FigureVisibility', 'off', ...
+                'Verbose', false);
+            testCase.addTeardown(@() close(validation_summary.figure_handles.validation));
+
+            axes_handles = findobj(validation_summary.figure_handles.validation, 'Type', 'axes');
+            axis_titles = arrayfun(@(ax) string(ax.Title.String), axes_handles);
+
+            before_axis = axes_handles(find(contains(axis_titles, "Before ECA-C"), 1, 'first'));
+            after_axis = axes_handles(find(contains(axis_titles, "After ECA-C"), 1, 'first'));
+
+            before_display_names = arrayfun( ...
+                @(line_handle) string(line_handle.DisplayName), ...
+                findobj(before_axis, 'Type', 'line'));
+            after_display_names = arrayfun( ...
+                @(line_handle) string(line_handle.DisplayName), ...
+                findobj(after_axis, 'Type', 'line'));
+
+            testCase.verifyTrue(any(contains(before_display_names, "Synthetic Truth:")));
+            testCase.verifyTrue(any(contains(after_display_names, "Synthetic Truth:")));
+            testCase.verifyEqual(before_axis.YLim(1), 0, AbsTol=1e-12);
+            testCase.verifyEqual(after_axis.YLim(1), 0, AbsTol=1e-12);
+            testCase.verifyEqual(before_axis.YLim(2), 30, AbsTol=1e-9);
+            testCase.verifyEqual(after_axis.YLim(2), 30, AbsTol=1e-9);
+
+            colorbars = findall(validation_summary.figure_handles.validation, 'Type', 'ColorBar');
+            colorbar_labels = strings(1, numel(colorbars));
+
+            for idx = 1 : numel(colorbars)
+                colorbar_labels(idx) = string(colorbars(idx).Label.String);
+            end
+
+            testCase.verifyNumElements(colorbars, 2);
+            testCase.verifyTrue(all(colorbar_labels == "CAF Magnitude [dB]"));
+        end
+
+        function testWalkthroughSessionIDHelperRefreshesPriorAutoIDOnRerun(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            prior_auto_session_id = 'seed_demo_old';
+            mkdir(fullfile(fixture.Folder, prior_auto_session_id));
+
+            [session_id, last_auto_generated_session_id, resolution_info] = ...
+                helperSyntheticResolveWalkthroughSessionID( ...
+                    'OutputRoot', fixture.Folder, ...
+                    'SessionID', prior_auto_session_id, ...
+                    'PreviousAutoSessionID', prior_auto_session_id, ...
+                    'PreferredAutoSessionID', 'seed_demo_new');
+
+            testCase.verifyEqual(session_id, 'seed_demo_new');
+            testCase.verifyEqual(last_auto_generated_session_id, 'seed_demo_new');
+            testCase.verifyTrue(resolution_info.used_auto_session_id);
+            testCase.verifyTrue(resolution_info.refreshed_previous_auto_session_id);
+            testCase.verifyFalse(resolution_info.preserved_requested_session_id);
+        end
+
+        function testWalkthroughSessionIDHelperRefreshesLegacyAutoIDWithoutSentinel(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            legacy_auto_session_id = 'seed_demo_20260714T080355';
+            mkdir(fullfile(fixture.Folder, legacy_auto_session_id));
+
+            [session_id, last_auto_generated_session_id, resolution_info] = ...
+                helperSyntheticResolveWalkthroughSessionID( ...
+                    'OutputRoot', fixture.Folder, ...
+                    'SessionID', legacy_auto_session_id, ...
+                    'PreferredAutoSessionID', 'seed_demo_20260715T100700000');
+
+            testCase.verifyEqual(session_id, 'seed_demo_20260715T100700000');
+            testCase.verifyEqual(last_auto_generated_session_id, 'seed_demo_20260715T100700000');
+            testCase.verifyTrue(resolution_info.used_auto_session_id);
+            testCase.verifyTrue(resolution_info.refreshed_previous_auto_session_id);
+            testCase.verifyFalse(resolution_info.preserved_requested_session_id);
+        end
+
+        function testWalkthroughSessionIDHelperPreservesPinnedSessionID(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+
+            [session_id, last_auto_generated_session_id, resolution_info] = ...
+                helperSyntheticResolveWalkthroughSessionID( ...
+                    'OutputRoot', fixture.Folder, ...
+                    'SessionID', 'manual_session', ...
+                    'PreviousAutoSessionID', 'seed_demo_old', ...
+                    'PreferredAutoSessionID', 'seed_demo_new');
+
+            testCase.verifyEqual(session_id, 'manual_session');
+            testCase.verifyEqual(last_auto_generated_session_id, "");
+            testCase.verifyFalse(resolution_info.used_auto_session_id);
+            testCase.verifyFalse(resolution_info.refreshed_previous_auto_session_id);
+            testCase.verifyTrue(resolution_info.preserved_requested_session_id);
+        end
+
+        function testWalkthroughSessionIDHelperAddsSuffixForAutoIDCollision(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            mkdir(fullfile(fixture.Folder, 'seed_demo_candidate'));
+
+            [session_id, last_auto_generated_session_id, resolution_info] = ...
+                helperSyntheticResolveWalkthroughSessionID( ...
+                    'OutputRoot', fixture.Folder, ...
+                    'PreferredAutoSessionID', 'seed_demo_candidate');
+
+            testCase.verifyEqual(session_id, 'seed_demo_candidate_rerun_01');
+            testCase.verifyEqual(last_auto_generated_session_id, 'seed_demo_candidate_rerun_01');
+            testCase.verifyTrue(resolution_info.used_auto_session_id);
+            testCase.verifyFalse(resolution_info.refreshed_previous_auto_session_id);
+        end
+
+        function testGenerateSyntheticHDTVSessionReportsSessionCollisionRecovery(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            SyntheticHDTVSessionGeneratorTest.localGenerateSession( ...
+                fixture.Folder, 'existing_session');
+            cfg = buildSyntheticHDTVBaselineScenarioConfig( ...
+                'OutputRoot', fixture.Folder, ...
+                'SessionID', 'existing_session');
+
+            caught_error = [];
+            try
+                generateSyntheticHDTVSession('ScenarioConfig', cfg);
+            catch ME
+                caught_error = ME;
+            end
+
+            testCase.verifyEqual(caught_error.identifier, ...
+                'generateSyntheticHDTVSession:sessionExists');
+            testCase.verifyTrue(contains( ...
+                caught_error.message, ...
+                'clear the walkthrough auto-generated sessionID'));
+        end
+
+        function testValidationHelperReturnsClosedLoopSummary(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            artifact = SyntheticHDTVSessionGeneratorTest.localGenerateValidationSeedBackedSession( ...
+                fixture.Folder, 'closed_loop_validation_session');
+
+            validation_summary = helperSyntheticValidateGeneratedIQ( ...
+                artifact, ...
+                'PlotFigures', false, ...
+                'PrecheckFigures', false, ...
+                'Verbose', false);
+
+            n_finite_observed_targets = sum(arrayfun( ...
+                @(target) isfinite(target.observed_peak_range_m) && isfinite(target.observed_peak_doppler_hz), ...
+                validation_summary.target_summaries));
+
+            testCase.verifyTrue(validation_summary.integrity.overall_pass);
+            testCase.verifyEqual( ...
+                validation_summary.direct_path.comparison_delay_samples, ...
+                round(artifact.scenario_config.direct_path_delay_samples));
+            testCase.verifyEqual( ...
+                numel(validation_summary.target_summaries), ...
+                numel(artifact.scenario_config.targets));
+            testCase.verifyGreaterThanOrEqual(n_finite_observed_targets, 1);
+            testCase.verifyGreaterThan(validation_summary.readiness.range_bin_spacing_m, 0);
+            testCase.verifyGreaterThan(validation_summary.readiness.doppler_bin_spacing_hz, 0);
+            testCase.verifyFalse(any([validation_summary.readiness.target_readiness.inside_detector_near_range_guard]));
+        end
+
+        function testValidationHelperClearsTruthAlignedDopplerColumnAdvisory(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            artifact = SyntheticHDTVSessionGeneratorTest.localGenerateValidationSeedBackedSession( ...
+                fixture.Folder, 'validation_column_advisory_session');
+
+            validation_summary = helperSyntheticValidateGeneratedIQ( ...
+                artifact, ...
+                'PlotFigures', false, ...
+                'PrecheckFigures', false, ...
+                'Verbose', false);
+
+            per_target = validation_summary.doppler_column_advisory.per_target;
+            present_mask = [per_target.present_in_dwell];
+
+            testCase.verifyEqual( ...
+                validation_summary.doppler_column_advisory.metric_name, ...
+                'target_aligned_doppler_column_check');
+            testCase.verifyTrue(validation_summary.doppler_column_advisory.all_targets_clear);
+            testCase.verifyFalse(any([per_target(present_mask).flagged]));
+        end
+
+        function testValidationHelperReportsFiniteLocalProminenceForVisibleTargets(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            artifact = SyntheticHDTVSessionGeneratorTest.localGenerateValidationSeedBackedSession( ...
+                fixture.Folder, 'validation_prominence_session');
+
+            validation_summary = helperSyntheticValidateGeneratedIQ( ...
+                artifact, ...
+                'PlotFigures', false, ...
+                'PrecheckFigures', false, ...
+                'Verbose', false);
+
+            present_mask = arrayfun(@(target) target.present_in_dwell, validation_summary.target_summaries);
+            finite_prominence_mask = present_mask & arrayfun( ...
+                @(target) isfinite(target.local_prominence_db), ...
+                validation_summary.target_summaries);
+            finite_targets = validation_summary.target_summaries(finite_prominence_mask);
+
+            testCase.verifyEqual( ...
+                validation_summary.target_prominence_summary.metric_name, ...
+                'local_caf_prominence_db');
+            testCase.verifyGreaterThanOrEqual(sum(finite_prominence_mask), 1);
+            testCase.verifyTrue(all(arrayfun( ...
+                @(target) target.local_background_cell_count > 0, ...
+                finite_targets)));
+            testCase.verifyTrue(all(arrayfun( ...
+                @(target) isfinite(target.local_background_level_db), ...
+                finite_targets)));
+        end
+
         function testTruthAndMetadataRepeatAcrossReruns(testCase)
             fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
             run_a_root = fullfile(fixture.Folder, 'run_a');
@@ -377,6 +689,31 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             artifact = generateSyntheticHDTVSession('ScenarioConfig', cfg);
         end
 
+        function artifact = localGenerateValidationSeedBackedSession(output_root, session_id)
+            cfg = SyntheticHDTVSessionGeneratorTest.localBuildValidationSeedBackedConfig( ...
+                output_root, session_id);
+            artifact = generateSyntheticHDTVSession('ScenarioConfig', cfg);
+        end
+
+        function cfg = localBuildValidationSeedBackedConfig(output_root, session_id)
+            seed_path = SyntheticHDTVSessionGeneratorTest.localCreateProbeSeed(output_root);
+            cfg = buildSyntheticHDTVBaselineScenarioConfig( ...
+                'OutputRoot', output_root, ...
+                'SessionID', session_id, ...
+                'SeedSourcePath', seed_path, ...
+                'SignalMode', 'seed_backed_bistatic_v1', ...
+                'CaptureDurationS', 0.20, ...
+                'TruthSamplePeriodS', 0.01, ...
+                'DirectPathDelaySamples', 1.0, ...
+                'UseStochasticNoise', false);
+
+            active_window_s = cfg.expected_overlap_window_s(2);
+            cfg.targets = helperSyntheticBuildValidationConfidenceTargets( ...
+                cfg.tx_lla_deg_m, ...
+                cfg.rx_lla_deg_m, ...
+                active_window_s);
+        end
+
         function seed_path = localCreateProbeSeed(output_root)
             seed_folder = fullfile(output_root, 'seed_fixture');
             [seed_path, ~] = helperSyntheticCreateProbeSeed( ...
@@ -406,6 +743,22 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
 
         function idx = localFindTrackIndexByCallsign(track_struct, callsign)
             idx = find(arrayfun(@(track) strcmp(track.callsign, callsign), track_struct), 1, 'first');
+        end
+
+        function tone_power_db = localMeasureTonePower(waveform, sample_rate_hz, tone_freq_hz)
+            waveform = double(waveform(:));
+            analysis_sample_count = min(numel(waveform), 65536);
+            analysis_waveform = waveform(1:analysis_sample_count);
+            nfft = max(4096, 2 ^ nextpow2(max(analysis_sample_count, 2)));
+            [psd_linear, freq_hz] = periodogram( ...
+                analysis_waveform, ...
+                [], ...
+                nfft, ...
+                sample_rate_hz, ...
+                'centered', ...
+                'power');
+            [~, tone_idx] = min(abs(freq_hz - tone_freq_hz));
+            tone_power_db = 10 * log10(psd_linear(tone_idx) + eps);
         end
     end
 end
