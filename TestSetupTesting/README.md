@@ -17,6 +17,31 @@ This repository contains MATLAB code for evaluating, characterizing, and process
 
 ---
 
+## Standalone Pluto Tone Precheck
+
+The Pluto-driven standalone precheck is being developed separately from the working coordinated acquisition path so the hardware-readiness gate can be proven before any integration work.
+The frozen pre-implementation contract lives in [plutoTonePrecheckDesignSpec.md](plutoTonePrecheckDesignSpec.md) and defines the exact MATLAB entrypoints, result and baseline schemas, summary metrics, artifact layout, and fail/warn codes for this phase.
+The current implemented slice covers the live standalone wrapper `runPlutoTonePrecheck.m`, baseline loading and mismatch checks, deterministic Pluto waveform/TX startup, reuse of `runLocalHDTVCapture.m`, capture readback through `BistaticDataAnalysis/loadIQData.m`, channel and joint scoring, compact result/artifact writing, saved-result review, and baseline commissioning from prior standalone run artifacts or in-memory results.
+The wrapper is still intentionally separate from the working coordinated capture path, and `commissionPlutoToneBaseline` still uses the temporary offline `RunSources` path rather than starting hardware itself.
+When the Pluto support package runtime is missing, the wrapper now fails cleanly with `PLUTO_CONNECT_FAILED` and writes a reviewable run folder without attempting the N320 capture.
+For staged testing-machine bring-up before running the calibration wrapper, see [plutoCalibrationHardwareBringup.md](plutoCalibrationHardwareBringup.md).
+
+### Pluto Calibration Sequence
+
+The current standalone calibration/precheck flow is:
+
+1. Load the commissioned Pluto baseline and validate that the frozen runtime settings still match it.
+2. Build one deterministic Pluto baseband CW waveform at the requested `ToneOffset_Hz` and `ToneAmplitude`.
+3. Start Pluto transmission first so the RF tone is present in the air before the receive capture begins.
+4. Run one short dual-channel N320 capture through `runLocalHDTVCapture.m` while the Pluto is transmitting.
+5. Read the first `.bb` file written by that N320 capture, not a Pluto-side file, through `BistaticDataAnalysis/loadIQData.m`.
+6. Interpret the received N320 channels with the frozen mapping `SURV = CH1 / RX1` and `REF = CH2 / RX2`.
+7. Score the received tone on each USRP channel for detect margin, frequency error, absolute level, and baseline-relative level drift, then add the joint channel-frequency consistency check plus advisory-only `xcorr`.
+8. Write a self-contained result folder with `result.mat`, `result.json`, `summary.txt`, `summary.png`, and the capture-file reference so the run can be reviewed later without rerunning hardware.
+
+Important interpretation note:
+- The `.bb` file used for scoring is the USRP receive capture collected while the Pluto tone is on. It should therefore contain the Pluto-injected tone as received by the USRP antennas, plus any ambient RF and noise present at the time of capture.
+
 ## Evaluation Workflow
 
 The system evaluation follows a multi-stage process to ensure data quality, characterize system performance, and generate aircraft detections:

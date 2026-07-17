@@ -61,6 +61,13 @@ powershell -ExecutionPolicy Bypass -File BistaticDataAnalysis\architecture\build
 
 This architecture artifact is a **pipeline reference only**. It is not an executable processing model, and it does not replace the MATLAB analysis entrypoints under `BistaticDataAnalysis/`.
 
+The standalone Pluto tone precheck is being developed separately from the working acquisition path. The frozen phase-1 contract for that work lives in [TestSetupTesting/plutoTonePrecheckDesignSpec.md](TestSetupTesting/plutoTonePrecheckDesignSpec.md).
+The current standalone slice now includes the live wrapper `runPlutoTonePrecheck.m`, baseline loading and settings validation, deterministic Pluto waveform/TX startup, reuse of the existing N320 capture path, `.bb` readback through `BistaticDataAnalysis/loadIQData.m`, result scoring, artifact writing, saved-result review, and baseline commissioning from prior standalone run artifacts.
+The wrapper still remains standalone and is not yet integrated into `run_coordinated_hdtv_capture.sh` or the broader acquisition flow, and `commissionPlutoToneBaseline` still uses the temporary offline `RunSources` path rather than starting hardware itself.
+If the Pluto support package runtime is unavailable on a given machine, the wrapper now fails early with `PLUTO_CONNECT_FAILED` and still writes a reviewable result folder instead of proceeding into the capture path.
+For the step-by-step Pluto calibration sequence, see the `Pluto Calibration Sequence` section in [TestSetupTesting/README.md](TestSetupTesting/README.md).
+For a staged hardware bring-up checklist on the testing machine before running the calibration wrapper, see [TestSetupTesting/plutoCalibrationHardwareBringup.md](TestSetupTesting/plutoCalibrationHardwareBringup.md).
+
 ### Hardware Platform
 
 - **USRP N320:** Phase-coherent dual-channel software-defined radio for HDTV passive radar (540 MHz, 6 MHz bandwidth)
