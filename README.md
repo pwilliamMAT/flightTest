@@ -25,29 +25,109 @@ Current requirements baseline decisions:
 - Terrain asset status: the Apple Hill terrain tile `n42_w072_1arc_v3.dt2` is now present in the repo root and has been smoke-tested successfully with both `readgeoraster` and `addCustomTerrain`; the file spans latitude `[42, 43]` and longitude `[-72, -71]`, which covers the Apple Hill / Needham geometry for v1 terrain-backed simulation inputs
 - Provenance: require manifest-level fields for `data_origin`, `scenario_id`, `generator_name`, `generation_time_utc`, `truth_source`, and `random_seed` when stochastic generation is used
 - Reproducibility boundary: truth and metadata must reproduce across reruns; synthetic radar session data itself does not need to reproduce across reruns
-- Current implementation status: the generator now supports `zero_channels_v1` and `seed_backed_bistatic_v1`, emits seed provenance into the session manifest, preserves per-part synthesis summaries in the returned artifact, conditions the seed-backed target-echo source by default while leaving the reference and direct-path channels on the full seed, and includes a user-facing walkthrough live script at [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m) with closed-loop synthetic IQ validation
-- Current open gap: the seed-backed probe path replays through the existing wrapper and produces detections plus aligned truth, but the detections are still displaced enough from truth that `TP` remains `0` under the current scoring gates; detector-tuning work should therefore use a real field seed next
+- Current implementation status: the generator now supports `zero_channels_v1` and `seed_backed_bistatic_v1`, defaults the primary seed-backed path to the toolbox-native `toolbox_wideband_free_space_v1` echo model with conditioned target echoes, emits seed provenance into the session manifest, preserves per-part synthesis summaries in the returned artifact, and includes a user-facing walkthrough live script at [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m) that runs a session-level signal-physics readiness gate after generation
+- Current open gap: the seed-backed workflow is still an intermediate development model, not a field-surrogate scene model. Conditioned target echoes currently reduce the severity of the pilot-driven target-Doppler vertical-column artifact relative to the full-seed comparison mode, but the readiness gate can still flag residual `vertical_column_defect` behavior in the confidence scene
 
 Caption: The approved `CONOPS` view keeps the diagram at the context boundary only. It shows the simulation effort as an operational bridge between the existing field setup and the downstream detector-evaluation workflow, without committing to algorithm internals or implementation structure.
 
 ![Synthetic HDTV Simulation CONOPS System Context Diagram](docs/CONOPS-SystemContextDiagram.png)
 
+## Synthetic Data Generation
+
+### Phase 1: Seed-Backed Intermediate Synthetic Scene Model
+
+This is the current low-fidelity synthetic data generation phase. It is useful for algorithm plumbing, truth alignment, delay and Doppler sanity checks, mitigation debugging, packaged-session compatibility, and controlled regression work. It is not a field-equivalent scene model and should not be treated as the final benchmark for detector or tracker performance.
+
+In simple language, the waveform generation approach is:
+
+- We do **not** synthesize a new HDTV broadcast from bits, video content, or a transmitter model.
+- We start with a short chunk of already TV-like baseband IQ called the **seed waveform**. That seed comes from either a real capture or a deterministic probe seed.
+- The **reference channel** is built as a scaled copy of that seed. It stands in for what the illuminator looks like at the reference antenna.
+- The **surveillance channel** starts as another copy of the same seed, with a small configured delay and gain change. That stands in for the direct-path leakage into the surveillance antenna.
+- The user defines target motion with waypoints and times. The code samples those paths over the active window, then converts the motion into bistatic **range excess** and **Doppler** truth.
+- For each target, the generator makes another copy of the seed waveform and turns it into an echo by applying the target's delay, Doppler, and echo gain. All of those per-target echoes are summed into the surveillance channel.
+- In the recommended default mode, only the **target-echo seed copy** is lightly conditioned before echo generation. The reference channel and direct-path copy still use the full seed.
+- That conditioning is a practical workaround: it suppresses the strongest pilot-like narrowband line in the seed so the generated echoes are less likely to create truth-aligned full-height Doppler columns in the post-mitigation RDM.
+- The full-seed mode is still available as a comparison/reference dataset, but it is not the recommended basis for downstream algorithm scoring while the vertical-column artifact persists.
+
+The current implementation uses these native MATLAB pieces under the hood:
+
+- `geoTrajectory` and `lookupPose` to sample target motion from user-defined waypoints
+- `adsbToBistatic` to convert sampled motion into bistatic range/Doppler truth
+- `phased.WidebandFreeSpace` to build the current toolbox-native target-echo propagation analogue
+- `dsp.VariableFractionalDelay` to apply sub-sample delays
+- `periodogram`, `designfilt`, and `filtfilt` to build the conditioned target-echo seed copy
+
+The important downfalls and limits are:
+
+- The synthetic waveform is still **seed replay**, not a full illuminator-generation model. Any quirks in the seed waveform get reused in the synthetic data.
+- The target echoes are still copies of that one seed waveform with delay, Doppler, and gain changes. That is much simpler than real scattering physics.
+- The conditioning step is a **workaround**, not a physical propagation effect. It makes the dataset more usable, but it is not claiming realism.
+- Target amplitude behavior is simplified to per-target echo gains. The model does not yet capture richer time-varying RCS, glint, aspect-dependent scattering, or detailed airframe scattering structure.
+- The scene does not yet include benchmark-grade terrain clutter, land clutter, building multipath, or site-specific environmental richness.
+- Because the same seed structure is reused across echoes, strong seed features can show up in the synthetic target responses in ways that are more structured than real field data.
+- The current confidence scenes can still fail the readiness gate on `vertical_column_defect`, even in the conditioned mode. Conditioned target echoes reduce the severity of the artifact relative to the full-seed comparison mode, but they do not eliminate it.
+- This means the current synthetic data is appropriate for **workflow development and controlled comparisons**, but not for claiming final field performance transfer.
+
 ### Synthetic HDTV Simulation Quick Start
 
 Open [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m) in MATLAB to step through the synthetic-session walkthrough sections.
 
+- Main files by role:
+  - Scenario entrypoint: [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m)
+  - Scenario defaults/config: [SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m](SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m)
+  - Truth generation: [SyntheticHDTVSimulation/helperSyntheticGenerateTruth.m](SyntheticHDTVSimulation/helperSyntheticGenerateTruth.m)
+  - Channel synthesis orchestration: [SyntheticHDTVSimulation/helperSyntheticSynthesizeSeedBackedChannels.m](SyntheticHDTVSimulation/helperSyntheticSynthesizeSeedBackedChannels.m)
+  - Toolbox target propagation analogue: [SyntheticHDTVSimulation/helperSyntheticSynthesizeToolboxTargetEchoes.m](SyntheticHDTVSimulation/helperSyntheticSynthesizeToolboxTargetEchoes.m)
+  - Target-echo conditioning helper: [SyntheticHDTVSimulation/helperSyntheticBuildConditionedEchoSeed.m](SyntheticHDTVSimulation/helperSyntheticBuildConditionedEchoSeed.m)
+  - Session-level readiness/diagnostics: [SyntheticHDTVSimulation/helperSyntheticValidateGeneratedIQ.m](SyntheticHDTVSimulation/helperSyntheticValidateGeneratedIQ.m)
 - Leave `seedSourcePath` empty to create a deterministic probe seed for smoke testing, or point it to a real dual-channel `.bb` field capture to drive the seed-backed mode with real illuminator structure.
-- Edit `captureDurationS`, `captureRepetitions`, `captureRepetitionSpacingS`, `truthSamplePeriodS`, and the explicit `targets` struct array in the walkthrough when you want to change the active window, waypoint timing, or per-target echo strength used for downstream testing.
+- Edit `captureDurationS`, `captureRepetitions`, `captureRepetitionSpacingS`, `truthSamplePeriodS`, and the explicit `targets` struct array in the walkthrough when you want to change the active window, waypoint timing, or per-target echo strength used for downstream testing. Longer motion-visible runs are still just a parameterization change in those same knobs, not a new architecture.
 - The walkthrough builds the approved Apple Hill / CBS baseline with [SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m](SyntheticHDTVSimulation/buildSyntheticHDTVBaselineScenarioConfig.m), applies those walkthrough edits as authoritative overrides, comments the full truth chain explicitly in code, previews the resulting sampled synthetic truth, and then generates the packaged session with [SyntheticHDTVSimulation/generateSyntheticHDTVSession.m](SyntheticHDTVSimulation/generateSyntheticHDTVSession.m).
-- In the default seed-backed synthesis path, the reference channel and the direct-path surveillance copy still use the full seed waveform, but the synthetic target echoes are built from a lightly conditioned copy of that seed so the strongest pilot-like narrowband line is less likely to create truth-aligned full-height Doppler columns.
+- In the default seed-backed synthesis path, the reference channel and direct-path surveillance copy keep the full seed waveform, while the primary target-echo dataset uses a conditioned seed copy inside [SyntheticHDTVSimulation/helperSyntheticSynthesizeToolboxTargetEchoes.m](SyntheticHDTVSimulation/helperSyntheticSynthesizeToolboxTargetEchoes.m). That keeps the toolbox-native wideband propagation analogue while reducing the severity of pilot-driven target-Doppler vertical columns.
+- Set `useFullSeedComparisonDataset = true` when you want the generated session itself to use full-seed target echoes. Treat that mode as a comparison/reference dataset, not the recommended basis for downstream algorithm scoring while the vertical-column artifact persists.
+- Set `runFullSeedComparison = true` when you want the readiness helper to generate an explicit A/B comparison run alongside the recommended conditioned dataset.
 - The default synthetic targets and the confidence-preset targets are now placed outside the current `5 km` near-range guard so the closed-loop validation scene exercises a part of bistatic space that is more representative of physically useful detections than the near-zero direct-path region.
 - If you leave `sessionID` unset, the walkthrough now refreshes its own prior auto-generated ID on rerun so each pass writes a new packaged capture folder. If you pin `sessionID` yourself, the generator still protects any existing folder with an explicit error instead of overwriting it.
-- `runGeneratedIQValidation` now defaults to `true`, which calls [SyntheticHDTVSimulation/helperSyntheticValidateGeneratedIQ.m](SyntheticHDTVSimulation/helperSyntheticValidateGeneratedIQ.m) after generation to verify header integrity, direct-path lag, and truth-to-RDM consistency using the same first-chunk CPI conventions as the downstream processor. The validation figure keeps the full internal RDM for scoring, but the displayed pre/post ECA-C views are now clipped to a hardware-focused `0-30 km` range window for readability. The command-window summary now also reports an advisory truth-aligned Doppler-column check plus a per-target local CAF prominence metric, explicitly labeled as a local response-strength measure rather than calibrated RF SNR.
+- `runSignalPhysicsReadinessCheck` now defaults to `true`, which calls [SyntheticHDTVSimulation/helperSyntheticValidateGeneratedIQ.m](SyntheticHDTVSimulation/helperSyntheticValidateGeneratedIQ.m) after generation to validate every packaged radar part, not just the first dwell. The helper accepts an in-memory artifact, a session folder, or a manifest path; checks packaging integrity, seed preservation, fractional direct-path lag, target placement, target-strength ordering, and truth-aligned vertical-column rejection; and writes a structured `readiness_check` summary back into `session_manifest.json`, including whether the session is a `conditioned target-echo dataset (recommended intermediate algorithm-test mode)` or a `full-seed comparison dataset`. The validation figure still keeps the full internal RDM for scoring while the displayed pre/post ECA-C views are clipped to a hardware-focused `0-30 km` range window for readability.
 - Set `useValidationConfidencePreset = true` in the walkthrough when you want a clearer low-noise confidence case than the default `0.10 s` smoke-test capture. The preset uses a slightly longer active window and stronger, straight-line targets that are easier to inspect in geometry and range-Doppler space, and the validation figure now overlays the synthetic truth on both the pre-ECA-C and post-ECA-C RDMs.
+- Set `useMotionVisiblePreset = true` when you want a longer `10 s` active window packaged as multiple shorter parts. The current preset uses `10` contiguous `1.0 s` parts so motion is easier to inspect without inventing a new waveform-generation architecture.
 - The validation RDM colorbars are labeled `CAF Magnitude [dB]` to make it explicit that the image is showing cross-ambiguity response strength in delay-Doppler space rather than calibrated receive power.
+- The generated manifest now records the echo-generation model, seed fixture summary, target-echo dataset mode, full-seed comparison policy, and the latest readiness-check result so later revalidation can reconstruct the signal-physics context without rerunning generation.
 - The walkthrough now resolves the repo root from the installed helper path instead of the Live Editor temp copy, and the terrain helper bounds the DTED load to the scenario footprint so the Apple Hill tile can be used without loading the full tile into the radar scene.
-- Set `runWrapperReplay = true` inside the walkthrough when you want it to call the existing packaged-session entrypoint `runBistaticAnalysisSession`; leave it `false` while iterating on generation settings to avoid the full analysis and figure load.
+- Set `runWrapperReplay = true` inside the walkthrough when you want it to call the existing packaged-session entrypoint `runBistaticAnalysisSession`; leave it `false` while iterating on generation settings because wrapper replay is now treated as an optional compatibility smoke check rather than the readiness decision.
 - Follow-on quality-check ideas remain staged in [Implementation_ImproveSyntheticQualityChecks.md](Implementation_ImproveSyntheticQualityChecks.md), but the current implementation now covers preview clarity, explicit synthetic-truth labeling, a confidence-oriented walkthrough preset, and closed-loop synthetic IQ validation.
+
+### Staged Modeling Strategy
+
+| Stage | Purpose | Current guidance |
+| :--- | :--- | :--- |
+| Stage 1: Intermediate seed-backed scenario model | Geometry preview, target-motion sanity, truth traceability, direct-path checks, target placement, CPI experimentation, and downstream pipeline debugging | In scope now. Use the current seed-backed workflow as an explicit intermediate model, not as a field-surrogate scene benchmark. |
+| Stage 2: Usable synthetic algorithm-test dataset | Same seed-backed flow, but with conditioned target echoes as the recommended output policy so the dataset is more usable for algorithm development | This is the current recommended dataset mode. It is still an intermediate model and may retain residual artifacts. |
+| Stage 3: Higher-fidelity site-specific field surrogate | Terrain/clutter/scattering richness and benchmark-grade passive-radar scene realism | Future work. Not required to keep improving the current intermediate workflow. |
+
+### Allowed / Not Allowed
+
+| Allowed now | Not allowed now |
+| :--- | :--- |
+| Algorithm plumbing and packaged-session compatibility checks | Claiming field-equivalent clutter realism |
+| Truth alignment, direct-path checks, and mitigation debugging | Treating the current synthetic dataset as the final detector/tracker benchmark |
+| Detector/tracker integration and parameter trend studies | Claiming final performance transfer from synthetic results to field collection performance |
+| Seed-preservation studies and conditioned-vs-full-seed comparison work | Using the current workflow as a substitute for later higher-fidelity site-specific scene modeling |
+
+### Why Conditioning Is Recommended
+
+- The seed-backed intermediate model preserves a strong pilot-like line in the illuminator seed.
+- In full-seed target echoes, that line produces stronger target-Doppler-aligned vertical columns in the post-mitigation RDM.
+- Conditioned target echoes are therefore the recommended intermediate algorithm-development dataset because they reduce the severity of that artifact relative to the full-seed comparison mode, even though they do not yet make the workflow field-equivalent.
+
+### Recommended Presets
+
+| Preset | When to use it | Key settings |
+| :--- | :--- | :--- |
+| Default smoke test | Fast packaging and truth-flow regression | `captureDurationS = 0.10`, `captureRepetitions = 1` |
+| Short confidence preset | Clearer low-noise regression scene | `useValidationConfidencePreset = true` |
+| Motion-visible preset | Longer run with visible motion over time | `useMotionVisiblePreset = true`, `captureDurationS = 1.0`, `captureRepetitions = 10`, `captureRepetitionSpacingS = 0.0`, `truthSamplePeriodS = 0.10` |
 
 ### System Goals
 

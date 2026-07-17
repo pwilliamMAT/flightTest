@@ -5,8 +5,9 @@
 % cadence, and per-target echo strengths. The walkthrough keeps the
 % baseline builder as the default source of site geometry and signal
 % defaults, then applies your edits as the authoritative scenario used for
-% synthetic-truth preview, seed-backed echo synthesis, packaged-session
-% generation, closed-loop IQ validation, and optional wrapper replay.
+% synthetic-truth preview, conditioned seed-backed echo synthesis,
+% packaged-session generation, closed-loop IQ validation, and optional
+% full-seed comparison or wrapper replay.
 
 %% Collect Inputs
 pathInfo = helperSyntheticEnsureProjectPaths();
@@ -62,6 +63,22 @@ if ~exist("signalMode", "var") || strlength(string(signalMode)) == 0
     signalMode = "seed_backed_bistatic_v1";
 end
 
+if ~exist("echoGenerationModel", "var") || strlength(string(echoGenerationModel)) == 0
+    echoGenerationModel = "toolbox_wideband_free_space_v1";
+end
+
+if ~exist("useFullSeedComparisonDataset", "var")
+    useFullSeedComparisonDataset = false;
+end
+
+if ~exist("runFullSeedComparison", "var")
+    if exist("runConditionedEchoDiagnostic", "var")
+        runFullSeedComparison = logical(runConditionedEchoDiagnostic);
+    else
+        runFullSeedComparison = false;
+    end
+end
+
 if ~exist("captureDurationS", "var")
     captureDurationS = 0.10;
 end
@@ -98,8 +115,16 @@ if ~exist("useValidationConfidencePreset", "var")
     useValidationConfidencePreset = false;
 end
 
-if ~exist("runGeneratedIQValidation", "var")
-    runGeneratedIQValidation = true;
+if ~exist("useMotionVisiblePreset", "var")
+    useMotionVisiblePreset = false;
+end
+
+if ~exist("runSignalPhysicsReadinessCheck", "var")
+    if exist("runGeneratedIQValidation", "var")
+        runSignalPhysicsReadinessCheck = logical(runGeneratedIQValidation);
+    else
+        runSignalPhysicsReadinessCheck = true;
+    end
 end
 
 if ~exist("showValidationPrecheckFigures", "var")
@@ -118,11 +143,31 @@ end
 % validation targets that sit well away from the near-zero direct-path
 % region. That keeps the scene easier to inspect in both geometry and
 % range-Doppler space while staying closer to the physical use case.
+if useValidationConfidencePreset && useMotionVisiblePreset
+    error('seedBackedSyntheticHDTVSessionWalkthrough:conflictingPresets', ...
+        'Only one walkthrough preset can be active at a time.');
+end
+
 if useValidationConfidencePreset
     captureDurationS = 0.20;
     captureRepetitions = 1;
     captureRepetitionSpacingS = 0.0;
     truthSamplePeriodS = 0.01;
+    directPathDelaySamples = 1.00;
+    useStochasticNoise = false;
+end
+
+%% Optional Motion-Visible Preset
+% Plain language:
+% This preset stretches the same synthetic truth workflow across a 10 s
+% active window, but it keeps the packaging split into multiple shorter
+% parts instead of one giant file. That makes target motion easier to
+% inspect while staying compatible with the packaged-session workflow.
+if useMotionVisiblePreset
+    captureDurationS = 1.00;
+    captureRepetitions = 10;
+    captureRepetitionSpacingS = 0.0;
+    truthSamplePeriodS = 0.10;
     directPathDelaySamples = 1.00;
     useStochasticNoise = false;
 end
@@ -161,6 +206,9 @@ baselineScenarioConfig = buildSyntheticHDTVBaselineScenarioConfig( ...
     'DirectPathGainDB', directPathGainDB, ...
     'DirectPathDelaySamples', directPathDelaySamples, ...
     'UseStochasticNoise', useStochasticNoise, ...
+    'SeedEchoConditioningEnabled', ~logical(useFullSeedComparisonDataset), ...
+    'EchoGenerationModel', echoGenerationModel, ...
+    'EnableFullSeedComparison', runFullSeedComparison, ...
     'CaptureDurationS', captureDurationS, ...
     'CaptureRepetitions', captureRepetitions, ...
     'CaptureRepetitionSpacingS', captureRepetitionSpacingS, ...
@@ -168,6 +216,11 @@ baselineScenarioConfig = buildSyntheticHDTVBaselineScenarioConfig( ...
 
 activeWindowS = captureDurationS * captureRepetitions + ...
     max(captureRepetitions - 1, 0) * captureRepetitionSpacingS;
+
+if useFullSeedComparisonDataset && runFullSeedComparison
+    runFullSeedComparison = false;
+    fprintf("Comparison note:\tPrimary dataset already uses full-seed target echoes, so the extra comparison run is disabled.\n");
+end
 
 %% Edit Target Definitions
 % Edit these target structs directly when you want to change waypoint
@@ -177,7 +230,7 @@ activeWindowS = captureDurationS * captureRepetitions + ...
 if ~exist("targets", "var") || isempty(targets)
     baselineTargets = baselineScenarioConfig.targets;
 
-    if useValidationConfidencePreset
+    if useValidationConfidencePreset || useMotionVisiblePreset
         % Keep the confidence scene explicit and reusable. These targets
         % are placed outside the current 5 km near-range guard so the
         % validation figure checks a part of bistatic space that is more
@@ -215,6 +268,9 @@ scenarioConfig.terrain_dted_path = char(string(dtedPath));
 scenarioConfig.seed_source_path = char(string(seedSourcePath));
 scenarioConfig.seed_channel_index = double(seedChannelIndex);
 scenarioConfig.signal_mode = char(string(signalMode));
+scenarioConfig.echo_generation_model = char(string(echoGenerationModel));
+scenarioConfig.full_seed_comparison_enabled = logical(runFullSeedComparison);
+scenarioConfig.diagnostic_conditioned_echo_enabled = logical(runFullSeedComparison);
 scenarioConfig.part_duration_s = double(captureDurationS);
 scenarioConfig.capture_repetitions = double(captureRepetitions);
 scenarioConfig.capture_repetition_spacing_s = double(captureRepetitionSpacingS);
@@ -231,6 +287,13 @@ scenarioConfig.targets = targets;
 fprintf("\nScenario summary\n");
 fprintf("\tSession ID:\t%s\n", string(scenarioSummary.session_id));
 fprintf("\tSignal mode:\t%s\n", string(scenarioSummary.signal_mode));
+fprintf("\tEcho model:\t%s\n", string(scenarioSummary.echo_generation_model));
+fprintf("\tTarget echo dataset:\t%s\n", string(scenarioSummary.target_echo_dataset_label));
+fprintf("\tTarget echo source:\t%s\n", string(scenarioSummary.seed_echo_source_mode));
+fprintf("\tRecommended dataset:\t%s\n", ...
+    localYesNo(scenarioSummary.recommended_intermediate_algorithm_test_mode));
+fprintf("\tFull-seed comparison:\t%s\n", ...
+    localYesNo(scenarioSummary.full_seed_comparison_enabled));
 fprintf("\tPart duration:\t%.3f [s]\n", scenarioSummary.part_duration_s);
 fprintf("\tRepetitions:\t%d\n", scenarioSummary.capture_repetitions);
 fprintf("\tSpacing:\t%.3f [s]\n", scenarioSummary.capture_repetition_spacing_s);
@@ -240,6 +303,10 @@ fprintf("\tTarget count:\t%d\n", scenarioSummary.n_targets);
 fprintf("\tTargets:\t%s\n", join(scenarioSummary.target_labels, ", "));
 if useValidationConfidencePreset
     fprintf("\tValidation preset:\tEnabled for low-noise confidence checking\n");
+elseif useMotionVisiblePreset
+    fprintf("\tMotion-visible preset:\tEnabled for a 10.0 s multi-part active window\n");
+elseif useFullSeedComparisonDataset
+    fprintf("\tDataset note:\tPrimary output uses full-seed target echoes for comparison/reference study\n");
 else
     fprintf("\tValidation note:\tDefault 0.10 s capture is a smoke test; enable the confidence preset for a clearer validation case\n");
 end
@@ -269,7 +336,9 @@ previewPlotHandles = helperSyntheticPlotScenarioOverview(scenarioConfig, truthPr
 % `truth/adsb_<session_id>.txt`, `truth/scenario_truth.mat`, and
 % `session_manifest.json`. During this write path, the same bistatic truth
 % used in the preview is reused to synthesize delayed and Doppler-shifted
-% target echoes into the surveillance channel.
+% target echoes into the surveillance channel. The default generated
+% dataset uses conditioned target echoes, while the full-seed comparison
+% mode stays available for explicit artifact studies.
 artifact = generateSyntheticHDTVSession('ScenarioConfig', scenarioConfig);
 
 artifactSummary = struct( ...
@@ -288,32 +357,38 @@ for idx = 1 : numel(artifactSummary.adsb_files)
     fprintf("\tADSB file %d:\t%s\n", idx, string(artifactSummary.adsb_files{idx}));
 end
 
-%% Validate The Written IQ Against Synthetic Truth
+%% Run The Signal-Physics Readiness Gate
 % Step 5:
-% `helperSyntheticValidateGeneratedIQ` reads the written `.bb` file back
-% and checks the full truth chain end to end:
-%   - file/header integrity
-%   - nonzero and non-identical surveillance/reference channels
-%   - measured direct-path lag versus the configured synthetic delay
-%   - predicted synthetic truth trace versus the observed target peak in
-%     the first downstream-aligned validation dwell
+% `helperSyntheticValidateGeneratedIQ` now reads the generated session back
+% and checks every radar part against the same truth that drove synthesis.
+% The numeric readiness decision is authoritative, while the figures remain
+% evidence artifacts. The readiness summary also records whether the
+% generated session is the recommended conditioned dataset or a full-seed
+% comparison dataset.
 %
-% This keeps the validation lightweight while still using the same CPI and
-% chunking conventions as the real processor for the first chunk.
-if runGeneratedIQValidation
-    validationSummary = helperSyntheticValidateGeneratedIQ( ...
+% The readiness gate checks:
+%   - file/header integrity
+%   - seed preservation in the reference/direct path
+%   - direct-path lag versus the configured fractional synthetic delay
+%   - predicted synthetic truth trace versus the observed target peak
+%   - truth-aligned Doppler-column rejection
+%
+% Wrapper replay stays optional and is no longer the readiness decision.
+if runSignalPhysicsReadinessCheck
+    readinessSummary = helperSyntheticValidateGeneratedIQ( ...
         artifact, ...
         'PlotFigures', true, ...
         'PrecheckFigures', showValidationPrecheckFigures, ...
+        'RunEchoModelComparison', runFullSeedComparison, ...
         'Verbose', false);
 else
-    fprintf("\nSet runGeneratedIQValidation = true to run closed-loop synthetic IQ validation.\n");
+    fprintf("\nSet runSignalPhysicsReadinessCheck = true to run the session-level signal-physics readiness gate.\n");
 end
 
 %% Replay Through The Existing Session Wrapper
 % Leave `runWrapperReplay` at `false` while you iterate on generation
-% settings, then flip it to `true` when you want to run the existing
-% packaged-session wrapper and inspect downstream truth alignment.
+% settings, then flip it to `true` when you want a compatibility smoke test
+% through the existing packaged-session wrapper and downstream truth alignment.
 if runWrapperReplay
     originalVisibility = get(groot, "DefaultFigureVisible");
     set(groot, "DefaultFigureVisible", "off")
@@ -338,8 +413,16 @@ else
     fprintf("\nSet runWrapperReplay = true to execute runBistaticAnalysisSession.\n");
 end
 
+function label = localYesNo(tf)
+if tf
+    label = "yes";
+else
+    label = "no";
+end
+end
+
 %% Next Step For Detector Tuning
 % Replace the probe seed with a real Apple Hill or CBS-compatible field
-% seed before drawing detector conclusions. The probe path is useful for
-% packaging and regression checks, but the field seed is the right
-% starting point for delay, gain, and truth-alignment tuning.
+% seed before drawing detector conclusions. Use the conditioned target-echo
+% dataset for intermediate algorithm work, and keep the full-seed mode as
+% a comparison/reference study while the vertical-column artifact persists.
