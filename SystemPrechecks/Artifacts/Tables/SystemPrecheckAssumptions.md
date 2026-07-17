@@ -1,0 +1,38 @@
+# System Precheck Assumptions Table
+
+| Path | Field | Value | Basis | SourceNote | ClaimRelevance |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Newton | StationName_CallSign | WHDH-TV / WLVI-TV shared RF35 source | sourced | RabbitEars main listing and FCC TV profile, queried 2026-07-17 | illuminator viability |
+| Newton | RFChannel | 35 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Newton | RFRange_MHz | 596-602 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Newton | CenterFrequency_MHz | 599 | inferred | Midpoint of the RF35 allocation; required by this cleanup plan for RF models | illuminator viability |
+| Newton | ERPHorizontal_kW | 1000 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Newton | ERPVertical_kW | 316 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Newton | Polarization | Inferred mixed H/V from separate ERP values | inferred | RabbitEars reports separate horizontal and vertical ERP values | illuminator viability |
+| Newton | TowerLatitude_deg | 42.310280 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Newton | TowerLongitude_deg | -71.236670 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Newton | ReceiverLocation | MathWorks Apple Hill Garage | local-analysis | FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m | all claims |
+| Newton | ReceiverLatitude_deg | 42.299293 | local-analysis | FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m | all claims |
+| Newton | ReceiverLongitude_deg | -71.349500 | local-analysis | FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m | all claims |
+| Newton | CurrentOperationalStatus | Licensed | sourced | FCC TV profile, queried 2026-07-17 | illuminator viability |
+| Newton | TargetPathPower_dBm | -67.37 | assumed | Carried from the Hudson supporting link-budget output until the Newton path is rerun | bistatic detectability plausibility |
+| Newton | ReceiverAntennaGain_dBi | 12 | assumed | Current RF budget scripts use a typical TV Yagi gain assumption | capturability |
+| Newton | CableLossPer100ft_dB | 1.6 | assumed | RFBudget_Newton.m | capturability |
+| Newton | USRP_Gain_dB | 30 | assumed | RFBudget_Newton.m nominal TwinRX gain setting | capturability |
+| Hudson | StationName_CallSign | WUNI alternate source path | sourced | RabbitEars main listing and FCC TV profile, queried 2026-07-17 | illuminator viability |
+| Hudson | RFChannel | 27 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Hudson | RFRange_MHz | 548-554 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Hudson | CenterFrequency_MHz | 551 | inferred | Midpoint of the RF27 allocation; required by this cleanup plan for RF models | illuminator viability |
+| Hudson | ERPHorizontal_kW | 400 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Hudson | ERPVertical_kW | 100 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Hudson | Polarization | Inferred mixed H/V from separate ERP values | inferred | RabbitEars reports separate horizontal and vertical ERP values | illuminator viability |
+| Hudson | TowerLatitude_deg | 42.384083 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Hudson | TowerLongitude_deg | -71.493139 | sourced | RabbitEars main listing, queried 2026-07-17 | illuminator viability |
+| Hudson | ReceiverLocation | MathWorks Apple Hill Garage | local-analysis | FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m | all claims |
+| Hudson | ReceiverLatitude_deg | 42.299293 | local-analysis | FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m | all claims |
+| Hudson | ReceiverLongitude_deg | -71.349500 | local-analysis | FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m | all claims |
+| Hudson | CurrentOperationalStatus | Licensed | sourced | FCC TV profile, queried 2026-07-17 | illuminator viability |
+| Hudson | TargetPathPower_dBm | -67.37 | local-analysis | Current RF budget scripts and supporting link-budget workflow | bistatic detectability plausibility |
+| Hudson | ReceiverAntennaGain_dBi | 12 | assumed | Current RF budget scripts use a typical TV Yagi gain assumption | capturability |
+| Hudson | CableLossPer100ft_dB | 1.5 | assumed | RFBudget_Ch27_Corrected 1.m | capturability |
+| Hudson | USRP_Gain_dB | 30 | assumed | RFBudget_Ch27_Corrected 1.m nominal TwinRX gain setting | capturability |

@@ -1,0 +1,45 @@
+% Constants
+frequencyMHz = 1000; % Assume 1 GHz for simulation
+c = physconst('LightSpeed'); % Speed of light
+lambda = c / (frequencyMHz * 1e6);
+
+% Calculate Available Input Power
+maxOutputLevel = 105; % dBuV
+V = 10^(maxOutputLevel/20)*10^-6; % V
+imp = 75; % ohm
+P = V^2/imp; % mW
+dBm = 10*log10(P); % dBm
+
+% Rx
+% Transmit powers in Watts
+txPowerNewton_W = 58.75e3;
+txPowerHudson_W = 14.8e3;
+
+% Convert to dBm
+P_dBm_Newton = 10*log10(txPowerNewton_W) + 30;
+P_dBm_Hudson = 10*log10(txPowerHudson_W) + 30;
+
+% Antenna gain and cable loss
+gainTx = 14.46; % dBi (converted from dBd) - Only for Newton?
+lossTx = 2.6;   % dB
+
+% Calculate EIRP
+EIRP_Newton = P_dBm_Newton + gainTx - lossTx;
+EIRP_Hudson = P_dBm_Hudson + gainTx - lossTx;
+
+% Calculate Free space Path Loss
+tgtLLA_Newton = [42.311389, -71.216111, convlength(1000,'ft','m')];
+rxLLA_AHGarage = [42.29933130748222, -71.34970148246504, 20];
+tgtNED = lla2ned(tgtLLA_Newton,rxLLA_AHGarage,"flat");
+rxNED = lla2ned(rxLLA_AHGarage,rxLLA_AHGarage,"flat");
+lambda = physconst('LightSpeed')/1e9;
+[tgtrng_Newton,~] = rangeangle(tgtNED',rxNED');
+Loss_Newton = 2*pow2db((4*pi*tgtrng_Newton/lambda)^2);
+
+tgtLLA_Hudson = [42.384083,-71.493139, convlength(1200,'ft','m')];
+tgtNED = lla2ned(tgtLLA_Hudson,rxLLA_AHGarage,"flat");
+[tgtrng_Hudson,~] = rangeangle(tgtNED',rxNED');
+Loss_Hudson = 2*pow2db((4*pi*tgtrng_Hudson/lambda)^2);
+
+% Calculate Available Input Power
+% Added to "
