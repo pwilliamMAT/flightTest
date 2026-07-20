@@ -1,7 +1,10 @@
-function snr = helperMeasureSNR(surv,ref,attenuation,fs,fc,minRange,maxRange,minSpeed,maxSpeed,nGuard,nTrain,nRuns,testFcn)
+function snr = helperMeasureSNR(surv,ref,attenuation,fs,fc,minRange,maxRange,minSpeed,maxSpeed,nGuard,nTrain,nRuns,rNum,testFcn)
     % Measure the SNR in range-Doppler space when a target is injected into
     % the surveillance channel at the attenuation level, where the baseline
     % is the magnitude of the signal.
+
+    % Set rng so test is always the same
+    rng(rNum);
 
     nAttenuation = length(attenuation);
     snr = zeros(nAttenuation,1);
