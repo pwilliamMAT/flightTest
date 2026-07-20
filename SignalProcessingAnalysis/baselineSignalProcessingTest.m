@@ -60,7 +60,8 @@ maxSpeed = 200;
 nGuard = 4;
 nTrain = 5;
 nRuns = 10;
-measuredSnr = helperMeasureSNR(surv,ref,testAtten,fs,fc,minRange,maxRange,minSpeed,maxSpeed,nGuard,nTrain,nRuns,testFcn);
+rNum = 2;
+measuredSnr = helperMeasureSNR(surv,ref,testAtten,fs,fc,minRange,maxRange,minSpeed,maxSpeed,nGuard,nTrain,nRuns,rNum,testFcn);
 helperPlotSnr(testAtten,measuredSnr,requiredSnr,'Baseline Signal Processing');
 
 %% Other tests to perform
@@ -82,7 +83,8 @@ helperPlotSnr(testAtten,measuredSnr,requiredSnr,'Baseline Signal Processing');
 % Test the other two DSI suppression algorithms from
 % https://www.mathworks.com/help/phased/ug/direct-signal-interference-dsi-suppression-in-passive-radar.html.
 % Particularly the BLMS algorithm appears to work very well from this
-% article.
+% article. We should test the signal processing algorithms as we vary their
+% parameters.
 %
 % Cube vs. Doppler filters. Right now we arbitrarily rearrange the signal
 % into a cube and perform RD processing similar to pulsed radar, but using
