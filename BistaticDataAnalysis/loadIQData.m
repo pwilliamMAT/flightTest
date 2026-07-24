@@ -72,6 +72,10 @@ end
 if verbose, fprintf('  %d complex samples available per channel.\n', n_actual); end
 
 %% 2b. Per-channel power diagnostic
+% For files written by TestSetupTesting/log_iq_n320_2antennas.m the stored
+% channel order is fixed as:
+%   RF0:RX2 -> CH1/RX1 -> Surveillance
+%   RF1:RX2 -> CH2/RX2 -> Reference
 % Compare mean signal power of CH1 and CH2.
 % This is only a rough topology check, not a channel-role oracle. In this
 % project, the surveillance path may legitimately be stronger because it
@@ -101,6 +105,9 @@ elseif pwr_ratio_db < -10
 end
 
 %% 3. Channel assignment
+% Repo-default mapping:
+%   RF0:RX2 -> CH1/RX1 -> Surveillance
+%   RF1:RX2 -> CH2/RX2 -> Reference
 if options.swap_channels
     surveillance_channel = ch2_raw;   % CH2 (RX2) → Surveillance
     reference_channel    = ch1_raw;   % CH1 (RX1) → Reference

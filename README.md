@@ -67,8 +67,13 @@ The wrapper still remains standalone and is not yet integrated into `run_coordin
 If the Pluto support package runtime is unavailable on a given machine, the wrapper now fails early with `PLUTO_CONNECT_FAILED` and still writes a reviewable result folder instead of proceeding into the capture path.
 A separate companion plan, [TestSetupTesting/PlutoWaveformPlan.md](TestSetupTesting/PlutoWaveformPlan.md), now documents a **Phase 2** standalone follow-on analysis over archived Phase 1 Pluto captures. It does not replace the active Phase 1 tone precheck.
 For an SSH-friendly checked-in Stage 6 smoke-test entrypoint on the Phase 1 branch, use [TestSetupTesting/runPlutoToneStage6Smoke.m](TestSetupTesting/runPlutoToneStage6Smoke.m) from the `TestSetupTesting/` folder.
+For a fixed-placement commissioning sweep that compares tone offsets and amplitudes before you choose a reusable Phase 1 baseline candidate, use [TestSetupTesting/runPlutoToneCommissioningSweep.m](TestSetupTesting/runPlutoToneCommissioningSweep.m).
+For a shareable plain-text Live Editor notebook that runs the current Phase 1 unit tests and smoke tests in order, use [TestSetupTesting/PlutoPhase1ValidationLive.m](TestSetupTesting/PlutoPhase1ValidationLive.m).
+Open that notebook in the MATLAB Live Editor on the testing machine and use **Run All**. The run controls near the top let you skip individual smoke stages or enable the full wrapper once `baselinePath` is set.
+That notebook now also records the accumulated Stage 6 field-trial matrix through the `599 MHz / 1.5 MHz` placement and amplitude experiments so later sessions can compare against the earlier runs.
 For the step-by-step Pluto calibration sequence, see the `Pluto Calibration Sequence` section in [TestSetupTesting/README.md](TestSetupTesting/README.md).
 For a staged hardware bring-up checklist on the testing machine before running the calibration wrapper, see [TestSetupTesting/plutoCalibrationHardwareBringup.md](TestSetupTesting/plutoCalibrationHardwareBringup.md).
+The bring-up checklist now includes the same observed field-trial matrix plus short operator notes about which physical setups and tone-level changes helped and which ones did not.
 
 ### Hardware Platform
 

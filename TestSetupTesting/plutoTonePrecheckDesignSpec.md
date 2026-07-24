@@ -23,8 +23,8 @@ Phase 1 non-goals:
 - The testing machine drives the Pluto transmitter directly.
 - The N320 capture path remains the same one already used by `runLocalHDTVCapture.m`.
 - Channel convention remains:
-  - `SURV = CH1 / RX1`
-  - `REF = CH2 / RX2`
+  - `RF0:RX2 -> CH1 / RX1 -> SURV`
+  - `RF1:RX2 -> CH2 / RX2 -> REF`
 - The precheck is a hardware-readiness gate only.
 - A CW tone is acceptable for power, frequency, and path-health checks.
 - A CW tone is not a hard inter-channel lag-calibration source.

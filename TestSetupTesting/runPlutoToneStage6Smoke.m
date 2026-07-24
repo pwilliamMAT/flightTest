@@ -30,6 +30,7 @@ addParameter(p, 'Gain', [30 50], @(x) isnumeric(x) && (isscalar(x) || numel(x) =
 addParameter(p, 'ToneOffset_Hz', 250e3, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'ToneAmplitude', 0.25, @(x) isnumeric(x) && isscalar(x) && x > 0 && x <= 1);
 addParameter(p, 'CaptureDuration_s', 1, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'Thresholds', struct(), @(x) isempty(x) || isstruct(x));
 addParameter(p, 'Verbose', true, @(x) islogical(x) && isscalar(x));
 parse(p, varargin{:});
 opts = p.Results;
@@ -42,6 +43,8 @@ capture_root = string(opts.CaptureRoot);
 if strlength(capture_root) == 0
     capture_root = fullfile(project_root, 'captures', 'plutoSmoke');
 end
+
+thresholds = localResolveThresholds(opts.Thresholds);
 
 original_folder = pwd;
 original_path = path;
@@ -98,6 +101,7 @@ try
         double(opts.SampleRate_Hz), ...
         'ChannelLabel', 'REF', ...
         'ExpectedFrequencyHz', double(opts.ToneOffset_Hz), ...
+        'Thresholds', thresholds.reference, ...
         'Verbose', opts.Verbose);
 
     surveillance_metrics = helperPlutoToneScoreChannel( ...
@@ -105,6 +109,7 @@ try
         double(opts.SampleRate_Hz), ...
         'ChannelLabel', 'SURV', ...
         'ExpectedFrequencyHz', double(opts.ToneOffset_Hz), ...
+        'Thresholds', thresholds.surveillance, ...
         'Verbose', opts.Verbose);
 
     joint_metrics = helperPlutoToneScoreJointMetrics( ...
@@ -113,6 +118,7 @@ try
         double(opts.SampleRate_Hz), ...
         'ReferenceMetrics', reference_metrics, ...
         'SurveillanceMetrics', surveillance_metrics, ...
+        'Thresholds', thresholds.joint, ...
         'Verbose', opts.Verbose);
 
     result = struct( ...
@@ -157,4 +163,21 @@ if isstruct(tx_context) && isfield(tx_context, 'transmitter') && ~isempty(tx_con
     catch
     end
 end
+end
+
+function thresholds = localResolveThresholds(thresholds_in)
+thresholds = struct( ...
+    'reference', struct(), ...
+    'surveillance', struct(), ...
+    'joint', struct());
+
+if isempty(thresholds_in)
+    return
+end
+
+if isstruct(thresholds_in) && isempty(fieldnames(thresholds_in))
+    return
+end
+
+thresholds = helperPlutoToneNormalizeThresholds(thresholds_in);
 end

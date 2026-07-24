@@ -19,8 +19,8 @@ This document assumes:
 
 Channel convention used throughout this repo:
 
-- `SURV = CH1 / RX1`
-- `REF = CH2 / RX2`
+- `RF0:RX2 -> CH1 / RX1 -> SURV`
+- `RF1:RX2 -> CH2 / RX2 -> REF`
 
 Project default precheck settings:
 
@@ -157,6 +157,14 @@ Pass condition:
 ## Stage 3: Minimal USRP Receive Smoke Test
 
 This stage checks the radio and two-channel receive path directly, before using the repo wrappers.
+
+Important label bridge for the N320:
+
+- The hardware capture log prints the physical USRP ports: `RF0:RX2` and `RF1:RX2`.
+- The later `.bb` reader and scoring helpers report the stored file channels as `CH1/RX1` and `CH2/RX2`.
+- In this repo those names refer to the same fixed paths:
+  - `RF0:RX2 -> CH1/RX1 -> SURV`
+  - `RF1:RX2 -> CH2/RX2 -> REF`
 
 Run this in MATLAB:
 
@@ -396,6 +404,35 @@ Operator suggestion:
 - If the received levels are too high, reduce Pluto output level, add attenuation, or increase physical separation before continuing.
 - If one channel sees the tone clearly and the other does not, check the antenna chain, channel mapping, and gain settings before continuing.
 
+## Observed Field-Trial Matrix
+
+The table below records the Stage 6 runs already performed during bring-up so later hardware changes can be compared against them without reconstructing chat history.
+All rows use the fixed repo mapping:
+
+- `RF0:RX2 -> CH1/RX1 -> SURV`
+- `RF1:RX2 -> CH2/RX2 -> REF`
+
+| Run | Config | Physical setup | REF detect [dB] | SURV detect [dB] | REF freq err [Hz] | SURV freq err [Hz] | Joint delta [Hz] | XCorr [dB] | Interpretation |
+| :--- | :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | :--- |
+| Stage 6A | `540 MHz / 250 kHz / amp 0.25` | Branch-default smoke run | `+0.8189` | `-2.4643` | `-16843.8` | `-22609.4` | `5765.6` | `-36.7368` | End-to-end worked, but tone prominence and inter-channel agreement were weak. |
+| Stage 6B | `599 MHz / 250 kHz / amp 0.5` | HDTV-band comparison run | `+3.8760` | `-2.0907` | `-10376.0` | `-8483.9` | `1892.1` | `-5.8812` | Best overall combined result so far. |
+| Stage 6C | `599 MHz / 3.2 MHz / amp 0.5` | Higher-offset comparison run | `+1.5789` | `-1.1572` | `+22900.4` | `+18383.8` | `4516.6` | `-5.4117` | Stayed passable, but did not improve over Stage 6B. |
+| Stage 6D1 | `599 MHz / 1.5 MHz / amp 0.5` | First 1.5 MHz comparison run before placement study | `-0.6732` | `-2.8809` | `-18920.9` | `-17211.9` | `1709.0` | `-5.9941` | Joint delta improved relative to Stage 6C, but both detect margins stayed weak. |
+| Stage 6D2 | `599 MHz / 1.5 MHz / amp 0.5` | Pluto on top of computer box, inside stairwell, 6.75 in telescoping antenna | `-1.2627` | `-9.3541` | `-13000.5` | `-12268.1` | `732.4219` | `-6.0588` | Best 1.5 MHz delta so far, but surveillance detect collapsed. |
+| Stage 6D3 | `599 MHz / 1.5 MHz / amp 0.5` | Short USB plus 10 ft Nooelec mount and 4.9 in antenna held just outside stairwell | `+0.3467` | `+1.5753` | `+7080.1` | `+20874.0` | `13793.9` | `-5.9300` | Outside placement improved tone visibility, but joint agreement collapsed. |
+| Stage 6D4 | `599 MHz / 1.5 MHz / amp 0.5` | Same 10 ft Nooelec mount and 4.9 in antenna taped outside stairwell ledge | `+1.1428` | `-0.3017` | `+6958.0` | `+21301.3` | `14343.3` | `-4.0574` | Mounted outside stayed better for visibility than inside, but joint stability remained poor. |
+| Stage 6D5 | `599 MHz / 1.5 MHz / amp 0.8` | Same outside-mounted 10 ft Nooelec mount and 4.9 in antenna as Stage 6D4, but stronger Pluto tone | `+1.7067` | `+3.7273` | `-4455.6` | `-12390.1` | `7934.6` | `-4.2754` | Stronger tone materially improved detect margin and reduced delta versus Stage 6D4, but the combined result still trails Stage 6B. |
+
+Observed operator notes:
+
+- No observed Stage 6 run is baseline-worthy yet.
+- `599 MHz / 250 kHz / amp 0.5` remains the best overall combined run and is still the main comparison point for future tuning changes.
+- The `1.5 MHz` placement and amplitude study showed that physical placement and tone level affect single-channel visibility, but neither change alone has solved the inter-channel agreement problem.
+- On the outside-mounted setup, raising `ToneAmplitude` from `0.5` to `0.8` improved both detect margins and reduced the joint delta from `14343.3 Hz` to `7934.6 Hz`, which suggests tone visibility was part of the problem.
+- Even after that amplitude increase, the outside-mounted `1.5 MHz` run still trails Stage 6B materially on joint agreement, so the remaining issue is not just insufficient Pluto power.
+- The 10 ft micro-USB extension made Pluto undiscoverable. Keep the Pluto on the short USB cable and move only the antenna/feed when possible.
+- The practical permanent setup tried so far is Pluto on top of the computer box, but that setup still needs better combined metrics before it should be treated as a calibration baseline.
+
 ## Stage 7: Full Standalone Calibration Wrapper
 
 Only run this stage after Stages 1 through 6 pass.
@@ -434,6 +471,7 @@ Pass condition:
 If you do not yet have a baseline:
 
 - stop after Stage 6
+- if the physical Pluto placement is now fixed, run `runPlutoToneCommissioningSweep.m` to compare the candidate tone offsets and amplitudes on that one permanent setup
 - do not treat Stage 7 as available yet
 
 ## Stage 8: Ready for the Larger Acquisition Workflow

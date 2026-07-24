@@ -5,7 +5,10 @@ function [reference_signal, surveillance_signal, capture_info_out] = helperPluto
 %   The precheck needs the same channel interpretation used by the rest of
 %   the project, so this helper reads the first N320 capture file with the
 %   proven BistaticDataAnalysis/loadIQData.m path and then packages the
-%   readback metadata into the frozen result schema.
+%   readback metadata into the frozen result schema. The fixed mapping used
+%   here is:
+%     RF0:RX2 -> CH1/RX1 -> SURV
+%     RF1:RX2 -> CH2/RX2 -> REF
 
 p = inputParser;
 p.FunctionName = mfilename;
@@ -100,6 +103,7 @@ if opts.Verbose
     fprintf('[helperPlutoToneReadCapture] Samples/ch ..... %d\n', samples_per_channel);
     fprintf('[helperPlutoToneReadCapture] Slice .......... %.6f s\n', ...
         samples_per_channel / sample_rate_hz);
+    fprintf('[helperPlutoToneReadCapture] Mapping ....... RF0:RX2 -> CH1/RX1 -> SURV | RF1:RX2 -> CH2/RX2 -> REF\n');
 end
 end
 
