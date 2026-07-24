@@ -246,6 +246,20 @@ catch me
 end
 ```
 
+If you want a checked-in convenience runner instead of retyping the full block:
+
+```matlab
+cd('/path/to/flightTest/TestSetupTesting')
+result = runPlutoToneStage6Smoke('Verbose', true);
+```
+
+From an SSH terminal, the short form is:
+
+```bash
+cd /path/to/flightTest/TestSetupTesting
+matlab -batch "result = runPlutoToneStage6Smoke('Verbose', true); disp(result.joint_metrics)"
+```
+
 Pass condition:
 
 - The capture wrapper completes.

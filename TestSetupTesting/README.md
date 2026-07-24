@@ -24,6 +24,8 @@ The frozen pre-implementation contract lives in [plutoTonePrecheckDesignSpec.md]
 The current implemented slice covers the live standalone wrapper `runPlutoTonePrecheck.m`, baseline loading and mismatch checks, deterministic Pluto waveform/TX startup, reuse of `runLocalHDTVCapture.m`, capture readback through `BistaticDataAnalysis/loadIQData.m`, channel and joint scoring, compact result/artifact writing, saved-result review, and baseline commissioning from prior standalone run artifacts or in-memory results.
 The wrapper is still intentionally separate from the working coordinated capture path, and `commissionPlutoToneBaseline` still uses the temporary offline `RunSources` path rather than starting hardware itself.
 When the Pluto support package runtime is missing, the wrapper now fails cleanly with `PLUTO_CONNECT_FAILED` and writes a reviewable run folder without attempting the N320 capture.
+A separate companion plan, [PlutoWaveformPlan.md](PlutoWaveformPlan.md), now documents a **Phase 2** standalone follow-on analysis over archived Phase 1 captures. It does not replace the current Phase 1 tone precheck or its public runtime contract.
+For an SSH-friendly checked-in Stage 6 smoke-test entrypoint, use [runPlutoToneStage6Smoke.m](runPlutoToneStage6Smoke.m) from the `TestSetupTesting/` folder.
 For staged testing-machine bring-up before running the calibration wrapper, see [plutoCalibrationHardwareBringup.md](plutoCalibrationHardwareBringup.md).
 
 ### Pluto Calibration Sequence
