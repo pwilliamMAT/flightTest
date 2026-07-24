@@ -183,9 +183,56 @@ end
 function codes = localCodes(source_struct, field_name)
 codes = strings(0, 1);
 if isstruct(source_struct) && isfield(source_struct, field_name) && ~isempty(source_struct.(field_name))
-    raw_codes = string(source_struct.(field_name));
-    codes = raw_codes(:);
+    codes = localNormalizeCodes(source_struct.(field_name));
 end
+end
+
+function codes = localNormalizeCodes(raw_codes)
+if isempty(raw_codes)
+    codes = strings(0, 1);
+    return
+end
+
+if isstring(raw_codes)
+    codes = raw_codes(:);
+    codes = codes(strlength(codes) > 0);
+    return
+end
+
+if ischar(raw_codes)
+    if isempty(raw_codes)
+        codes = strings(0, 1);
+    else
+        codes = string(cellstr(raw_codes));
+    end
+    codes = codes(:);
+    codes = codes(strlength(codes) > 0);
+    return
+end
+
+if iscell(raw_codes)
+    nested_codes = cell(numel(raw_codes), 1);
+    for idx = 1:numel(raw_codes)
+        nested_codes{idx} = localNormalizeCodes(raw_codes{idx});
+    end
+    if isempty(nested_codes)
+        codes = strings(0, 1);
+    else
+        codes = vertcat(nested_codes{:});
+    end
+    codes = codes(:);
+    codes = codes(strlength(codes) > 0);
+    return
+end
+
+try
+    codes = string(raw_codes(:));
+catch
+    codes = strings(0, 1);
+end
+
+codes = codes(:);
+codes = codes(strlength(codes) > 0);
 end
 
 function unique_codes = localUniqueCodes(codes)

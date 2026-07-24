@@ -27,6 +27,7 @@ When the Pluto support package runtime is missing, the wrapper now fails cleanly
 A separate companion plan, [PlutoWaveformPlan.md](PlutoWaveformPlan.md), now documents a **Phase 2** standalone follow-on analysis over archived Phase 1 captures. It does not replace the current Phase 1 tone precheck or its public runtime contract.
 For an SSH-friendly checked-in Stage 6 smoke-test entrypoint, use [runPlutoToneStage6Smoke.m](runPlutoToneStage6Smoke.m) from the `TestSetupTesting/` folder.
 For a fixed-placement commissioning sweep that compares tone offsets and amplitudes before you choose a reusable baseline candidate, use [runPlutoToneCommissioningSweep.m](runPlutoToneCommissioningSweep.m).
+If that sweep writes the per-run folders but then errors while building the top-level summary, recover the saved artifacts with [reviewPlutoToneCommissioningSweep.m](reviewPlutoToneCommissioningSweep.m) before deciding to rerun the hardware.
 For a shareable plain-text Live Editor notebook that runs the current Phase 1 unit tests and smoke tests in order, use [PlutoPhase1ValidationLive.m](PlutoPhase1ValidationLive.m).
 Open that notebook in the MATLAB Live Editor on the testing machine and use **Run All**. The run controls near the top let you skip individual smoke stages or enable the full wrapper once `baselinePath` is set.
 That notebook now also records the accumulated Stage 6 field-trial matrix through the `599 MHz / 1.5 MHz` placement and amplitude experiments so later sessions can compare against the earlier runs.

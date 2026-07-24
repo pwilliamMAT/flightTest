@@ -457,7 +457,7 @@ else
     lines(end + 1) = "No completed configurations were available.";
 end
 
-lines = [lines; commissioning_notes(:)];
+lines = [lines(:); commissioning_notes(:)];
 summary_text = char(strjoin(lines, newline));
 end
 
@@ -521,15 +521,53 @@ end
 function codes = localCodes(result, field_name)
 codes = cell(0, 1);
 if isstruct(result) && isfield(result, field_name) && ~isempty(result.(field_name))
-    raw_codes = result.(field_name);
-    if isstring(raw_codes)
-        codes = cellstr(raw_codes(:));
-    elseif ischar(raw_codes)
-        codes = {raw_codes};
-    elseif iscell(raw_codes)
-        codes = cellfun(@(x) char(string(x)), raw_codes(:), 'UniformOutput', false);
-    end
+    normalized_codes = localNormalizeCodes(result.(field_name));
+    codes = cellstr(normalized_codes);
 end
+end
+
+function codes = localNormalizeCodes(raw_codes)
+if isempty(raw_codes)
+    codes = strings(0, 1);
+    return
+end
+
+if isstring(raw_codes)
+    codes = raw_codes(:);
+    codes = codes(strlength(codes) > 0);
+    return
+end
+
+if ischar(raw_codes)
+    codes = string(cellstr(raw_codes));
+    codes = codes(:);
+    codes = codes(strlength(codes) > 0);
+    return
+end
+
+if iscell(raw_codes)
+    nested_codes = cell(numel(raw_codes), 1);
+    for idx = 1:numel(raw_codes)
+        nested_codes{idx} = localNormalizeCodes(raw_codes{idx});
+    end
+    if isempty(nested_codes)
+        codes = strings(0, 1);
+    else
+        codes = vertcat(nested_codes{:});
+    end
+    codes = codes(:);
+    codes = codes(strlength(codes) > 0);
+    return
+end
+
+try
+    codes = string(raw_codes(:));
+catch
+    codes = strings(0, 1);
+end
+
+codes = codes(:);
+codes = codes(strlength(codes) > 0);
 end
 
 function localWriteTableCSV(tbl, output_path, error_id)
