@@ -73,6 +73,7 @@ For a shareable plain-text Live Editor notebook that runs the current Phase 1 un
 Treat that notebook as the primary Phase 1 verification entrypoint for both human review and future agentic sessions.
 Open that notebook in the MATLAB Live Editor on the testing machine and use **Run All**. The run controls near the top let you skip individual smoke stages or enable the full wrapper once `baselinePath` is set.
 That notebook now also records the accumulated Stage 6 field-trial matrix, the recovered fixed-placement commissioning sweep review for `stairwell_outside_box_nooelec_4p9in`, and the next recommended geometry-only follow-up test at `599 MHz / 250 kHz / ToneAmplitude 0.50`.
+For an operator-facing testing-machine prescription that turns those follow-up recommendations into a concrete field procedure, use [TestSetupTesting/plutoBaselineCommissioningFieldPlan.md](TestSetupTesting/plutoBaselineCommissioningFieldPlan.md).
 For the step-by-step Pluto calibration sequence, see the `Pluto Calibration Sequence` section in [TestSetupTesting/README.md](TestSetupTesting/README.md).
 For a staged hardware bring-up checklist on the testing machine before running the calibration wrapper, see [TestSetupTesting/plutoCalibrationHardwareBringup.md](TestSetupTesting/plutoCalibrationHardwareBringup.md).
 The bring-up checklist now includes the same observed field-trial matrix plus short operator notes about which physical setups and tone-level changes helped and which ones did not.
