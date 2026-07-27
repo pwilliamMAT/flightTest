@@ -29,8 +29,9 @@ For an SSH-friendly checked-in Stage 6 smoke-test entrypoint, use [runPlutoToneS
 For a fixed-placement commissioning sweep that compares tone offsets and amplitudes before you choose a reusable baseline candidate, use [runPlutoToneCommissioningSweep.m](runPlutoToneCommissioningSweep.m).
 If that sweep writes the per-run folders but then errors while building the top-level summary, recover the saved artifacts with [reviewPlutoToneCommissioningSweep.m](reviewPlutoToneCommissioningSweep.m) before deciding to rerun the hardware.
 For a shareable plain-text Live Editor notebook that runs the current Phase 1 unit tests and smoke tests in order, use [PlutoPhase1ValidationLive.m](PlutoPhase1ValidationLive.m).
+Treat that notebook as the primary Phase 1 verification entrypoint for both human review and future agentic sessions.
 Open that notebook in the MATLAB Live Editor on the testing machine and use **Run All**. The run controls near the top let you skip individual smoke stages or enable the full wrapper once `baselinePath` is set.
-That notebook now also records the accumulated Stage 6 field-trial matrix through the `599 MHz / 1.5 MHz` placement and amplitude experiments so later sessions can compare against the earlier runs.
+That notebook now also records the accumulated Stage 6 field-trial matrix, the recovered fixed-placement commissioning sweep review for `stairwell_outside_box_nooelec_4p9in`, and the next recommended geometry-only follow-up test at `599 MHz / 250 kHz / ToneAmplitude 0.50`.
 For staged testing-machine bring-up before running the calibration wrapper, see [plutoCalibrationHardwareBringup.md](plutoCalibrationHardwareBringup.md).
 The bring-up checklist now includes the same observed field-trial matrix plus short operator notes about which physical setups and tone-level changes helped and which ones did not.
 
@@ -62,6 +63,7 @@ The default commissioning sweep compares:
 - `ToneAmplitude = [0.50, 0.65, 0.80, 0.90]`
 
 The current code allows amplitudes up to `1.0`, but the first recommended sweep stops at `0.9` to avoid jumping straight to the digital ceiling before the fixed placement is understood.
+The recovered July 24, 2026 sweep review still ranked every configuration as `WEAK`, so the next recommended test is not another amplitude sweep. Freeze the waveform at `599 MHz / 250 kHz / ToneAmplitude 0.50` and run a small placement and orientation matrix first.
 
 Important interpretation note:
 - The `.bb` file used for scoring is the USRP receive capture collected while the Pluto tone is on. It should therefore contain the Pluto-injected tone as received by the USRP antennas, plus any ambient RF and noise present at the time of capture.

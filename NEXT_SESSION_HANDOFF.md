@@ -1,6 +1,73 @@
 # Next Session Handoff
 
-Updated: July 10, 2026
+Updated: July 27, 2026
+
+## July 24, 2026 Pluto Phase 1 Commissioning Sweep Recovery
+
+This is the current Pluto handoff and should be treated as the top starting point before any new hardware work. The July 24 Phase 1 session recovered the commissioning-sweep summary, promoted the Live Editor notebook to the main verification artifact, and narrowed the next hardware step to a geometry-only follow-up.
+
+### What Is Complete
+
+- `TestSetupTesting/reviewPlutoToneCommissioningSweep.m` is checked in and can rebuild the ranked sweep summary from saved `runs/*/result.mat` artifacts without rerunning hardware.
+- `TestSetupTesting/PlutoPhase1ValidationLive.m` is now the primary Phase 1 verification entrypoint for both human review and future agentic sessions.
+- The notebook records:
+  - unit-test and Stage 6 smoke-test execution blocks
+  - the accumulated Stage 6 field-trial matrix
+  - the recovered fixed-placement commissioning-sweep review for `stairwell_outside_box_nooelec_4p9in`
+  - the next recommended fixed-waveform placement and orientation matrix
+- `README.md` and `TestSetupTesting/README.md` now point operators to that notebook and to the recovery helper.
+- `concepts.md` already indexes the Phase 1 validation notebook and the commissioning-sweep workflow.
+
+### What The Recovered Sweep Established
+
+- The recovered July 24, 2026 fixed-placement sweep ranked every tested configuration as `WEAK`.
+- The least-bad diagnostic point was `599 MHz / 250 kHz / ToneAmplitude 0.50`.
+- That top-ranked point still had median minimum detect margin `-5.15 dB` and median inter-channel frequency delta `2655 Hz`.
+- Both channels found the tone in every recovered configuration, so the Pluto-to-USRP path and the frozen channel mapping still look alive.
+- Raising amplitude did not rescue this placement, and higher-amplitude rows often ranked worse.
+- Levels stayed near `-10 dBFS`, so clipping does not look like the dominant problem in this sweep.
+- No reusable baseline should be commissioned from that recovered sweep.
+
+### Current Engineering Position
+
+- Phase 1 remains the authoritative standalone tone-based readiness gate.
+- Phase 2 archived-capture analysis remains separate and should not replace the Phase 1 gate.
+- Do not spend the next session on another amplitude-only commissioning sweep.
+- Treat installation geometry, nearby metal, local multipath, polarization, or receive-side conditions as the leading causes of the remaining gap.
+- Use `TestSetupTesting/PlutoPhase1ValidationLive.m` as the primary notebook for review, reruns, and later handoff narratives.
+
+### Next Recommended Hardware Step
+
+Freeze the waveform at `599 MHz / 8 MSps / LO 0 / gain 30,50 / tone 250 kHz / amp 0.50 / 1 s` and run this small placement matrix before attempting another commissioning sweep:
+
+1. Repeat the current practical permanent setup once as the same-day reference.
+2. Move the radiator and feed `10` to `20` inches away from nearby metal while keeping polarization unchanged.
+3. Keep the best location from step 2 and rotate the radiator by `90` degrees.
+4. Try the same chain at the clearest temporary exposure near or just outside the stairwell opening.
+
+Decision rule:
+
+- If one geometry change materially improves both the minimum detect margin and the inter-channel delta, rerun that winning geometry and only then consider a new commissioning sweep.
+- If none of the geometry changes materially help, shift the next investigation toward the receive-side antenna chain or the local RF environment rather than more Pluto waveform sweeps.
+
+### Constraints That Must Carry Forward
+
+- Keep the Pluto on the short USB cable.
+- Do not use the long micro-USB extension; it previously made Pluto undiscoverable.
+- Move only the antenna and feed when possible, not the Pluto body.
+- Keep the frozen Phase 1 mapping `RF0:RX2 -> CH1 / RX1 -> SURV` and `RF1:RX2 -> CH2 / RX2 -> REF`.
+- The raw recovered sweep folder `/home/pat/Documents/flightTest-pluto/TestSetupTesting/TestSetupTesting/plutoCommissioningSweeps/pluto_tone_commissioning_20260724T205841` is referenced by the notebook but is not present in this Windows repo checkout.
+
+### Files That Define The Current Pluto State
+
+- `TestSetupTesting/PlutoPhase1ValidationLive.m`
+- `TestSetupTesting/README.md`
+- `README.md`
+- `TestSetupTesting/reviewPlutoToneCommissioningSweep.m`
+- `TestSetupTesting/runPlutoToneCommissioningSweep.m`
+- `concepts.md`
+
+The older sections below are preserved for background, but they are not the current Pluto top-priority handoff.
 
 ## July 10, 2026 ATSC Pilot Audit Status Correction
 
