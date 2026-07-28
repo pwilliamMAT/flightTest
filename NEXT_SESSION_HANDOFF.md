@@ -82,6 +82,25 @@ The original console showed `FAIL` because search-peak channel agreement had a `
 
 Interpretation: `outer11` gives the strongest integrated expected-bin evidence so far, but the broader comb also produces the worst nearby-peak ambiguity. Keep it as evidence that tone integration works; do not promote it over `outer5` until we add a better joint consistency metric than strongest-nearby-peak frequency agreement.
 
+### CPI Integration Result
+
+The next useful processing step is now checked in as `TestSetupTesting/reviewPlutoMultitoneCpiIntegration.m`. It treats each 10 ms CPI as one artificial pulse, extracts the complex FFT coefficient at each planned tone bin, and then evaluates:
+
+- noncoherent tone-bin power integration across CPIs
+- slow-time FFT peak integration, which allows residual phase rotation across CPIs
+- comb-locked REF/SURV cross-channel coherence at the planned tone bins
+
+Plain-language result: the static per-CPI tone-bin SNR is weak, but the tones are stable enough over slow time to gain useful integration. Across saved runs:
+
+| Run | Tones | REF noncoh margin | SURV noncoh margin | REF slow-time peak | SURV slow-time peak | Median REF/SURV coherence |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `outer5 original` | 5 | `+1.5 dB` | `+1.7 dB` | `+9.4 dB` | `+9.8 dB` | `0.815` |
+| `outer5 repeat1` | 5 | `+1.3 dB` | `+1.5 dB` | `+8.4 dB` | `+8.7 dB` | `0.871` |
+| `outer5 repeat2` | 5 | `+1.4 dB` | `+1.2 dB` | `+8.4 dB` | `+8.5 dB` | `0.763` |
+| `outer11` | 11 | `+1.4 dB` | `+1.5 dB` | `+9.3 dB` | `+8.6 dB` | `0.695` |
+
+Interpretation: stop spending field time changing comb definitions for now. The next algorithmic milestone is a comb-locked slow-time detector that integrates the expected tone-bin coefficients across CPIs and searches slow-time frequency, rather than scoring one whole-capture spectrum or using strongest-nearby-peak agreement.
+
 Next FTC pull should pick up the scorer update before any additional multitone run:
 
 ```bash
