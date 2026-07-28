@@ -221,6 +221,30 @@ If revived later, they must be treated as a separate sub-phase, for example **Ph
 - define their own repeatable verification criteria
 - avoid presenting a custom Pluto waveform as proof that the passive HDTV reference chain is operationally valid
 
+## Phase 2B Waveform Selection Prototype
+
+The first Phase 2B artifact is [designPlutoPhase2BWaveformPrototype.m](designPlutoPhase2BWaveformPrototype.m). It is an offline design sandbox, not a hardware transmitter.
+
+Plain-language purpose:
+
+- A **CW tone** is still the right Phase 1 readiness signal because it is simple, narrow, deterministic, and easy to detect in both channels.
+- A **multitone comb** keeps the same spectral-bin idea but emits several known tones in one CPI, so the receiver can integrate evidence across tones instead of trusting one line.
+- An **LFM chirp** spends bandwidth deliberately and then uses matched filtering to compress the received energy into a timing peak, which is useful if the next question is delay, impulse response, or processing gain rather than simple path presence.
+
+The prototype uses toolbox-first primitives:
+
+- `dsp.SineWave` for the CW and multitone components
+- `phased.LinearFMWaveform` for the chirp
+- `phased.MatchedFilter` for matched-filter response and pulse-compression comparison
+- `pwelch`, `spectrogram`, `hann`, and `goertzel` for spectrum and tone-integration diagnostics
+
+The current engineering recommendation is:
+
+1. Keep the Phase 1 CW tone readiness gate unchanged.
+2. Use the multitone comb as the lowest-risk Phase 2B extension if the immediate goal is stronger pilot evidence while staying close to the existing tone workflow.
+3. Use the LFM chirp when the goal is timing, channel impulse response, or matched-filter processing gain.
+4. Do all Phase 2B evaluation offline first, then decide whether a live Pluto transmit experiment is justified.
+
 ## Coding & Documentation Standards
 
 - Prefer built-in MATLAB functions and current repo reuse points over parallel custom stacks.
