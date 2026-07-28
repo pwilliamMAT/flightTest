@@ -24,6 +24,27 @@ result = runPlutoMultitoneStage6Smoke('Verbose', true);
 
 Treat the output as an experiment, not as the commissioned Phase 1 readiness gate. The key values are REF/SURV tone counts, median and integrated detect margins, and the median channel-to-channel frequency delta across tones.
 
+The first FTC multitone run found all 8 tones on both channels, but several near-center tones were weak or frequency-inconsistent. The synced-capture review gave:
+
+- status `WARN`
+- REF `8/8`, median margin `-0.9 dB`, integrated margin `+7.8 dB`
+- SURV `8/8`, median margin `-2.9 dB`, integrated margin `+7.5 dB`
+- joint median channel delta `701.9 Hz`
+- problematic tones near `-50`, `+50`, and `+150 kHz`
+
+Next recommended live multitone run:
+
+```matlab
+cd('TestSetupTesting');
+result = runPlutoMultitoneStage6Smoke( ...
+    'SessionID', "pluto_multitone_outer5", ...
+    'CaptureFileBase', "pluto_multitone_outer5", ...
+    'ToneOffsets_Hz', [-350 -250 -150 250 350] * 1e3, ...
+    'Verbose', true);
+```
+
+That five-tone subset preserved the best channel-frequency agreement in the synced-capture replay while still retaining about `7 dB` ideal tone-integration gain.
+
 ## July 24, 2026 Pluto Phase 1 Commissioning Sweep Recovery
 
 This is the current Pluto handoff and should be treated as the top starting point before any new hardware work. The July 24 Phase 1 session recovered the commissioning-sweep summary, promoted the Live Editor notebook to the main verification artifact, and narrowed the next hardware step to a geometry-only follow-up.
