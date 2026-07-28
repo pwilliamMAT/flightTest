@@ -112,6 +112,27 @@ That first detector prototype is now `TestSetupTesting/runPlutoMultitoneSlowTime
 
 Interpretation: a common slow-time bin across all tones is not yet stable enough to be the final detector. The per-tone slow-time FFT peaks show integration gain, but the comb does not add coherently at one common slow-time frequency. The next processing step should estimate and compensate per-tone residual slow-time frequency, likely from Pluto/N320 sample-clock or frequency-offset mismatch, before summing tones.
 
+The detector now includes that first compensation step: it finds the joint REF/SURV slow-time peak independently for each tone, then combines those tonewise peaks. This is not a final passive-radar detector, but it is the correct diagnostic for the current multitone injection problem.
+
+`outer9` was run with tone offsets `[-550 -450 -350 -250 -150 150 250 350 450] kHz`. It produced strong expected-bin evidence:
+
+- REF `9/9`, integrated margin `+9.5 dB`
+- SURV `9/9`, integrated margin `+9.7 dB`
+- search-peak median channel delta `2868.7 Hz`
+- status `WARN`
+
+Detector comparison after replay:
+
+| Run | Tones | Common-bin contrast | Tonewise compensated contrast | Tonewise peak-frequency std |
+| --- | ---: | ---: | ---: | ---: |
+| `outer5 original` | 5 | `+5.5 dB` | `+10.0 dB` | `16.5 Hz` |
+| `outer5 repeat1` | 5 | `+4.6 dB` | `+8.3 dB` | `36.4 Hz` |
+| `outer5 repeat2` | 5 | `+3.7 dB` | `+8.2 dB` | `24.2 Hz` |
+| `outer9` | 9 | `+2.7 dB` | `+7.4 dB` | `24.1 Hz` |
+| `outer11` | 11 | `+2.4 dB` | `+7.8 dB` | `25.7 Hz` |
+
+Interpretation: per-tone residual compensation is required. Adding more tones improves whole-capture expected-bin evidence, but it does not improve the current detector unless the per-tone residuals are handled. `outer5` remains the cleanest detector candidate; `outer9` is a useful middle point because it has strong tone evidence and less peak-search ambiguity than `outer11`.
+
 Next FTC pull should pick up the scorer update before any additional multitone run:
 
 ```bash
