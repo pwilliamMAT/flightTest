@@ -594,9 +594,6 @@ if ~isfield(truth_diag_input, 'rdm_parts') || isempty(truth_diag_input.rdm_parts
     return
 end
 
-fg_color = [0.90, 0.90, 0.90];
-bg_color = [0.08, 0.08, 0.08];
-
 for ip = 1 : numel(truth_diag_input.rdm_parts)
     part_info = truth_diag_input.rdm_parts(ip);
     if isempty(part_info.rdm_image) || isempty(part_info.range_axis) || isempty(part_info.doppler_axis)
@@ -604,21 +601,20 @@ for ip = 1 : numel(truth_diag_input.rdm_parts)
     end
 
     fig = figure('Name', sprintf('Truth Overlay RDM - Part %d', ip), ...
-        'NumberTitle', 'off', 'Color', bg_color, 'Position', [120 + 40 * ip, 80 + 30 * ip, 920, 620]);
-    ax = axes(fig, 'Color', bg_color, 'XColor', fg_color, 'YColor', fg_color, 'FontSize', 9);
+        'NumberTitle', 'off', 'Position', [120 + 40 * ip, 80 + 30 * ip, 920, 620]);
+    ax = axes(fig, 'FontSize', 9);
     imagesc(ax, part_info.doppler_axis, part_info.range_axis, part_info.rdm_image);
     set(ax, 'YDir', 'normal');
     colormap(ax, 'parula');
     if isfield(part_info, 'display_clim') && ~isempty(part_info.display_clim)
         clim(ax, part_info.display_clim);
     end
-    xlabel(ax, 'Doppler (Hz)', 'Color', fg_color);
-    ylabel(ax, 'Bistatic range excess (m)', 'Color', fg_color);
+    xlabel(ax, 'Doppler (Hz)');
+    ylabel(ax, 'Bistatic range excess (m)');
     if isfield(truth_diag_input, 'max_display_range_m') && isfinite(truth_diag_input.max_display_range_m)
         ylim(ax, [0, truth_diag_input.max_display_range_m]);
     end
     cb = colorbar(ax, 'eastoutside');
-    cb.Color = fg_color;
     cb.Label.String = 'dB above local noise floor (whitened)';
     hold(ax, 'on');
 
@@ -645,13 +641,11 @@ for ip = 1 : numel(truth_diag_input.rdm_parts)
     end
 
     if ~isempty(legend_handles)
-        leg = legend(ax, legend_handles, 'Location', 'northeast', 'FontSize', 8);
-        leg.Color = [0.16, 0.16, 0.16];
-        leg.TextColor = fg_color;
+        legend(ax, legend_handles, 'Location', 'northeast', 'FontSize', 8);
     end
 
     title(ax, sprintf('Whitened RDM - Part %d - %d detection(s) - ADS-B truth %d point(s)', ...
-        ip, part_info.det_count, n_truth_pts), 'Color', fg_color, 'FontSize', 10);
+        ip, part_info.det_count, n_truth_pts), 'FontSize', 10);
     hold(ax, 'off');
 
     fig_handles(end + 1, 1) = fig; %#ok<AGROW>

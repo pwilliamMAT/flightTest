@@ -9,7 +9,7 @@ try
   detTable = [7075, -42.0, 226.5, 1, 0.450, 1; 9294, -51.0, 225.8, 1, 1.150, 2; 11692, -63.0, 225.2, 1, 2.150, 3];
   
   try
-    plotBistaticEllipses3D(txLLA, rxLLA, detTable, 'Use2DFallback', false, 'NEllipsePoints', 36);
+    plotBistaticEllipses3D(txLLA, rxLLA, detTable, 'Use2DFallback', true, 'NEllipsePoints', 36);
   catch eFig
     fprintf('Figure output attempted: %s\n', eFig.message);
   end

@@ -142,8 +142,108 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
 
             testCase.verifySize(seed_waveform, [n_output_samples, 1]);
             testCase.verifyEqual(rms(double(seed_waveform)), cfg.seed_target_rms, RelTol=1e-2);
-            testCase.verifyEqual(seed_info.seed_path, seed_path);
+            testCase.verifyEqual(string(seed_info.seed_path), string(seed_path));
             testCase.verifyEqual(seed_info.seed_channel_index, cfg.seed_channel_index);
+        end
+
+        function testSeedSourceResolverAcceptsManifestFolderAndSessionID(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            source_artifact = SyntheticHDTVSessionGeneratorTest.localGenerateSeedBackedSession( ...
+                fixture.Folder, 'seed_source_fixture_session');
+            expected_seed_path = SyntheticHDTVSessionGeneratorTest.localResolveRelativePath( ...
+                source_artifact.session_folder, source_artifact.radar_files{1});
+
+            [seed_from_manifest, manifest_info] = helperSyntheticResolveSeedSourcePath( ...
+                source_artifact.manifest_path, ...
+                'CapturesRoot', fixture.Folder);
+            [seed_from_folder, folder_info] = helperSyntheticResolveSeedSourcePath( ...
+                source_artifact.session_folder, ...
+                'CapturesRoot', fixture.Folder);
+            [seed_from_session_id, session_info] = helperSyntheticResolveSeedSourcePath( ...
+                source_artifact.session_id, ...
+                'CapturesRoot', fixture.Folder);
+
+            testCase.verifyEqual(char(seed_from_manifest), expected_seed_path);
+            testCase.verifyEqual(char(seed_from_folder), expected_seed_path);
+            testCase.verifyEqual(char(seed_from_session_id), expected_seed_path);
+            testCase.verifyEqual(manifest_info.input_kind, "session_manifest");
+            testCase.verifyEqual(folder_info.input_kind, "session_manifest");
+            testCase.verifyEqual(session_info.input_kind, "session_manifest");
+        end
+
+        function testSeedSourceResolverAcceptsExtensionlessFieldCaptureFiles(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            [manifest_path, session_folder, radar_file_path] = ...
+                SyntheticHDTVSessionGeneratorTest.localCreateExtensionlessSeedSession( ...
+                    fixture.Folder, 'extensionless_seed_fixture_session');
+
+            [seed_from_manifest, manifest_info] = helperSyntheticResolveSeedSourcePath( ...
+                manifest_path, ...
+                'CapturesRoot', fixture.Folder);
+            [seed_from_folder, folder_info] = helperSyntheticResolveSeedSourcePath( ...
+                session_folder, ...
+                'CapturesRoot', fixture.Folder);
+            [seed_from_session_id, session_info] = helperSyntheticResolveSeedSourcePath( ...
+                'extensionless_seed_fixture_session', ...
+                'CapturesRoot', fixture.Folder);
+            [seed_from_file, file_info] = helperSyntheticResolveSeedSourcePath( ...
+                radar_file_path, ...
+                'CapturesRoot', fixture.Folder);
+
+            testCase.verifyEqual(char(seed_from_manifest), radar_file_path);
+            testCase.verifyEqual(char(seed_from_folder), radar_file_path);
+            testCase.verifyEqual(char(seed_from_session_id), radar_file_path);
+            testCase.verifyEqual(char(seed_from_file), radar_file_path);
+            testCase.verifyEqual(manifest_info.input_kind, "session_manifest");
+            testCase.verifyEqual(folder_info.input_kind, "session_manifest");
+            testCase.verifyEqual(session_info.input_kind, "session_manifest");
+            testCase.verifyEqual(file_info.input_kind, "baseband_file");
+        end
+
+        function testSeedWaveformLoadAcceptsManifestShortcutAndNormalizesWindowsDriveSlash(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            source_artifact = SyntheticHDTVSessionGeneratorTest.localGenerateSeedBackedSession( ...
+                fixture.Folder, 'seed_manifest_fixture_session');
+            expected_seed_path = SyntheticHDTVSessionGeneratorTest.localResolveRelativePath( ...
+                source_artifact.session_folder, source_artifact.radar_files{1});
+            manifest_path = string(source_artifact.manifest_path);
+
+            if ispc
+                manifest_path = "/" + replace(manifest_path, "\", "/");
+            end
+
+            cfg = buildSyntheticHDTVBaselineScenarioConfig( ...
+                'OutputRoot', fixture.Folder, ...
+                'SessionID', 'manifest_seed_load_session', ...
+                'SeedSourcePath', manifest_path, ...
+                'SignalMode', 'seed_backed_bistatic_v1');
+            n_output_samples = round(cfg.sample_rate_hz * cfg.part_duration_s);
+
+            [seed_waveform, seed_info] = helperSyntheticLoadSeedWaveform(cfg, n_output_samples, 0);
+
+            testCase.verifySize(seed_waveform, [n_output_samples, 1]);
+            testCase.verifyEqual(string(seed_info.seed_path), string(expected_seed_path));
+            testCase.verifyGreaterThan(rms(double(seed_waveform)), 0);
+        end
+
+        function testSeedWaveformLoadAcceptsExtensionlessFieldCaptureManifest(testCase)
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            [manifest_path, ~, radar_file_path] = ...
+                SyntheticHDTVSessionGeneratorTest.localCreateExtensionlessSeedSession( ...
+                    fixture.Folder, 'extensionless_seed_load_session');
+
+            cfg = buildSyntheticHDTVBaselineScenarioConfig( ...
+                'OutputRoot', fixture.Folder, ...
+                'SessionID', 'extensionless_manifest_seed_load_session', ...
+                'SeedSourcePath', manifest_path, ...
+                'SignalMode', 'seed_backed_bistatic_v1');
+            n_output_samples = round(cfg.sample_rate_hz * cfg.part_duration_s);
+
+            [seed_waveform, seed_info] = helperSyntheticLoadSeedWaveform(cfg, n_output_samples, 0);
+
+            testCase.verifySize(seed_waveform, [n_output_samples, 1]);
+            testCase.verifyEqual(string(seed_info.seed_path), string(radar_file_path));
+            testCase.verifyGreaterThan(rms(double(seed_waveform)), 0);
         end
 
         function testEchoSeedConditioningSuppressesProbePilotAndPreservesRMS(testCase)
@@ -398,6 +498,7 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             out = runBistaticAnalysisSession(artifact.session_id, ...
                 'DatasetRoot', fixture.Folder, ...
                 'Verbose', false, ...
+                'Use2DGeographicFallback', true, ...
                 'SaveTruthDiagnosticSnapshot', false, ...
                 'SaveDetectorReplaySnapshot', false);
 
@@ -415,6 +516,7 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             out = runBistaticAnalysisSession(artifact.session_id, ...
                 'DatasetRoot', fixture.Folder, ...
                 'Verbose', false, ...
+                'Use2DGeographicFallback', true, ...
                 'SaveTruthDiagnosticSnapshot', false, ...
                 'SaveDetectorReplaySnapshot', false);
 
@@ -514,6 +616,61 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             testCase.verifyTrue(any(contains(range_labels, "Synthetic Truth:")));
         end
 
+        function testTruthGlobePreviewHelperRendersSnapshotWhenViewerAvailable(testCase)
+            testCase.assumeTrue(exist('trackingGlobeViewer', 'file') == 2);
+
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            cfg = buildSyntheticHDTVBaselineScenarioConfig('OutputRoot', fixture.Folder);
+            truth_bundle = helperSyntheticGenerateTruth(cfg);
+            globe_preview = helperSyntheticPlotTruthGlobePreview( ...
+                cfg, ...
+                truth_bundle, ...
+                'ShowLiveViewer', false, ...
+                'CloseViewerOnReturn', true, ...
+                'SnapshotFigureVisibility', 'off');
+            testCase.addTeardown(@() SyntheticHDTVSessionGeneratorTest.localCloseGraphicsHandles( ...
+                [globe_preview.snapshot_figure; globe_preview.viewer_figure]));
+
+            testCase.verifyEqual(globe_preview.status, "ready");
+            testCase.verifyTrue(isgraphics(globe_preview.snapshot_figure, 'figure'));
+            testCase.verifyTrue(isgraphics(globe_preview.snapshot_axes, 'axes'));
+            testCase.verifyClass(globe_preview.snapshot_image, 'uint8');
+            testCase.verifyEqual(size(globe_preview.snapshot_image, 3), 3);
+            testCase.verifyGreaterThan(size(globe_preview.snapshot_image, 1), 0);
+            testCase.verifyGreaterThan(size(globe_preview.snapshot_image, 2), 0);
+            testCase.verifyEqual(globe_preview.n_targets, double(numel(cfg.targets)));
+            testCase.verifyEqual(strlength(globe_preview.fallback_reason), 0);
+            testCase.verifyFalse(globe_preview.used_live_viewer);
+        end
+
+        function testTruthGlobePreviewHelperReturnsDiagnosticSnapshotOnViewerFailure(testCase)
+            testCase.assumeTrue(exist('trackingGlobeViewer', 'file') == 2);
+
+            fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
+            cfg = buildSyntheticHDTVBaselineScenarioConfig('OutputRoot', fixture.Folder);
+            truth_bundle = helperSyntheticGenerateTruth(cfg);
+            globe_preview = helperSyntheticPlotTruthGlobePreview( ...
+                cfg, ...
+                truth_bundle, ...
+                'ShowLiveViewer', false, ...
+                'CloseViewerOnReturn', true, ...
+                'SnapshotFigureVisibility', 'off', ...
+                'Basemap', '__invalid_basemap__');
+            testCase.addTeardown(@() SyntheticHDTVSessionGeneratorTest.localCloseGraphicsHandles( ...
+                [globe_preview.snapshot_figure; globe_preview.viewer_figure]));
+
+            testCase.verifyEqual(globe_preview.status, "failed");
+            testCase.verifyTrue(isgraphics(globe_preview.snapshot_figure, 'figure'));
+            testCase.verifyTrue(isgraphics(globe_preview.snapshot_axes, 'axes'));
+            testCase.verifyClass(globe_preview.snapshot_image, 'uint8');
+            testCase.verifyEqual(size(globe_preview.snapshot_image, 3), 3);
+            testCase.verifyGreaterThan(size(globe_preview.snapshot_image, 1), 0);
+            testCase.verifyGreaterThan(size(globe_preview.snapshot_image, 2), 0);
+            testCase.verifyNotEmpty(globe_preview.fallback_reason);
+            testCase.verifyTrue(contains(globe_preview.message, "failed"));
+            testCase.verifyFalse(globe_preview.used_live_viewer);
+        end
+
         function testValidationFigureOverlaysTruthOnBothRDMs(testCase)
             fixture = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
             artifact = SyntheticHDTVSessionGeneratorTest.localGenerateValidationSeedBackedSession( ...
@@ -525,13 +682,27 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
                 'PrecheckFigures', false, ...
                 'FigureVisibility', 'off', ...
                 'Verbose', false);
-            testCase.addTeardown(@() close(validation_summary.primary_part.figure_handles.validation));
+            validation_figures = validation_summary.primary_part.figure_handles.validation;
+            testCase.addTeardown(@() SyntheticHDTVSessionGeneratorTest.localCloseGraphicsHandles( ...
+                validation_figures));
 
-            axes_handles = findobj(validation_summary.primary_part.figure_handles.validation, 'Type', 'axes');
-            axis_titles = arrayfun(@(ax) string(ax.Title.String), axes_handles);
+            testCase.verifySize(validation_figures, [4, 1]);
+            testCase.verifyTrue(all(isgraphics(validation_figures, 'figure')));
 
-            before_axis = axes_handles(find(contains(axis_titles, "Before ECA-C"), 1, 'first'));
-            after_axis = axes_handles(find(contains(axis_titles, "After ECA-C"), 1, 'first'));
+            figure_names = arrayfun(@(figure_handle) string(figure_handle.Name), validation_figures);
+            testCase.verifyEqual(figure_names, [ ...
+                "Synthetic IQ Validation - Spectrum"
+                "Synthetic IQ Validation - Lag Diagnostic"
+                "Synthetic IQ Validation - RDM Before ECA-C"
+                "Synthetic IQ Validation - RDM After ECA-C"]);
+
+            before_axis = findobj(validation_figures(3), 'Type', 'axes');
+            after_axis = findobj(validation_figures(4), 'Type', 'axes');
+
+            testCase.verifyNumElements(before_axis, 1);
+            testCase.verifyNumElements(after_axis, 1);
+            testCase.verifyTrue(contains(string(before_axis.Title.String), "Before ECA-C"));
+            testCase.verifyTrue(contains(string(after_axis.Title.String), "After ECA-C"));
 
             before_display_names = arrayfun( ...
                 @(line_handle) string(line_handle.DisplayName), ...
@@ -547,15 +718,13 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
             testCase.verifyEqual(before_axis.YLim(2), 30, AbsTol=1e-9);
             testCase.verifyEqual(after_axis.YLim(2), 30, AbsTol=1e-9);
 
-            colorbars = findall(validation_summary.primary_part.figure_handles.validation, 'Type', 'ColorBar');
-            colorbar_labels = strings(1, numel(colorbars));
+            before_colorbar = findall(validation_figures(3), 'Type', 'ColorBar');
+            after_colorbar = findall(validation_figures(4), 'Type', 'ColorBar');
 
-            for idx = 1 : numel(colorbars)
-                colorbar_labels(idx) = string(colorbars(idx).Label.String);
-            end
-
-            testCase.verifyNumElements(colorbars, 2);
-            testCase.verifyTrue(all(colorbar_labels == "CAF Magnitude [dB]"));
+            testCase.verifyNumElements(before_colorbar, 1);
+            testCase.verifyNumElements(after_colorbar, 1);
+            testCase.verifyEqual(string(before_colorbar.Label.String), "CAF Magnitude [dB]");
+            testCase.verifyEqual(string(after_colorbar.Label.String), "CAF Magnitude [dB]");
         end
 
         function testWalkthroughSessionIDHelperRefreshesPriorAutoIDOnRerun(testCase)
@@ -848,6 +1017,40 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
                 'FileName', 'synthetic_probe_seed.bb');
         end
 
+        function [manifest_path, session_folder, radar_file_path] = localCreateExtensionlessSeedSession(output_root, session_id)
+            session_folder = fullfile(output_root, session_id);
+            radar_folder = fullfile(session_folder, 'radar');
+            if exist(radar_folder, 'dir') ~= 7
+                mkdir(radar_folder);
+            end
+
+            radar_file_path = fullfile(radar_folder, 'extensionless_capture_part1');
+            waveform = complex( ...
+                single([zeros(256, 1), exp(1j * 2 * pi * (0 : 255).' / 32)]));
+            metadata = struct( ...
+                'SessionID', session_id, ...
+                'SignalMode', 'field_capture_seed_fixture');
+            bbw = comm.BasebandFileWriter( ...
+                radar_file_path, ...
+                'SampleRate', 8e6, ...
+                'CenterFrequency', 599e6, ...
+                'Metadata', metadata);
+            cleanup_writer = onCleanup(@() release(bbw));
+            bbw(waveform);
+            clear cleanup_writer
+
+            manifest_path = fullfile(session_folder, 'session_manifest.json');
+            manifest = struct( ...
+                'manifest_version', 1, ...
+                'session_id', session_id, ...
+                'session_folder', session_id, ...
+                'radar_files', {{'radar/extensionless_capture_part1'}}, ...
+                'adsb_files', {{}}, ...
+                'log_files', {{}});
+            SyntheticHDTVSessionGeneratorTest.localWriteTextFile( ...
+                manifest_path, jsonencode(manifest));
+        end
+
         function keys = localTrackKeys(track_struct)
             n_tracks = numel(track_struct);
             keys = strings(n_tracks, 1);
@@ -886,6 +1089,27 @@ classdef SyntheticHDTVSessionGeneratorTest < matlab.unittest.TestCase
                 'power');
             [~, tone_idx] = min(abs(freq_hz - tone_freq_hz));
             tone_power_db = 10 * log10(psd_linear(tone_idx) + eps);
+        end
+
+        function localCloseGraphicsHandles(graphics_handles)
+            graphics_handles = graphics_handles(isgraphics(graphics_handles));
+            if isempty(graphics_handles)
+                return
+            end
+
+            close(graphics_handles);
+        end
+
+        function localWriteTextFile(file_path, file_text)
+            file_id = fopen(file_path, 'w');
+            if file_id < 0
+                error('SyntheticHDTVSessionGeneratorTest:fileOpenFailed', ...
+                    'Could not open %s for writing.', file_path);
+            end
+
+            cleanup_file = onCleanup(@() fclose(file_id));
+            fwrite(file_id, file_text, 'char');
+            clear cleanup_file
         end
     end
 end

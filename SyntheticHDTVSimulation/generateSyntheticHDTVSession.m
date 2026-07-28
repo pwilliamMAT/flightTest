@@ -90,7 +90,8 @@ end
 
 %% Build and write session manifest
 manifest = helperSyntheticBuildManifest( ...
-    scenario_config, radar_files_rel, adsb_files_rel, traceability_truth_rel, header_readback);
+    scenario_config, radar_files_rel, adsb_files_rel, traceability_truth_rel, ...
+    header_readback, truth_bundle);
 manifest_path = fullfile(session_folder, 'session_manifest.json');
 try
     fid = fopen(manifest_path, 'w');

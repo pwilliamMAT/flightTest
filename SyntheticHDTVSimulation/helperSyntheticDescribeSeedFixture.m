@@ -9,25 +9,49 @@ function seed_fixture = helperSyntheticDescribeSeedFixture(seed_source_path)
 
 validateattributes(seed_source_path, {'char', 'string'}, {'scalartext'}, mfilename, 'seed_source_path');
 
-seed_path = char(string(seed_source_path));
-if strlength(string(seed_path)) == 0
+seed_source_spec = char(string(seed_source_path));
+if strlength(string(seed_source_spec)) == 0
     seed_fixture = localDefaultSeedFixture();
     return
 end
 
+repo_root = fileparts(fileparts(mfilename('fullpath')));
+seed_context = struct();
+try
+    seed_context = helperSyntheticResolveSessionContext( ...
+        seed_source_spec, ...
+        'RepoRoot', repo_root);
+catch
+    % Keep the raw user string so provenance reporting still works even if
+    % the seed path itself is invalid or incomplete.
+end
+
+seed_path = seed_source_spec;
+seed_waveform_path = seed_source_spec;
+if isstruct(seed_context) && isfield(seed_context, 'source_spec_path') && ...
+        strlength(string(seed_context.source_spec_path)) > 0
+    seed_path = char(string(seed_context.source_spec_path));
+end
+if isstruct(seed_context) && isfield(seed_context, 'first_radar_file') && ...
+        strlength(string(seed_context.first_radar_file)) > 0
+    seed_waveform_path = char(string(seed_context.first_radar_file));
+end
+
 seed_fixture = localDefaultSeedFixture();
 seed_fixture.path = seed_path;
-seed_fixture.file_name = string(localFileNameOnly(seed_path));
-seed_fixture.id = string(localFileStem(seed_path));
-seed_fixture.exists = exist(seed_path, 'file') == 2;
+seed_fixture.waveform_path = string(seed_waveform_path);
+seed_fixture.file_name = string(localFileNameOnly(seed_waveform_path));
+seed_fixture.id = string(localFileStem(seed_waveform_path));
+seed_fixture.source_kind = string(localContextString(seed_context, 'input_kind'));
+seed_fixture.exists = exist(seed_waveform_path, 'file') == 2;
 
 if ~seed_fixture.exists
     return
 end
 
 try
-    reader = comm.BasebandFileReader(seed_path, 'SamplesPerFrame', 1);
-    cleanup_reader = onCleanup(@() release(reader)); %#ok<NASGU>
+    reader = comm.BasebandFileReader(seed_waveform_path, 'SamplesPerFrame', 1);
+    cleanup_reader = onCleanup(@() release(reader));
     metadata = reader.Metadata;
 
     seed_fixture.readable = true;
@@ -56,8 +80,18 @@ seed_fixture = struct( ...
     'session_id', "", ...
     'signal_mode', "", ...
     'data_origin', "", ...
+    'source_kind', "", ...
+    'waveform_path', "", ...
     'sample_rate_hz', NaN, ...
     'center_frequency_hz', NaN);
+end
+
+function value = localContextString(seed_context, field_name)
+value = "";
+if isstruct(seed_context) && isfield(seed_context, field_name) && ...
+        ~isempty(seed_context.(field_name))
+    value = string(seed_context.(field_name));
+end
 end
 
 function value = localMetadataString(metadata, field_name, default_value)

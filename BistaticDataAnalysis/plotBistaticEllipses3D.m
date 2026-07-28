@@ -69,7 +69,8 @@ function plotBistaticEllipses3D(txLLA, rxLLA, detectionTable, varargin)
 %   LineWidth       Ellipse contour line width (pts).  Default: 2.
 %
 %   Use2DFallback   Set true to force geoaxes 2-D map even when geoglobe
-%                   is available.  Default: false.
+%                   is available.  Default: true because some systems lose
+%                   the WebGL geoglobe context during replay.
 %
 % ── TOOLBOX REQUIREMENTS ────────────────────────────────────────────────
 %   Mapping Toolbox  (geodetic2enu, enu2geodetic, wgs84Ellipsoid,
@@ -99,7 +100,7 @@ addParameter(p, 'NEllipsePoints',  360,       @(x) isnumeric(x) && isscalar(x) &
 addParameter(p, 'Basemap',        'satellite', @ischar);
 addParameter(p, 'DopplerColormap', 'jet',      @ischar);
 addParameter(p, 'LineWidth',       2,          @(x) isnumeric(x) && isscalar(x));
-addParameter(p, 'Use2DFallback',   false,      @islogical);
+addParameter(p, 'Use2DFallback',   true,       @islogical);
 addParameter(p, 'Verbose',         false,      @islogical);
 addParameter(p, 'ADSBTracks',      [],         @(x) isstruct(x) || isempty(x));
 
@@ -251,24 +252,41 @@ parts   = unique(part_idx, 'sorted');
 N_parts = numel(parts);
 
 % ── Decide 3-D globe or 2-D map fallback ─────────────────────────────────
-use_globe = ~opts.Use2DFallback && ...
-    (exist('geoglobe', 'file') == 2 || exist('geoglobe', 'builtin') == 3);
+mode_info = helperResolveGeographicPlotMode( ...
+    'Use2DFallback', opts.Use2DFallback);
+use_globe = mode_info.use_globe;
 
 if use_globe
-    uif  = uifigure( ...
+    try
+        uif  = uifigure( ...
         'Name',     'Passive Bistatic Radar — Ellipse Trajectory (3D Globe)', ...
-        'Position', [50, 50, 1280, 720]);
-    gObj = geoglobe(uif, 'Basemap', opts.Basemap, 'Terrain', 'gmted2010');
-    hold(gObj, 'on');
-    if vb, fprintf('[%s] Rendering on geoglobe 3-D globe.\n', mfilename); end
-else
+            'Position', [50, 50, 1280, 720]);
+        gObj = geoglobe(uif, 'Basemap', opts.Basemap, 'Terrain', 'gmted2010');
+        hold(gObj, 'on');
+        if vb
+            fprintf('[%s] Rendering on geoglobe 3-D globe.\n', mfilename);
+        end
+    catch ME
+        if exist('uif', 'var') && isvalid(uif)
+            delete(uif);
+        end
+        use_globe = false;
+        mode_info.reason = "geoglobe creation failed: " + string(ME.message);
+        warning('plotBistaticEllipses3D:GeoglobeFallback', ...
+            'geoglobe creation failed (%s). Using geoaxes 2-D fallback.', ...
+            ME.message);
+    end
+end
+
+if ~use_globe
     figH = figure( ...
         'Name',     'Passive Bistatic Radar — Ellipse Trajectory (2D Map)', ...
-        'Position', [50, 50, 1280, 720]);
+        'Position', [50, 50, 1280, 720], ...
+        'NumberTitle', 'off');
     gObj = geoaxes(figH, 'Basemap', opts.Basemap);
     hold(gObj, 'on');
-    fprintf('[%s] geoglobe unavailable or disabled; rendering on geoaxes 2-D map.\n', ...
-        mfilename);
+    fprintf('[%s] %s Using geoaxes 2-D map.\n', ...
+        mfilename, char(mode_info.reason));
 end
 
 % ── Station markers ──────────────────────────────────────────────────────

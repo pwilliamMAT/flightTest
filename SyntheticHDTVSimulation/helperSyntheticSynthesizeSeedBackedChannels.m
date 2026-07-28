@@ -145,6 +145,7 @@ track_summaries = repmat(struct( ...
     'hex', '', ...
     'callsign', '', ...
     'echo_gain_db', NaN, ...
+    'echo_gain_policy', '', ...
     'valid_samples', 0, ...
     'delay_samples_range', [NaN, NaN], ...
     'doppler_hz_range', [NaN, NaN]), 1, n_tracks);
@@ -157,7 +158,11 @@ for idx = 1 : n_tracks
         sample_times_s, ...
         double(scenario_config.sample_rate_hz), ...
         double(scenario_config.direct_path_delay_samples));
-    echo_gain_db = localResolveEchoGainDB(track.hex, scenario_targets);
+    [echo_gain_db, echo_gain_policy] = localResolveEchoGainMetadata( ...
+        truth_bundle, ...
+        track.hex, ...
+        idx, ...
+        scenario_targets);
 
     if any(valid_mask)
         delayed_seed = localApplyDelay(echo_source_seed, delay_samples);
@@ -178,6 +183,7 @@ for idx = 1 : n_tracks
     track_summaries(idx).hex = char(string(track.hex));
     track_summaries(idx).callsign = char(string(track.callsign));
     track_summaries(idx).echo_gain_db = echo_gain_db;
+    track_summaries(idx).echo_gain_policy = echo_gain_policy;
 end
 
 model_summary = struct( ...
@@ -221,7 +227,29 @@ phase_rotation(~valid_mask) = 0;
 phase_rotation = complex(single(real(phase_rotation)), single(imag(phase_rotation)));
 end
 
-function echo_gain_db = localResolveEchoGainDB(track_hex, scenario_targets)
+function [echo_gain_db, echo_gain_policy] = localResolveEchoGainMetadata( ...
+    truth_bundle, track_hex, track_index, scenario_targets)
+echo_gain_db = NaN;
+echo_gain_policy = 'truth_bundle_track_metadata_v1';
+
+if isfield(truth_bundle, 'track_metadata') && ...
+        numel(truth_bundle.track_metadata) >= track_index
+    track_metadata = truth_bundle.track_metadata(track_index);
+    if isfield(track_metadata, 'echo_gain_db') && ...
+            ~isempty(track_metadata.echo_gain_db)
+        echo_gain_db = double(track_metadata.echo_gain_db);
+    end
+    if isfield(track_metadata, 'echo_gain_policy') && ...
+            strlength(string(track_metadata.echo_gain_policy)) > 0
+        echo_gain_policy = char(string(track_metadata.echo_gain_policy));
+    end
+end
+
+if isfinite(echo_gain_db)
+    return
+end
+
+echo_gain_policy = 'scenario_target_gain_v1';
 echo_gain_db = -25;
 for idx = 1 : numel(scenario_targets)
     if strcmpi(char(string(scenario_targets(idx).icao_hex)), char(string(track_hex)))
@@ -229,6 +257,8 @@ for idx = 1 : numel(scenario_targets)
         return
     end
 end
+
+echo_gain_policy = 'default_gain_v1';
 end
 
 function [echo_conditioning_config, seed_echo_source_mode] = localResolveSeedEchoConditioning( ...

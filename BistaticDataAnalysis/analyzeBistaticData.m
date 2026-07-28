@@ -121,6 +121,10 @@ config.cfar_options.notch_guard_dopp_bins = max(1, round(3 * config.N_slow_cpi /
 % Symptom: reference SNR ≈ 0 dB + ECA-C suppression depth ≈ 0 dB.
 config.swap_channels = false;   % ← set true if reference antenna is on RX1
 config.verbose       = verbose; % propagate to all called functions
+% Geographic display mode. Keep the replay path on geoaxes by default
+% because WebGL-backed geoglobe windows are fragile on some systems and do
+% not respect hidden-figure workflows reliably.
+config.use_2d_geographic_fallback = true;
 % ── Site coordinates (Newton MA deployment, 21 May 2026) ────────────────
 %   Tx: CBS Tower, Newton MA  (599 MHz ATSC)
 %   Rx: Parking-garage rooftop, 4 Apple Hill Dr, Newton MA
@@ -172,6 +176,11 @@ if exist('analysisSetup', 'var')
         config.capture_lo_offset_hz = config.session_manifest_lo_offset_hz;
         config.capture_tune_frequency_hz = config.fc + config.capture_lo_offset_hz;
     end
+    if isfield(analysisSetup, 'use_2d_geographic_fallback') && ...
+            ~isempty(analysisSetup.use_2d_geographic_fallback)
+        config.use_2d_geographic_fallback = ...
+            logical(analysisSetup.use_2d_geographic_fallback);
+    end
 
     fprintf('1. Configuring session-based analysis...\n');
     fprintf('  Session ID ........ %s\n', session_id);
@@ -180,6 +189,11 @@ if exist('analysisSetup', 'var')
     fprintf('  ADS-B truth files . %d\n', numel(config.adsb_files));
     fprintf('  Gap fallback ...... %.3f s\n', config.inter_part_gap_s);
     fprintf('  Part timing ....... %s\n', config.part_timing_source);
+    if config.use_2d_geographic_fallback
+        fprintf('  Geographic plots .. geoaxes 2-D fallback\n');
+    else
+        fprintf('  Geographic plots .. geoglobe 3-D requested\n');
+    end
 end
 
 %% 2. Multi-Part Processing
@@ -694,6 +708,7 @@ else
         'TargetAlt_m',    3000, ...   % assumed ~10 000 ft MSL
         'NEllipsePoints',  180, ...   % 180 pts: smooth at globe zoom; keeps call count low
         'Basemap',        'satellite', ...
+        'Use2DFallback',  config.use_2d_geographic_fallback, ...
         'Verbose',         config.verbose);
 end
 
@@ -723,9 +738,11 @@ else
 [tracks_log, ~] = trackTargets(all_track_dets, config);
 
 % ── 7.2  Pre-create globe figure ─────────────────────────────────────────
-use_globe_trk = exist('geoglobe', 'file') == 2 || ...
-                exist('geoglobe', 'builtin') == 3;
+tracker_geo_mode = helperResolveGeographicPlotMode( ...
+    'Use2DFallback', config.use_2d_geographic_fallback);
+use_globe_trk = tracker_geo_mode.use_globe;
 if use_globe_trk
+    try
     uif_globe = uifigure( ...
         'Name',     'Tracker — Geographic Ellipses (All Tracks)', ...
         'Position', [970, 100, 900, 580]);
@@ -735,7 +752,19 @@ if use_globe_trk
         'ro', 'MarkerSize', 16, 'LineWidth', 2);
     geoplot3(g_ax, config.rxLLA(1), config.rxLLA(2), config.rxLLA(3)+200, ...
         'bo', 'MarkerSize', 12, 'LineWidth', 2);
-else
+    catch ME
+        if exist('uif_globe', 'var') && isvalid(uif_globe)
+            delete(uif_globe);
+        end
+        use_globe_trk = false;
+        tracker_geo_mode.reason = "geoglobe creation failed: " + string(ME.message);
+        warning('analyzeBistaticData:GeoglobeFallback', ...
+            'Tracker geoglobe creation failed (%s). Using geoaxes 2-D fallback.', ...
+            ME.message);
+    end
+end
+
+if ~use_globe_trk
     fig_globe = figure( ...
         'Name',     'Tracker — Geographic Ellipses (2D Map)', ...
         'Position', [970, 100, 900, 580], 'NumberTitle', 'off');
@@ -1067,12 +1096,32 @@ else
         'Verbose', config.verbose);
 
     fprintf('\n[§8.2] Running standalone detection-vs-truth diagnostics…\n');
+    plot_detection_time_series = true;
+    if exist('session_opts', 'var') && isstruct(session_opts) && ...
+            isfield(session_opts, 'plot_detection_truth_figure')
+        plot_detection_time_series = logical(session_opts.plot_detection_truth_figure);
+    elseif exist('analysisSetup', 'var') && isstruct(analysisSetup) && ...
+            isfield(analysisSetup, 'session_wrapper_options') && ...
+            isstruct(analysisSetup.session_wrapper_options) && ...
+            isfield(analysisSetup.session_wrapper_options, 'plot_detection_truth_figure')
+        plot_detection_time_series = logical(analysisSetup.session_wrapper_options.plot_detection_truth_figure);
+    end
+    plot_track_comparison = true;
+    if exist('session_opts', 'var') && isstruct(session_opts) && ...
+            isfield(session_opts, 'plot_track_comparison')
+        plot_track_comparison = logical(session_opts.plot_track_comparison);
+    elseif exist('analysisSetup', 'var') && isstruct(analysisSetup) && ...
+            isfield(analysisSetup, 'session_wrapper_options') && ...
+            isstruct(analysisSetup.session_wrapper_options) && ...
+            isfield(analysisSetup.session_wrapper_options, 'plot_track_comparison')
+        plot_track_comparison = logical(analysisSetup.session_wrapper_options.plot_track_comparison);
+    end
     truth_diag_output = runDetectionTruthDiagnostics( ...
         truth_diag_input, ...
         'FigureTitle', analysis_label, ...
-        'PlotDetectionTimeSeries', true, ...
+        'PlotDetectionTimeSeries', plot_detection_time_series, ...
         'PlotRDMOverlays', false, ...
-        'PlotTrackComparison', true, ...
+        'PlotTrackComparison', plot_track_comparison, ...
         'TrackColors', TRK_ID_COLORS, ...
         'GateRangeCells', 3, ...
         'GateDopplerBins', 3, ...

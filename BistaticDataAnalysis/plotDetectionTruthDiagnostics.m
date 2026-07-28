@@ -71,24 +71,21 @@ for k = 1 : numel(keep_idx)
     truth_map(char(string(adsb_aligned(keep_idx(k)).hex))) = truth_colors(k, :);
 end
 
-bg_color = [0.10, 0.10, 0.10];
-fg_color = [0.88, 0.88, 0.88];
-grid_color = [0.28, 0.28, 0.28];
 unmatched_color = [0.72, 0.72, 0.72];
 other_match_color = [0.55, 0.55, 0.55];
 
-fig = figure('Color', bg_color, 'Position', [80, 80, 1400, 860]);
+fig = figure('Position', [80, 80, 1400, 860]);
 tlo = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
 ax_range = nexttile(tlo, 1);
 ax_dopp = nexttile(tlo, 2);
 
-localStyleAxes(ax_range, bg_color, fg_color, grid_color);
-localStyleAxes(ax_dopp, bg_color, fg_color, grid_color);
+localStyleAxes(ax_range);
+localStyleAxes(ax_dopp);
 
-xlabel(ax_range, 't_{abs} [s]', 'Color', fg_color);
-ylabel(ax_range, 'R_{excess} [km]', 'Color', fg_color);
-xlabel(ax_dopp, 't_{abs} [s]', 'Color', fg_color);
-ylabel(ax_dopp, 'f_D [Hz]', 'Color', fg_color);
+xlabel(ax_range, 't_{abs} [s]');
+ylabel(ax_range, 'R_{excess} [km]');
+xlabel(ax_dopp, 't_{abs} [s]');
+ylabel(ax_dopp, 'f_D [Hz]');
 
 hold(ax_range, 'on');
 hold(ax_dopp, 'on');
@@ -167,9 +164,7 @@ if ~isempty(det_table)
 end
 
 if ~isempty(legend_handles)
-    leg = legend(ax_range, legend_handles, legend_labels, 'Location', 'eastoutside', 'FontSize', 8);
-    leg.Color = [0.14, 0.14, 0.14];
-    leg.TextColor = fg_color;
+    legend(ax_range, legend_handles, legend_labels, 'Location', 'eastoutside', 'FontSize', 8);
 end
 
 det_count = height(det_table);
@@ -182,8 +177,8 @@ if ~isempty(metrics)
     if isfield(metrics, 'n_miss'), n_miss = metrics.n_miss; end
 end
 
-title(ax_range, 'Bistatic Range Excess vs Time', 'Color', fg_color, 'FontSize', 11);
-title(ax_dopp, 'Bistatic Doppler vs Time', 'Color', fg_color, 'FontSize', 11);
+title(ax_range, 'Bistatic Range Excess vs Time', 'FontSize', 11);
+title(ax_dopp, 'Bistatic Doppler vs Time', 'FontSize', 11);
 
 main_title = 'Detection-vs-Truth Diagnostics';
 if strlength(string(opts.FigureTitle)) > 0
@@ -191,11 +186,10 @@ if strlength(string(opts.FigureTitle)) > 0
 end
 subtitle_text = sprintf('Detections: %d   TP: %d   FA: %d   Missed truth CPIs: %d', ...
     det_count, n_tp, n_fa, n_miss);
-sgtitle(tlo, {main_title, subtitle_text}, 'Color', fg_color, 'FontSize', 12);
+sgtitle(tlo, {main_title, subtitle_text}, 'FontSize', 12);
 
 if strlength(string(opts.SavePDF)) > 0
-    exportgraphics(fig, char(string(opts.SavePDF)), ...
-        'ContentType', 'vector', 'BackgroundColor', bg_color);
+    exportgraphics(fig, char(string(opts.SavePDF)), 'ContentType', 'vector');
     fprintf('[plotDetectionTruthDiagnostics] Saved: %s\n', char(string(opts.SavePDF)));
 end
 
@@ -271,9 +265,7 @@ else
 end
 end
 
-function localStyleAxes(ax, bg_color, fg_color, grid_color)
-set(ax, 'Color', bg_color, 'XColor', fg_color, 'YColor', fg_color, ...
-    'GridColor', grid_color, 'GridAlpha', 0.55);
+function localStyleAxes(ax)
 grid(ax, 'on');
 box(ax, 'on');
 end

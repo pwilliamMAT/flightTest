@@ -45,6 +45,7 @@ track_summaries = repmat(struct( ...
     'hex', '', ...
     'callsign', '', ...
     'echo_gain_db', NaN, ...
+    'echo_gain_policy', '', ...
     'valid_samples', 0, ...
     'delay_samples_range', [NaN, NaN], ...
     'doppler_hz_range', [NaN, NaN], ...
@@ -58,7 +59,11 @@ for idx = 1 : n_tracks
         double(scenario_config.radar_epoch_utc), ...
         sample_times_s, ...
         fc);
-    echo_gain_db = localResolveEchoGainDB(track.hex, scenario_targets);
+    [echo_gain_db, echo_gain_policy] = localResolveEchoGainMetadata( ...
+        truth_bundle, ...
+        track.hex, ...
+        idx, ...
+        scenario_targets);
 
     track_echo = localPropagateTrackEcho( ...
         propagator, ...
@@ -92,6 +97,7 @@ for idx = 1 : n_tracks
     track_summaries(idx).hex = char(string(track.hex));
     track_summaries(idx).callsign = char(string(track.callsign));
     track_summaries(idx).echo_gain_db = echo_gain_db;
+    track_summaries(idx).echo_gain_policy = echo_gain_policy;
 
     reset(propagator);
 end
@@ -215,7 +221,29 @@ function signal_out = localApplyGain(signal_in, gain_db)
 signal_out = signal_in .* single(10 .^ (gain_db / 20));
 end
 
-function echo_gain_db = localResolveEchoGainDB(track_hex, scenario_targets)
+function [echo_gain_db, echo_gain_policy] = localResolveEchoGainMetadata( ...
+    truth_bundle, track_hex, track_index, scenario_targets)
+echo_gain_db = NaN;
+echo_gain_policy = 'truth_bundle_track_metadata_v1';
+
+if isfield(truth_bundle, 'track_metadata') && ...
+        numel(truth_bundle.track_metadata) >= track_index
+    track_metadata = truth_bundle.track_metadata(track_index);
+    if isfield(track_metadata, 'echo_gain_db') && ...
+            ~isempty(track_metadata.echo_gain_db)
+        echo_gain_db = double(track_metadata.echo_gain_db);
+    end
+    if isfield(track_metadata, 'echo_gain_policy') && ...
+            strlength(string(track_metadata.echo_gain_policy)) > 0
+        echo_gain_policy = char(string(track_metadata.echo_gain_policy));
+    end
+end
+
+if isfinite(echo_gain_db)
+    return
+end
+
+echo_gain_policy = 'scenario_target_gain_v1';
 echo_gain_db = -25;
 for idx = 1 : numel(scenario_targets)
     if strcmpi(char(string(scenario_targets(idx).icao_hex)), char(string(track_hex)))
@@ -223,4 +251,6 @@ for idx = 1 : numel(scenario_targets)
         return
     end
 end
+
+echo_gain_policy = 'default_gain_v1';
 end
