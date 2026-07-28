@@ -139,6 +139,30 @@ Next FTC pull should pick up the scorer update before any additional multitone r
 git pull --ff-only origin feature/pluto-tone-precheck-standalone
 ```
 
+### Repeatability Batch
+
+Use `TestSetupTesting/runPlutoMultitoneRepeatabilityBatch.m` to run repeated captures plus analysis on the FTC without copying the large `.bb` files back. The default comb is 11 tones spaced 100 kHz from `-500 kHz` to `+500 kHz`.
+
+FTC command for the requested 20-run repeatability batch:
+
+```bash
+matlab -batch "cd('TestSetupTesting'); batch = runPlutoMultitoneRepeatabilityBatch('RepeatCount',20,'BatchID','pluto_outer11_100khz_repeat20','SessionPrefix','pluto_outer11_100khz','ToneOffsets_Hz',(-500:100:500)*1e3,'PlotFigures',true,'Verbose',true);"
+```
+
+Copy back the analysis folder, not the `.bb` capture files:
+
+```text
+captures/plutoMultitoneSmoke/pluto_outer11_100khz_repeat20_analysis/
+```
+
+The most important file is:
+
+```text
+batch_summary.csv
+```
+
+Each run also has `expected_bin_review/`, `cpi_integration_review/`, and `slow_time_detector/` subfolders with `summary.txt`, `result.mat`, and PNG plots.
+
 ## July 24, 2026 Pluto Phase 1 Commissioning Sweep Recovery
 
 This is the current Pluto handoff and should be treated as the top starting point before any new hardware work. The July 24 Phase 1 session recovered the commissioning-sweep summary, promoted the Live Editor notebook to the main verification artifact, and narrowed the next hardware step to a geometry-only follow-up.
