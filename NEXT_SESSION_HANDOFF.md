@@ -15,6 +15,15 @@ Keep these local/source distinctions clear:
 
 When pushing this branch back to GitHub, use the user's personal GitHub credentials rather than the MathWorks identity.
 
+The first Phase 2B multitone smoke runner is now `TestSetupTesting/runPlutoMultitoneStage6Smoke.m`. It keeps the existing Pluto TX, N320 capture, and `.bb` readback helpers, but transmits the default 8-tone comb at `599 MHz / 8 MSps` and scores all tones on both channels. FTC command:
+
+```matlab
+cd('TestSetupTesting');
+result = runPlutoMultitoneStage6Smoke('Verbose', true);
+```
+
+Treat the output as an experiment, not as the commissioned Phase 1 readiness gate. The key values are REF/SURV tone counts, median and integrated detect margins, and the median channel-to-channel frequency delta across tones.
+
 ## July 24, 2026 Pluto Phase 1 Commissioning Sweep Recovery
 
 This is the current Pluto handoff and should be treated as the top starting point before any new hardware work. The July 24 Phase 1 session recovered the commissioning-sweep summary, promoted the Live Editor notebook to the main verification artifact, and narrowed the next hardware step to a geometry-only follow-up.

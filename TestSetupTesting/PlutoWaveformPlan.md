@@ -245,6 +245,33 @@ The current engineering recommendation is:
 3. Use the LFM chirp when the goal is timing, channel impulse response, or matched-filter processing gain.
 4. Do all Phase 2B evaluation offline first, then decide whether a live Pluto transmit experiment is justified.
 
+### Live Multitone Smoke Experiment
+
+The first live-capable Phase 2B experiment is [runPlutoMultitoneStage6Smoke.m](runPlutoMultitoneStage6Smoke.m). It is intentionally shaped like the existing Stage 6 CW runner:
+
+1. Build one deterministic multitone baseband buffer with [helperPlutoMultitoneBuildWaveform.m](helperPlutoMultitoneBuildWaveform.m).
+2. Start Pluto TX with the existing `helperPlutoToneStartTx` path.
+3. Capture the N320 channels with the existing `helperPlutoToneCaptureN320` path.
+4. Read the `.bb` file through the existing `helperPlutoToneReadCapture` path and preserve the frozen channel mapping.
+5. Score every expected tone in REF and SURV with [helperPlutoMultitoneScoreCapture.m](helperPlutoMultitoneScoreCapture.m), which reuses `helperPlutoToneScoreChannel` per tone and then aggregates the comb evidence.
+
+Default FTC command:
+
+```matlab
+result = runPlutoMultitoneStage6Smoke('Verbose', true);
+```
+
+Default waveform:
+
+- `CenterFrequency_Hz = 599e6`
+- `SampleRate_Hz = 8e6`
+- `LOOffset_Hz = 0`
+- `ToneOffsets_Hz = [-350 -250 -150 -50 50 150 250 350] * 1e3`
+- `TargetRMSAmplitude = 0.20`
+- `PeakLimit = 0.80`
+
+This is still not a commissioned baseline workflow. Treat it as a one-run evidence-gathering experiment that answers whether multiple pilot lines are more robust than the current single CW tone in the same physical setup.
+
 ## Coding & Documentation Standards
 
 - Prefer built-in MATLAB functions and current repo reuse points over parallel custom stacks.
