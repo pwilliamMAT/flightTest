@@ -24,6 +24,8 @@ result = runPlutoMultitoneStage6Smoke('Verbose', true);
 
 Treat the output as an experiment, not as the commissioned Phase 1 readiness gate. The key values are REF/SURV tone counts, median and integrated detect margins, and the median channel-to-channel frequency delta across tones.
 
+The multitone scorer now defaults to `ScoringMode = "expected-bin"`. Plain-language reason: for a known comb, the planned tone offsets are the measurement locations. A single-tone peak search asks "what is the strongest nearby line?", which can be pulled away by a spur or another local spectral feature. Expected-bin scoring asks "how much evidence is present exactly where we emitted tones?", then integrates that evidence across the comb. The old search-peak path remains available with `'ScoringMode','search-peak'` and is still used as a joint channel-frequency diagnostic. In expected-bin mode, a search-peak channel mismatch is a warning; in search-peak mode, it remains a hard fail.
+
 The first FTC multitone run found all 8 tones on both channels, but several near-center tones were weak or frequency-inconsistent. The synced-capture review gave:
 
 - status `WARN`
@@ -44,6 +46,47 @@ result = runPlutoMultitoneStage6Smoke( ...
 ```
 
 That five-tone subset preserved the best channel-frequency agreement in the synced-capture replay while still retaining about `7 dB` ideal tone-integration gain.
+
+The FTC ran that outer5 command before the expected-bin scorer update was pushed. The original console showed `FAIL` because the legacy CW-style search-peak margins were weak in REF:
+
+- REF `5/5`, median margin `-3.3 dB`, integrated margin `+3.6 dB`
+- SURV `5/5`, median margin `-1.4 dB`, integrated margin `+6.6 dB`
+- joint median channel delta `61.0 Hz`
+- fail code `REFERENCE_MULTITONE_WEAK`
+
+After replaying the synced outer5 capture with expected-bin scoring, the same capture is a `WARN`, not a `FAIL`:
+
+- REF `5/5`, median margin `+0.1 dB`, integrated margin `+7.0 dB`
+- SURV `5/5`, median margin `+0.4 dB`, integrated margin `+7.3 dB`
+- joint median channel delta `61.0 Hz` from the retained search-peak diagnostic
+- warn codes `REFERENCE_MULTITONE_LOW_MARGIN`, `SURVEILLANCE_MULTITONE_LOW_MARGIN`
+
+The FTC also ran an 11-tone comb before this scorer update:
+
+```matlab
+cd('TestSetupTesting');
+result = runPlutoMultitoneStage6Smoke( ...
+    'SessionID', "pluto_multitone_outer11", ...
+    'CaptureFileBase', "pluto_multitone_outer11", ...
+    'ToneOffsets_Hz', [-550 -450 -350 -250 -150 -50 50 250 350 450 550] * 1e3, ...
+    'Verbose', true);
+```
+
+The original console showed `FAIL` because search-peak channel agreement had a `13061.5 Hz` median delta. Replaying the synced `outer11` capture with expected-bin scoring gives:
+
+- status `WARN`
+- REF `11/11`, median margin `-0.2 dB`, integrated margin `+10.4 dB`
+- SURV `11/11`, median margin `-0.2 dB`, integrated margin `+10.4 dB`
+- joint search-peak median channel delta `13061.5 Hz`
+- warn codes `REFERENCE_MULTITONE_LOW_MARGIN`, `SURVEILLANCE_MULTITONE_LOW_MARGIN`, `MULTITONE_CHANNEL_FREQUENCY_DELTA_NEAR_LIMIT`
+
+Interpretation: `outer11` gives the strongest integrated expected-bin evidence so far, but the broader comb also produces the worst nearby-peak ambiguity. Keep it as evidence that tone integration works; do not promote it over `outer5` until we add a better joint consistency metric than strongest-nearby-peak frequency agreement.
+
+Next FTC pull should pick up the scorer update before any additional multitone run:
+
+```bash
+git pull --ff-only origin feature/pluto-tone-precheck-standalone
+```
 
 ## July 24, 2026 Pluto Phase 1 Commissioning Sweep Recovery
 
