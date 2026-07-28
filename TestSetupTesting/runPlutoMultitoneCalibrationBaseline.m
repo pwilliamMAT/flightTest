@@ -105,10 +105,7 @@ end
 tables = cell(numel(sourceList), 1);
 for idx = 1:numel(sourceList)
     source = string(sourceList{idx});
-    if endsWith(lower(source), "batch_summary.csv") || ...
-            (isfile(source) && strcmpi(string(fileparts(source)), ""))
-        tables{idx} = localReadBatchSummary(source);
-    elseif isfile(source) && endsWith(lower(source), ".csv")
+    if isfile(source) && endsWith(lower(source), ".csv")
         tables{idx} = localReadBatchSummary(source);
     else
         tables{idx} = localAnalyzeCaptureSource(source, opts);

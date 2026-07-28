@@ -44,8 +44,7 @@ end
 
 outputRoot = string(opts.OutputRoot);
 if strlength(outputRoot) == 0
-    outputRoot = fullfile(fileparts(string(baseline.artifact_paths.baseline_folder)), ...
-        string(runId) + "_check");
+    outputRoot = localDefaultOutputRoot(baseline, opts.BaselinePath, runId);
 end
 if ~isfolder(outputRoot)
     mkdir(outputRoot);
@@ -125,6 +124,25 @@ else
     error('runPlutoMultitoneCalibrationCheck:badBaselineFile', ...
         'The baseline MAT file does not contain a baseline struct.');
 end
+end
+
+function outputRoot = localDefaultOutputRoot(baseline, baselinePath, runId)
+baselineFolder = "";
+if isfield(baseline, 'artifact_paths') && isstruct(baseline.artifact_paths) && ...
+        isfield(baseline.artifact_paths, 'baseline_folder')
+    baselineFolder = string(baseline.artifact_paths.baseline_folder);
+end
+
+if strlength(baselineFolder) == 0
+    baselinePath = string(baselinePath);
+    if isfolder(baselinePath)
+        baselineFolder = baselinePath;
+    else
+        baselineFolder = string(fileparts(baselinePath));
+    end
+end
+
+outputRoot = fullfile(fileparts(baselineFolder), string(runId) + "_check");
 end
 
 function captureFile = localCaptureFileFromLiveResult(liveResult)
