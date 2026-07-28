@@ -101,6 +101,17 @@ Plain-language result: the static per-CPI tone-bin SNR is weak, but the tones ar
 
 Interpretation: stop spending field time changing comb definitions for now. The next algorithmic milestone is a comb-locked slow-time detector that integrates the expected tone-bin coefficients across CPIs and searches slow-time frequency, rather than scoring one whole-capture spectrum or using strongest-nearby-peak agreement.
 
+That first detector prototype is now `TestSetupTesting/runPlutoMultitoneSlowTimeDetector.m`. It sums normalized slow-time spectra across the comb and ranks joint REF/SURV slow-time candidates. Results on the saved captures:
+
+| Run | Tones | Peak slow-time bin | Joint peak contrast | REF at peak | SURV at peak |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `outer5 original` | 5 | `+0.95 Hz` | `+5.5 dB` | `+6.3 dB` | `+7.5 dB` |
+| `outer5 repeat1` | 5 | `-45.71 Hz` | `+4.6 dB` | `+6.3 dB` | `+5.4 dB` |
+| `outer5 repeat2` | 5 | `+45.71 Hz` | `+3.7 dB` | `+5.7 dB` | `+3.8 dB` |
+| `outer11` | 11 | `-14.29 Hz` | `+2.4 dB` | `+4.2 dB` | `+3.3 dB` |
+
+Interpretation: a common slow-time bin across all tones is not yet stable enough to be the final detector. The per-tone slow-time FFT peaks show integration gain, but the comb does not add coherently at one common slow-time frequency. The next processing step should estimate and compensate per-tone residual slow-time frequency, likely from Pluto/N320 sample-clock or frequency-offset mismatch, before summing tones.
+
 Next FTC pull should pick up the scorer update before any additional multitone run:
 
 ```bash
