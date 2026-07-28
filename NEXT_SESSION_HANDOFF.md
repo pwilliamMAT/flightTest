@@ -163,6 +163,42 @@ batch_summary.csv
 
 Each run also has `expected_bin_review/`, `cpi_integration_review/`, and `slow_time_detector/` subfolders with `summary.txt`, `result.mat`, and PNG plots.
 
+### Calibration Baseline And Check
+
+The first calibration-health-check wrappers are now:
+
+- `TestSetupTesting/runPlutoMultitoneCalibrationBaseline.m`
+- `TestSetupTesting/runPlutoMultitoneCalibrationCheck.m`
+
+Plain-language workflow:
+
+1. Commission a golden baseline from known-good repeatability runs.
+2. Save the golden metrics, waveform settings, hardware settings, thresholds, summary CSV, MAT file, and PNG plot.
+3. Run periodic checks with the same waveform/settings.
+4. Compare current metrics against baseline medians and report `PASS`, `WARN`, or `FAIL`.
+
+The offline replay path is implemented first. It was verified locally by commissioning a two-run `outer5` baseline from saved captures and checking `outer5_repeat2`; the check passed with all metric drifts inside thresholds.
+
+After the 20-run FTC batch finishes, commission a baseline from its compact summary CSV:
+
+```bash
+matlab -batch "cd('TestSetupTesting'); baseline = runPlutoMultitoneCalibrationBaseline('RunSources','../captures/plutoMultitoneSmoke/pluto_outer11_100khz_repeat20_analysis/batch_summary.csv','BaselineID','pluto_outer11_100khz_golden','ToneOffsets_Hz',(-500:100:500)*1e3,'PlotFigures',true,'Verbose',true);"
+```
+
+To check an already-saved capture against that baseline:
+
+```bash
+matlab -batch "cd('TestSetupTesting'); check = runPlutoMultitoneCalibrationCheck('BaselinePath','../captures/plutoMultitoneCalibrationBaselines/pluto_outer11_100khz_golden/baseline.mat','CheckSource','../captures/plutoMultitoneSmoke/SOME_CAPTURE_PART1','PlotFigures',true,'Verbose',true);"
+```
+
+To run a live check against that baseline, omit `CheckSource`:
+
+```bash
+matlab -batch "cd('TestSetupTesting'); check = runPlutoMultitoneCalibrationCheck('BaselinePath','../captures/plutoMultitoneCalibrationBaselines/pluto_outer11_100khz_golden/baseline.mat','PlotFigures',true,'Verbose',true);"
+```
+
+Current threshold policy is intentionally conservative and baseline-relative. It warns/fails on drops in expected-bin integrated margin, slow-time peak margin, tonewise detector contrast, REF/SURV coherence, or increases in tonewise peak-frequency spread.
+
 ## July 24, 2026 Pluto Phase 1 Commissioning Sweep Recovery
 
 This is the current Pluto handoff and should be treated as the top starting point before any new hardware work. The July 24 Phase 1 session recovered the commissioning-sweep summary, promoted the Live Editor notebook to the main verification artifact, and narrowed the next hardware step to a geometry-only follow-up.
