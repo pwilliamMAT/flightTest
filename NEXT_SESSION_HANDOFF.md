@@ -1,6 +1,19 @@
 # Next Session Handoff
 
-Updated: July 27, 2026
+Updated: July 28, 2026
+
+## July 28, 2026 TestSetupTesting Sync And Pluto Review State
+
+This session intentionally merged the FTC-overlaid TestSetupTesting snapshot with the newer `feature/pluto-tone-precheck-standalone` branch state. The FTC checksum manifest matched all 64 comparable `TestSetupTesting` source files in this checkout, with no differing or FTC-only source files.
+
+Keep these local/source distinctions clear:
+
+- `TestSetupTesting/plutoBaselineCommissioningFieldPlan.md` is a newer tracked branch file and should remain part of the field-test handoff.
+- `TestSetupTesting/reviewPlutoToneCaptureSpectra.m` is the new local offline spectrum-review tool and should be added before the next push if we want the FTC to receive it.
+- `PlutoHelloWorld.m` is still untracked and should be treated as scratch unless explicitly promoted.
+- Generated run/capture outputs and FTC checksum artifacts should remain out of Git.
+
+When pushing this branch back to GitHub, use the user's personal GitHub credentials rather than the MathWorks identity.
 
 ## July 24, 2026 Pluto Phase 1 Commissioning Sweep Recovery
 
@@ -16,7 +29,7 @@ This is the current Pluto handoff and should be treated as the top starting poin
   - the recovered fixed-placement commissioning-sweep review for `stairwell_outside_box_nooelec_4p9in`
   - the next recommended fixed-waveform placement and orientation matrix
 - `README.md` and `TestSetupTesting/README.md` now point operators to that notebook and to the recovery helper.
-- `concepts.md` already indexes the Phase 1 validation notebook and the commissioning-sweep workflow.
+- `concepts.md` indexes the Phase 1 validation notebook, the commissioning-sweep workflow, the baseline field plan, and the new capture spectrum review.
 
 ### What The Recovered Sweep Established
 
@@ -63,7 +76,9 @@ Decision rule:
 - `TestSetupTesting/PlutoPhase1ValidationLive.m`
 - `TestSetupTesting/README.md`
 - `README.md`
+- `TestSetupTesting/plutoBaselineCommissioningFieldPlan.md`
 - `TestSetupTesting/reviewPlutoToneCommissioningSweep.m`
+- `TestSetupTesting/reviewPlutoToneCaptureSpectra.m`
 - `TestSetupTesting/runPlutoToneCommissioningSweep.m`
 - `concepts.md`
 

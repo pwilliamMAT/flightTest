@@ -18,3 +18,12 @@ __pycache__/
 n320_*
 adsb_capture/
 captures/
+
+# Generated Pluto test setup products
+TestSetupTesting/plutoPrecheckRuns/
+TestSetupTesting/plutoSpectrumReviews/
+TestSetupTesting/TestSetupTesting/
+
+# Local FTC sync comparison artifacts
+ftc_TestSetupTesting.sha256
+ftc_TestSetupTesting_uncommitted.patch
