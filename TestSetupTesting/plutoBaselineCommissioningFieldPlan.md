@@ -424,3 +424,77 @@ Fill this in at the end of the testing-machine session:
 - Baseline commissioned:
 - Hold-out precheck status:
 - Main remaining blocker, if any:
+
+## 2026-07-29 Multitone Calibration Session
+
+This session moved the Pluto health check from exploratory multitone smoke tests into a baseline-backed calibration workflow.
+The calibration waveform used an 11-tone comb with 100 kHz spacing:
+
+```matlab
+(-500:100:500) * 1e3
+```
+
+The first requested 20-run repeatability batch stopped during run 11 because the field-test computer overheated and shut down.
+The first 10 runs were successfully captured and analyzed in:
+
+```text
+captures/plutoMultitoneSmoke/pluto_outer11_100khz_repeat20_analysis
+```
+
+After adding ventilation to the field-test computer, a second 10-run batch completed successfully in:
+
+```text
+captures/plutoMultitoneSmoke/pluto_outer11_100khz_repeat10_analysis
+```
+
+The combined 20 successful runs were used to commission the golden baseline:
+
+```text
+Baseline ID: pluto_outer11_100khz_golden
+Runs: 20
+REF expected integrated median: 10.58 dB
+SURV expected integrated median: 10.51 dB
+REF slow-time peak median: 8.28 dB
+SURV slow-time peak median: 8.17 dB
+Median cross-channel coherence: 0.786
+Tonewise detector contrast median: 8.60 dB
+```
+
+To regenerate that baseline from the two analysis folders on the field-test computer:
+
+```bash
+matlab -batch "cd('TestSetupTesting'); baseline = runPlutoMultitoneCalibrationBaseline('RunSources',[\"../captures/plutoMultitoneSmoke/pluto_outer11_100khz_repeat20_analysis\"; \"../captures/plutoMultitoneSmoke/pluto_outer11_100khz_repeat10_analysis\"],'BaselineID','pluto_outer11_100khz_golden','ToneOffsets_Hz',(-500:100:500)*1e3,'PlotFigures',true,'Verbose',true);"
+```
+
+The first live calibration check against that baseline passed:
+
+```text
+PLUTO MULTITONE CALIBRATION CHECK: PASS
+Fail codes: none
+Warn codes: none
+REF expected integrated drift: -0.04 dB
+SURV expected integrated drift: -0.23 dB
+REF slow-time peak drift: -0.65 dB
+SURV slow-time peak drift: -0.20 dB
+Median cross-channel coherence drift: -0.069
+Tonewise detector contrast drift: -0.56 dB
+```
+
+The check artifacts copied back to the development workspace were in:
+
+```text
+captures/plutoMultitoneSmoke/pluto_multitone_cal_check_20260729T122918_check
+```
+
+To rerun a live calibration check on the field-test computer:
+
+```bash
+matlab -batch "cd('TestSetupTesting'); check = runPlutoMultitoneCalibrationCheck('BaselinePath','../captures/plutoMultitoneCalibrationBaselines/pluto_outer11_100khz_golden/baseline.mat','PlotFigures',true,'Verbose',true);"
+```
+
+Interpretation:
+
+- The baseline-relative calibration check is the health gate; it passed cleanly.
+- The lower-level expected-bin review may still report `WARN` because per-tone median margins are close to 0 dB, but the integrated comb evidence is strong and stable.
+- `SearchPeakMedianDelta_Hz` remains diagnostic only because nearby-peak search is noisy across repeatability runs.
+- The 0 kHz tone in the current 11-tone comb is suppressed by the CPI integration DC-removal step, so a future production waveform should avoid DC. Candidate replacements are `[-500:-100 100:500] * 1e3` or `[-600:-100 100:600] * 1e3`.
