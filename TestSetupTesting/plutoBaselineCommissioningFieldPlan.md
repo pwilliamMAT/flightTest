@@ -466,6 +466,14 @@ To regenerate that baseline from the two analysis folders on the field-test comp
 matlab -batch "cd('TestSetupTesting'); baseline = runPlutoMultitoneCalibrationBaseline('RunSources',[\"../captures/plutoMultitoneSmoke/pluto_outer11_100khz_repeat20_analysis\"; \"../captures/plutoMultitoneSmoke/pluto_outer11_100khz_repeat10_analysis\"],'BaselineID','pluto_outer11_100khz_golden','ToneOffsets_Hz',(-500:100:500)*1e3,'PlotFigures',true,'Verbose',true);"
 ```
 
+To collect a fresh calibration dataset and then commission a new baseline from that new dataset:
+
+```bash
+matlab -batch "cd('TestSetupTesting'); batch = runPlutoMultitoneRepeatabilityBatch('RepeatCount',20,'BatchID','pluto_outer11_100khz_recal_20260729','SessionPrefix','pluto_outer11_100khz_recal','ToneOffsets_Hz',(-500:100:500)*1e3,'PlotFigures',true,'Verbose',true); baseline = runPlutoMultitoneCalibrationBaseline('RunSources',batch.artifact_paths.summary_csv,'BaselineID','pluto_outer11_100khz_golden_20260729','ToneOffsets_Hz',(-500:100:500)*1e3,'PlotFigures',true,'Verbose',true);"
+```
+
+Use a dated `BaselineID` first so the prior golden reference remains available for comparison. After reviewing the new `summary.txt`, the same command can be rerun with `BaselineID` set to `pluto_outer11_100khz_golden` if the new baseline should replace the canonical one.
+
 The first live calibration check against that baseline passed:
 
 ```text
