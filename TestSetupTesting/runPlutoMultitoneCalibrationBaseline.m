@@ -107,12 +107,15 @@ for idx = 1:numel(sourceList)
     source = string(sourceList{idx});
     if isfile(source) && endsWith(lower(source), ".csv")
         tables{idx} = localReadBatchSummary(source);
+    elseif isfolder(source) && isfile(fullfile(source, 'batch_summary.csv'))
+        tables{idx} = localReadBatchSummary(fullfile(source, 'batch_summary.csv'));
     else
         tables{idx} = localAnalyzeCaptureSource(source, opts);
     end
 end
 runTable = vertcat(tables{:});
 runTable = localNormalizeRunTable(runTable);
+runTable.RunIndex = (1:height(runTable)).';
 end
 
 function sourceList = localSourceList(runSources)
@@ -140,6 +143,16 @@ end
 end
 
 function runTable = localAnalyzeCaptureSource(source, opts)
+if isfolder(source)
+    files = dir(fullfile(source, '*part1*'));
+    files = files(~[files.isdir]);
+    if isempty(files)
+        error('runPlutoMultitoneCalibrationBaseline:notAnalysisOrCaptureFolder', ...
+            ['RunSources folder %s does not contain batch_summary.csv or a *part1* capture file. ', ...
+            'Pass the repeatability analysis folder, its batch_summary.csv, or a saved capture file.'], source);
+    end
+end
+
 expectedReview = reviewPlutoMultitoneCapture(source, ...
     'ToneOffsets_Hz', opts.ToneOffsets_Hz, ...
     'OutputFolder', "", ...
