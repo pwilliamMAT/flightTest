@@ -17,6 +17,7 @@ The project now has an approved CODRTIV v2 `CONOPS` baseline, an approved `Requi
 - Gatekeeper-approved verification spec: [Verification_Spec.md](Verification_Spec.md)
 - Final red-team report: [Red_Team_Report.md](Red_Team_Report.md)
 - Current execution record: [Execution_Packet.md](Execution_Packet.md)
+- Current expert council assessment of the synthetic pipeline: [ExpertReview.md](ExpertReview.md)
 
 Current requirements baseline decisions:
 - Output contract: synthetic radar session data, truth, and compatible metadata
