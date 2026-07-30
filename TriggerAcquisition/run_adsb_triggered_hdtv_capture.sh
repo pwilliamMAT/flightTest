@@ -12,6 +12,7 @@ PI_LOGGER_SCRIPT="/home/pi2/flightTest/ADSB_GPS/gatherTCPcompress.py"
 SSH_BIN="ssh"
 SCP_BIN="scp"
 MATLAB_BIN="matlab"
+PREFLIGHT_ONLY=0
 
 MODE="shadow"
 OPPORTUNITY_POLICY="single"
@@ -73,6 +74,7 @@ Options:
   --adsb-stage-dir <path>           Local ADS-B staging folder (default: runtime folder)
   --control-dir <path>              Local coordinator control folder (default: runtime folder)
   --reference-chain-penalty <db>    Enables proxy Pd output when finite
+  --preflight-only                  Run Pi plus local MATLAB preflight and exit
   --matlab-bin <path>               MATLAB executable (default: matlab)
   --ssh-bin <path>                  SSH executable (default: ssh)
   --scp-bin <path>                  SCP executable (default: scp)
@@ -432,6 +434,10 @@ while [[ $# -gt 0 ]]; do
             REFERENCE_CHAIN_PENALTY_DB="$2"
             shift 2
             ;;
+        --preflight-only)
+            PREFLIGHT_ONLY=1
+            shift
+            ;;
         --matlab-bin)
             [[ $# -ge 2 ]] || die "Missing value for $1"
             MATLAB_BIN="$2"
@@ -505,25 +511,55 @@ probe_status=$?
 set -e
 
 if [[ $probe_status -eq 0 && "$probe_output" == "READY" ]]; then
-    echo "Preflight: starting rotating ADS-B logger on $PI_USER@$PI_HOST ..."
-    remote_logger_body="cd $(quote_posix_arg "$PI_WORKDIR") && exec python3 $(quote_posix_arg "$PI_LOGGER_SCRIPT") --session-id $(quote_posix_arg "$SESSION_ID") --time-per-file $(quote_posix_arg "$ADSB_ROTATION_S") > $(quote_posix_arg "$REMOTE_LOG_FILE") 2>&1 < /dev/null"
-    remote_start_body="cd $(quote_posix_arg "$PI_WORKDIR") && if command -v setsid >/dev/null 2>&1; then setsid -f bash -lc $(quote_posix_arg "$remote_logger_body"); else nohup bash -lc $(quote_posix_arg "$remote_logger_body") >/dev/null 2>&1 & fi; printf STARTED"
-
-    set +e
-    start_output="$(run_ssh_body "$remote_start_body" 2>&1)"
-    start_status=$?
-    set -e
-
-    if [[ $start_status -eq 0 && "$start_output" == *"STARTED"* ]]; then
-        REMOTE_LOGGER_STARTED=1
-        write_status "running" "Remote ADS-B logger is active and staging will continue until MATLAB requests stop."
-        background_fetch_loop &
-        FETCHER_PID=$!
+    if [[ $PREFLIGHT_ONLY -eq 1 ]]; then
+        echo "Preflight: Pi SSH/logger check passed for $PI_USER@$PI_HOST."
+        write_status "preflight_pi_ready" "Pi SSH/logger check passed."
     else
-        write_status "start_failed" "Remote ADS-B logger could not be started: ${start_output//$'\n'/ }"
+        echo "Preflight: starting rotating ADS-B logger on $PI_USER@$PI_HOST ..."
+        remote_logger_body="cd $(quote_posix_arg "$PI_WORKDIR") && exec python3 $(quote_posix_arg "$PI_LOGGER_SCRIPT") --session-id $(quote_posix_arg "$SESSION_ID") --time-per-file $(quote_posix_arg "$ADSB_ROTATION_S") > $(quote_posix_arg "$REMOTE_LOG_FILE") 2>&1 < /dev/null"
+        remote_start_body="cd $(quote_posix_arg "$PI_WORKDIR") && if command -v setsid >/dev/null 2>&1; then setsid -f bash -lc $(quote_posix_arg "$remote_logger_body"); else nohup bash -lc $(quote_posix_arg "$remote_logger_body") >/dev/null 2>&1 & fi; printf STARTED"
+
+        set +e
+        start_output="$(run_ssh_body "$remote_start_body" 2>&1)"
+        start_status=$?
+        set -e
+
+        if [[ $start_status -eq 0 && "$start_output" == *"STARTED"* ]]; then
+            REMOTE_LOGGER_STARTED=1
+            write_status "running" "Remote ADS-B logger is active and staging will continue until MATLAB requests stop."
+            background_fetch_loop &
+            FETCHER_PID=$!
+        else
+            write_status "start_failed" "Remote ADS-B logger could not be started: ${start_output//$'\n'/ }"
+        fi
     fi
 else
-    write_status "start_failed" "SSH preflight failed: ${probe_output//$'\n'/ }"
+    if [[ $PREFLIGHT_ONLY -eq 1 ]]; then
+        write_status "preflight_pi_failed" "SSH preflight failed: ${probe_output//$'\n'/ }"
+        exit 1
+    else
+        write_status "start_failed" "SSH preflight failed: ${probe_output//$'\n'/ }"
+    fi
+fi
+
+if [[ $PREFLIGHT_ONLY -eq 1 ]]; then
+    PREFLIGHT_PREVIEW_PATH="$RUNTIME_ROOT/logs/trigger_candidate_map.png"
+    PREFLIGHT_SUMMARY_PATH="$RUNTIME_ROOT/logs/trigger_preflight_summary.txt"
+    matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); result = runADSBTriggerPreflight('RadioName', $(quote_matlab_string "$RADIO_NAME"), 'PreviewOutputPath', $(quote_matlab_string "$PREFLIGHT_PREVIEW_PATH"), 'SummaryOutputPath', $(quote_matlab_string "$PREFLIGHT_SUMMARY_PATH"), 'Verbose', true); if ~result.overall_passed, error('run_adsb_triggered_hdtv_capture:preflightFailed', 'Trigger preflight reported one or more failures.'); end"
+
+    set +e
+    "$MATLAB_BIN" -batch "$matlab_cmd"
+    MATLAB_STATUS=$?
+    set -e
+
+    if [[ $MATLAB_STATUS -ne 0 ]]; then
+        write_status "preflight_failed" "Local MATLAB preflight failed."
+        exit "$MATLAB_STATUS"
+    fi
+
+    write_status "preflight_passed" "Trigger preflight passed."
+    echo "ADS-B trigger preflight complete for session $SESSION_ID."
+    exit 0
 fi
 
 matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); result = runADSBTriggeredCaptureSession('SessionID', $(quote_matlab_string "$SESSION_ID"), 'Mode', $(quote_matlab_string "$MODE"), 'OpportunityPolicy', $(quote_matlab_string "$OPPORTUNITY_POLICY"), 'WatchTimeout_s', $WATCH_TIMEOUT_S, 'PollPeriod_s', $POLL_PERIOD_S, 'ADSBRotation_s', $ADSB_ROTATION_S, 'TailSeconds_s', $TAIL_SECONDS_S, 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'RadioName', $(quote_matlab_string "$RADIO_NAME"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'SampleRate_Hz', $SAMPLE_RATE_HZ, 'LOOffset_Hz', $LO_OFFSET_HZ, 'Gain', $MATLAB_GAIN_EXPR, 'SessionRoot', $(quote_matlab_string "$SESSION_ROOT"), 'ADSBStageDir', $(quote_matlab_string "$ADSB_STAGE_DIR"), 'CoordinatorControlDir', $(quote_matlab_string "$CONTROL_DIR"), 'CoordinatorStatusFile', $(quote_matlab_string "$STATUS_FILE"), 'RemoteLogLocalPath', $(quote_matlab_string "$LOCAL_REMOTE_LOG"), 'PiUser', $(quote_matlab_string "$PI_USER"), 'PiHost', $(quote_matlab_string "$PI_HOST"), 'PiWorkingDir', $(quote_matlab_string "$PI_WORKDIR"), 'PiLoggerScript', $(quote_matlab_string "$PI_LOGGER_SCRIPT"), 'RemoteLogFile', $(quote_matlab_string "$REMOTE_LOG_FILE"), 'CorridorAzimuthCenter_deg', $CORRIDOR_AZIMUTH_CENTER_DEG, 'SurveillanceBoresightAzimuth_deg', $SURVEILLANCE_BORESIGHT_AZIMUTH_DEG, 'ReferenceChainPenalty_dB', $REFERENCE_CHAIN_PENALTY_DB, 'Verbose', true);"

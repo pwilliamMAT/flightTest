@@ -234,6 +234,29 @@ bash TriggerAcquisition/run_adsb_triggered_hdtv_capture.sh --mode live --watch-t
 The wrapper writes `trigger_summary.txt`, `trigger_decisions.csv`, and `trigger_context.mat` for every run. When radar capture occurs, it also writes the usual packaged-session layout plus a `triggering` block in `session_manifest.json` so the downstream RF audit and packaged-session analysis can explain why the capture started.
 The MATLAB path now also supports a trigger-candidate preview map. By default the session wrapper shows that preview at session start and saves `trigger_candidate_map.png` under the session `logs/` folder so the operator can see the qualified trigger region, with the proxy trigger-score field retained as background context. The preview now also includes an overlay legend, and the boresight gates are drawn as dotted red lines so they are easier to distinguish from the score colormap.
 
+The frozen Phase 1 contract now lives in [TriggerAcquisition/adsbTriggeredCapturePhase1DesignSpec.md](TriggerAcquisition/adsbTriggeredCapturePhase1DesignSpec.md). Treat that note as the baseline description before changing any gating logic. The checked-in comparison target for ranking, qualification, trigger/no-trigger, and preview-footprint behavior lives in `helperTriggerPhase1FrozenBaseline.m`.
+
+For the operator-facing testing-machine preflight, use the same shell entrypoint with `--preflight-only`:
+
+```bash
+cd /path/to/flightTest
+bash TriggerAcquisition/run_adsb_triggered_hdtv_capture.sh --preflight-only
+```
+
+That shell-only preflight verifies Pi SSH plus logger availability first, then runs the local MATLAB preflight helper `runADSBTriggerPreflight.m`. The MATLAB helper confirms that the existing `runLocalHDTVCapture` path resolves, the saved mission-report and RF-budget assets load, and the standalone preview can be generated without warnings. On a machine that is not yet configured for the N320 wrapper, the preflight is expected to fail loudly instead of pretending the path is ready.
+
+For the standard frozen offline validation workflow before any hardware review, use:
+
+```matlab
+cd TriggerAcquisition
+validation = runADSBTriggerOfflineValidation('Verbose', true);
+validation.artifacts.validation_summary_txt
+```
+
+That runner stages the fixed west-positive and east-decoy replay cases, compares them against the checked-in baseline, rechecks explicit azimuth-override precedence and empty-region rendering, confirms the preview qualified-region footprint, and verifies that the shell wrapper still exposes the frozen Phase 1 command contract.
+
+For a shareable plain-text validation notebook analogous to the Pluto Phase 1 notebook, use [TriggerAcquisition/TriggerPhase1ValidationLive.m](TriggerAcquisition/TriggerPhase1ValidationLive.m). Open it in the MATLAB Live Editor and use **Run All** when you want one compact artifact that records the regression pass, shows the west-facing preview figure interactively, runs one offline replay comparison, runs one local hardware-readiness preflight, and lists the artifact paths to review afterward.
+
 For direct MATLAB-driven tests or offline replay work, call:
 
 ```matlab
@@ -244,6 +267,8 @@ result = runADSBTriggeredCaptureSession( ...
     'CorridorAzimuthCenter_deg', 270, ...
     'SurveillanceBoresightAzimuth_deg', 270);
 ```
+
+Prefer `runADSBTriggerOfflineValidation` for the standard Phase 1 comparison workflow. Use the ad hoc staged-truth form below only when you are deliberately inspecting a specific archived capture outside the frozen baseline set.
 
 For a MATLAB-only dry run that replays archived ADS-B truth from an older packaged session, stage the truth files from the MATLAB command window:
 
@@ -825,10 +850,13 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 - [`run_adsb_triggered_hdtv_capture.sh`](TriggerAcquisition/run_adsb_triggered_hdtv_capture.sh) - Phase 1 shell coordinator that owns SSH/Pi logger orchestration, short ADS-B file rotation, staged truth fetch, and MATLAB launch
 - [`runADSBTriggeredCaptureSession.m`](TriggerAcquisition/runADSBTriggeredCaptureSession.m) - MATLAB supervisor that resolves a west-facing default corridor and boresight, scores targets, can show/save the candidate preview map at watch start, enforces the single-opportunity state machine, and calls the existing local capture wrapper unchanged for live capture
 - [`plotADSBTriggerCandidateMap.m`](TriggerAcquisition/plotADSBTriggerCandidateMap.m) - Standalone operator/tuning view that renders the geographic qualified trigger region and ENU trigger-score background without starting a session
+- [`runADSBTriggerPreflight.m`](TriggerAcquisition/runADSBTriggerPreflight.m) - Local MATLAB preflight that checks the existing capture-wrapper path, support-package entrypoints, frozen assets, and warning-free preview generation
+- [`runADSBTriggerOfflineValidation.m`](TriggerAcquisition/runADSBTriggerOfflineValidation.m), [`helperTriggerPhase1FrozenBaseline.m`](TriggerAcquisition/helperTriggerPhase1FrozenBaseline.m), [`helperTriggerWriteValidationScenario.m`](TriggerAcquisition/helperTriggerWriteValidationScenario.m) - Frozen Phase 1 replay and preview comparison harness used before pre-hardware or hardware review
+- [`adsbTriggeredCapturePhase1DesignSpec.md`](TriggerAcquisition/adsbTriggeredCapturePhase1DesignSpec.md), [`TriggerPhase1ValidationLive.m`](TriggerAcquisition/TriggerPhase1ValidationLive.m) - Short design note plus shareable plain-text validation notebook for the frozen Phase 1 contract
 - [`helperTriggerScoreCandidates.m`](TriggerAcquisition/helperTriggerScoreCandidates.m), [`helperTriggerEvaluateGeometryField.m`](TriggerAcquisition/helperTriggerEvaluateGeometryField.m) - Shared toolbox-first trigger geometry and proxy scoring used by both live ranking and the preview map
 - [`helperTriggerPackageSession.m`](TriggerAcquisition/helperTriggerPackageSession.m), [`helperTriggerWriteArtifacts.m`](TriggerAcquisition/helperTriggerWriteArtifacts.m), [`helperTriggerWriteManifest.m`](TriggerAcquisition/helperTriggerWriteManifest.m) - Package shadow/live outcomes into the standard session layout and add trigger metadata
 - [`helperTriggerRenderCandidateMap.m`](TriggerAcquisition/helperTriggerRenderCandidateMap.m) - Shared preview renderer that saves `trigger_candidate_map.png`, keeps trigger score as a background field, and highlights the qualified trigger region plus corridor/boresight/range gates
-- [`ADSBTriggeredCaptureSessionTest.m`](TriggerAcquisition/ADSBTriggeredCaptureSessionTest.m) - Regression coverage for west-facing defaults, resolver precedence, preview-map artifact writing, qualified-region behavior, shadow recommendation, live single-opportunity capture, geometry-helper parity, and capture failure handling
+- [`ADSBTriggeredCaptureSessionTest.m`](TriggerAcquisition/ADSBTriggeredCaptureSessionTest.m) - Regression coverage for west-facing defaults, resolver precedence, frozen replay and preview baselines, preview-map artifact writing, qualified-region behavior, shadow recommendation, live single-opportunity capture, geometry-helper parity, offline validation runner behavior, and capture failure handling
 
 ---
 
