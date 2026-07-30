@@ -36,6 +36,12 @@ Important facts about this dataset:
 - The packaged session is ready for input into `runBistaticAnalysisSession`.
 - This specific repo-side session does not include the newer `archive/synthetic_session_archive.mat` companion artifact.
 
+## Example Output
+
+The image below shows the RDM view and checks from the latest documented synthetic-data run.
+
+![RDM view and checks](RDMViewAndChecks.png)
+
 ## How To Use It
 
 Run the existing packaged-session pipeline entrypoint against the documented session ID:

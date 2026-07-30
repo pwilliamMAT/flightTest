@@ -76,6 +76,7 @@ The important downfalls and limits are:
 Open [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m) in MATLAB to step through the synthetic-session walkthrough sections. The file is a plain-text `.m` live script, so it stays diff-able in version control and readable in editors such as VS Code.
 
 For a folder-local summary of what the synthetic workflow now supports and which repo-side synthetic dataset is currently documented for reuse, see [SyntheticHDTVSimulation/README.md](SyntheticHDTVSimulation/README.md).
+That folder-local README now also renders the latest `RDMViewAndChecks.png` example output image from the documented synthetic workflow.
 
 - Main files by role:
   - Scenario entrypoint: [SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m](SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m)
