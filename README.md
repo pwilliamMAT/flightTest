@@ -209,6 +209,99 @@ b = baseline.case_results(1);
 b.truth_diag_output.truth_diag_input.fc
 ```
 
+#### ADS-B-Triggered Wrapper (Phase 1)
+
+The new trigger wrapper adds a wrapper-only acquisition path under `TriggerAcquisition/` and leaves the existing manual coordinator unchanged. In plain language, it watches short completed ADS-B files, asks which aircraft is entering the best west-facing surveillance sector for a useful passive-radar capture, and then either records a shadow recommendation or authorizes one local capture.
+
+Use the shell coordinator on the testing machine:
+
+```bash
+cd /path/to/flightTest
+bash TriggerAcquisition/run_adsb_triggered_hdtv_capture.sh --mode shadow --corridor-azimuth-center 270 --surveillance-boresight-azimuth 270
+```
+
+Phase 1 defaults are `--mode shadow`, `--watch-timeout 600`, `--adsb-rotation 5`, `--poll-period 5`, `--capture-duration 30`, `--corridor-azimuth-center 270`, `--surveillance-boresight-azimuth 270`, and one single opportunity. The shell entrypoint owns SSH, Pi logger start/stop, and staged ADS-B file fetches. The MATLAB entrypoint owns the `watch -> score -> arm -> capture_once -> tail -> exit` state machine and calls the existing `runLocalHDTVCapture.m` path unchanged when live capture is authorized.
+
+The default trigger direction is now due west. Logan/east-facing geometry is no longer implied by default. If you want that older tuning, request it explicitly with `CorridorAzimuthCenter_deg`, `SurveillanceBoresightAzimuth_deg`, or the legacy `CorridorReferenceLLA` path plus a matching boresight override.
+
+For one live single-opportunity run:
+
+```bash
+cd /path/to/flightTest
+bash TriggerAcquisition/run_adsb_triggered_hdtv_capture.sh --mode live --watch-timeout 600 --capture-duration 30 --corridor-azimuth-center 270 --surveillance-boresight-azimuth 270
+```
+
+The wrapper writes `trigger_summary.txt`, `trigger_decisions.csv`, and `trigger_context.mat` for every run. When radar capture occurs, it also writes the usual packaged-session layout plus a `triggering` block in `session_manifest.json` so the downstream RF audit and packaged-session analysis can explain why the capture started.
+The MATLAB path now also supports a trigger-candidate preview map. By default the session wrapper shows that preview at session start and saves `trigger_candidate_map.png` under the session `logs/` folder so the operator can see the qualified trigger region, with the proxy trigger-score field retained as background context. The preview now also includes an overlay legend, and the boresight gates are drawn as dotted red lines so they are easier to distinguish from the score colormap.
+
+For direct MATLAB-driven tests or offline replay work, call:
+
+```matlab
+cd TriggerAcquisition
+result = runADSBTriggeredCaptureSession( ...
+    'Mode', 'shadow', ...
+    'SessionID', '20260728T153000', ...
+    'CorridorAzimuthCenter_deg', 270, ...
+    'SurveillanceBoresightAzimuth_deg', 270);
+```
+
+For a MATLAB-only dry run that replays archived ADS-B truth from an older packaged session, stage the truth files from the MATLAB command window:
+
+```matlab
+cd TriggerAcquisition
+repo_info = helperTriggerAddProjectPaths();
+old_session_id = "20260728T153000";
+src = fullfile(repo_info.repo_root, 'captures', old_session_id, 'truth');
+dst = fullfile(tempdir, "adsb_stage_verify_" + old_session_id);
+
+try
+    if exist(dst, 'dir') ~= 7
+        mkdir(dst);
+    end
+
+    stage_hits = [ ...
+        dir(fullfile(src, '*adsb_*.txt')); ...
+        dir(fullfile(src, '*adsb_*.txt.gz'))];
+
+    if isempty(stage_hits)
+        error('README:NoADSBTruthFiles', 'No ADS-B truth files found under %s.', src);
+    end
+
+    for idx = 1:numel(stage_hits)
+        src_file = fullfile(src, stage_hits(idx).name);
+        dst_file = fullfile(dst, stage_hits(idx).name);
+        copyfile(src_file, dst_file, 'f');
+    end
+catch ME
+    fprintf('ADS-B stage copy failed: %s\n', ME.message);
+    rethrow(ME);
+end
+
+result = runADSBTriggeredCaptureSession( ...
+    'Mode', 'shadow', ...
+    'ADSBStageDir', dst, ...
+    'CorridorAzimuthCenter_deg', 270, ...
+    'SurveillanceBoresightAzimuth_deg', 270, ...
+    'ShowTriggerPreviewMap', true, ...
+    'SaveTriggerPreviewMap', true, ...
+    'WatchTimeout_s', 15, ...
+    'PollPeriod_s', 5);
+```
+
+Use that form inside MATLAB. The `$src = ...`, `New-Item`, and `Copy-Item` commands are PowerShell-only and will fail if pasted into the MATLAB command window.
+
+To generate the preview map without starting a watch session:
+
+```matlab
+cd TriggerAcquisition
+preview = plotADSBTriggerCandidateMap( ...
+    'ShowFigure', true, ...
+    'SavePNG', true, ...
+    'CorridorAzimuthCenter_deg', 270, ...
+    'SurveillanceBoresightAzimuth_deg', 270);
+preview.image_path
+```
+
 ### 2. Sync on the Development Machine
 
 To pull one packaged session onto a development machine, use:
@@ -726,6 +819,19 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 
 ---
 
+### [`TriggerAcquisition/`](TriggerAcquisition/)
+**ADS-B-triggered wrapper-only acquisition supervisor**
+
+- [`run_adsb_triggered_hdtv_capture.sh`](TriggerAcquisition/run_adsb_triggered_hdtv_capture.sh) - Phase 1 shell coordinator that owns SSH/Pi logger orchestration, short ADS-B file rotation, staged truth fetch, and MATLAB launch
+- [`runADSBTriggeredCaptureSession.m`](TriggerAcquisition/runADSBTriggeredCaptureSession.m) - MATLAB supervisor that resolves a west-facing default corridor and boresight, scores targets, can show/save the candidate preview map at watch start, enforces the single-opportunity state machine, and calls the existing local capture wrapper unchanged for live capture
+- [`plotADSBTriggerCandidateMap.m`](TriggerAcquisition/plotADSBTriggerCandidateMap.m) - Standalone operator/tuning view that renders the geographic qualified trigger region and ENU trigger-score background without starting a session
+- [`helperTriggerScoreCandidates.m`](TriggerAcquisition/helperTriggerScoreCandidates.m), [`helperTriggerEvaluateGeometryField.m`](TriggerAcquisition/helperTriggerEvaluateGeometryField.m) - Shared toolbox-first trigger geometry and proxy scoring used by both live ranking and the preview map
+- [`helperTriggerPackageSession.m`](TriggerAcquisition/helperTriggerPackageSession.m), [`helperTriggerWriteArtifacts.m`](TriggerAcquisition/helperTriggerWriteArtifacts.m), [`helperTriggerWriteManifest.m`](TriggerAcquisition/helperTriggerWriteManifest.m) - Package shadow/live outcomes into the standard session layout and add trigger metadata
+- [`helperTriggerRenderCandidateMap.m`](TriggerAcquisition/helperTriggerRenderCandidateMap.m) - Shared preview renderer that saves `trigger_candidate_map.png`, keeps trigger score as a background field, and highlights the qualified trigger region plus corridor/boresight/range gates
+- [`ADSBTriggeredCaptureSessionTest.m`](TriggerAcquisition/ADSBTriggeredCaptureSessionTest.m) - Regression coverage for west-facing defaults, resolver precedence, preview-map artifact writing, qualified-region behavior, shadow recommendation, live single-opportunity capture, geometry-helper parity, and capture failure handling
+
+---
+
 ### [`BistaticDataAnalysis/`](BistaticDataAnalysis/)
 **Session-based bistatic analysis and truth alignment**
 
@@ -820,7 +926,21 @@ cd /path/to/flightTest
 bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1
 ```
 
-### 1c. Sync One Packaged Session to a Development Machine
+### 1c. Watch in ADS-B-Triggered Shadow Mode
+```bash
+cd /path/to/flightTest
+bash TriggerAcquisition/run_adsb_triggered_hdtv_capture.sh --mode shadow
+```
+This keeps the Pi ADS-B logger rotating short files, ranks Logan-corridor aircraft every poll, and writes trigger review artifacts even when no capture is started.
+
+For one live single-opportunity capture through the same state machine:
+
+```bash
+cd /path/to/flightTest
+bash TriggerAcquisition/run_adsb_triggered_hdtv_capture.sh --mode live --watch-timeout 600 --capture-duration 30
+```
+
+### 1d. Sync One Packaged Session to a Development Machine
 ```bash
 cd /path/to/flightTest
 bash TestSetupTesting/sync_capture_session.sh --host <testing-machine> --user <testing-user> --session-id <id>
@@ -1010,4 +1130,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: July 10, 2026*
+*Last Updated: July 28, 2026*
