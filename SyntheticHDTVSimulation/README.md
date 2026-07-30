@@ -42,6 +42,11 @@ The image below shows the RDM view and checks from the latest documented synthet
 
 ![RDM view and checks](RDMViewAndChecks.png)
 
+## Example Input
+The image below shows the ADSB data collected from the field antenna, imported, and serves as the target echo input for synthetic data generation.
+
+![RDM view and checks](ADSBSeedTruth.png)
+
 ## How To Use It
 
 Run the existing packaged-session pipeline entrypoint against the documented session ID:
