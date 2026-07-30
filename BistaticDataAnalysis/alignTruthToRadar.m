@@ -161,10 +161,23 @@ for k = 1 : N_aircraft
         continue
     end
 
+    % Collapse duplicate timestamps before interpolation so repeated ADS-B
+    % fixes do not break the alignment step. Keeping the first occurrence is
+    % sufficient here because the shared bistatic projection already
+    % computed the range and Doppler series on the raw track.
+    [t_rel_unique, unique_idx] = unique(t_rel, 'stable');
+    R_unique = bist.R_excess_m(unique_idx);
+    f_unique = bist.f_D_hz(unique_idx);
+    if numel(t_rel_unique) < 2
+        fprintf('[alignTruthToRadar]   %s (%s): fewer than 2 unique fixes after de-duplication.\n', ...
+            bist.hex, bist.callsign);
+        continue
+    end
+
     % interp1 will produce NaN outside [min(t_rel), max(t_rel)] automatically
     % when no extrapolation method is requested (default extrap = NaN).
-    R_interp = interp1(t_rel, bist.R_excess_m(:), t_abs_query, 'linear', NaN);
-    f_interp = interp1(t_rel, bist.f_D_hz(:),     t_abs_query, 'linear', NaN);
+    R_interp = interp1(t_rel_unique, R_unique(:), t_abs_query, 'linear', NaN);
+    f_interp = interp1(t_rel_unique, f_unique(:), t_abs_query, 'linear', NaN);
 
     adsb_aligned(k).R_excess_m = R_interp;
     adsb_aligned(k).f_D_hz     = f_interp;
