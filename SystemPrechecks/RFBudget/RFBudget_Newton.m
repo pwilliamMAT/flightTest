@@ -35,7 +35,7 @@
 %   2. Reference channel will likely need 20-30 dB attenuator
 %   3. Bandpass filter is 12 MHz off-center - verify insertion loss
 %   4. All component specs are estimated at 599 MHz - verify datasheets
-%   5. Newton target-path power still needs a path-specific bistatic rerun
+%   5. Target-path power now comes from a deterministic Longley-Rice rerun
 %
 % Updated: December 8, 2025
 % Author: RF Budget Analysis Tool
@@ -44,6 +44,8 @@
 %==========================================================================
 
 clear; clc; close all;
+projectRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(projectRoot);
 
 %% ========================================================================
 %  SECTION 1: INPUT PARAMETERS
@@ -62,12 +64,12 @@ Tx_ERP_Horizontal_dBW = 10*log10(Tx_ERP_Horizontal_kW * 1000);  % 60.0 dBW
 Tx_Latitude = 42.310280;        % degrees N
 Tx_Longitude = -71.236670;      % degrees W
 
-% Target signal power from bistatic link budget analysis
+% Target signal power from deterministic bistatic rerun
 % ⚠️  TODO: Calculate based on Newton RF35 parameters and bistatic geometry
-% This is a placeholder - needs bistatic link budget calculation
-TargetPathPower = -67.37;       % dBm (placeholder from Ch 27, NEEDS UPDATE)
-fprintf('⚠️  WARNING: TargetPathPower is placeholder from Ch 27 analysis!\n');
-fprintf('   Needs a Newton-specific bistatic link budget rerun.\n\n');
+% Mean power over the recovered saved-ROI rerun
+TargetPathPower = -67.56;       % dBm (mean power over recovered saved-ROI rerun)
+fprintf('Bistatic target-path basis: deterministic saved-ROI rerun.\n');
+fprintf('   Current value comes from the deterministic saved-ROI rerun.\n\n');
 
 % Cable specifications
 CableLength_ft = 75;            % Cable length in feet
@@ -197,7 +199,7 @@ elements(idx) = amplifier( ...
     'OIP3', LNA_OIP3_dBm, ...
     'Zin', 50, ...
     'Zout', 50, ...
-    'Model', 'cubic');
+    'Model', 'poly');
 idx = idx + 1;
 
 % Element 6: USRP N320 with TwinRX Daughterboard
@@ -211,7 +213,7 @@ elements(idx) = amplifier( ...
     'OIP3', USRP_OIP3_dBm, ...
     'Zin', 50, ...
     'Zout', 50, ...
-    'Model', 'cubic');
+    'Model', 'poly');
 
 %% ========================================================================
 %  SECTION 3: CONSTRUCT RF BUDGET OBJECT AND ANALYZE
@@ -464,15 +466,14 @@ fprintf('  - ZABP-587-S+ provides minimal adjacent channel rejection\n');
 fprintf('  - Recommend field measurement with spectrum analyzer\n');
 fprintf('  - May need additional filtering if adjacents are strong\n\n');
 
-% Bistatic link budget warning
-fprintf('⚠️  TODO: Bistatic Link Budget Calculation\n');
-fprintf('   - Current TargetPathPower (%.2f dBm) is placeholder from Ch 27\n', TargetPathPower);
-fprintf('   - Needs calculation based on:\n');
+% Bistatic target-path note
+fprintf('Bistatic Target-Path Basis:\n');
+fprintf('   - Current TargetPathPower (%.2f dBm) comes from the deterministic precheck rerun\n', TargetPathPower);
+fprintf('   - Method: Longley-Rice over recovered saved ROI, 6000 ft AGL targets, 0.5 m^2 RCS\n');
 fprintf('     * Newton RF35 location: %.6f°N, %.6f°W\n', Tx_Latitude, abs(Tx_Longitude));
 fprintf('     * ERP: %.0f kW horizontal, %.0f kW vertical\n', ...
     Tx_ERP_Horizontal_kW, Tx_ERP_Vertical_kW);
-fprintf('     * Receiver location and bistatic geometry\n');
-fprintf('     * Aircraft RCS and flight profile\n\n');
+fprintf('   - Follow-on if confidence must increase: promote ROI to explicit checked-in geometry input\n\n');
 
 % Component verification warning
 fprintf('⚠️  TODO: Verify Component Specs at 599 MHz\n');

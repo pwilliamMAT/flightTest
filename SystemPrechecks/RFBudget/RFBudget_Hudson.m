@@ -31,6 +31,8 @@
 %==========================================================================
 
 clear; clc; close all;
+projectRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(projectRoot);
 
 %% ========================================================================
 %  SECTION 1: INPUT PARAMETERS
@@ -43,7 +45,7 @@ FreqRange = [548 554];          % Channel 27 frequency range (MHz)
 
 % Target signal power from bistatic link budget analysis
 % This value includes: Transmitter ERP, bistatic path losses, and aircraft RCS
-TargetPathPower = -67.37;       % dBm (conservative RCS assumption)
+TargetPathPower = -70.62;       % dBm (mean power over recovered saved-ROI rerun)
 
 % Cable specifications
 CableLength_ft = 75;            % Cable length in feet
@@ -152,7 +154,7 @@ elements(idx) = amplifier( ...
     'OIP3', LNA_OIP3_dBm, ...
     'Zin', 50, ...
     'Zout', 50, ...
-    'Model', 'cubic');
+    'Model', 'poly');
 idx = idx + 1;
 
 % Element 6: USRP N320 with TwinRX Daughterboard
@@ -166,7 +168,7 @@ elements(idx) = amplifier( ...
     'OIP3', USRP_OIP3_dBm, ...
     'Zin', 50, ...
     'Zout', 50, ...
-    'Model', 'cubic');
+    'Model', 'poly');
 
 %% ========================================================================
 %  SECTION 3: CONSTRUCT RF BUDGET OBJECT AND ANALYZE

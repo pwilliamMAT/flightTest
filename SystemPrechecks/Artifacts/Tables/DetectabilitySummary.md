@@ -1,12 +1,12 @@
-# Detectability Summary
+# Detectability Summary (Recovered-ROI Baseline)
 
-| Path | IntegrationTime_s | PostProcessingSNR_dB | Above13dBThreshold |
-| :--- | :--- | :--- | :--- |
-| Newton | 0.1 | 152.98 | true |
-| Newton | 0.5 | 159.97 | true |
-| Newton | 1.0 | 162.98 | true |
-| Newton | 2.0 | 165.99 | true |
-| Hudson | 0.1 | 153.03 | true |
-| Hudson | 0.5 | 160.02 | true |
-| Hudson | 1.0 | 163.03 | true |
-| Hudson | 2.0 | 166.04 | true |
+| AnalysisName | AnalysisDisplayName | Path | IntegrationTime_s | MeanTargetPathPower_dBm | PreProcessingSNR_dB | PostProcessingSNR_dB | Above13dBThreshold | DetectabilityBasis |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| RecoveredRoi | recovered-ROI baseline | Newton | 0.1 | -67.5624 | 95.0034 | 152.785 | true | Newton detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model. |
+| RecoveredRoi | recovered-ROI baseline | Newton | 0.5 | -67.5624 | 95.0034 | 159.775 | true | Newton detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model. |
+| RecoveredRoi | recovered-ROI baseline | Newton | 1 | -67.5624 | 95.0034 | 162.785 | true | Newton detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model. |
+| RecoveredRoi | recovered-ROI baseline | Newton | 2 | -67.5624 | 95.0034 | 165.795 | true | Newton detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model. |
+| RecoveredRoi | recovered-ROI baseline | Hudson | 0.1 | -70.6165 | 92.0047 | 149.786 | true | Hudson detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model. |
+| RecoveredRoi | recovered-ROI baseline | Hudson | 0.5 | -70.6165 | 92.0047 | 156.776 | true | Hudson detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model. |
+| RecoveredRoi | recovered-ROI baseline | Hudson | 1 | -70.6165 | 92.0047 | 159.786 | true | Hudson detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model. |
+| RecoveredRoi | recovered-ROI baseline | Hudson | 2 | -70.6165 | 92.0047 | 162.797 | true | Hudson detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model. |

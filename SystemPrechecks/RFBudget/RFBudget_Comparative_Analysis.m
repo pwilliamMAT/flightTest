@@ -27,6 +27,8 @@
 %==========================================================================
 
 clear; clc; close all;
+projectRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(projectRoot);
 
 fprintf('\n========================================================================\n');
 fprintf('COMPARATIVE ANALYSIS: Hudson Ch 27 vs Newton Ch 35\n');
@@ -42,7 +44,7 @@ fprintf('=== CONFIGURATION A: HUDSON CH 27 (UNIVISION) ===\n\n');
 % Operating parameters - Hudson
 freq_A = 551e6;                 % Center frequency (Hz)
 signalBW_A = 6e6;               % ATSC bandwidth (Hz)
-targetPower_A = -67.37;         % Target signal power (dBm) - from bistatic analysis
+targetPower_A = -70.62;         % Target signal power (dBm) - deterministic saved-ROI rerun
 
 % Component specifications @ 551 MHz
 cableLoss_A = 1.1;              % dB loss for 75ft RG-6
@@ -68,9 +70,9 @@ elements_A(idx) = rffilter('FilterType', 'Butterworth', 'ResponseType', 'Bandpas
     'PassbandAttenuation', bpFilterLoss_A, 'Zin', 50, 'Zout', 50, 'Name', 'BPF_A'); 
 idx = idx + 1;
 elements_A(idx) = amplifier('Name', 'LNA_A', 'Gain', lnaGain_A, 'NF', lnaNF_A, ...
-    'OIP3', 28, 'Zin', 50, 'Zout', 50, 'Model', 'cubic'); idx = idx + 1;
+    'OIP3', 28, 'Zin', 50, 'Zout', 50, 'Model', 'poly'); idx = idx + 1;
 elements_A(idx) = amplifier('Name', 'USRP_A', 'Gain', usrpGain_A, 'NF', usrpNF_A, ...
-    'OIP3', 30, 'Zin', 50, 'Zout', 50, 'Model', 'cubic');
+    'OIP3', 30, 'Zin', 50, 'Zout', 50, 'Model', 'poly');
 
 % Create RF budget
 inputPower_A = targetPower_A + antennaGain_A;
@@ -102,11 +104,11 @@ fprintf('\n=== CONFIGURATION B: NEWTON CH 35 (WHDH/WLVI) ===\n\n');
 % Operating parameters - Newton
 freq_B = 599e6;                 % Center frequency (Hz)
 signalBW_B = 6e6;               % ATSC bandwidth (Hz)
-targetPower_B = -67.37;         % Target signal power (dBm) - PLACEHOLDER (needs calculation)
+targetPower_B = -67.56;         % Target signal power (dBm) - deterministic saved-ROI rerun
 erp_B_kW = 1000;                % Newton RF35 horizontal ERP (kW)
 erp_B_dBW = 10*log10(erp_B_kW * 1000);  % 60.0 dBW
 
-fprintf('⚠️  NOTE: Target power is placeholder - needs bistatic link budget\n');
+fprintf('Bistatic target-path basis: deterministic saved-ROI rerun\n');
 fprintf('    Newton RF35 ERP: %.0f kW (%.1f dBW)\n\n', erp_B_kW, erp_B_dBW);
 
 % Component specifications @ 599 MHz (estimated)
@@ -133,9 +135,9 @@ elements_B(idx) = rffilter('FilterType', 'Butterworth', 'ResponseType', 'Bandpas
     'PassbandAttenuation', bpFilterLoss_B, 'Zin', 50, 'Zout', 50, 'Name', 'BPF_B'); 
 idx = idx + 1;
 elements_B(idx) = amplifier('Name', 'LNA_B', 'Gain', lnaGain_B, 'NF', lnaNF_B, ...
-    'OIP3', 28, 'Zin', 50, 'Zout', 50, 'Model', 'cubic'); idx = idx + 1;
+    'OIP3', 28, 'Zin', 50, 'Zout', 50, 'Model', 'poly'); idx = idx + 1;
 elements_B(idx) = amplifier('Name', 'USRP_B', 'Gain', usrpGain_B, 'NF', usrpNF_B, ...
-    'OIP3', 30, 'Zin', 50, 'Zout', 50, 'Model', 'cubic');
+    'OIP3', 30, 'Zin', 50, 'Zout', 50, 'Model', 'poly');
 
 % Create RF budget
 inputPower_B = targetPower_B + antennaGain_B;
@@ -645,9 +647,9 @@ fprintf('   → STRONGLY RECOMMEND: 20-30 dB variable attenuator (~$50)\n');
 fprintf('   → Prevents reference channel ADC saturation\n\n');
 
 fprintf('4. BISTATIC LINK BUDGET:\n');
-fprintf('   ⚠️  Config B using placeholder target power from Config A\n');
-fprintf('   → TODO: Calculate actual bistatic link budget for Newton RF35\n');
-fprintf('   → Account for: 922 kW ERP, tower location, bistatic geometry\n\n');
+fprintf('   Config A and Config B now use deterministic target-path reruns\n');
+fprintf('   -> Current basis: recovered saved ROI, Longley-Rice, 6000 ft AGL targets\n');
+fprintf('   -> Remaining follow-on: promote recovered ROI to explicit checked-in geometry input\n\n');
 
 fprintf('5. FIELD VALIDATION:\n');
 fprintf('   → Spectrum analyzer survey at both locations\n');
@@ -665,7 +667,7 @@ if localization_A && localization_B && overall_compatible
     fprintf('   System is ready for field testing pending:\n');
     fprintf('     - Filter verification (Config B)\n');
     fprintf('     - Reference attenuator installation (Config B)\n');
-    fprintf('     - Bistatic link budget calculation (Config B)\n\n');
+    fprintf('     - Explicit checked-in target geometry input if review-room confidence must increase\n\n');
 else
     fprintf('   ⚠️  MODERATE CONFIDENCE - address issues above first\n\n');
 end

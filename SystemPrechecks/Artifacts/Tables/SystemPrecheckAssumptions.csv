@@ -12,7 +12,7 @@ Newton,ReceiverLocation,MathWorks Apple Hill Garage,local-analysis,"FlightTest_B
 Newton,ReceiverLatitude_deg,42.299293,local-analysis,"FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m",all claims
 Newton,ReceiverLongitude_deg,-71.349500,local-analysis,"FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m",all claims
 Newton,CurrentOperationalStatus,Licensed,sourced,"FCC TV profile, queried 2026-07-17",illuminator viability
-Newton,TargetPathPower_dBm,-67.37,assumed,"Carried from the Hudson supporting link-budget output until the Newton path is rerun",bistatic detectability plausibility
+Newton,TargetPathPower_dBm,-67.56,local-analysis,"Deterministic Longley-Rice rerun over the recovered-ROI baseline; 84 targets on a 0.04 deg grid at 1828.8 m AGL, 0.5 m^2 RCS, 25.0 m receiver site height, and horizontal ERP treated as effective transmitted power for consistency with the retained supporting workflow.",bistatic detectability plausibility
 Newton,ReceiverAntennaGain_dBi,12,assumed,"Current RF budget scripts use a typical TV Yagi gain assumption",capturability
 Newton,CableLossPer100ft_dB,1.6,assumed,"RFBudget_Newton.m",capturability
 Newton,USRP_Gain_dB,30,assumed,"RFBudget_Newton.m nominal TwinRX gain setting",capturability
@@ -29,7 +29,12 @@ Hudson,ReceiverLocation,MathWorks Apple Hill Garage,local-analysis,"FlightTest_B
 Hudson,ReceiverLatitude_deg,42.299293,local-analysis,"FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m",all claims
 Hudson,ReceiverLongitude_deg,-71.349500,local-analysis,"FlightTest_Bistatic_RadarAndCommsAnalysis.mlx and RFBudgetInputCalcs.m",all claims
 Hudson,CurrentOperationalStatus,Licensed,sourced,"FCC TV profile, queried 2026-07-17",illuminator viability
-Hudson,TargetPathPower_dBm,-67.37,local-analysis,"Current RF budget scripts and supporting link-budget workflow",bistatic detectability plausibility
+Hudson,TargetPathPower_dBm,-70.62,local-analysis,"Deterministic Longley-Rice rerun over the recovered-ROI baseline; 84 targets on a 0.04 deg grid at 1828.8 m AGL, 0.5 m^2 RCS, 25.0 m receiver site height, and horizontal ERP treated as effective transmitted power for consistency with the retained supporting workflow.",bistatic detectability plausibility
 Hudson,ReceiverAntennaGain_dBi,12,assumed,"Current RF budget scripts use a typical TV Yagi gain assumption",capturability
 Hudson,CableLossPer100ft_dB,1.5,assumed,"RFBudget_Ch27_Corrected 1.m",capturability
 Hudson,USRP_Gain_dB,30,assumed,"RFBudget_Ch27_Corrected 1.m nominal TwinRX gain setting",capturability
+RecoveredRoi,LatitudeWindow_deg,42.308200 to 42.542500,inferred,"Recovered from the saved output figure in FlightTest_Bistatic_RadarAndCommsAnalysis.mlx",bistatic detectability plausibility
+RecoveredRoi,LongitudeWindow_deg,-71.590800 to -71.004900,inferred,"Recovered from the saved output figure in FlightTest_Bistatic_RadarAndCommsAnalysis.mlx",bistatic detectability plausibility
+WestCorridor,LatitudeWindow_deg,42.182143 to 42.416443,assumed,"Additive due-west surveillance corridor defined for the antenna check",due-west surveillance check
+WestCorridor,LongitudeWindow_deg,-71.849500 to -71.349500,assumed,"Additive due-west surveillance corridor defined for the antenna check",due-west surveillance check
+WestCorridor,BoresightAzimuth_deg,270,assumed,"Visual-only due-west receiver boresight marker for the antenna check; not applied as directional receive gain",geometry review

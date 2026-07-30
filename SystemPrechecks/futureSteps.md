@@ -3,7 +3,7 @@
 The items below are intentionally deferred.
 They are not required to complete this session's cleanup, restructuring, write-up, or deck.
 
-- Rerun the Newton-specific bistatic link budget so `TargetPathPower_dBm` no longer inherits the Hudson placeholder.
+- Promote the recovered saved-figure ROI into an explicit checked-in geometry input so the deterministic target-path helper no longer depends on recovered coordinates embedded in code.
 - Freeze the retained live scripts to the assumptions table so Newton/Hudson station identity, ERP, and RF channel data are no longer embedded ad hoc inside the `.mlx` workflows.
 - Replace interactive ROI and polyline selection in the supporting link-budget live scripts with checked-in deterministic geometry inputs.
 - Run a field spectrum survey at the receiver location to bound adjacent-channel loading and real direct-path levels before capture.
