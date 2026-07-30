@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "matlab"
+  ],
+  "enableAllProjectMcpServers": true
+}
