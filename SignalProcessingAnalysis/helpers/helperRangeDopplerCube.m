@@ -6,16 +6,7 @@ function [resp, range, speed] = helperRangeDopplerCube(surv, ref, fs, fc, maxSpe
     %   Doppler processing.
 
     % Get the matrix dimensions based on the desired max unambiguous speed
-    prf = speed2dop(maxSpeed, freq2wavelen(fc)) * 2;
-    pri = 1 / prf;
-    nSamplePerPulse = round(pri * fs);
-
-    % Rearrange data into columns
-    ns = length(surv);
-    nCol = floor(ns / nSamplePerPulse);
-    if mod(nCol, 2) == 0
-        nCol = nCol - 1;
-    end
+    [nSamplePerPulse,nCol] = helperGetCubeDims(surv,fs,fc,maxSpeed);
     ns = nCol * nSamplePerPulse;
     surv = surv(1:ns);
     ref = ref(1:ns);
