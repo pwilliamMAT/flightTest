@@ -33,9 +33,33 @@ disp(['Required SNR: ', num2str(requiredSnr)])
 
 fname = 'n320_hdtv_capture_20260708T135521_part1';
 
+%% No filter test
+
+% Test the SNR results when no DSI suppression filter is used
+
+signalProcessingNoFilter(fname,requiredSnr);
+
 %% Baseline Test
 
 % The baseline signal processing approach is a Wiener filter + RangeDoppler
 % analysis rearranging data into a cube.
 
 baselineSignalProcessingTest(fname,requiredSnr);
+
+%% Wiener tap variation testing
+
+% Test how the number of taps affects SNR.
+
+wienerTapVariationTest(fname,requiredSnr);
+
+%% BLMS Test
+
+% Block least mean square DSI suppression.
+
+blmsDsiSuppressionTest(fname,requiredSnr);
+
+%% Doppler Filter Bank Test
+
+% Use a bank of Doppler filters instead of rearranging into a cube.
+
+dopplerFilterBankTest(fname, requiredSnr);

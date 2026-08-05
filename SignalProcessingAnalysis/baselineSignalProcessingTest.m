@@ -14,14 +14,12 @@ ref = double(raw_data(:, 2));
 % Configure test
 cfg = SignalProcessingConfig(fs);
 
-
-% Use Wiener filter with 1000 taps and perform RD processing on data
-% arranged into a cube.
+% Use Wiener filter with 1000 taps
 wTaps = 1000;
-maxUnambigSpeed = cfg.MaxSpeed;
 filterFcn = @(tsurv, tref) helperWienerHopfFilter(tsurv, tref, wTaps);
-rdFcn = @(tsurv, tref) ...
-    helperRangeDopplerCube(tsurv, tref, fs, cfg.Fc, maxUnambigSpeed);
+
+% Apply Wiener filter and then rd processing
+rdFcn = @(tsurv, tref) helperRangeDopplerCube(tsurv, tref, fs, cfg.Fc, cfg.MaxSpeed);
 testFcn = @(tsurv, tref) helperBaselineProcessing(tsurv, tref, filterFcn, rdFcn);
 
 % Measure the SNR of the test function with targets injected at the given

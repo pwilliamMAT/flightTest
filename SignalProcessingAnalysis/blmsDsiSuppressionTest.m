@@ -1,3 +1,9 @@
+function blmsDsiSuppressionTest(fname,requiredSnr)
+arguments
+    fname = 'n320_hdtv_capture_20260708T135521_part1'
+    requiredSnr = 13
+end
+
 % blmsDsiSuppressionTest  Test BLMS algorithm for DSI suppression.
 %   Uses the Block LMS adaptive filter for Direct Signal Interference
 %   suppression and measures SNR. This tests an alternative to the
@@ -9,40 +15,29 @@
 %
 %   Reference: https://www.mathworks.com/help/phased/ug/direct-signal-interference-dsi-suppression-in-passive-radar.html
 
-%% Setup
-
-pd = 0.9;
-far = 1e-6;
-requiredSnr = shnidman(pd, far);
-
-%% Load real data
-
-fname = 'n320_hdtv_capture_20260708T135521_part1';
+% Load data
 reader = comm.BasebandFileReader(fname, 'SamplesPerFrame', inf);
 raw_data = reader();
 fs = reader.SampleRate;
 surv = double(raw_data(:, 1));
 ref = double(raw_data(:, 2));
 
-%% Configure test
-
+% Configure test
 cfg = SignalProcessingConfig(fs);
 maxUnambigSpeed = cfg.MaxSpeed;
 
-%% BLMS DSI suppression test
-
+% BLMS DSI filter
 nTaps = 100;
 filterFcn = @(tsurv, tref) helperBlmsFilter(tsurv, tref, nTaps);
-rdFcn = @(tsurv, tref) ...
-    helperRangeDopplerCube(tsurv, tref, fs, cfg.Fc, maxUnambigSpeed);
-testFcn = @(tsurv, tref) ...
-    blmsProcessing(tsurv, tref, filterFcn, rdFcn);
+
+% RD cube
+rdFcn = @(tsurv, tref) helperRangeDopplerCube(tsurv, tref, fs, cfg.Fc, maxUnambigSpeed);
+
+% Apply BLMS filter and then rd cube processing
+testFcn = @(tsurv, tref) helperBaselineProcessing(tsurv, tref, filterFcn, rdFcn);
 
 measuredSnr = helperMeasureSNR(surv, ref, cfg, testFcn);
 helperPlotSnr(cfg.Attenuation, measuredSnr, requiredSnr, ...
     'BLMS DSI Suppression');
 
-function [rd, range, doppler] = blmsProcessing(surv, ref, filterFcn, rdFcn)
-    survFiltered = filterFcn(surv, ref);
-    [rd, range, doppler] = rdFcn(survFiltered, ref);
 end
