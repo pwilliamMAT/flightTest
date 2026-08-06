@@ -72,8 +72,8 @@ projectRoot = fileparts(testRoot);
 analysisRoot = fullfile(projectRoot, 'BistaticDataAnalysis');
 originalFolder = pwd;
 originalPath = path;
-cleanupFolder = onCleanup(@() cd(originalFolder)); %#ok<NASGU>
-cleanupPath = onCleanup(@() path(originalPath)); %#ok<NASGU>
+cleanupFolder = onCleanup(@() cd(originalFolder));
+cleanupPath = onCleanup(@() path(originalPath));
 
 cd(testRoot);
 addpath(analysisRoot, '-begin');
@@ -496,7 +496,12 @@ numSamples = max(4096, round(opts.CaptureDuration_s * sampleRateHz));
 t = (0:(numSamples - 1)).' / sampleRateHz;
 rng(1000 + stepIndex);
 
-directionalGain = 0.25 + 0.75 * cosd(bearingDeg - 45).^2;
+% DryRun uses a simple synthetic antenna pattern so the analysis products
+% visibly demonstrate the intended behavior: the directional channel changes
+% with pointing angle, while the reference channel remains mostly stable.
+% This is not meant to model a specific antenna; it is only a deterministic
+% verification signal for the report-generation path.
+directionalGain = 0.15 + 0.85 * ((1 + cosd(bearingDeg)) / 2).^2;
 referenceGain = 0.65;
 noiseScale = 0.02;
 toneOffsetsHz = double(opts.ToneOffsets_Hz(:));
@@ -512,9 +517,9 @@ envelope = zeros(numSamples, 1);
 envelope(pulseStart:pulseStop) = 1;
 
 interferer = 0.04 * exp(1j * 2 * pi * (-0.32e6) * t);
-surveillanceSignal = directionalGain * envelope .* comb + interferer + ...
+surveillanceSignal = directionalGain * (envelope .* comb + interferer) + ...
     noiseScale * (randn(numSamples, 1) + 1j * randn(numSamples, 1));
-referenceSignal = referenceGain * envelope .* comb + 0.6 * interferer + ...
+referenceSignal = referenceGain * (envelope .* comb + 0.6 * interferer) + ...
     noiseScale * (randn(numSamples, 1) + 1j * randn(numSamples, 1));
 
 captureInfo = struct( ...
