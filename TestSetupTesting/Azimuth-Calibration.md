@@ -13,7 +13,7 @@ records both receive channels:
 - **Reference channel**: the antenna that should stay fixed and provide a
   stable comparison.
 
-During each capture, Pluto briefly transmits the standard 11-tone comb.  The
+During each capture, Pluto briefly transmits the standard 12-tone no-DC comb.  The
 longer capture tells us what the **ambient RF environment** looks like at that
 bearing.  The short Pluto burst gives a **calibration marker** that can reveal
 how the directional antenna response changes with pointing angle.
@@ -38,7 +38,7 @@ Capture duration: 5-10 s, depending on launcher argument
 Pluto pulse start: 0.5 s after capture begins
 Pluto pulse duration: 0.2 s
 Writer frame duration: 0.1 s
-Tone comb: 11 tones, -500 kHz to +500 kHz in 100 kHz steps
+Tone comb: 12 tones, -650 kHz to +650 kHz, skipping exact DC
 ```
 
 The fixed 0.1 s frame size is intentional.  `comm.BasebandFileWriter` requires
@@ -114,7 +114,33 @@ calibration_tone_margin_by_frequency.png
 directional_psd_heatmap.png
 reference_psd_heatmap.png
 channel_ratio_and_metrics.png
+rsync_exclude_large_captures.txt
 ```
+
+## Copying reports without the large capture files
+
+The raw N320 baseband captures are intentionally tagged so they are easy to
+exclude when syncing back to a development laptop:
+
+```text
+bb_captures_exclude_from_rsync/
+*__BB_CAPTURE_DO_NOT_RSYNC*
+```
+
+Each report folder includes:
+
+```text
+rsync_exclude_large_captures.txt
+```
+
+Example from the parent of the scan folder on the field computer:
+
+```bash
+rsync -av --exclude-from=az_remote_debug/rsync_exclude_large_captures.txt az_remote_debug/ user@devbox:/path/to/az_remote_debug/
+```
+
+That copies the HTML, CSV, text, MAT summary, and PNG report artifacts while
+skipping the large raw capture files.
 
 ## How to interpret the top-level azimuth metrics
 
@@ -133,7 +159,7 @@ not actually moving.
 
 ### Calibration pattern polar plot
 
-`calibration_pattern_polar.png` compares the integrated 11-tone Pluto response
+`calibration_pattern_polar.png` compares the integrated 12-tone no-DC Pluto response
 versus bearing.
 
 Expected behavior during a real scan:
@@ -144,10 +170,10 @@ Expected behavior during a real scan:
 If both channels change together, suspect a transmitter, receiver, gain, or
 environmental change that is not caused by antenna pointing alone.
 
-## How to interpret the 11-tone calibration data
+## How to interpret the 12-tone no-DC calibration data
 
 The integrated comb score is useful, but it hides frequency-dependent behavior.
-The per-tone artifacts show whether the band shape changes across the 11 comb
+The per-tone artifacts show whether the band shape changes across the 12-tone no-DC comb
 frequencies.
 
 ### `calibration_tone_summary.csv`
@@ -165,7 +191,7 @@ This CSV has one row per bearing per tone.  Important columns:
 
 Useful checks:
 
-- Are all 11 tones present at every bearing?
+- Are all 12 tones present at every bearing?
 - Does one tone consistently have lower margin?
 - Does the directional-minus-reference shape change with bearing?
 - Does one edge of the comb behave differently from the other edge?
@@ -183,7 +209,7 @@ behavior.
 
 ### Per-tone by-frequency plot
 
-`calibration_tone_margin_by_frequency.png` overlays the 11-tone comb shape for
+`calibration_tone_margin_by_frequency.png` overlays the 12-tone no-DC comb shape for
 each bearing.
 
 In a good stable calibration:
@@ -206,4 +232,3 @@ conditions, such as a vehicle parked near the antennas.
 If no, the remote-debug run may still be useful as an end-to-end system test,
 but it is not a real antenna-pattern measurement unless the directional antenna
 was physically rotated.
-

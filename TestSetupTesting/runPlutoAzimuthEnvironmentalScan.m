@@ -5,7 +5,7 @@ function scan = runPlutoAzimuthEnvironmentalScan(varargin)
 %   This scan turns the directional antenna into a simple hand-rotated RF
 %   survey instrument. At each requested bearing, the N320 records both the
 %   directional and reference channels. During a short, known window inside
-%   that capture, Pluto transmits the standard 11-tone comb. The ambient
+%   that capture, Pluto transmits the standard 12-tone no-DC comb. The ambient
 %   capture tells us what the RF environment looks like versus azimuth; the
 %   short comb burst gives a same-run calibration marker for the directional
 %   antenna pattern while the reference channel should remain relatively
@@ -48,7 +48,7 @@ addParameter(p, 'CenterFrequency_Hz', 599e6, @(x) isnumeric(x) && isscalar(x) &&
 addParameter(p, 'SampleRate_Hz', 8e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'LOOffset_Hz', 0, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'Gain', [30 50], @(x) isnumeric(x) && (isscalar(x) || numel(x) == 2));
-addParameter(p, 'ToneOffsets_Hz', (-500:100:500) * 1e3, ...
+addParameter(p, 'ToneOffsets_Hz', [-650 -550 -450 -350 -250 -150 150 250 350 450 550 650] * 1e3, ...
     @(x) isnumeric(x) && isvector(x) && ~isempty(x));
 addParameter(p, 'TargetRMSAmplitude', 0.20, @(x) isnumeric(x) && isscalar(x) && x > 0 && x < 1);
 addParameter(p, 'PeakLimit', 0.80, @(x) isnumeric(x) && isscalar(x) && x > 0 && x <= 1);
@@ -122,7 +122,7 @@ for stepIndex = 1:opts.NumAzimuthSteps
     localPromptForBearing(stepIndex, opts.NumAzimuthSteps, bearingDeg, opts.AutoConfirm);
 
     stepSessionId = localStepSessionId(scanId, stepIndex, bearingDeg);
-    captureFileBase = fullfile(captureRoot, char(stepSessionId));
+    captureFileBase = fullfile(captureRoot, char(stepSessionId) + "__BB_CAPTURE_DO_NOT_RSYNC");
     if opts.Verbose
         fprintf('[runPlutoAzimuthEnvironmentalScan] Step %02d/%02d | bearing %06.2f deg true\n', ...
             stepIndex, opts.NumAzimuthSteps, bearingDeg);
@@ -206,7 +206,7 @@ end
 function captureRoot = localResolveCaptureRoot(scanRoot, requestedRoot)
 captureRoot = string(requestedRoot);
 if strlength(captureRoot) == 0
-    captureRoot = fullfile(scanRoot, 'captures');
+    captureRoot = fullfile(scanRoot, 'bb_captures_exclude_from_rsync');
 end
 end
 
@@ -1098,6 +1098,7 @@ artifactPaths = struct( ...
     'result_mat', string(fullfile(scanRoot, 'scan_result.mat')), ...
     'summary_csv', string(fullfile(scanRoot, 'azimuth_summary.csv')), ...
     'calibration_tone_csv', string(fullfile(scanRoot, 'calibration_tone_summary.csv')), ...
+    'rsync_exclude_txt', string(fullfile(scanRoot, 'rsync_exclude_large_captures.txt')), ...
     'summary_txt', string(fullfile(scanRoot, 'summary.txt')), ...
     'html', string(fullfile(scanRoot, 'index.html')), ...
     'environment_power_png', string(fullfile(scanRoot, 'environment_power_polar.png')), ...
@@ -1112,6 +1113,7 @@ scan.artifact_paths = artifactPaths;
 save(artifactPaths.result_mat, 'scan');
 writetable(scan.summary_table, artifactPaths.summary_csv);
 writetable(scan.calibration_tone_table, artifactPaths.calibration_tone_csv);
+localWriteRsyncExcludeFile(artifactPaths.rsync_exclude_txt);
 localWriteText(artifactPaths.summary_txt, localSummaryText(scan));
 
 if opts.PlotFigures
@@ -1167,7 +1169,7 @@ fig = figure('Name', 'Azimuth calibration comb pattern', 'Color', 'w', 'Visible'
 polarplot(theta, dirCal, '-o', 'LineWidth', 1.3);
 hold on;
 polarplot(theta, refCal, '-o', 'LineWidth', 1.3);
-title('Pluto 11-tone calibration response versus azimuth');
+title('Pluto 12-tone no-DC calibration response versus azimuth');
 legend({'Directional', 'Reference'}, 'Location', 'bestoutside');
 end
 
@@ -1211,7 +1213,7 @@ toneTable = scan.calibration_tone_table;
 
 fig = figure('Name', 'Per-tone calibration margin by frequency', 'Color', 'w', 'Visible', figureVisibility);
 tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
-title(tl, 'Pluto comb calibration shape across the 11 tones');
+title(tl, 'Pluto comb calibration shape across the 12 tones');
 
 nexttile(tl, 1);
 plot(toneOffsetsKHz, dirMatrix.', '-o', 'LineWidth', 1.1);
@@ -1362,7 +1364,7 @@ textLines = [
     ""
     "Interpretation:"
     "The ambient plots estimate the RF environment with the Pluto pulse window removed."
-    "The calibration plots score only the brief Pluto 11-tone burst."
+    "The calibration plots score only the brief Pluto 12-tone no-DC burst."
     "A useful scan should show more azimuth variation on the directional channel than on the reference channel."
     ];
 end
@@ -1376,6 +1378,18 @@ end
 cleanupFile = onCleanup(@() fclose(fid));
 fprintf(fid, '%s\n', lines);
 clear cleanupFile
+end
+
+function localWriteRsyncExcludeFile(path)
+lines = [
+    "# rsync exclude patterns for large azimuth-scan N320 baseband captures"
+    "# Example from the scan folder parent:"
+    "#   rsync -av --exclude-from=<scan_id>/rsync_exclude_large_captures.txt <scan_id>/ ./<scan_id>/"
+    "bb_captures_exclude_from_rsync/"
+    "bb_captures_exclude_from_rsync/**"
+    "*__BB_CAPTURE_DO_NOT_RSYNC*"
+    ];
+localWriteText(path, lines);
 end
 
 function localWriteHtml(scan)
@@ -1403,7 +1417,7 @@ fprintf(fid, '<strong>Directional channel:</strong> %s</p>\n', ...
 fprintf(fid, '<h2>Plain-language interpretation</h2>\n');
 fprintf(fid, ['<p>The ambient spectra show what the two receive channels saw while the Pluto ', ...
     'calibration burst window was excluded. The calibration pattern scores only the short ', ...
-    '11-tone Pluto burst. If the directional antenna is behaving like a directional sensor, ', ...
+    '12-tone no-DC Pluto burst. If the directional antenna is behaving like a directional sensor, ', ...
     'its ambient and calibration curves should change more with bearing than the reference channel.</p>\n']);
 
 fprintf(fid, '<h2>Summary</h2>\n<ul>\n');
@@ -1437,6 +1451,7 @@ fprintf(fid, '<li><a href="summary.txt">summary.txt</a></li>\n');
 fprintf(fid, '<li><a href="scan_result.mat">scan_result.mat</a></li>\n');
 fprintf(fid, '<li><a href="azimuth_summary.csv">azimuth_summary.csv</a></li>\n');
 fprintf(fid, '<li><a href="calibration_tone_summary.csv">calibration_tone_summary.csv</a></li>\n');
+fprintf(fid, '<li><a href="rsync_exclude_large_captures.txt">rsync_exclude_large_captures.txt</a></li>\n');
 fprintf(fid, '</ul>\n');
 fprintf(fid, '</body></html>\n');
 clear cleanupFile
