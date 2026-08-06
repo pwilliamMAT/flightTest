@@ -34,11 +34,13 @@ estimating the ambient PSD with `pwelch`.
 The default launcher settings are:
 
 ```text
-Capture duration: 5-10 s, depending on launcher argument
+Azimuth steps: 8
+Capture duration: 4 s per bearing
 Pluto pulse start: 0.5 s after capture begins
 Pluto pulse duration: 0.2 s
 Writer frame duration: 0.1 s
 Tone comb: 12 tones, -650 kHz to +650 kHz, skipping exact DC
+Default folder name: az_scan_XXsteps_YYsecs_JJJJHHMM
 ```
 
 The fixed 0.1 s frame size is intentional.  `comm.BasebandFileWriter` requires
@@ -60,7 +62,7 @@ git fetch origin
 git switch feature/pluto-azimuth-environment-scan
 git pull --ff-only
 cd TestSetupTesting
-bash run_pluto_azimuth_environment_scan.sh 4 5 az_remote_debug auto
+bash run_pluto_azimuth_environment_scan.sh -n 4 -c 5 -i az_remote_debug -a auto
 ```
 
 ## Real field run
@@ -73,14 +75,20 @@ Example 8-point scan:
 
 ```bash
 cd ~/Documents/flightTest-pluto/TestSetupTesting
-bash run_pluto_azimuth_environment_scan.sh 8 10 roof_azimuth_scan8
+bash run_pluto_azimuth_environment_scan.sh -n 8 -c 4 -i roof_azimuth_scan8
 ```
 
-Example 16-point scan:
+Example denser 24-point scan:
 
 ```bash
 cd ~/Documents/flightTest-pluto/TestSetupTesting
-bash run_pluto_azimuth_environment_scan.sh 16 10 roof_azimuth_scan16
+bash run_pluto_azimuth_environment_scan.sh --num-steps 24 --capture-seconds 6 --scan-id roof_azimuth_scan24
+```
+
+Launcher help:
+
+```bash
+bash run_pluto_azimuth_environment_scan.sh --help
 ```
 
 ## Output folder
@@ -90,6 +98,15 @@ Each scan writes a self-contained report folder:
 ```text
 captures/plutoAzimuthEnvironmentScans/<scan_id>/
 ```
+
+If `--scan-id` is omitted, the launcher creates a name like:
+
+```text
+az_scan_08steps_04secs_62181430
+```
+
+Here `6218` means year digit `6` plus Julian day `218`, and `1430` is
+local 24-hour time.
 
 The main review file is:
 

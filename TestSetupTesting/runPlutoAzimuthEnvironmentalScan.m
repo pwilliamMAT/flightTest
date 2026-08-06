@@ -12,7 +12,7 @@ function scan = runPlutoAzimuthEnvironmentalScan(varargin)
 %   stable.
 %
 % Operator workflow:
-%   1. Choose 4, 8, or 16 azimuth steps.
+%   1. Choose the number of azimuth steps for the desired angular spacing.
 %   2. Point the directional antenna at the prompted true bearing.
 %   3. Press Enter when the antenna is stable.
 %   4. The function captures both N320 channels and injects one 0.2 s Pluto
@@ -27,17 +27,17 @@ function scan = runPlutoAzimuthEnvironmentalScan(varargin)
 %
 % Example:
 %   scan = runPlutoAzimuthEnvironmentalScan('NumAzimuthSteps', 8, ...
-%       'CaptureDuration_s', 10, 'PulseDuration_s', 0.2);
+%       'CaptureDuration_s', 4, 'PulseDuration_s', 0.2);
 %
 % See also: helperPlutoMultitoneBuildWaveform, helperPlutoToneStartTx,
 % helperPlutoMultitoneScoreCapture, pwelch.
 
 p = inputParser;
 p.FunctionName = mfilename;
-addParameter(p, 'NumAzimuthSteps', 8, @localMustBeSupportedStepCount);
+addParameter(p, 'NumAzimuthSteps', 8, @localMustBePositiveIntegerScalar);
 addParameter(p, 'StartBearing_deg', 0, @(x) isnumeric(x) && isscalar(x) && isfinite(x));
 addParameter(p, 'Clockwise', true, @(x) islogical(x) && isscalar(x));
-addParameter(p, 'CaptureDuration_s', 10, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'CaptureDuration_s', 4, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'PulseStartDelay_s', 0.5, @(x) isnumeric(x) && isscalar(x) && x >= 0);
 addParameter(p, 'PulseDuration_s', 0.2, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'SessionID', "", @(x) ischar(x) || isstring(x));
@@ -78,7 +78,7 @@ cleanupPath = onCleanup(@() path(originalPath));
 cd(testRoot);
 addpath(analysisRoot, '-begin');
 
-scanId = localResolveScanId(opts.SessionID);
+scanId = localResolveScanId(opts.SessionID, opts.NumAzimuthSteps, opts.CaptureDuration_s);
 scanRoot = localResolveOutputRoot(projectRoot, scanId, opts.OutputRoot);
 captureRoot = localResolveCaptureRoot(scanRoot, opts.CaptureRoot);
 if ~isfolder(scanRoot)
@@ -170,10 +170,10 @@ if opts.Verbose
 end
 end
 
-function localMustBeSupportedStepCount(value)
-if ~(isnumeric(value) && isscalar(value) && any(double(value) == [4 8 16]))
-    error('runPlutoAzimuthEnvironmentalScan:unsupportedStepCount', ...
-        'NumAzimuthSteps must be 4, 8, or 16.');
+function localMustBePositiveIntegerScalar(value)
+if ~(isnumeric(value) && isscalar(value) && isfinite(value) && value == fix(value) && value >= 1)
+    error('runPlutoAzimuthEnvironmentalScan:invalidStepCount', ...
+        'NumAzimuthSteps must be a positive integer scalar.');
 end
 end
 
@@ -188,12 +188,37 @@ if opts.PulseDuration_s * opts.SampleRate_Hz < 2048
 end
 end
 
-function scanId = localResolveScanId(requestedId)
+function scanId = localResolveScanId(requestedId, numSteps, captureDuration_s)
 scanId = string(requestedId);
 if strlength(scanId) == 0
-    scanId = "pluto_azimuth_environment_" + string(datetime('now', 'TimeZone', 'UTC', ...
-        'Format', 'yyyyMMdd''T''HHmmss'));
+    scanId = "az_scan_" + localCountLabel(numSteps) + "steps_" + ...
+        localDurationLabel(captureDuration_s) + "secs_" + localJulianMinuteStamp();
 end
+end
+
+function label = localCountLabel(value)
+label = compose("%02d", round(double(value)));
+end
+
+function label = localDurationLabel(value)
+value = double(value);
+if abs(value - round(value)) < eps(max(1, abs(value)))
+    label = compose("%02d", round(value));
+else
+    label = replace(string(compose("%.3f", value)), ".", "p");
+    label = regexprep(label, "0+$", "");
+    label = regexprep(label, "p$", "");
+end
+end
+
+function stamp = localJulianMinuteStamp()
+nowLocal = datetime('now');
+yearDigit = mod(year(nowLocal), 10);
+dayOfYear = day(nowLocal, 'dayofyear');
+timeText = nowLocal;
+timeText.Format = 'HHmm';
+stamp = string(compose("%1d%03d", yearDigit, dayOfYear)) + ...
+    string(timeText);
 end
 
 function scanRoot = localResolveOutputRoot(projectRoot, scanId, requestedRoot)
