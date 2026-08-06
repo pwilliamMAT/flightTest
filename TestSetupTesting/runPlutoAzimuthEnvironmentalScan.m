@@ -15,7 +15,7 @@ function scan = runPlutoAzimuthEnvironmentalScan(varargin)
 %   1. Choose the number of azimuth steps for the desired angular spacing.
 %   2. Point the directional antenna at the prompted true bearing.
 %   3. Press Enter when the antenna is stable.
-%   4. The function captures both N320 channels and injects one 0.2 s Pluto
+%   4. The function captures both N320 channels and injects one 1.0 s Pluto
 %      multitone calibration burst during the capture.
 %   5. Repeat clockwise until the full 360 degree scan is complete.
 %
@@ -27,7 +27,7 @@ function scan = runPlutoAzimuthEnvironmentalScan(varargin)
 %
 % Example:
 %   scan = runPlutoAzimuthEnvironmentalScan('NumAzimuthSteps', 8, ...
-%       'CaptureDuration_s', 4, 'PulseDuration_s', 0.2);
+%       'CaptureDuration_s', 4, 'PulseDuration_s', 1.0);
 %
 % See also: helperPlutoMultitoneBuildWaveform, helperPlutoToneStartTx,
 % helperPlutoMultitoneScoreCapture, pwelch.
@@ -39,7 +39,7 @@ addParameter(p, 'StartBearing_deg', 0, @(x) isnumeric(x) && isscalar(x) && isfin
 addParameter(p, 'Clockwise', true, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'CaptureDuration_s', 4, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'PulseStartDelay_s', 0.5, @(x) isnumeric(x) && isscalar(x) && x >= 0);
-addParameter(p, 'PulseDuration_s', 0.2, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'PulseDuration_s', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'SessionID', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'CaptureRoot', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'OutputRoot', "", @(x) ischar(x) || isstring(x));
@@ -324,7 +324,7 @@ addParameter(p, 'LOOffset_Hz', 0, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'Gain', [30 50], @(x) isnumeric(x) && (isscalar(x) || numel(x) == 2));
 addParameter(p, 'CaptureDuration_s', 10, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'PulseStartDelay_s', 0.5, @(x) isnumeric(x) && isscalar(x) && x >= 0);
-addParameter(p, 'PulseDuration_s', 0.2, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'PulseDuration_s', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'CombWaveform', [], @(x) isnumeric(x) && isvector(x) && ~isempty(x));
 addParameter(p, 'Bearing_deg', NaN, @(x) isnumeric(x) && isscalar(x));
 addParameter(p, 'CaptureSegment_s', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 0);
@@ -496,7 +496,7 @@ function capturePlan = localBuildCapturePlan(captureDuration_s, pulseStartDelay_
 % BasebandFileWriter locks the input frame size after the first write.  The
 % azimuth scan therefore quantizes the pre-pulse, pulse, and post-pulse
 % windows to an integer number of identical capture frames instead of
-% writing one 0.5 s frame followed by one 0.2 s frame.
+% writing one pre-pulse frame followed by a different-sized pulse frame.
 frameDuration_s = double(frameDuration_s);
 preFrames = max(0, round(double(pulseStartDelay_s) / frameDuration_s));
 pulseFrames = max(1, round(double(pulseDuration_s) / frameDuration_s));
@@ -1380,6 +1380,10 @@ textLines = [
     "Created UTC: " + string(scan.created_utc)
     "Steps: " + string(analysis.num_steps)
     "Directional channel: " + string(analysis.directional_channel)
+    "Capture duration per bearing: " + compose("%.2f", scan.settings.capture_duration_s) + " s"
+    "Pluto calibration pulse: " + compose("%.2f", scan.settings.pulse_duration_s) + " s after " + ...
+        compose("%.2f", scan.settings.pulse_start_delay_s) + " s"
+    "Approximate ambient-only duration: " + compose("%.2f", max(0, scan.settings.capture_duration_s - scan.settings.pulse_duration_s)) + " s"
     "Ambient directional span: " + compose("%.2f", analysis.directional_ambient_power_span_db) + " dB"
     "Ambient reference span: " + compose("%.2f", analysis.reference_ambient_power_span_db) + " dB"
     "Calibration directional span: " + compose("%.2f", analysis.directional_calibration_span_db) + " dB"
@@ -1446,6 +1450,11 @@ fprintf(fid, ['<p>The ambient spectra show what the two receive channels saw whi
     'its ambient and calibration curves should change more with bearing than the reference channel.</p>\n']);
 
 fprintf(fid, '<h2>Summary</h2>\n<ul>\n');
+fprintf(fid, '<li>Capture duration per bearing: %.2f s</li>\n', scan.settings.capture_duration_s);
+fprintf(fid, '<li>Pluto calibration pulse: %.2f s after %.2f s</li>\n', ...
+    scan.settings.pulse_duration_s, scan.settings.pulse_start_delay_s);
+fprintf(fid, '<li>Approximate ambient-only duration: %.2f s</li>\n', ...
+    max(0, scan.settings.capture_duration_s - scan.settings.pulse_duration_s));
 fprintf(fid, '<li>Directional ambient span: %.2f dB</li>\n', scan.analysis.directional_ambient_power_span_db);
 fprintf(fid, '<li>Reference ambient span: %.2f dB</li>\n', scan.analysis.reference_ambient_power_span_db);
 fprintf(fid, '<li>Directional calibration span: %.2f dB</li>\n', scan.analysis.directional_calibration_span_db);

@@ -18,16 +18,18 @@ longer capture tells us what the **ambient RF environment** looks like at that
 bearing.  The short Pluto burst gives a **calibration marker** that can reveal
 how the directional antenna response changes with pointing angle.
 
-## Why the Pluto pulse is brief
+## Why the Pluto pulse is bounded
 
 The scan has two different measurements inside each bearing capture:
 
 1. **Ambient RF measurement**: everything except the Pluto pulse window.
-2. **Calibration-comb measurement**: only the short Pluto pulse window.
+2. **Calibration-comb measurement**: only the Pluto pulse window.
 
-Keeping the Pluto burst short means the ambient spectrum is not dominated by
-our own calibration transmitter.  The analysis removes the pulse window before
-estimating the ambient PSD with `pwelch`.
+Keeping the Pluto burst bounded means the ambient spectrum is not dominated by
+our own calibration transmitter. The current default is intentionally longer
+than the original 0.2 s smoke-test pulse so each individual tone has more
+samples for calibration scoring. The analysis still removes the pulse window
+before estimating the ambient PSD with `pwelch`.
 
 ## Current default timing
 
@@ -37,7 +39,7 @@ The default launcher settings are:
 Azimuth steps: 8
 Capture duration: 4 s per bearing
 Pluto pulse start: 0.5 s after capture begins
-Pluto pulse duration: 0.2 s
+Pluto pulse duration: 1.0 s
 Writer frame duration: 0.1 s
 Tone comb: 12 tones, -650 kHz to +650 kHz, skipping exact DC
 Default folder name: az_scan_XXsteps_YYsecs_JJJJHHMM
@@ -62,7 +64,7 @@ git fetch origin
 git switch feature/pluto-azimuth-environment-scan
 git pull --ff-only
 cd TestSetupTesting
-bash run_pluto_azimuth_environment_scan.sh -n 4 -c 5 -i az_remote_debug -a auto
+bash run_pluto_azimuth_environment_scan.sh -n 4 -c 5 -p 1.0 -i az_remote_debug -a auto
 ```
 
 ## Real field run
@@ -75,14 +77,14 @@ Example 8-point scan:
 
 ```bash
 cd ~/Documents/flightTest-pluto/TestSetupTesting
-bash run_pluto_azimuth_environment_scan.sh -n 8 -c 4 -i roof_azimuth_scan8
+bash run_pluto_azimuth_environment_scan.sh -n 8 -c 4 -p 1.0 -i roof_azimuth_scan8
 ```
 
 Example denser 24-point scan:
 
 ```bash
 cd ~/Documents/flightTest-pluto/TestSetupTesting
-bash run_pluto_azimuth_environment_scan.sh --num-steps 24 --capture-seconds 6 --scan-id roof_azimuth_scan24
+bash run_pluto_azimuth_environment_scan.sh --num-steps 24 --capture-seconds 6 --pulse-seconds 1.5 --scan-id roof_azimuth_scan24
 ```
 
 Launcher help:
