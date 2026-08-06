@@ -1003,15 +1003,107 @@ end
 bearing = summaryTable.Bearing_deg(idx);
 end
 
+function toneTable = localBuildCalibrationToneTable(steps)
+rows = cell(numel(steps), 1);
+for stepIdx = 1:numel(steps)
+    rows{stepIdx} = localBuildStepToneTable(steps(stepIdx));
+end
+
+if isempty(rows)
+    toneTable = table();
+else
+    toneTable = vertcat(rows{:});
+end
+end
+
+function toneTable = localBuildStepToneTable(step)
+metrics = step.calibration_metrics;
+directionalChannel = string(step.environment_metrics.directional_channel);
+[directionalMetrics, referenceMetrics] = localDirectionalAndReferenceMetrics(metrics, directionalChannel);
+
+toneOffsetsHz = double(metrics.tone_offsets_hz(:));
+numTones = numel(toneOffsetsHz);
+toneTable = table( ...
+    repmat(double(step.step_index), numTones, 1), ...
+    repmat(double(step.bearing_deg), numTones, 1), ...
+    repmat(string(step.session_id), numTones, 1), ...
+    toneOffsetsHz, ...
+    toneOffsetsHz / 1e3, ...
+    localColumn(referenceMetrics.detect_margin_db, numTones), ...
+    localColumn(directionalMetrics.detect_margin_db, numTones), ...
+    localColumn(directionalMetrics.detect_margin_db, numTones) - localColumn(referenceMetrics.detect_margin_db, numTones), ...
+    localColumn(referenceMetrics.tone_peak_dbfs, numTones), ...
+    localColumn(directionalMetrics.tone_peak_dbfs, numTones), ...
+    localColumn(referenceMetrics.local_floor_dbfs, numTones), ...
+    localColumn(directionalMetrics.local_floor_dbfs, numTones), ...
+    localColumn(referenceMetrics.tone_found, numTones), ...
+    localColumn(directionalMetrics.tone_found, numTones), ...
+    localColumn(metrics.joint.channel_frequency_delta_hz, numTones), ...
+    'VariableNames', { ...
+        'StepIndex', ...
+        'Bearing_deg', ...
+        'SessionID', ...
+        'ToneOffset_Hz', ...
+        'ToneOffset_kHz', ...
+        'ReferenceDetectMargin_dB', ...
+        'DirectionalDetectMargin_dB', ...
+        'DirectionalMinusReferenceMargin_dB', ...
+        'ReferenceTonePeak_dBFS', ...
+        'DirectionalTonePeak_dBFS', ...
+        'ReferenceLocalFloor_dBFS', ...
+        'DirectionalLocalFloor_dBFS', ...
+        'ReferenceToneFound', ...
+        'DirectionalToneFound', ...
+        'ChannelFrequencyDelta_Hz'});
+end
+
+function [directionalMetrics, referenceMetrics] = localDirectionalAndReferenceMetrics(metrics, directionalChannel)
+if strcmpi(directionalChannel, "SURV")
+    directionalMetrics = metrics.surveillance;
+    referenceMetrics = metrics.reference;
+else
+    directionalMetrics = metrics.reference;
+    referenceMetrics = metrics.surveillance;
+end
+end
+
+function values = localColumn(valuesIn, numRows)
+if isempty(valuesIn)
+    values = nan(numRows, 1);
+    return
+end
+
+values = valuesIn(:);
+if islogical(values)
+    values = logical(values);
+elseif isnumeric(values)
+    values = double(values);
+end
+
+if numel(values) < numRows
+    if islogical(values)
+        values(end + 1:numRows, 1) = false;
+    else
+        values(end + 1:numRows, 1) = NaN;
+    end
+elseif numel(values) > numRows
+    values = values(1:numRows);
+end
+end
+
 function scan = localWriteScanArtifacts(scan, scanRoot, opts)
+scan.calibration_tone_table = localBuildCalibrationToneTable(scan.steps);
 artifactPaths = struct( ...
     'scan_folder', string(scanRoot), ...
     'result_mat', string(fullfile(scanRoot, 'scan_result.mat')), ...
     'summary_csv', string(fullfile(scanRoot, 'azimuth_summary.csv')), ...
+    'calibration_tone_csv', string(fullfile(scanRoot, 'calibration_tone_summary.csv')), ...
     'summary_txt', string(fullfile(scanRoot, 'summary.txt')), ...
     'html', string(fullfile(scanRoot, 'index.html')), ...
     'environment_power_png', string(fullfile(scanRoot, 'environment_power_polar.png')), ...
     'calibration_pattern_png', string(fullfile(scanRoot, 'calibration_pattern_polar.png')), ...
+    'calibration_tone_heatmap_png', string(fullfile(scanRoot, 'calibration_tone_margin_heatmap.png')), ...
+    'calibration_tone_by_frequency_png', string(fullfile(scanRoot, 'calibration_tone_margin_by_frequency.png')), ...
     'directional_psd_heatmap_png', string(fullfile(scanRoot, 'directional_psd_heatmap.png')), ...
     'reference_psd_heatmap_png', string(fullfile(scanRoot, 'reference_psd_heatmap.png')), ...
     'channel_ratio_png', string(fullfile(scanRoot, 'channel_ratio_and_metrics.png')));
@@ -1019,6 +1111,7 @@ artifactPaths = struct( ...
 scan.artifact_paths = artifactPaths;
 save(artifactPaths.result_mat, 'scan');
 writetable(scan.summary_table, artifactPaths.summary_csv);
+writetable(scan.calibration_tone_table, artifactPaths.calibration_tone_csv);
 localWriteText(artifactPaths.summary_txt, localSummaryText(scan));
 
 if opts.PlotFigures
@@ -1033,6 +1126,12 @@ localExportFigure(fig, scan.artifact_paths.environment_power_png);
 
 fig = localPlotCalibrationPattern(scan, opts.FigureVisibility);
 localExportFigure(fig, scan.artifact_paths.calibration_pattern_png);
+
+fig = localPlotCalibrationToneHeatmap(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.calibration_tone_heatmap_png);
+
+fig = localPlotCalibrationToneByFrequency(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.calibration_tone_by_frequency_png);
 
 fig = localPlotPsdHeatmap(scan, true, opts.FigureVisibility);
 localExportFigure(fig, scan.artifact_paths.directional_psd_heatmap_png);
@@ -1070,6 +1169,92 @@ hold on;
 polarplot(theta, refCal, '-o', 'LineWidth', 1.3);
 title('Pluto 11-tone calibration response versus azimuth');
 legend({'Directional', 'Reference'}, 'Location', 'bestoutside');
+end
+
+function fig = localPlotCalibrationToneHeatmap(scan, figureVisibility)
+toneTable = scan.calibration_tone_table;
+[dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationToneMatrices(toneTable);
+
+fig = figure('Name', 'Per-tone calibration margin heatmap', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Pluto comb calibration margin by tone and azimuth');
+
+nexttile(tl, 1);
+imagesc(toneOffsetsKHz, bearingsDeg, dirMatrix);
+axis xy;
+grid on;
+colorbar;
+ylabel('Bearing (deg true)');
+title('Directional channel detect margin (dB)');
+
+nexttile(tl, 2);
+imagesc(toneOffsetsKHz, bearingsDeg, refMatrix);
+axis xy;
+grid on;
+colorbar;
+ylabel('Bearing (deg true)');
+title('Reference channel detect margin (dB)');
+
+nexttile(tl, 3);
+imagesc(toneOffsetsKHz, bearingsDeg, dirMatrix - refMatrix);
+axis xy;
+grid on;
+colorbar;
+xlabel('Tone offset (kHz)');
+ylabel('Bearing (deg true)');
+title('Directional - reference margin (dB)');
+end
+
+function fig = localPlotCalibrationToneByFrequency(scan, figureVisibility)
+toneTable = scan.calibration_tone_table;
+[dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationToneMatrices(toneTable);
+
+fig = figure('Name', 'Per-tone calibration margin by frequency', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Pluto comb calibration shape across the 11 tones');
+
+nexttile(tl, 1);
+plot(toneOffsetsKHz, dirMatrix.', '-o', 'LineWidth', 1.1);
+grid on;
+xlabel('Tone offset (kHz)');
+ylabel('Directional detect margin (dB)');
+title('Directional channel comb shape');
+legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
+
+nexttile(tl, 2);
+plot(toneOffsetsKHz, (dirMatrix - refMatrix).', '-o', 'LineWidth', 1.1);
+grid on;
+xlabel('Tone offset (kHz)');
+ylabel('Directional - reference margin (dB)');
+title('Baseline-normalized comb shape');
+legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
+end
+
+function [dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationToneMatrices(toneTable)
+if isempty(toneTable)
+    dirMatrix = zeros(0, 0);
+    refMatrix = zeros(0, 0);
+    toneOffsetsKHz = zeros(0, 1);
+    bearingsDeg = zeros(0, 1);
+    return
+end
+
+bearingsDeg = unique(toneTable.Bearing_deg, 'stable');
+toneOffsetsKHz = unique(toneTable.ToneOffset_kHz, 'stable');
+dirMatrix = nan(numel(bearingsDeg), numel(toneOffsetsKHz));
+refMatrix = nan(numel(bearingsDeg), numel(toneOffsetsKHz));
+
+for bearingIdx = 1:numel(bearingsDeg)
+    for toneIdx = 1:numel(toneOffsetsKHz)
+        rowMask = toneTable.Bearing_deg == bearingsDeg(bearingIdx) & ...
+            toneTable.ToneOffset_kHz == toneOffsetsKHz(toneIdx);
+        if any(rowMask)
+            firstRow = find(rowMask, 1, 'first');
+            dirMatrix(bearingIdx, toneIdx) = toneTable.DirectionalDetectMargin_dB(firstRow);
+            refMatrix(bearingIdx, toneIdx) = toneTable.ReferenceDetectMargin_dB(firstRow);
+        end
+    end
+end
 end
 
 function fig = localPlotPsdHeatmap(scan, wantDirectional, figureVisibility)
@@ -1233,6 +1418,8 @@ fprintf(fid, '</ul>\n');
 fprintf(fid, '<h2>Plots</h2>\n');
 localHtmlImage(fid, 'environment_power_polar.png', 'Ambient RF power versus azimuth');
 localHtmlImage(fid, 'calibration_pattern_polar.png', 'Pluto calibration comb response versus azimuth');
+localHtmlImage(fid, 'calibration_tone_margin_heatmap.png', 'Per-tone Pluto comb calibration margin heatmap');
+localHtmlImage(fid, 'calibration_tone_margin_by_frequency.png', 'Per-tone Pluto comb shape by bearing');
 localHtmlImage(fid, 'directional_psd_heatmap.png', 'Directional-channel ambient PSD heatmap');
 localHtmlImage(fid, 'reference_psd_heatmap.png', 'Reference-channel ambient PSD heatmap');
 localHtmlImage(fid, 'channel_ratio_and_metrics.png', 'Directional/reference ratio metrics');
@@ -1241,10 +1428,15 @@ fprintf(fid, '<h2>Per-bearing table</h2>\n');
 fprintf(fid, '<p>CSV version: <a href="azimuth_summary.csv">azimuth_summary.csv</a></p>\n');
 localWriteHtmlTable(fid, scan.summary_table);
 
+fprintf(fid, '<h2>Per-tone calibration table</h2>\n');
+fprintf(fid, ['<p>CSV version: <a href="calibration_tone_summary.csv">calibration_tone_summary.csv</a>. ', ...
+    'This table is the easiest way to inspect whether one tone or one side of the comb behaves differently across azimuth.</p>\n']);
+
 fprintf(fid, '<h2>Artifacts</h2>\n<ul>\n');
 fprintf(fid, '<li><a href="summary.txt">summary.txt</a></li>\n');
 fprintf(fid, '<li><a href="scan_result.mat">scan_result.mat</a></li>\n');
 fprintf(fid, '<li><a href="azimuth_summary.csv">azimuth_summary.csv</a></li>\n');
+fprintf(fid, '<li><a href="calibration_tone_summary.csv">calibration_tone_summary.csv</a></li>\n');
 fprintf(fid, '</ul>\n');
 fprintf(fid, '</body></html>\n');
 clear cleanupFile
