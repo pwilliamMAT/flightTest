@@ -32,6 +32,6 @@ testFcn = @(tsurv, tref) helperBaselineProcessing(tsurv, tref, filterFcn, rdFcn)
 
 measuredSnr = helperMeasureSNR(surv, ref, cfg, testFcn);
 helperPlotSnr(cfg.Attenuation, measuredSnr, requiredSnr, ...
-    'BLMS DSI Suppression');
+    'ECA-CD DSI Suppression');
 
 end
