@@ -391,7 +391,7 @@ try
 
     release(writer);
     writer = [];
-    release(bbrx);
+    localReleaseReceiverIfSupported(bbrx);
 catch me
     localReleaseTransmitter(txContext);
     if ~isempty(writer)
@@ -400,12 +400,7 @@ catch me
         catch
         end
     end
-    if ~isempty(bbrx)
-        try
-            release(bbrx);
-        catch
-        end
-    end
+    localReleaseReceiverIfSupported(bbrx);
     rethrow(me)
 end
 
@@ -519,6 +514,25 @@ if isstruct(txContext) && isfield(txContext, 'transmitter') && ~isempty(txContex
         release(txContext.transmitter);
     catch
     end
+end
+end
+
+function localReleaseReceiverIfSupported(receiver)
+% basebandReceiver on the FTC is not a MATLAB System object and does not
+% expose release(). Existing project capture helpers simply let the local
+% receiver object go out of scope. Keep this cleanup guarded so it also
+% works if a future receiver implementation does support release().
+if isempty(receiver)
+    return
+end
+
+try
+    methodNames = methods(receiver);
+    if any(strcmp(methodNames, 'release'))
+        release(receiver);
+    end
+catch
+    % Do not mask the capture or analysis error with a cleanup-only issue.
 end
 end
 
