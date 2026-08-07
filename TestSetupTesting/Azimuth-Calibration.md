@@ -162,6 +162,28 @@ To reprocess every `az_pulse_*_debug` folder and write one comparison table:
 matlab -nodisplay -nosplash -r "try, reprocessPlutoAzimuthPulseDebugScans('../captures/plutoAzimuthEnvironmentScans', 'PlotFigures', true, 'FigureVisibility', 'off', 'Verbose', true); catch me, disp(getReport(me,'extended','hyperlinks','off')); exit(1); end; exit(0);"
 ```
 
+By default, that batch helper only scans folders whose names match:
+
+```text
+^az_pulse_([0-9.]+)_debug$
+```
+
+To point it at a different set of scan folders, pass `ScanFolderRegex`.
+For example, to reprocess every child folder under the parent that contains a
+`scan_result.mat` file:
+
+```bash
+matlab -nodisplay -nosplash -r "try, reprocessPlutoAzimuthPulseDebugScans('../captures/plutoAzimuthEnvironmentScans', 'ScanFolderRegex', '.*', 'SummaryFileName', 'azimuth_reprocess_summary.csv', 'PlotFigures', true, 'FigureVisibility', 'off', 'Verbose', true); catch me, disp(getReport(me,'extended','hyperlinks','off')); exit(1); end; exit(0);"
+```
+
+To target one naming family, use any MATLAB regular expression, for example:
+
+```matlab
+reprocessPlutoAzimuthPulseDebugScans('../captures/plutoAzimuthEnvironmentScans', ...
+    'ScanFolderRegex', '^roof_azimuth_.*', ...
+    'SummaryFileName', 'roof_azimuth_reprocess_summary.csv');
+```
+
 The batch summary is written as:
 
 ```text

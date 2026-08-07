@@ -1,16 +1,22 @@
 function summaryTable = reprocessPlutoAzimuthPulseDebugScans(scanParent, varargin)
-%REPROCESSPLUTOAZIMUTHPULSEDEBUGSCANS Re-score az_pulse_*_debug folders.
+%REPROCESSPLUTOAZIMUTHPULSEDEBUGSCANS Re-score matching azimuth scan folders.
 %
 % Plain-language concept:
-%   The pulse-duration sweep is most useful when every scan folder is
-%   reprocessed with the same current analysis code. This helper finds the
-%   `az_pulse_<seconds>_debug` folders, runs the full-pulse Welch and
-%   coherent per-tone scoring for each one, and writes a compact comparison
-%   table next to the scan folders.
+%   Reprocessing is most useful when every scan folder in a comparison set is
+%   analyzed with the same current code. This helper searches one parent
+%   folder for scan folders whose names match a configurable regular
+%   expression, runs the full-pulse Welch and coherent per-tone scoring for
+%   each one, and writes a compact comparison table next to the scan folders.
 %
 % Example on the field computer:
 %   summary = reprocessPlutoAzimuthPulseDebugScans( ...
 %       "../captures/plutoAzimuthEnvironmentScans");
+%
+% Reprocess all azimuth scan folders under the parent:
+%   summary = reprocessPlutoAzimuthPulseDebugScans( ...
+%       "../captures/plutoAzimuthEnvironmentScans", ...
+%       "ScanFolderRegex", ".*", ...
+%       "SummaryFileName", "azimuth_reprocess_summary.csv");
 
 if nargin < 1 || strlength(string(scanParent)) == 0
     scanParent = fullfile('..', 'captures', 'plutoAzimuthEnvironmentScans');
@@ -18,6 +24,8 @@ end
 
 p = inputParser;
 p.FunctionName = mfilename;
+addParameter(p, 'ScanFolderRegex', "^az_pulse_([0-9.]+)_debug$", @(x) ischar(x) || isstring(x));
+addParameter(p, 'SummaryFileName', "az_pulse_reprocess_summary.csv", @(x) ischar(x) || isstring(x));
 addParameter(p, 'PlotFigures', true, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'FigureVisibility', 'off', @(x) any(strcmpi(string(x), ["on", "off"])));
 addParameter(p, 'Verbose', true, @(x) islogical(x) && isscalar(x));
@@ -25,8 +33,7 @@ parse(p, varargin{:});
 opts = p.Results;
 
 scanParent = string(scanParent);
-folders = dir(fullfile(scanParent, 'az_pulse_*_debug'));
-folders = folders([folders.isdir]);
+folders = localFindMatchingScanFolders(scanParent, opts.ScanFolderRegex);
 [~, order] = sort({folders.name});
 folders = folders(order);
 
@@ -34,7 +41,7 @@ rows = repmat(localEmptyPulseSummaryRow(), numel(folders), 1);
 for idx = 1:numel(folders)
     scanRoot = fullfile(folders(idx).folder, folders(idx).name);
     rows(idx).ScanID = string(folders(idx).name);
-    rows(idx).PulseLabel_s = localPulseLabelFromName(folders(idx).name);
+    rows(idx).PulseLabel_s = localPulseLabelFromName(folders(idx).name, opts.ScanFolderRegex);
 
     try
         scan = reprocessPlutoAzimuthEnvironmentalScan( ...
@@ -54,7 +61,33 @@ for idx = 1:numel(folders)
 end
 
 summaryTable = struct2table(rows);
-writetable(summaryTable, fullfile(scanParent, 'az_pulse_reprocess_summary.csv'));
+summaryPath = fullfile(scanParent, string(opts.SummaryFileName));
+writetable(summaryTable, summaryPath);
+if opts.Verbose
+    fprintf('[reprocessPlutoAzimuthPulseDebugScans] Matched %d folder(s) with regex "%s".\n', ...
+        numel(folders), string(opts.ScanFolderRegex));
+    fprintf('[reprocessPlutoAzimuthPulseDebugScans] Summary: %s\n', summaryPath);
+end
+end
+
+function folders = localFindMatchingScanFolders(scanParent, scanFolderRegex)
+scanParent = string(scanParent);
+if ~isfolder(scanParent)
+    error('reprocessPlutoAzimuthPulseDebugScans:missingParentFolder', ...
+        'Scan parent folder does not exist: %s', scanParent);
+end
+
+allEntries = dir(scanParent);
+folders = allEntries([allEntries.isdir]);
+names = string({folders.name});
+keep = names ~= "." & names ~= "..";
+for idx = 1:numel(names)
+    candidateRoot = fullfile(folders(idx).folder, folders(idx).name);
+    keep(idx) = keep(idx) && ...
+        ~isempty(regexp(names(idx), string(scanFolderRegex), 'once')) && ...
+        isfile(fullfile(candidateRoot, 'scan_result.mat'));
+end
+folders = folders(keep);
 end
 
 function row = localEmptyPulseSummaryRow()
@@ -98,11 +131,11 @@ row.ReferenceCoherentSpan_dB = ...
 row.ErrorMessage = "";
 end
 
-function pulseSeconds = localPulseLabelFromName(folderName)
-tokens = regexp(string(folderName), "az_pulse_([0-9.]+)_debug", "tokens", "once");
+function pulseSeconds = localPulseLabelFromName(folderName, scanFolderRegex)
+tokens = regexp(string(folderName), string(scanFolderRegex), "tokens", "once");
 if isempty(tokens)
     pulseSeconds = NaN;
 else
-    pulseSeconds = str2double(tokens{1});
+    pulseSeconds = str2double(string(tokens{1}));
 end
 end
