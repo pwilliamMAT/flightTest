@@ -134,6 +134,7 @@ calibration_pattern_polar.png
 calibration_tone_margin_heatmap.png
 calibration_tone_margin_by_frequency.png
 calibration_coherent_tone_margin_by_frequency.png
+ref_surv_correlation_vs_lag.png
 directional_psd_heatmap.png
 reference_psd_heatmap.png
 channel_ratio_and_metrics.png
@@ -211,6 +212,9 @@ REF. The reanalysis also reports normalized cross-correlation metrics:
 When the surveillance antenna points toward the illuminator, the expected
 behavior is high zero-lag correlation. When it points away, nonzero peak lags
 can indicate multipath or a different dominant coupled path.
+The report also writes `ref_surv_correlation_vs_lag.png`, a bearing-versus-lag
+heatmap of `abs(xcorr(ref,surv,'coeff'))`, plus a summary trace of zero-lag
+correlation and strongest-path lag.
 
 ## Copying reports without the large capture files
 

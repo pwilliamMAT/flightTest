@@ -991,6 +991,9 @@ metrics = struct( ...
     'ref_surv_peak_lag_samples', peakLagSamples, ...
     'ref_surv_peak_lag_us', peakLagSamples / double(sampleRateHz) * 1e6, ...
     'ref_surv_peak_minus_zero_corr_db', 20 * log10((double(peakCorrAbs) + eps) / (double(zeroCorrAbs) + eps)), ...
+    'ref_surv_corr_lags_samples', double(lags(:)), ...
+    'ref_surv_corr_lags_us', double(lags(:)) / double(sampleRateHz) * 1e6, ...
+    'ref_surv_corr_abs', double(corrAbs(:)), ...
     'note', 'Ambient-only least-squares REF/SURV scalar fit and normalized cross-correlation.');
 end
 
@@ -1010,6 +1013,9 @@ metrics = struct( ...
     'ref_surv_peak_lag_samples', NaN, ...
     'ref_surv_peak_lag_us', NaN, ...
     'ref_surv_peak_minus_zero_corr_db', NaN, ...
+    'ref_surv_corr_lags_samples', zeros(0, 1), ...
+    'ref_surv_corr_lags_us', zeros(0, 1), ...
+    'ref_surv_corr_abs', zeros(0, 1), ...
     'note', '');
 end
 
@@ -1472,6 +1478,7 @@ artifactPaths = struct( ...
     'calibration_tone_heatmap_png', string(fullfile(scanRoot, 'calibration_tone_margin_heatmap.png')), ...
     'calibration_tone_by_frequency_png', string(fullfile(scanRoot, 'calibration_tone_margin_by_frequency.png')), ...
     'calibration_coherent_tone_by_frequency_png', string(fullfile(scanRoot, 'calibration_coherent_tone_margin_by_frequency.png')), ...
+    'ref_surv_correlation_lag_png', string(fullfile(scanRoot, 'ref_surv_correlation_vs_lag.png')), ...
     'directional_psd_heatmap_png', string(fullfile(scanRoot, 'directional_psd_heatmap.png')), ...
     'reference_psd_heatmap_png', string(fullfile(scanRoot, 'reference_psd_heatmap.png')), ...
     'channel_ratio_png', string(fullfile(scanRoot, 'channel_ratio_and_metrics.png')));
@@ -1504,6 +1511,9 @@ localExportFigure(fig, scan.artifact_paths.calibration_tone_by_frequency_png);
 
 fig = localPlotCalibrationCoherentToneByFrequency(scan, opts.FigureVisibility);
 localExportFigure(fig, scan.artifact_paths.calibration_coherent_tone_by_frequency_png);
+
+fig = localPlotRefSurvCorrelationLag(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.ref_surv_correlation_lag_png);
 
 fig = localPlotPsdHeatmap(scan, true, opts.FigureVisibility);
 localExportFigure(fig, scan.artifact_paths.directional_psd_heatmap_png);
@@ -1678,6 +1688,87 @@ for bearingIdx = 1:numel(bearingsDeg)
             refMatrix(bearingIdx, toneIdx) = toneTable.ReferenceCoherentMargin_dB(firstRow);
         end
     end
+end
+end
+
+function fig = localPlotRefSurvCorrelationLag(scan, figureVisibility)
+[corrMatrix, lagUs, bearingsDeg, zeroLagCorr, peakLagUs] = localRefSurvCorrelationMatrix(scan.steps);
+
+fig = figure('Name', 'Ambient REF/SURV correlation versus lag', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Ambient-only REF/SURV cross-correlation versus azimuth');
+
+nexttile(tl, 1);
+if isempty(corrMatrix)
+    text(0.5, 0.5, 'No REF/SURV correlation data available', 'HorizontalAlignment', 'center');
+    axis off;
+else
+    imagesc(lagUs, bearingsDeg, corrMatrix);
+    axis xy;
+    grid on;
+    colorbar;
+    xlabel('Lag (us)');
+    ylabel('Bearing (deg true)');
+    title('|normalized xcorr(REF, SURV)|');
+end
+
+nexttile(tl, 2);
+if isempty(corrMatrix)
+    text(0.5, 0.5, 'No REF/SURV correlation data available', 'HorizontalAlignment', 'center');
+    axis off;
+else
+    plot(bearingsDeg, zeroLagCorr, '-o', 'LineWidth', 1.2);
+    hold on;
+    yyaxis right;
+    plot(bearingsDeg, peakLagUs, '-s', 'LineWidth', 1.2);
+    grid on;
+    xlabel('Bearing (deg true)');
+    yyaxis left;
+    ylabel('Zero-lag correlation');
+    yyaxis right;
+    ylabel('Peak lag (us)');
+    title('Zero-lag correlation and strongest-path lag');
+    legend({'Zero-lag corr', 'Peak lag'}, 'Location', 'best');
+end
+end
+
+function [corrMatrix, lagUs, bearingsDeg, zeroLagCorr, peakLagUs] = localRefSurvCorrelationMatrix(steps)
+corrMatrix = zeros(0, 0);
+lagUs = zeros(0, 1);
+bearingsDeg = [steps.bearing_deg].';
+zeroLagCorr = nan(numel(steps), 1);
+peakLagUs = nan(numel(steps), 1);
+
+for idx = 1:numel(steps)
+    env = steps(idx).environment_metrics;
+    zeroLagCorr(idx) = localOptionalField(env, 'ref_surv_zero_lag_corr_abs', NaN);
+    peakLagUs(idx) = localOptionalField(env, 'ref_surv_peak_lag_us', NaN);
+    if isfield(env, 'ref_surv_corr_lags_us') && ~isempty(env.ref_surv_corr_lags_us)
+        lagUs = env.ref_surv_corr_lags_us(:);
+        break
+    end
+end
+
+if isempty(lagUs)
+    return
+end
+
+corrMatrix = nan(numel(steps), numel(lagUs));
+for idx = 1:numel(steps)
+    env = steps(idx).environment_metrics;
+    if isfield(env, 'ref_surv_corr_abs') && ...
+            isfield(env, 'ref_surv_corr_lags_us') && ...
+            numel(env.ref_surv_corr_abs) == numel(lagUs) && ...
+            isequal(size(env.ref_surv_corr_lags_us(:)), size(lagUs))
+        corrMatrix(idx, :) = double(env.ref_surv_corr_abs(:)).';
+    end
+end
+end
+
+function value = localOptionalField(s, fieldName, defaultValue)
+value = defaultValue;
+if isstruct(s) && isfield(s, fieldName) && ~isempty(s.(fieldName))
+    value = s.(fieldName);
 end
 end
 
@@ -1906,6 +1997,7 @@ localHtmlImage(fid, 'calibration_pattern_polar.png', 'Pluto calibration comb res
 localHtmlImage(fid, 'calibration_tone_margin_heatmap.png', 'Per-tone Pluto comb calibration margin heatmap');
 localHtmlImage(fid, 'calibration_tone_margin_by_frequency.png', 'Per-tone Pluto comb shape by bearing');
 localHtmlImage(fid, 'calibration_coherent_tone_margin_by_frequency.png', 'Coherent per-tone Pluto comb shape by bearing');
+localHtmlImage(fid, 'ref_surv_correlation_vs_lag.png', 'Ambient REF/SURV correlation versus lag');
 localHtmlImage(fid, 'directional_psd_heatmap.png', 'Directional-channel ambient PSD heatmap');
 localHtmlImage(fid, 'reference_psd_heatmap.png', 'Reference-channel ambient PSD heatmap');
 localHtmlImage(fid, 'channel_ratio_and_metrics.png', 'Directional/reference ratio metrics');
