@@ -29,7 +29,10 @@ Keeping the Pluto burst bounded means the ambient spectrum is not dominated by
 our own calibration transmitter. The current default is intentionally longer
 than the original 0.2 s smoke-test pulse so each individual tone has more
 samples for calibration scoring. The analysis still removes the pulse window
-before estimating the ambient PSD with `pwelch`.
+before estimating the ambient PSD with `pwelch`. For the pulse itself, the
+analysis now uses the full pulse window for the Welch spectrum diagnostic and
+adds a coherent matched-tone integration that should improve as pulse duration
+increases when the tone frequency is stable.
 
 ## Current default timing
 
@@ -130,10 +133,39 @@ environment_power_polar.png
 calibration_pattern_polar.png
 calibration_tone_margin_heatmap.png
 calibration_tone_margin_by_frequency.png
+calibration_coherent_tone_margin_by_frequency.png
 directional_psd_heatmap.png
 reference_psd_heatmap.png
 channel_ratio_and_metrics.png
 rsync_exclude_large_captures.txt
+```
+
+## Reprocessing existing field-computer captures
+
+If the raw `bb_captures_exclude_from_rsync/` files are still present on the
+field computer, you can re-run the improved full-pulse and coherent scoring
+without repeating RF data collection:
+
+```bash
+cd ~/Documents/flightTest-pluto/TestSetupTesting
+matlab -nodisplay -nosplash -r "try, reprocessPlutoAzimuthEnvironmentalScan('../captures/plutoAzimuthEnvironmentScans/az_pulse_1.0_debug', 'PlotFigures', true, 'FigureVisibility', 'off', 'Verbose', true); catch me, disp(getReport(me,'extended','hyperlinks','off')); exit(1); end; exit(0);"
+```
+
+For the pulse-duration sweep, repeat the same call for each
+`az_pulse_<pulse_length>_debug` folder. The reprocess step overwrites the CSV,
+MAT, PNG, text, and HTML report products in that scan folder, but it does not
+modify the raw baseband captures.
+
+To reprocess every `az_pulse_*_debug` folder and write one comparison table:
+
+```bash
+matlab -nodisplay -nosplash -r "try, reprocessPlutoAzimuthPulseDebugScans('../captures/plutoAzimuthEnvironmentScans', 'PlotFigures', true, 'FigureVisibility', 'off', 'Verbose', true); catch me, disp(getReport(me,'extended','hyperlinks','off')); exit(1); end; exit(0);"
+```
+
+The batch summary is written as:
+
+```text
+captures/plutoAzimuthEnvironmentScans/az_pulse_reprocess_summary.csv
 ```
 
 ## Copying reports without the large capture files
@@ -206,6 +238,9 @@ This CSV has one row per bearing per tone.  Important columns:
 - `DirectionalMinusReferenceMargin_dB`
 - `DirectionalTonePeak_dBFS`
 - `ReferenceTonePeak_dBFS`
+- `DirectionalCoherentMargin_dB`
+- `ReferenceCoherentMargin_dB`
+- `DirectionalMinusReferenceCoherentMargin_dB`
 - `ChannelFrequencyDelta_Hz`
 
 Useful checks:
@@ -237,6 +272,16 @@ In a good stable calibration:
 - the directional-channel curves may separate by bearing,
 - broad slope or ripple changes may indicate frequency-dependent coupling,
   antenna response, or nearby-object effects.
+
+### Coherent per-tone by-frequency plot
+
+`calibration_coherent_tone_margin_by_frequency.png` overlays the coherent
+matched-tone margin for each bearing. This plot is the best place to check
+whether a longer calibration pulse is buying processing gain. The coherent
+margin mixes each planned tone to DC and averages over the full pulse duration,
+so it should rise with pulse length if the tone is stable and should expose
+frequency-dependent or bearing-dependent calibration changes more clearly than
+the short capped spectrum view did.
 
 ## Practical interpretation for parking-lot/roof use
 

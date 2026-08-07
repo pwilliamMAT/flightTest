@@ -43,6 +43,7 @@ addParameter(p, 'PulseDuration_s', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 
 addParameter(p, 'SessionID', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'CaptureRoot', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'OutputRoot', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'ReprocessScanRoot', "", @(x) ischar(x) || isstring(x));
 addParameter(p, 'RadioName', "My USRP N320", @(x) ischar(x) || isstring(x));
 addParameter(p, 'CenterFrequency_Hz', 599e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'SampleRate_Hz', 8e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
@@ -64,6 +65,11 @@ addParameter(p, 'FigureVisibility', 'off', @(x) any(strcmpi(string(x), ["on", "o
 addParameter(p, 'Verbose', true, @(x) islogical(x) && isscalar(x));
 parse(p, varargin{:});
 opts = p.Results;
+
+if strlength(string(opts.ReprocessScanRoot)) > 0
+    scan = localReprocessExistingScan(opts);
+    return
+end
 
 localValidateTiming(opts);
 
@@ -168,6 +174,134 @@ scan = localWriteScanArtifacts(scan, scanRoot, opts);
 if opts.Verbose
     localPrintScanSummary(scan);
 end
+end
+
+function scan = localReprocessExistingScan(opts)
+scanRoot = string(opts.ReprocessScanRoot);
+if ~isfolder(scanRoot)
+    error('runPlutoAzimuthEnvironmentalScan:missingReprocessFolder', ...
+        'ReprocessScanRoot does not exist: %s', scanRoot);
+end
+
+resultMat = fullfile(scanRoot, 'scan_result.mat');
+if ~isfile(resultMat)
+    error('runPlutoAzimuthEnvironmentalScan:missingScanResult', ...
+        'Could not find scan_result.mat under %s.', scanRoot);
+end
+
+testRoot = fileparts(mfilename('fullpath'));
+analysisRoot = fullfile(fileparts(testRoot), 'BistaticDataAnalysis');
+originalFolder = pwd;
+originalPath = path;
+cleanupFolder = onCleanup(@() cd(originalFolder));
+cleanupPath = onCleanup(@() path(originalPath));
+cd(testRoot);
+addpath(analysisRoot, '-begin');
+
+loaded = load(resultMat, 'scan');
+scan = loaded.scan;
+opts = localApplyScanSettings(opts, scan.settings);
+localValidateTiming(opts);
+
+numSteps = numel(scan.steps);
+stepResults = repmat(localEmptyStepResult(), numSteps, 1);
+if opts.Verbose
+    fprintf('\n[runPlutoAzimuthEnvironmentalScan] Reprocessing %s\n', scanRoot);
+    fprintf('[runPlutoAzimuthEnvironmentalScan] Steps ........... %d\n', numSteps);
+    fprintf('[runPlutoAzimuthEnvironmentalScan] Pulse ........... %.3f s after %.3f s\n\n', ...
+        opts.PulseDuration_s, opts.PulseStartDelay_s);
+end
+
+for stepIndex = 1:numSteps
+    oldStep = scan.steps(stepIndex);
+    captureFile = localResolveExistingCaptureFile(oldStep, scanRoot);
+    captureInfo = oldStep.capture_info;
+    captureInfo.local_capture_files = string(captureFile);
+
+    if opts.Verbose
+        fprintf('[runPlutoAzimuthEnvironmentalScan] Reprocess step %02d/%02d | %s\n', ...
+            stepIndex, numSteps, captureFile);
+    end
+
+    analysis = localAnalyzeCaptureFile(captureFile, opts);
+    stepResults(stepIndex) = localBuildStepResult( ...
+        oldStep.step_index, ...
+        oldStep.bearing_deg, ...
+        oldStep.session_id, ...
+        captureInfo, ...
+        analysis, ...
+        opts);
+end
+
+captureRoot = localResolveCaptureRoot(scanRoot, localSetting(scan.settings, 'capture_root', ""));
+scan.schema_version = 2;
+scan.reprocessed_utc = char(string(datetime('now', 'TimeZone', 'UTC', ...
+    'Format', 'yyyy-MM-dd''T''HH:mm:ss''Z''')));
+scan.settings = localSettings(opts, scanRoot, captureRoot);
+scan.settings.reprocess_source_result_mat = char(resultMat);
+scan.steps = stepResults;
+scan.summary_table = localBuildSummaryTable(stepResults);
+scan.analysis = localBuildScanAnalysis(scan.summary_table, opts.DirectionalChannel);
+scan = localWriteScanArtifacts(scan, scanRoot, opts);
+
+if opts.Verbose
+    localPrintScanSummary(scan);
+end
+end
+
+function opts = localApplyScanSettings(opts, settings)
+opts.NumAzimuthSteps = localSetting(settings, 'num_azimuth_steps', opts.NumAzimuthSteps);
+opts.StartBearing_deg = localSetting(settings, 'start_bearing_deg', opts.StartBearing_deg);
+opts.Clockwise = localSetting(settings, 'clockwise', opts.Clockwise);
+opts.CaptureDuration_s = localSetting(settings, 'capture_duration_s', opts.CaptureDuration_s);
+opts.PulseStartDelay_s = localSetting(settings, 'pulse_start_delay_s', opts.PulseStartDelay_s);
+opts.PulseDuration_s = localSetting(settings, 'pulse_duration_s', opts.PulseDuration_s);
+opts.RadioName = string(localSetting(settings, 'radio_name', opts.RadioName));
+opts.CenterFrequency_Hz = localSetting(settings, 'center_frequency_hz', opts.CenterFrequency_Hz);
+opts.SampleRate_Hz = localSetting(settings, 'sample_rate_hz', opts.SampleRate_Hz);
+opts.LOOffset_Hz = localSetting(settings, 'lo_offset_hz', opts.LOOffset_Hz);
+opts.Gain = localSetting(settings, 'gain', opts.Gain);
+opts.ToneOffsets_Hz = localSetting(settings, 'tone_offsets_hz', opts.ToneOffsets_Hz);
+opts.TargetRMSAmplitude = localSetting(settings, 'target_rms_amplitude', opts.TargetRMSAmplitude);
+opts.PeakLimit = localSetting(settings, 'peak_limit', opts.PeakLimit);
+opts.DirectionalChannel = string(localSetting(settings, 'directional_channel', opts.DirectionalChannel));
+opts.WelchNFFT = localSetting(settings, 'welch_nfft', opts.WelchNFFT);
+opts.WelchFrameLength = localSetting(settings, 'welch_frame_length', opts.WelchFrameLength);
+opts.StreamFrameSamples = localSetting(settings, 'stream_frame_samples', opts.StreamFrameSamples);
+opts.DryRun = false;
+end
+
+function value = localSetting(settings, fieldName, defaultValue)
+value = defaultValue;
+if isstruct(settings) && isfield(settings, fieldName) && ~isempty(settings.(fieldName))
+    value = settings.(fieldName);
+end
+end
+
+function captureFile = localResolveExistingCaptureFile(step, scanRoot)
+candidates = strings(0, 1);
+if isfield(step.capture_info, 'local_capture_files')
+    candidates = string(step.capture_info.local_capture_files(:));
+end
+
+for idx = 1:numel(candidates)
+    candidate = candidates(idx);
+    if isfile(candidate)
+        captureFile = char(candidate);
+        return
+    end
+
+    [~, name, ext] = fileparts(candidate);
+    localCandidate = fullfile(scanRoot, 'bb_captures_exclude_from_rsync', name + ext);
+    if isfile(localCandidate)
+        captureFile = char(localCandidate);
+        return
+    end
+end
+
+error('runPlutoAzimuthEnvironmentalScan:missingCaptureFile', ...
+    'Could not find the raw baseband capture for step %d. Sync bb_captures_exclude_from_rsync on the field computer before reprocessing.', ...
+    step.step_index);
 end
 
 function localMustBePositiveIntegerScalar(value)
@@ -869,6 +1003,8 @@ function calibrationMetrics = localEmptyCalibrationMetrics()
 emptyChannel = struct( ...
     'integrated_detect_margin_db', NaN, ...
     'median_detect_margin_db', NaN, ...
+    'integrated_coherent_margin_db', NaN, ...
+    'median_coherent_margin_db', NaN, ...
     'num_tones_found', 0, ...
     'num_tones_expected', 0);
 calibrationMetrics = struct( ...
@@ -911,12 +1047,16 @@ env = step.environment_metrics;
 cal = step.calibration_metrics;
 dirCal = localCalibrationIntegratedMargin(cal, directionalChannel, true);
 refCal = localCalibrationIntegratedMargin(cal, directionalChannel, false);
+dirCoh = localCalibrationCoherentIntegratedMargin(cal, directionalChannel, true);
+refCoh = localCalibrationCoherentIntegratedMargin(cal, directionalChannel, false);
 fprintf(['[azimuth step] Bearing %6.1f deg | ambient dir-ref %+6.2f dB | ', ...
-    'cal dir %.2f dB ref %.2f dB | status %s\n'], ...
+    'cal dir %.2f dB ref %.2f dB | coherent dir %.2f dB ref %.2f dB | status %s\n'], ...
     step.bearing_deg, ...
     env.directional_minus_reference_power_db, ...
     dirCal, ...
     refCal, ...
+    dirCoh, ...
+    refCoh, ...
     string(step.status));
 end
 
@@ -936,6 +1076,22 @@ else
 end
 end
 
+function value = localCalibrationCoherentIntegratedMargin(calibrationMetrics, directionalChannel, wantDirectional)
+if strcmpi(string(directionalChannel), "SURV")
+    if wantDirectional
+        value = calibrationMetrics.surveillance.integrated_coherent_margin_db;
+    else
+        value = calibrationMetrics.reference.integrated_coherent_margin_db;
+    end
+else
+    if wantDirectional
+        value = calibrationMetrics.reference.integrated_coherent_margin_db;
+    else
+        value = calibrationMetrics.surveillance.integrated_coherent_margin_db;
+    end
+end
+end
+
 function summaryTable = localBuildSummaryTable(steps)
 numSteps = numel(steps);
 summaryTable = table( ...
@@ -944,6 +1100,8 @@ summaryTable = table( ...
     strings(numSteps, 1), ...
     strings(numSteps, 1), ...
     strings(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
     nan(numSteps, 1), ...
     nan(numSteps, 1), ...
     nan(numSteps, 1), ...
@@ -971,7 +1129,9 @@ summaryTable = table( ...
         'ReferencePeakPSD_dBPerHz', ...
         'ReferencePeakFrequency_Hz', ...
         'DirectionalCalibrationIntegratedMargin_dB', ...
-        'ReferenceCalibrationIntegratedMargin_dB'});
+        'ReferenceCalibrationIntegratedMargin_dB', ...
+        'DirectionalCalibrationCoherentIntegratedMargin_dB', ...
+        'ReferenceCalibrationCoherentIntegratedMargin_dB'});
 
 for idx = 1:numSteps
     env = steps(idx).environment_metrics;
@@ -999,6 +1159,10 @@ for idx = 1:numSteps
         localCalibrationIntegratedMargin(cal, directionalChannel, true);
     summaryTable.ReferenceCalibrationIntegratedMargin_dB(idx) = ...
         localCalibrationIntegratedMargin(cal, directionalChannel, false);
+    summaryTable.DirectionalCalibrationCoherentIntegratedMargin_dB(idx) = ...
+        localCalibrationCoherentIntegratedMargin(cal, directionalChannel, true);
+    summaryTable.ReferenceCalibrationCoherentIntegratedMargin_dB(idx) = ...
+        localCalibrationCoherentIntegratedMargin(cal, directionalChannel, false);
 end
 end
 
@@ -1010,6 +1174,8 @@ analysis = struct( ...
     'reference_ambient_power_span_db', localRange(summaryTable.ReferenceAmbientPower_dB), ...
     'directional_calibration_span_db', localRange(summaryTable.DirectionalCalibrationIntegratedMargin_dB), ...
     'reference_calibration_span_db', localRange(summaryTable.ReferenceCalibrationIntegratedMargin_dB), ...
+    'directional_coherent_calibration_span_db', localRange(summaryTable.DirectionalCalibrationCoherentIntegratedMargin_dB), ...
+    'reference_coherent_calibration_span_db', localRange(summaryTable.ReferenceCalibrationCoherentIntegratedMargin_dB), ...
     'strongest_ambient_bearing_deg', localBearingAtMax(summaryTable, 'DirectionalAmbientPower_dB'), ...
     'strongest_calibration_bearing_deg', localBearingAtMax(summaryTable, 'DirectionalCalibrationIntegratedMargin_dB'));
 end
@@ -1061,6 +1227,15 @@ toneTable = table( ...
     localColumn(directionalMetrics.tone_peak_dbfs, numTones), ...
     localColumn(referenceMetrics.local_floor_dbfs, numTones), ...
     localColumn(directionalMetrics.local_floor_dbfs, numTones), ...
+    localColumn(referenceMetrics.coherent_margin_db, numTones), ...
+    localColumn(directionalMetrics.coherent_margin_db, numTones), ...
+    localColumn(directionalMetrics.coherent_margin_db, numTones) - localColumn(referenceMetrics.coherent_margin_db, numTones), ...
+    localColumn(referenceMetrics.coherent_tone_dbfs, numTones), ...
+    localColumn(directionalMetrics.coherent_tone_dbfs, numTones), ...
+    localColumn(referenceMetrics.coherent_residual_floor_dbfs, numTones), ...
+    localColumn(directionalMetrics.coherent_residual_floor_dbfs, numTones), ...
+    localColumn(referenceMetrics.coherent_duration_s, numTones), ...
+    localColumn(directionalMetrics.coherent_duration_s, numTones), ...
     localColumn(referenceMetrics.tone_found, numTones), ...
     localColumn(directionalMetrics.tone_found, numTones), ...
     localColumn(metrics.joint.channel_frequency_delta_hz, numTones), ...
@@ -1077,6 +1252,15 @@ toneTable = table( ...
         'DirectionalTonePeak_dBFS', ...
         'ReferenceLocalFloor_dBFS', ...
         'DirectionalLocalFloor_dBFS', ...
+        'ReferenceCoherentMargin_dB', ...
+        'DirectionalCoherentMargin_dB', ...
+        'DirectionalMinusReferenceCoherentMargin_dB', ...
+        'ReferenceCoherentTone_dBFS', ...
+        'DirectionalCoherentTone_dBFS', ...
+        'ReferenceCoherentResidualFloor_dBFS', ...
+        'DirectionalCoherentResidualFloor_dBFS', ...
+        'ReferenceCoherentDuration_s', ...
+        'DirectionalCoherentDuration_s', ...
         'ReferenceToneFound', ...
         'DirectionalToneFound', ...
         'ChannelFrequencyDelta_Hz'});
@@ -1130,6 +1314,7 @@ artifactPaths = struct( ...
     'calibration_pattern_png', string(fullfile(scanRoot, 'calibration_pattern_polar.png')), ...
     'calibration_tone_heatmap_png', string(fullfile(scanRoot, 'calibration_tone_margin_heatmap.png')), ...
     'calibration_tone_by_frequency_png', string(fullfile(scanRoot, 'calibration_tone_margin_by_frequency.png')), ...
+    'calibration_coherent_tone_by_frequency_png', string(fullfile(scanRoot, 'calibration_coherent_tone_margin_by_frequency.png')), ...
     'directional_psd_heatmap_png', string(fullfile(scanRoot, 'directional_psd_heatmap.png')), ...
     'reference_psd_heatmap_png', string(fullfile(scanRoot, 'reference_psd_heatmap.png')), ...
     'channel_ratio_png', string(fullfile(scanRoot, 'channel_ratio_and_metrics.png')));
@@ -1159,6 +1344,9 @@ localExportFigure(fig, scan.artifact_paths.calibration_tone_heatmap_png);
 
 fig = localPlotCalibrationToneByFrequency(scan, opts.FigureVisibility);
 localExportFigure(fig, scan.artifact_paths.calibration_tone_by_frequency_png);
+
+fig = localPlotCalibrationCoherentToneByFrequency(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.calibration_coherent_tone_by_frequency_png);
 
 fig = localPlotPsdHeatmap(scan, true, opts.FigureVisibility);
 localExportFigure(fig, scan.artifact_paths.directional_psd_heatmap_png);
@@ -1257,6 +1445,31 @@ title('Baseline-normalized comb shape');
 legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
 end
 
+function fig = localPlotCalibrationCoherentToneByFrequency(scan, figureVisibility)
+toneTable = scan.calibration_tone_table;
+[dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationCoherentToneMatrices(toneTable);
+
+fig = figure('Name', 'Coherent per-tone calibration margin by frequency', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Coherent Pluto comb integration across the calibration pulse');
+
+nexttile(tl, 1);
+plot(toneOffsetsKHz, dirMatrix.', '-o', 'LineWidth', 1.1);
+grid on;
+xlabel('Tone offset (kHz)');
+ylabel('Directional coherent margin (dB)');
+title('Directional channel coherent matched-tone margin');
+legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
+
+nexttile(tl, 2);
+plot(toneOffsetsKHz, (dirMatrix - refMatrix).', '-o', 'LineWidth', 1.1);
+grid on;
+xlabel('Tone offset (kHz)');
+ylabel('Directional - reference coherent margin (dB)');
+title('Baseline-normalized coherent comb shape');
+legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
+end
+
 function [dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationToneMatrices(toneTable)
 if isempty(toneTable)
     dirMatrix = zeros(0, 0);
@@ -1279,6 +1492,33 @@ for bearingIdx = 1:numel(bearingsDeg)
             firstRow = find(rowMask, 1, 'first');
             dirMatrix(bearingIdx, toneIdx) = toneTable.DirectionalDetectMargin_dB(firstRow);
             refMatrix(bearingIdx, toneIdx) = toneTable.ReferenceDetectMargin_dB(firstRow);
+        end
+    end
+end
+end
+
+function [dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationCoherentToneMatrices(toneTable)
+if isempty(toneTable)
+    dirMatrix = zeros(0, 0);
+    refMatrix = zeros(0, 0);
+    toneOffsetsKHz = zeros(0, 1);
+    bearingsDeg = zeros(0, 1);
+    return
+end
+
+bearingsDeg = unique(toneTable.Bearing_deg, 'stable');
+toneOffsetsKHz = unique(toneTable.ToneOffset_kHz, 'stable');
+dirMatrix = nan(numel(bearingsDeg), numel(toneOffsetsKHz));
+refMatrix = nan(numel(bearingsDeg), numel(toneOffsetsKHz));
+
+for bearingIdx = 1:numel(bearingsDeg)
+    for toneIdx = 1:numel(toneOffsetsKHz)
+        rowMask = toneTable.Bearing_deg == bearingsDeg(bearingIdx) & ...
+            toneTable.ToneOffset_kHz == toneOffsetsKHz(toneIdx);
+        if any(rowMask)
+            firstRow = find(rowMask, 1, 'first');
+            dirMatrix(bearingIdx, toneIdx) = toneTable.DirectionalCoherentMargin_dB(firstRow);
+            refMatrix(bearingIdx, toneIdx) = toneTable.ReferenceCoherentMargin_dB(firstRow);
         end
     end
 end
@@ -1388,12 +1628,15 @@ textLines = [
     "Ambient reference span: " + compose("%.2f", analysis.reference_ambient_power_span_db) + " dB"
     "Calibration directional span: " + compose("%.2f", analysis.directional_calibration_span_db) + " dB"
     "Calibration reference span: " + compose("%.2f", analysis.reference_calibration_span_db) + " dB"
+    "Coherent calibration directional span: " + compose("%.2f", analysis.directional_coherent_calibration_span_db) + " dB"
+    "Coherent calibration reference span: " + compose("%.2f", analysis.reference_coherent_calibration_span_db) + " dB"
     "Strongest ambient bearing: " + compose("%.1f", analysis.strongest_ambient_bearing_deg) + " deg true"
     "Strongest calibration bearing: " + compose("%.1f", analysis.strongest_calibration_bearing_deg) + " deg true"
     ""
     "Interpretation:"
     "The ambient plots estimate the RF environment with the Pluto pulse window removed."
-    "The calibration plots score only the brief Pluto 12-tone no-DC burst."
+    "The calibration plots score only the Pluto 12-tone no-DC burst."
+    "The coherent per-tone plots integrate over the full captured pulse window."
     "A useful scan should show more azimuth variation on the directional channel than on the reference channel."
     ];
 end
@@ -1446,7 +1689,8 @@ fprintf(fid, '<strong>Directional channel:</strong> %s</p>\n', ...
 fprintf(fid, '<h2>Plain-language interpretation</h2>\n');
 fprintf(fid, ['<p>The ambient spectra show what the two receive channels saw while the Pluto ', ...
     'calibration burst window was excluded. The calibration pattern scores only the short ', ...
-    '12-tone no-DC Pluto burst. If the directional antenna is behaving like a directional sensor, ', ...
+    '12-tone no-DC Pluto burst. The coherent plots add a matched-tone integration over the full ', ...
+    'pulse window, so longer pulse tests should show their processing gain there. If the directional antenna is behaving like a directional sensor, ', ...
     'its ambient and calibration curves should change more with bearing than the reference channel.</p>\n']);
 
 fprintf(fid, '<h2>Summary</h2>\n<ul>\n');
@@ -1459,6 +1703,8 @@ fprintf(fid, '<li>Directional ambient span: %.2f dB</li>\n', scan.analysis.direc
 fprintf(fid, '<li>Reference ambient span: %.2f dB</li>\n', scan.analysis.reference_ambient_power_span_db);
 fprintf(fid, '<li>Directional calibration span: %.2f dB</li>\n', scan.analysis.directional_calibration_span_db);
 fprintf(fid, '<li>Reference calibration span: %.2f dB</li>\n', scan.analysis.reference_calibration_span_db);
+fprintf(fid, '<li>Directional coherent calibration span: %.2f dB</li>\n', scan.analysis.directional_coherent_calibration_span_db);
+fprintf(fid, '<li>Reference coherent calibration span: %.2f dB</li>\n', scan.analysis.reference_coherent_calibration_span_db);
 fprintf(fid, '<li>Strongest ambient bearing: %.1f deg true</li>\n', scan.analysis.strongest_ambient_bearing_deg);
 fprintf(fid, '<li>Strongest calibration bearing: %.1f deg true</li>\n', scan.analysis.strongest_calibration_bearing_deg);
 fprintf(fid, '</ul>\n');
@@ -1468,6 +1714,7 @@ localHtmlImage(fid, 'environment_power_polar.png', 'Ambient RF power versus azim
 localHtmlImage(fid, 'calibration_pattern_polar.png', 'Pluto calibration comb response versus azimuth');
 localHtmlImage(fid, 'calibration_tone_margin_heatmap.png', 'Per-tone Pluto comb calibration margin heatmap');
 localHtmlImage(fid, 'calibration_tone_margin_by_frequency.png', 'Per-tone Pluto comb shape by bearing');
+localHtmlImage(fid, 'calibration_coherent_tone_margin_by_frequency.png', 'Coherent per-tone Pluto comb shape by bearing');
 localHtmlImage(fid, 'directional_psd_heatmap.png', 'Directional-channel ambient PSD heatmap');
 localHtmlImage(fid, 'reference_psd_heatmap.png', 'Reference-channel ambient PSD heatmap');
 localHtmlImage(fid, 'channel_ratio_and_metrics.png', 'Directional/reference ratio metrics');
