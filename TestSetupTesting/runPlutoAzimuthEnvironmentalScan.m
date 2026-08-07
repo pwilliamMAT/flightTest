@@ -57,6 +57,8 @@ addParameter(p, 'DirectionalChannel', "SURV", @(x) any(strcmpi(string(x), ["SURV
 addParameter(p, 'WelchNFFT', 8192, @(x) isnumeric(x) && isscalar(x) && x >= 1024);
 addParameter(p, 'WelchFrameLength', 8192, @(x) isnumeric(x) && isscalar(x) && x >= 1024);
 addParameter(p, 'StreamFrameSamples', 262144, @(x) isnumeric(x) && isscalar(x) && x >= 4096);
+addParameter(p, 'RelativeAnalysisMaxSamples', 1048576, @(x) isnumeric(x) && isscalar(x) && x >= 1024);
+addParameter(p, 'RelativeAnalysisMaxLagSamples', 4096, @(x) isnumeric(x) && isscalar(x) && x >= 1);
 addParameter(p, 'CaptureSegment_s', 0.1, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'AutoConfirm', false, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'DryRun', false, @(x) islogical(x) && isscalar(x));
@@ -268,6 +270,8 @@ opts.DirectionalChannel = string(localSetting(settings, 'directional_channel', o
 opts.WelchNFFT = localSetting(settings, 'welch_nfft', opts.WelchNFFT);
 opts.WelchFrameLength = localSetting(settings, 'welch_frame_length', opts.WelchFrameLength);
 opts.StreamFrameSamples = localSetting(settings, 'stream_frame_samples', opts.StreamFrameSamples);
+opts.RelativeAnalysisMaxSamples = localSetting(settings, 'relative_analysis_max_samples', opts.RelativeAnalysisMaxSamples);
+opts.RelativeAnalysisMaxLagSamples = localSetting(settings, 'relative_analysis_max_lag_samples', opts.RelativeAnalysisMaxLagSamples);
 opts.DryRun = false;
 end
 
@@ -392,6 +396,8 @@ settings = struct( ...
     'welch_nfft', double(opts.WelchNFFT), ...
     'welch_frame_length', double(opts.WelchFrameLength), ...
     'stream_frame_samples', double(opts.StreamFrameSamples), ...
+    'relative_analysis_max_samples', double(opts.RelativeAnalysisMaxSamples), ...
+    'relative_analysis_max_lag_samples', double(opts.RelativeAnalysisMaxLagSamples), ...
     'dry_run', logical(opts.DryRun));
 end
 
@@ -783,6 +789,8 @@ pulseStopSample = pulseStartSample + round(pulseDuration_s * sampleRateHz) - 1;
 
 referencePulse = complex(zeros(0, 1));
 surveillancePulse = complex(zeros(0, 1));
+referenceRelative = complex(zeros(0, 1));
+surveillanceRelative = complex(zeros(0, 1));
 refAccumulator = localPsdAccumulator();
 survAccumulator = localPsdAccumulator();
 sampleOffset = 0;
@@ -812,6 +820,8 @@ while ~isDone(reader)
         referenceAmbient = double(data(ambientMask, 2));
         survAccumulator = localAccumulatePsd(survAccumulator, surveillanceAmbient, sampleRateHz, opts);
         refAccumulator = localAccumulatePsd(refAccumulator, referenceAmbient, sampleRateHz, opts);
+        [referenceRelative, surveillanceRelative] = localAppendRelativeAnalysisSamples( ...
+            referenceRelative, surveillanceRelative, referenceAmbient, surveillanceAmbient, opts);
     end
     sampleOffset = sampleOffset + frameSamples;
 end
@@ -826,8 +836,9 @@ captureInfo = struct( ...
     'pulse_stop_sample', double(pulseStopSample), ...
     'pulse_samples_collected', double(numel(referencePulse)));
 
+relativeMetrics = localRelativeChannelMetrics(referenceRelative, surveillanceRelative, sampleRateHz, opts);
 analysis = localFinalizeStepAnalysis(referencePulse, surveillancePulse, ...
-    refAccumulator, survAccumulator, captureInfo, opts);
+    refAccumulator, survAccumulator, relativeMetrics, captureInfo, opts);
 end
 
 function analysis = localAnalyzeSignalVectors(referenceSignal, surveillanceSignal, captureInfo, opts)
@@ -847,6 +858,8 @@ refAccumulator = localPsdAccumulator();
 survAccumulator = localPsdAccumulator();
 refAccumulator = localAccumulatePsd(refAccumulator, referenceSignal(~pulseMask), sampleRateHz, opts);
 survAccumulator = localAccumulatePsd(survAccumulator, surveillanceSignal(~pulseMask), sampleRateHz, opts);
+relativeMetrics = localRelativeChannelMetrics( ...
+    referenceSignal(~pulseMask), surveillanceSignal(~pulseMask), sampleRateHz, opts);
 
 captureInfo.capture_file_path = "";
 captureInfo.samples_per_channel = double(numSamples);
@@ -855,7 +868,7 @@ captureInfo.pulse_stop_sample = double(pulseStopSample);
 captureInfo.pulse_samples_collected = double(numel(referencePulse));
 
 analysis = localFinalizeStepAnalysis(referencePulse, surveillancePulse, ...
-    refAccumulator, survAccumulator, captureInfo, opts);
+    refAccumulator, survAccumulator, relativeMetrics, captureInfo, opts);
 end
 
 function accumulator = localPsdAccumulator()
@@ -893,8 +906,115 @@ accumulator.psd_sum = accumulator.psd_sum + psdEstimate(:);
 accumulator.count = accumulator.count + 1;
 end
 
+function [referenceStore, surveillanceStore] = localAppendRelativeAnalysisSamples( ...
+    referenceStore, surveillanceStore, referenceNew, surveillanceNew, opts)
+maxSamples = round(double(opts.RelativeAnalysisMaxSamples));
+currentCount = numel(referenceStore);
+remaining = max(0, maxSamples - currentCount);
+if remaining == 0
+    return
+end
+
+nAdd = min([remaining, numel(referenceNew), numel(surveillanceNew)]);
+if nAdd <= 0
+    return
+end
+
+referenceStore = [referenceStore; double(referenceNew(1:nAdd))];
+surveillanceStore = [surveillanceStore; double(surveillanceNew(1:nAdd))];
+end
+
+function metrics = localRelativeChannelMetrics(referenceSignal, surveillanceSignal, sampleRateHz, opts)
+%LOCALRELATIVECHANNELMETRICS Compare REF and SURV on ambient-only samples.
+%
+% Plain-language concept:
+%   The scalar fit asks, "If SURV were just a scaled-and-phase-rotated copy
+%   of REF, how much error would be left?"  The cross-correlation then asks
+%   whether the strongest shared component is at zero lag, as expected when
+%   both channels see the same direct-path illuminator, or at a nonzero lag,
+%   which is a clue for multipath or a different dominant path.
+referenceSignal = double(referenceSignal(:));
+surveillanceSignal = double(surveillanceSignal(:));
+nUse = min([numel(referenceSignal), numel(surveillanceSignal), round(double(opts.RelativeAnalysisMaxSamples))]);
+if nUse < 2
+    metrics = localEmptyRelativeChannelMetrics();
+    metrics.note = 'Relative channel metrics unavailable because too few ambient samples were available.';
+    return
+end
+
+refUse = referenceSignal(1:nUse);
+survUse = surveillanceSignal(1:nUse);
+refUse = refUse - mean(refUse, 'omitnan');
+survUse = survUse - mean(survUse, 'omitnan');
+
+refRms = rms(refUse);
+survRms = rms(survUse);
+if refRms <= eps || survRms <= eps
+    metrics = localEmptyRelativeChannelMetrics();
+    metrics.samples_used = double(nUse);
+    metrics.note = 'Relative channel metrics unavailable because one channel is effectively zero.';
+    return
+end
+
+% Least-squares complex scalar that maps SURV onto REF. This is the scalar
+% version of the user's a = ref / surv idea, avoiding an NxN right-division
+% when the channels are column vectors.
+ref_over_surv = (survUse' * refUse) / (survUse' * survUse + eps);
+residual = refUse - ref_over_surv .* survUse;
+residualRms = rms(residual);
+normalizedResidual = residualRms / (refRms + eps);
+
+maxLagSamples = min(round(double(opts.RelativeAnalysisMaxLagSamples)), nUse - 1);
+[corrValues, lags] = xcorr(refUse, survUse, maxLagSamples, 'coeff');
+corrAbs = abs(corrValues);
+[peakCorrAbs, peakIdx] = max(corrAbs);
+zeroIdx = find(lags == 0, 1, 'first');
+if isempty(zeroIdx)
+    zeroCorrAbs = NaN;
+else
+    zeroCorrAbs = corrAbs(zeroIdx);
+end
+peakLagSamples = double(lags(peakIdx));
+
+metrics = struct( ...
+    'available', true, ...
+    'samples_used', double(nUse), ...
+    'ref_over_surv_real', double(real(ref_over_surv)), ...
+    'ref_over_surv_imag', double(imag(ref_over_surv)), ...
+    'ref_over_surv_magnitude_db', 20 * log10(abs(ref_over_surv) + eps), ...
+    'ref_over_surv_phase_deg', rad2deg(angle(ref_over_surv)), ...
+    'ref_surv_residual_rms', double(residualRms), ...
+    'ref_surv_normalized_residual', double(normalizedResidual), ...
+    'ref_surv_normalized_residual_db', 20 * log10(normalizedResidual + eps), ...
+    'ref_surv_zero_lag_corr_abs', double(zeroCorrAbs), ...
+    'ref_surv_peak_corr_abs', double(peakCorrAbs), ...
+    'ref_surv_peak_lag_samples', peakLagSamples, ...
+    'ref_surv_peak_lag_us', peakLagSamples / double(sampleRateHz) * 1e6, ...
+    'ref_surv_peak_minus_zero_corr_db', 20 * log10((double(peakCorrAbs) + eps) / (double(zeroCorrAbs) + eps)), ...
+    'note', 'Ambient-only least-squares REF/SURV scalar fit and normalized cross-correlation.');
+end
+
+function metrics = localEmptyRelativeChannelMetrics()
+metrics = struct( ...
+    'available', false, ...
+    'samples_used', 0, ...
+    'ref_over_surv_real', NaN, ...
+    'ref_over_surv_imag', NaN, ...
+    'ref_over_surv_magnitude_db', NaN, ...
+    'ref_over_surv_phase_deg', NaN, ...
+    'ref_surv_residual_rms', NaN, ...
+    'ref_surv_normalized_residual', NaN, ...
+    'ref_surv_normalized_residual_db', NaN, ...
+    'ref_surv_zero_lag_corr_abs', NaN, ...
+    'ref_surv_peak_corr_abs', NaN, ...
+    'ref_surv_peak_lag_samples', NaN, ...
+    'ref_surv_peak_lag_us', NaN, ...
+    'ref_surv_peak_minus_zero_corr_db', NaN, ...
+    'note', '');
+end
+
 function analysis = localFinalizeStepAnalysis(referencePulse, surveillancePulse, ...
-    refAccumulator, survAccumulator, captureInfo, opts)
+    refAccumulator, survAccumulator, relativeMetrics, captureInfo, opts)
 refPsd = localFinalizePsd(refAccumulator);
 survPsd = localFinalizePsd(survAccumulator);
 
@@ -913,6 +1033,7 @@ end
 
 environmentMetrics = localEnvironmentMetrics(refPsd, survPsd, ...
     refAccumulator, survAccumulator, opts.DirectionalChannel);
+environmentMetrics = localMergeStructs(environmentMetrics, relativeMetrics);
 
 analysis = struct( ...
     'capture_info', captureInfo, ...
@@ -974,6 +1095,14 @@ metrics = struct( ...
     'reference_peak_frequency_hz', referencePeakHz, ...
     'directional_ambient_sample_count', double(localDirectionalCount(refAccumulator, survAccumulator, directionalChannel)), ...
     'reference_ambient_sample_count', double(localReferenceCount(refAccumulator, survAccumulator, directionalChannel)));
+end
+
+function out = localMergeStructs(a, b)
+out = a;
+names = fieldnames(b);
+for idx = 1:numel(names)
+    out.(names{idx}) = b.(names{idx});
+end
 end
 
 function value = localIndexValue(values, idx)
@@ -1113,6 +1242,14 @@ summaryTable = table( ...
     nan(numSteps, 1), ...
     nan(numSteps, 1), ...
     nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
     'VariableNames', { ...
         'StepIndex', ...
         'Bearing_deg', ...
@@ -1131,7 +1268,15 @@ summaryTable = table( ...
         'DirectionalCalibrationIntegratedMargin_dB', ...
         'ReferenceCalibrationIntegratedMargin_dB', ...
         'DirectionalCalibrationCoherentIntegratedMargin_dB', ...
-        'ReferenceCalibrationCoherentIntegratedMargin_dB'});
+        'ReferenceCalibrationCoherentIntegratedMargin_dB', ...
+        'RefOverSurvMagnitude_dB', ...
+        'RefOverSurvPhase_deg', ...
+        'RefSurvNormalizedRMSError_dB', ...
+        'RefSurvZeroLagCorr', ...
+        'RefSurvPeakCorr', ...
+        'RefSurvPeakLag_samples', ...
+        'RefSurvPeakLag_us', ...
+        'RefSurvPeakMinusZeroCorr_dB'});
 
 for idx = 1:numSteps
     env = steps(idx).environment_metrics;
@@ -1163,6 +1308,14 @@ for idx = 1:numSteps
         localCalibrationCoherentIntegratedMargin(cal, directionalChannel, true);
     summaryTable.ReferenceCalibrationCoherentIntegratedMargin_dB(idx) = ...
         localCalibrationCoherentIntegratedMargin(cal, directionalChannel, false);
+    summaryTable.RefOverSurvMagnitude_dB(idx) = env.ref_over_surv_magnitude_db;
+    summaryTable.RefOverSurvPhase_deg(idx) = env.ref_over_surv_phase_deg;
+    summaryTable.RefSurvNormalizedRMSError_dB(idx) = env.ref_surv_normalized_residual_db;
+    summaryTable.RefSurvZeroLagCorr(idx) = env.ref_surv_zero_lag_corr_abs;
+    summaryTable.RefSurvPeakCorr(idx) = env.ref_surv_peak_corr_abs;
+    summaryTable.RefSurvPeakLag_samples(idx) = env.ref_surv_peak_lag_samples;
+    summaryTable.RefSurvPeakLag_us(idx) = env.ref_surv_peak_lag_us;
+    summaryTable.RefSurvPeakMinusZeroCorr_dB(idx) = env.ref_surv_peak_minus_zero_corr_db;
 end
 end
 
@@ -1176,6 +1329,10 @@ analysis = struct( ...
     'reference_calibration_span_db', localRange(summaryTable.ReferenceCalibrationIntegratedMargin_dB), ...
     'directional_coherent_calibration_span_db', localRange(summaryTable.DirectionalCalibrationCoherentIntegratedMargin_dB), ...
     'reference_coherent_calibration_span_db', localRange(summaryTable.ReferenceCalibrationCoherentIntegratedMargin_dB), ...
+    'ref_surv_normalized_error_span_db', localRange(summaryTable.RefSurvNormalizedRMSError_dB), ...
+    'ref_surv_zero_lag_corr_span', localRange(summaryTable.RefSurvZeroLagCorr), ...
+    'strongest_zero_lag_corr_bearing_deg', localBearingAtMax(summaryTable, 'RefSurvZeroLagCorr'), ...
+    'largest_multipath_lag_bearing_deg', localBearingAtMax(summaryTable, 'RefSurvPeakMinusZeroCorr_dB'), ...
     'strongest_ambient_bearing_deg', localBearingAtMax(summaryTable, 'DirectionalAmbientPower_dB'), ...
     'strongest_calibration_bearing_deg', localBearingAtMax(summaryTable, 'DirectionalCalibrationIntegratedMargin_dB'));
 end
@@ -1547,7 +1704,7 @@ end
 function fig = localPlotChannelRatios(scan, figureVisibility)
 tbl = scan.summary_table;
 fig = figure('Name', 'Azimuth scan channel ratios', 'Color', 'w', 'Visible', figureVisibility);
-tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+tl = tiledlayout(fig, 4, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
 title(tl, 'Azimuth scan summary metrics');
 
 nexttile(tl, 1);
@@ -1564,6 +1721,28 @@ grid on;
 xlabel('Bearing (deg true)');
 ylabel('Directional - reference comb margin (dB)');
 title('Calibration comb channel ratio');
+
+nexttile(tl, 3);
+plot(tbl.Bearing_deg, tbl.RefSurvNormalizedRMSError_dB, '-o', 'LineWidth', 1.2);
+grid on;
+xlabel('Bearing (deg true)');
+ylabel('Residual / REF RMS (dB)');
+title('REF - a*SURV normalized residual after best complex scalar fit');
+
+nexttile(tl, 4);
+plot(tbl.Bearing_deg, tbl.RefSurvZeroLagCorr, '-o', 'LineWidth', 1.2);
+hold on;
+plot(tbl.Bearing_deg, tbl.RefSurvPeakCorr, '-s', 'LineWidth', 1.2);
+yyaxis right;
+plot(tbl.Bearing_deg, tbl.RefSurvPeakLag_samples, '-^', 'LineWidth', 1.0);
+grid on;
+xlabel('Bearing (deg true)');
+yyaxis left;
+ylabel('Correlation magnitude');
+yyaxis right;
+ylabel('Peak lag (samples)');
+title('Ambient REF/SURV cross-correlation');
+legend({'Zero lag', 'Peak', 'Peak lag'}, 'Location', 'best');
 end
 
 function [psdMatrix, frequencyHz, bearingsDeg] = localPsdMatrix(steps, wantDirectional)
@@ -1630,6 +1809,10 @@ textLines = [
     "Calibration reference span: " + compose("%.2f", analysis.reference_calibration_span_db) + " dB"
     "Coherent calibration directional span: " + compose("%.2f", analysis.directional_coherent_calibration_span_db) + " dB"
     "Coherent calibration reference span: " + compose("%.2f", analysis.reference_coherent_calibration_span_db) + " dB"
+    "REF/SURV normalized residual span: " + compose("%.2f", analysis.ref_surv_normalized_error_span_db) + " dB"
+    "REF/SURV zero-lag correlation span: " + compose("%.3f", analysis.ref_surv_zero_lag_corr_span)
+    "Strongest REF/SURV zero-lag bearing: " + compose("%.1f", analysis.strongest_zero_lag_corr_bearing_deg) + " deg true"
+    "Largest nonzero-lag correlation bearing: " + compose("%.1f", analysis.largest_multipath_lag_bearing_deg) + " deg true"
     "Strongest ambient bearing: " + compose("%.1f", analysis.strongest_ambient_bearing_deg) + " deg true"
     "Strongest calibration bearing: " + compose("%.1f", analysis.strongest_calibration_bearing_deg) + " deg true"
     ""
@@ -1637,6 +1820,7 @@ textLines = [
     "The ambient plots estimate the RF environment with the Pluto pulse window removed."
     "The calibration plots score only the Pluto 12-tone no-DC burst."
     "The coherent per-tone plots integrate over the full captured pulse window."
+    "The REF/SURV residual and cross-correlation metrics compare ambient-only channel similarity."
     "A useful scan should show more azimuth variation on the directional channel than on the reference channel."
     ];
 end
@@ -1690,7 +1874,10 @@ fprintf(fid, '<h2>Plain-language interpretation</h2>\n');
 fprintf(fid, ['<p>The ambient spectra show what the two receive channels saw while the Pluto ', ...
     'calibration burst window was excluded. The calibration pattern scores only the short ', ...
     '12-tone no-DC Pluto burst. The coherent plots add a matched-tone integration over the full ', ...
-    'pulse window, so longer pulse tests should show their processing gain there. If the directional antenna is behaving like a directional sensor, ', ...
+    'pulse window, so longer pulse tests should show their processing gain there. The REF/SURV fit and ', ...
+    'cross-correlation metrics compare the ambient-only channels: low residual and high zero-lag ', ...
+    'correlation indicate a shared direct-path-like signal, while a nonzero correlation peak is a multipath clue. ', ...
+    'If the directional antenna is behaving like a directional sensor, ', ...
     'its ambient and calibration curves should change more with bearing than the reference channel.</p>\n']);
 
 fprintf(fid, '<h2>Summary</h2>\n<ul>\n');
@@ -1705,6 +1892,10 @@ fprintf(fid, '<li>Directional calibration span: %.2f dB</li>\n', scan.analysis.d
 fprintf(fid, '<li>Reference calibration span: %.2f dB</li>\n', scan.analysis.reference_calibration_span_db);
 fprintf(fid, '<li>Directional coherent calibration span: %.2f dB</li>\n', scan.analysis.directional_coherent_calibration_span_db);
 fprintf(fid, '<li>Reference coherent calibration span: %.2f dB</li>\n', scan.analysis.reference_coherent_calibration_span_db);
+fprintf(fid, '<li>REF/SURV normalized residual span: %.2f dB</li>\n', scan.analysis.ref_surv_normalized_error_span_db);
+fprintf(fid, '<li>REF/SURV zero-lag correlation span: %.3f</li>\n', scan.analysis.ref_surv_zero_lag_corr_span);
+fprintf(fid, '<li>Strongest REF/SURV zero-lag bearing: %.1f deg true</li>\n', scan.analysis.strongest_zero_lag_corr_bearing_deg);
+fprintf(fid, '<li>Largest nonzero-lag correlation bearing: %.1f deg true</li>\n', scan.analysis.largest_multipath_lag_bearing_deg);
 fprintf(fid, '<li>Strongest ambient bearing: %.1f deg true</li>\n', scan.analysis.strongest_ambient_bearing_deg);
 fprintf(fid, '<li>Strongest calibration bearing: %.1f deg true</li>\n', scan.analysis.strongest_calibration_bearing_deg);
 fprintf(fid, '</ul>\n');

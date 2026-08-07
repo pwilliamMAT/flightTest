@@ -190,6 +190,28 @@ The batch summary is written as:
 captures/plutoAzimuthEnvironmentScans/az_pulse_reprocess_summary.csv
 ```
 
+Reprocessing also computes ambient-only REF/SURV similarity metrics. The scalar
+fit uses the least-squares form of the operator shorthand `a = ref / surv`:
+
+```matlab
+a = (surv' * ref) / (surv' * surv);
+err = rms(ref - a * surv);
+```
+
+The reported `RefSurvNormalizedRMSError_dB` is `err / rms(ref)` in dB. More
+negative values mean SURV is closer to being a scaled-and-phase-rotated copy of
+REF. The reanalysis also reports normalized cross-correlation metrics:
+
+- `RefSurvZeroLagCorr`: how strongly REF and SURV match at lag zero.
+- `RefSurvPeakCorr`: strongest correlation inside the configured lag search.
+- `RefSurvPeakLag_samples` / `RefSurvPeakLag_us`: lag of that strongest peak.
+- `RefSurvPeakMinusZeroCorr_dB`: how much stronger the best nonzero/any-lag
+  peak is than the zero-lag value.
+
+When the surveillance antenna points toward the illuminator, the expected
+behavior is high zero-lag correlation. When it points away, nonzero peak lags
+can indicate multipath or a different dominant coupled path.
+
 ## Copying reports without the large capture files
 
 The raw N320 baseband captures are intentionally tagged so they are easy to
@@ -264,6 +286,18 @@ This CSV has one row per bearing per tone.  Important columns:
 - `ReferenceCoherentMargin_dB`
 - `DirectionalMinusReferenceCoherentMargin_dB`
 - `ChannelFrequencyDelta_Hz`
+
+The per-bearing `azimuth_summary.csv` also includes REF/SURV scalar-fit and
+cross-correlation columns:
+
+- `RefOverSurvMagnitude_dB`
+- `RefOverSurvPhase_deg`
+- `RefSurvNormalizedRMSError_dB`
+- `RefSurvZeroLagCorr`
+- `RefSurvPeakCorr`
+- `RefSurvPeakLag_samples`
+- `RefSurvPeakLag_us`
+- `RefSurvPeakMinusZeroCorr_dB`
 
 Useful checks:
 
