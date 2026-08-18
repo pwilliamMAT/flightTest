@@ -56,7 +56,7 @@ classdef Stage4BADSBIntervalCampaignScriptTest < matlab.unittest.TestCase
             localVerifyContains(testCase, outputText, "default: 300");
             localVerifyContains(testCase, outputText, "default: 1800");
             localVerifyContains(testCase, outputText, "default: 259200");
-            localVerifyContains(testCase, outputText, "sudo -n bash start_adsb_gps_loggers.sh --adsb-only");
+            localVerifyContains(testCase, outputText, "exec python3 /home/pi2/flightTest/ADSB_GPS/gatherTCPcompress.py --session-id");
         end
 
         function testOperatorReadmeDescribesTestingMachineCoordinator(testCase)
@@ -101,7 +101,7 @@ classdef Stage4BADSBIntervalCampaignScriptTest < matlab.unittest.TestCase
             localVerifyContains(testCase, outputText, "SESSION_ROOT" + tabCharacter);
             localVerifyContains(testCase, outputText, "RECEIVER_ORIGIN_LLA" + tabCharacter + "1.25,-2.5,33");
             localVerifyContains(testCase, outputText, "REMOTE_COMMAND_TEMPLATE" + tabCharacter);
-            localVerifyContains(testCase, outputText, "sudo -n bash 'start_adsb_gps_loggers.sh'");
+            localVerifyContains(testCase, outputText, "exec python3 '/home/pi2/flightTest/ADSB_GPS/gatherTCPcompress.py'");
             localVerifyContains(testCase, outputText, "DRY_RUN_PLAN_WINDOWS" + tabCharacter + "3");
         end
 
@@ -228,10 +228,9 @@ classdef Stage4BADSBIntervalCampaignScriptTest < matlab.unittest.TestCase
                 coordinatorLogInfo(1).folder, ...
                 coordinatorLogInfo(1).name)));
             scpLogText = string(fileread(scpLogPath));
-            localVerifyContains(testCase, coordinatorLogText, "sudo -n bash 'start_adsb_gps_loggers.sh'");
-            localVerifyContains(testCase, coordinatorLogText, "--adsb-only");
-            localVerifyContains(testCase, coordinatorLogText, "--adsb-session-id 'fake_campaign_w001_");
-            localVerifyContains(testCase, coordinatorLogText, "--adsb-run-seconds '1'");
+            localVerifyContains(testCase, coordinatorLogText, "exec python3 '/home/pi2/flightTest/ADSB_GPS/gatherTCPcompress.py'");
+            localVerifyContains(testCase, coordinatorLogText, "--session-id 'fake_campaign_w001_");
+            localVerifyContains(testCase, coordinatorLogText, "--run-seconds '1'");
             localVerifyContains(testCase, scpLogText, ".txt.gz");
             localVerifyContains(testCase, scpLogText, "stage4B_adsb_capture_fake_campaign_w001_");
         end
@@ -354,9 +353,7 @@ lines = { ...
     ['log_path=' char(logLiteral)]; ...
     'cmd="${@: -1}"'; ...
     'printf ''%s\n'' "$cmd" >> "$log_path"'; ...
-    'if [[ "$cmd" == *WRAPPER_READY* ]]; then printf WRAPPER_READY; exit 0; fi'; ...
-    'if [[ "$cmd" == *ADSB_COMMANDS_READY* ]]; then printf ADSB_COMMANDS_READY; exit 0; fi'; ...
-    'if [[ "$cmd" == *SUDO_READY* ]]; then printf SUDO_READY; exit 0; fi'; ...
+    'if [[ "$cmd" == *READY* ]]; then printf READY; exit 0; fi'; ...
     'if [[ "$cmd" == *session_glob=* ]]; then'; ...
     '    session="$(printf ''%s'' "$cmd" | sed -n "s/.*adsb_\([^*'']*\).*\.txt\.gz.*/\1/p" | head -n 1)"'; ...
     '    [[ -n "$session" ]] || session=unknown_session'; ...

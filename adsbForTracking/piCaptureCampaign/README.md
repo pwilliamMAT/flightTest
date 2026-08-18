@@ -1,6 +1,6 @@
 # Stage 4B ADS-B Interval Capture Campaign
 
-This folder contains the Stage 4B ADS-B-only capture coordinator. Run it from the Ubuntu testing machine at the repository root; the script SSHes to the Pi, starts bounded ADS-B-only windows through the existing `ADSB_GPS/start_adsb_gps_loggers.sh` wrapper, fetches the gzip truth files with `scp`, and packages each window as a local session.
+This folder contains the Stage 4B ADS-B-only capture coordinator. Run it from the Ubuntu testing machine at the repository root; the script SSHes to the Pi, starts bounded ADS-B-only windows with the same `ADSB_GPS/gatherTCPcompress.py` SSH pattern used by the full capture pipeline, fetches the gzip truth files with `scp`, and packages each window as a local session.
 
 It intentionally does not start SDR/radar capture and does not modify the Pi logger framework.
 
@@ -20,10 +20,10 @@ pi2@192.168.10.131
 /home/pi2/flightTest/ADSB_GPS
 ```
 
-The default remote command template per window is:
+The default remote command template per window mirrors `TestSetupTesting/run_coordinated_hdtv_capture.sh`:
 
 ```bash
-cd /home/pi2/flightTest/ADSB_GPS && sudo -n bash start_adsb_gps_loggers.sh --adsb-only --adsb-session-id <session_id> --adsb-run-seconds 300
+cd /home/pi2/flightTest/ADSB_GPS && exec python3 /home/pi2/flightTest/ADSB_GPS/gatherTCPcompress.py --session-id <session_id> --run-seconds 300
 ```
 
 For a short smoke test:
@@ -34,7 +34,7 @@ bash adsbForTracking/piCaptureCampaign/run_stage4_adsb_interval_campaign.sh --ca
 
 Use `--dry-run` before a field run to confirm the planned windows, Pi target, local session root, receiver LLA, and remote command template without SSH or package writes.
 
-Use `--preflight-only` to check non-interactive SSH, the remote logger wrapper, remote `sudo -n`, `python3` and `dump1090` in the same remote sudo command context used by the wrapper, local `scp`, and local write access.
+Use `--preflight-only` to check non-interactive SSH, the remote Python ADS-B logger, `python3`, local `scp`, and local write access. This intentionally matches the full capture coordinator preflight and does not add a separate `dump1090` check.
 
 ## Key Options
 

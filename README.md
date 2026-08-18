@@ -29,10 +29,10 @@ cd /path/to/flightTest
 bash adsbForTracking/piCaptureCampaign/run_stage4_adsb_interval_campaign.sh
 ```
 
-The wrapper defaults to 300 second ADS-B-only windows every 1800 seconds for 259200 seconds, targeting `pi2@192.168.10.131` and `/home/pi2/flightTest/ADSB_GPS`. Each window starts the existing Pi logger wrapper with:
+The wrapper defaults to 300 second ADS-B-only windows every 1800 seconds for 259200 seconds, targeting `pi2@192.168.10.131` and `/home/pi2/flightTest/ADSB_GPS`. Each window starts the same Pi Python ADS-B logger used by the full coordinated capture pipeline:
 
 ```bash
-cd /home/pi2/flightTest/ADSB_GPS && sudo -n bash start_adsb_gps_loggers.sh --adsb-only --adsb-session-id <session_id> --adsb-run-seconds 300
+cd /home/pi2/flightTest/ADSB_GPS && exec python3 /home/pi2/flightTest/ADSB_GPS/gatherTCPcompress.py --session-id <session_id> --run-seconds 300
 ```
 
 Use a smoke test before a longer campaign:

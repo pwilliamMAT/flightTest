@@ -11,7 +11,7 @@ DEFAULT_CAMPAIGN_SECONDS=259200
 DEFAULT_PI_HOST="192.168.10.131"
 DEFAULT_PI_USER="pi2"
 DEFAULT_PI_WORKDIR="/home/pi2/flightTest/ADSB_GPS"
-DEFAULT_PI_LOGGER_SCRIPT="start_adsb_gps_loggers.sh"
+DEFAULT_PI_LOGGER_SCRIPT="/home/pi2/flightTest/ADSB_GPS/gatherTCPcompress.py"
 DEFAULT_OUTPUT_ROOT="$SCRIPT_DIR/campaigns"
 DEFAULT_ADSB_STAGE_DIR="$REPO_ROOT/adsb_capture"
 DEFAULT_SESSION_ROOT="$REPO_ROOT/captures"
@@ -59,14 +59,14 @@ usage() {
 Usage: bash adsbForTracking/piCaptureCampaign/$(basename "$0") [options]
 
 Run bounded ADS-B-only capture windows from the Ubuntu testing machine. The
-script SSHes to the Raspberry Pi, starts the existing ADS-B/GPS logger wrapper,
+script SSHes to the Raspberry Pi, starts the existing Python ADS-B logger,
 fetches the gzip truth logs, and packages each window under captures/<session_id>/.
 
 Options:
   --pi-host <host>                 Raspberry Pi host or IP (default: $DEFAULT_PI_HOST)
   --pi-user <user>                 Raspberry Pi SSH user (default: $DEFAULT_PI_USER)
   --pi-workdir <path>              Pi ADS-B work directory (default: $DEFAULT_PI_WORKDIR)
-  --pi-logger-script <path>        Pi logger wrapper path/name (default: $DEFAULT_PI_LOGGER_SCRIPT)
+  --pi-logger-script <path>        Pi Python ADS-B logger path/name (default: $DEFAULT_PI_LOGGER_SCRIPT)
   --ssh-bin <path>                 SSH executable (default: ssh)
   --scp-bin <path>                 SCP executable (default: scp)
   --adsb-stage-dir <path>          Local staging folder for fetched ADS-B files
@@ -86,7 +86,7 @@ Options:
   -h, --help                       Show this help text
 
 Default remote command per window:
-  cd $DEFAULT_PI_WORKDIR && sudo -n bash $DEFAULT_PI_LOGGER_SCRIPT --adsb-only --adsb-session-id <session_id> --adsb-run-seconds $DEFAULT_CAPTURE_SECONDS
+  cd $DEFAULT_PI_WORKDIR && exec python3 $DEFAULT_PI_LOGGER_SCRIPT --session-id <session_id> --run-seconds $DEFAULT_CAPTURE_SECONDS
 EOF
 }
 
@@ -226,7 +226,7 @@ remote_logger_ref() { printf "%s" "$PI_LOGGER_SCRIPT"; }
 
 remote_logger_command() {
     local session_id="$1"
-    printf "cd %s && sudo -n bash %s --adsb-only --adsb-session-id %s --adsb-run-seconds %s" \
+    printf "cd %s && exec python3 %s --session-id %s --run-seconds %s" \
         "$(quote_posix_arg "$PI_WORKDIR")" \
         "$(quote_posix_arg "$(remote_logger_ref)")" \
         "$(quote_posix_arg "$session_id")" \
@@ -257,7 +257,7 @@ signal_remote_logger() {
     local session_id="$1"
     local sig="${2:-TERM}"
     local body
-    body="pids=\$(pgrep -f $(quote_posix_arg "$(remote_logger_pattern "$session_id")") || true); if [[ -z \"\$pids\" ]]; then printf STOPPED; else sudo -n kill -s $sig \$pids && printf SIGNALED; fi"
+    body="pids=\$(pgrep -f $(quote_posix_arg "$(remote_logger_pattern "$session_id")") || true); if [[ -z \"\$pids\" ]]; then printf STOPPED; else kill -s $sig \$pids && printf SIGNALED; fi"
     run_ssh_body "$body"
 }
 
@@ -311,35 +311,12 @@ preflight_check() {
     local_can_write "$ADSB_STAGE_DIR" "ADS-B staging root" || failures=$((failures + 1))
 
     if [[ "$failures" -eq 0 ]]; then
-        body="cd $(quote_posix_arg "$PI_WORKDIR") && test -f $(quote_posix_arg "$(remote_logger_ref)") && printf WRAPPER_READY"
+        body="cd $(quote_posix_arg "$PI_WORKDIR") && test -f $(quote_posix_arg "$(remote_logger_ref)") && command -v python3 >/dev/null 2>&1 && printf READY"
         output="$(run_ssh_body "$body" 2>&1)"
-        if [[ $? -eq 0 && "$output" == *WRAPPER_READY* ]]; then
-            echo "  OK remote logger wrapper on $PI_USER@$PI_HOST"
+        if [[ $? -eq 0 && "$output" == *READY* ]]; then
+            echo "  OK remote Python ADS-B logger on $PI_USER@$PI_HOST"
         else
-            echo "  FAIL remote logger wrapper check on $PI_USER@$PI_HOST"
-            echo "       $output"
-            failures=$((failures + 1))
-        fi
-    fi
-
-    if [[ "$failures" -eq 0 ]]; then
-        output="$(run_ssh_body "sudo -n true >/dev/null 2>&1 && printf SUDO_READY" 2>&1)"
-        if [[ $? -eq 0 && "$output" == *SUDO_READY* ]]; then
-            echo "  OK remote sudo -n access"
-        else
-            echo "  FAIL remote sudo -n access on $PI_USER@$PI_HOST"
-            echo "       $output"
-            failures=$((failures + 1))
-        fi
-    fi
-
-    if [[ "$failures" -eq 0 ]]; then
-        body="cd $(quote_posix_arg "$PI_WORKDIR") && command -v python3 >/dev/null 2>&1 && command -v dump1090 >/dev/null 2>&1 && printf ADSB_COMMANDS_READY"
-        output="$(run_ssh_body "sudo -n bash -lc $(quote_posix_arg "$body")" 2>&1)"
-        if [[ $? -eq 0 && "$output" == *ADSB_COMMANDS_READY* ]]; then
-            echo "  OK remote sudo ADS-B command context: python3 and dump1090"
-        else
-            echo "  FAIL remote sudo ADS-B command context on $PI_USER@$PI_HOST"
+            echo "  FAIL remote Python ADS-B logger check on $PI_USER@$PI_HOST"
             echo "       $output"
             failures=$((failures + 1))
         fi
@@ -490,11 +467,12 @@ wait_until_epoch() {
 start_remote_logger() {
     local session_id="$1"
     local remote_log_file="$2"
-    local cmd
-    local body
-    cmd="$(remote_logger_command "$session_id")"
-    body="$cmd > $(quote_posix_arg "$remote_log_file") 2>&1; s=\$?; if [[ \$s -eq 0 ]]; then printf STARTED; else printf START_FAILED:\$s; exit \$s; fi"
-    run_ssh_body "$body"
+    local logger_body
+    local start_body
+
+    logger_body="$(remote_logger_command "$session_id") > $(quote_posix_arg "$remote_log_file") 2>&1 < /dev/null"
+    start_body="cd $(quote_posix_arg "$PI_WORKDIR") && if command -v setsid >/dev/null 2>&1; then setsid -f bash -lc $(quote_posix_arg "$logger_body"); else nohup bash -lc $(quote_posix_arg "$logger_body") >/dev/null 2>&1 & fi; printf STARTED"
+    run_ssh_body "$start_body"
 }
 
 list_remote_adsb_files() {
@@ -675,7 +653,7 @@ run_capture_window() {
         actual_stop="$(utc_iso_now)"
         ACTIVE_SESSION_ID=""
         status="start_failed"
-        message="remote logger wrapper failed to start"
+        message="remote Python ADS-B logger failed to start"
         write_session_manifest "$manifest_path" "$session_id" "$window_id" "$planned_iso" "$actual_start" "$actual_stop" "$remote_log_file" "$status"
         append_status "$window_id" "$session_id" "$planned_iso" "$actual_start" "$actual_stop" "$status" 0 0 "$message"
         return 1

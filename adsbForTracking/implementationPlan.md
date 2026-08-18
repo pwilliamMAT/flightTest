@@ -695,7 +695,7 @@ Stage 4A acceptance checks:
 - `Stage4ADSBTruthCapturePlanningLiveScriptTest`, `Stage4BADSBIntervalCampaignScriptTest`, `Stage3CArchiveEvaluationTest`, and `Stage3BAggregateEvaluationTest` pass.
 ## (completed) Stage 4B: ADS-B Interval Capture Campaign
 
-Stage 4B now implements a testing-machine ADS-B interval capture coordinator. New project code stays under `adsbForTracking/piCaptureCampaign/`; the operator runs it from the Ubuntu testing machine, it SSHes to the Raspberry Pi, starts bounded ADS-B-only windows through the existing Pi logger wrapper, fetches gzip truth logs with `scp`, and packages each window as `captures/<session_id>/` with `session_manifest.json` receiver-origin metadata.
+Stage 4B now implements a testing-machine ADS-B interval capture coordinator. New project code stays under `adsbForTracking/piCaptureCampaign/`; the operator runs it from the Ubuntu testing machine, it SSHes to the Raspberry Pi, starts bounded ADS-B-only windows through the existing Pi Python ADS-B logger used by the full capture pipeline, fetches gzip truth logs with `scp`, and packages each window as `captures/<session_id>/` with `session_manifest.json` receiver-origin metadata.
 
 Native workflow audit:
 
@@ -710,6 +710,7 @@ Function audit:
 | Proposed Feature / Algorithm | Native MATLAB Function/Toolbox Equivalent | Documentation Syntax Template Used |
 | :--- | :--- | :--- |
 | Shell preflight/test execution | `system` | `[status, output] = system(command)` |
+| ADS-B-only capture | Existing Pi Python logger used by the full capture coordinator | `python3 gatherTCPcompress.py --session-id <session_id> --run-seconds 300` |
 | Manifest encoding concept | `jsonencode` | `jsonText = jsonencode(manifest)` |
 | Post-campaign archive evaluation | Existing MATLAB Stage 3C scripts | `runStage3CArchiveADSBEvaluation` then `stage4ADSBTruthCapturePlanningLiveScript` |
 
@@ -723,7 +724,7 @@ Default campaign behavior:
 
 - Runs 300 second ADS-B-only captures every 1800 seconds for 259200 seconds.
 - Runs from the testing machine and defaults to Pi target `pi2@192.168.10.131` with workdir `/home/pi2/flightTest/ADSB_GPS`.
-- Uses remote command `sudo -n bash start_adsb_gps_loggers.sh --adsb-only --adsb-session-id <session_id> --adsb-run-seconds <seconds>`.
+- Uses the full-pipeline ADS-B command pattern: `python3 gatherTCPcompress.py --session-id <session_id> --run-seconds <seconds>`, launched remotely with `setsid` or `nohup`.
 - Uses campaign IDs of the form `stage4B_<UTC timestamp>` unless overridden.
 - Uses per-window session IDs of the form `<campaign_id>_wNNN_<UTC timestamp>`.
 - Writes campaign metadata under `piCaptureCampaign/campaigns/<campaign_id>/`.
@@ -737,7 +738,7 @@ Stage 4B acceptance checks:
 - `--help` lists SSH/SCP options, local packaging roots, receiver-origin override, and campaign controls.
 - `--dry-run --campaign-seconds 3700 --capture-seconds 300 --interval-seconds 1800` plans three unique windows and prints Pi target, session root, receiver LLA, and remote command template without SSH or package writes.
 - Invalid numeric options and invalid `--receiver-origin-lla` values fail nonzero.
-- `--preflight-only` checks SSH, remote logger wrapper, remote `sudo -n`, `python3` and `dump1090` in the same remote sudo command context used by the wrapper, local `scp`, and local write access before capture startup.
+- `--preflight-only` matches the full capture coordinator preflight: SSH, remote Python ADS-B logger presence, `python3`, local `scp`, and local write access before capture startup. It does not add a separate `dump1090` check.
 - A shell-level fake `ssh`/`scp` test verifies the expected remote command and the ADS-B-only packaged-session layout without contacting hardware.
 - The operator README describes running from the testing machine and no longer instructs copying/running the coordinator on the Pi.
 
