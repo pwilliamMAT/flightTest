@@ -104,6 +104,7 @@
   - Updated `adsbForTracking/piCaptureCampaign/run_stage4_adsb_interval_campaign.sh` to add Pi SSH/SCP options, dry-run/preflight coordinator output, remote logger polling, local package creation, and `receiver_origin_lla` manifest metadata.
   - Updated `adsbForTracking/tests/Stage4BADSBIntervalCampaignScriptTest.m` with new help/dry-run/validation/preflight checks and a fake `ssh`/`scp` packaging test.
   - Updated `adsbForTracking/piCaptureCampaign/README.md`, root `README.md`, `adsbForTracking/implementationPlan.md`, root `concepts.md`, and `adsbForTracking/concepts.md` to describe the testing-machine workflow.
+  - Adjusted Stage 4B preflight so `python3` and `dump1090` are checked in the same remote `sudo -n bash -lc` command context used by the Pi logger wrapper.
   - Verified `bash -n adsbForTracking/piCaptureCampaign/run_stage4_adsb_interval_campaign.sh` passes under Git Bash.
   - Verified Code Analyzer is clean for `Stage4BADSBIntervalCampaignScriptTest.m`.
   - Verified `Stage4BADSBIntervalCampaignScriptTest`, `Stage4ADSBTruthCapturePlanningLiveScriptTest`, and `Stage3CArchiveEvaluationTest` pass.

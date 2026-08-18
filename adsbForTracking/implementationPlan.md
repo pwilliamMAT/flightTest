@@ -737,7 +737,7 @@ Stage 4B acceptance checks:
 - `--help` lists SSH/SCP options, local packaging roots, receiver-origin override, and campaign controls.
 - `--dry-run --campaign-seconds 3700 --capture-seconds 300 --interval-seconds 1800` plans three unique windows and prints Pi target, session root, receiver LLA, and remote command template without SSH or package writes.
 - Invalid numeric options and invalid `--receiver-origin-lla` values fail nonzero.
-- `--preflight-only` checks SSH, remote logger wrapper, remote `sudo -n`, `dump1090`, `python3`, local `scp`, and local write access before capture startup.
+- `--preflight-only` checks SSH, remote logger wrapper, remote `sudo -n`, `python3` and `dump1090` in the same remote sudo command context used by the wrapper, local `scp`, and local write access before capture startup.
 - A shell-level fake `ssh`/`scp` test verifies the expected remote command and the ADS-B-only packaged-session layout without contacting hardware.
 - The operator README describes running from the testing machine and no longer instructs copying/running the coordinator on the Pi.
 

@@ -34,7 +34,7 @@ bash adsbForTracking/piCaptureCampaign/run_stage4_adsb_interval_campaign.sh --ca
 
 Use `--dry-run` before a field run to confirm the planned windows, Pi target, local session root, receiver LLA, and remote command template without SSH or package writes.
 
-Use `--preflight-only` to check non-interactive SSH, the remote logger wrapper, remote `sudo -n`, `dump1090`, `python3`, local `scp`, and local write access.
+Use `--preflight-only` to check non-interactive SSH, the remote logger wrapper, remote `sudo -n`, `python3` and `dump1090` in the same remote sudo command context used by the wrapper, local `scp`, and local write access.
 
 ## Key Options
 

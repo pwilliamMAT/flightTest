@@ -311,12 +311,12 @@ preflight_check() {
     local_can_write "$ADSB_STAGE_DIR" "ADS-B staging root" || failures=$((failures + 1))
 
     if [[ "$failures" -eq 0 ]]; then
-        body="cd $(quote_posix_arg "$PI_WORKDIR") && test -f $(quote_posix_arg "$(remote_logger_ref)") && command -v python3 >/dev/null 2>&1 && command -v dump1090 >/dev/null 2>&1 && printf PREFLIGHT_READY"
+        body="cd $(quote_posix_arg "$PI_WORKDIR") && test -f $(quote_posix_arg "$(remote_logger_ref)") && printf WRAPPER_READY"
         output="$(run_ssh_body "$body" 2>&1)"
-        if [[ $? -eq 0 && "$output" == *PREFLIGHT_READY* ]]; then
-            echo "  OK remote logger wrapper, dump1090, and python3 on $PI_USER@$PI_HOST"
+        if [[ $? -eq 0 && "$output" == *WRAPPER_READY* ]]; then
+            echo "  OK remote logger wrapper on $PI_USER@$PI_HOST"
         else
-            echo "  FAIL remote logger/python3/dump1090 check on $PI_USER@$PI_HOST"
+            echo "  FAIL remote logger wrapper check on $PI_USER@$PI_HOST"
             echo "       $output"
             failures=$((failures + 1))
         fi
@@ -328,6 +328,18 @@ preflight_check() {
             echo "  OK remote sudo -n access"
         else
             echo "  FAIL remote sudo -n access on $PI_USER@$PI_HOST"
+            echo "       $output"
+            failures=$((failures + 1))
+        fi
+    fi
+
+    if [[ "$failures" -eq 0 ]]; then
+        body="cd $(quote_posix_arg "$PI_WORKDIR") && command -v python3 >/dev/null 2>&1 && command -v dump1090 >/dev/null 2>&1 && printf ADSB_COMMANDS_READY"
+        output="$(run_ssh_body "sudo -n bash -lc $(quote_posix_arg "$body")" 2>&1)"
+        if [[ $? -eq 0 && "$output" == *ADSB_COMMANDS_READY* ]]; then
+            echo "  OK remote sudo ADS-B command context: python3 and dump1090"
+        else
+            echo "  FAIL remote sudo ADS-B command context on $PI_USER@$PI_HOST"
             echo "       $output"
             failures=$((failures + 1))
         fi
