@@ -11,6 +11,46 @@ This repository contains a complete passive bistatic radar system and multi-sens
 3. **Multi-Sensor Fusion:** Integrate passive radar with RF beacon tracking for enhanced situational awareness
 4. **Toolbox Validation:** Generate real-world datasets for testing MathWorks radar and tracking algorithms
 
+### ADS-B Prediction Review
+
+The `adsbForTracking/` workspace contains the MATLAB ADS-B prediction-step review pipeline. The Stage 3B entrypoint, `runStage3BAggregateADSBEvaluation.m`, remains the original one-session baseline: it aggregates the discoverable local ADS-B truth data, compares the frozen Stage 3A delta-target MLP against native `constvel` on identical state-pair rows, and writes the evaluation under `adsbForTracking/artifacts/stage3B/`. Stage 3C adds `runStage3CArchiveADSBEvaluation.m`, which inventories `adsbForTracking/adsb_archive/adsb_archive`, uses MATLAB `gunzip` first with a narrow .NET gzip fallback for the two native failures, and writes archive scoring under `adsbForTracking/artifacts/stage3C/`. The Stage 3C archive pass evaluates 16 source files, 16 usable sessions, 15,013 one-step pairs, and 222 aircraft tracks without retraining; the basic Stage 3B gates pass, but `pi_only/truth` is still empty and all truth-only sessions use the default receiver origin. Stage 4A `stage4ADSBTruthCapturePlanningLiveScript.m` now prefers the saved Stage 3C artifact, falls back to Stage 3B only for compatibility, and makes the next collection priorities independent Pi-only holdout sessions, receiver-origin metadata preservation, source diversity, targeted motion/update regimes, and passive-radar-relevant geometry.
+
+Run the archive extension from MATLAB with:
+
+```matlab
+cd adsbForTracking
+stage3CSummary = runStage3CArchiveADSBEvaluation;
+```
+
+For Stage 4B interval ADS-B truth collection, run the testing-machine coordinator from the repository root. It SSHes to the Pi and packages each ADS-B-only window locally under `captures/<session_id>/`:
+
+```bash
+cd /path/to/flightTest
+bash adsbForTracking/piCaptureCampaign/run_stage4_adsb_interval_campaign.sh
+```
+
+The wrapper defaults to 300 second ADS-B-only windows every 1800 seconds for 259200 seconds, targeting `pi2@192.168.10.131` and `/home/pi2/flightTest/ADSB_GPS`. Each window starts the existing Pi logger wrapper with:
+
+```bash
+cd /home/pi2/flightTest/ADSB_GPS && sudo -n bash start_adsb_gps_loggers.sh --adsb-only --adsb-session-id <session_id> --adsb-run-seconds 300
+```
+
+Use a smoke test before a longer campaign:
+
+```bash
+bash adsbForTracking/piCaptureCampaign/run_stage4_adsb_interval_campaign.sh --campaign-seconds 700 --capture-seconds 30 --interval-seconds 300 --max-windows 2
+```
+
+Packaged ADS-B-only holdout sessions use the discoverable capture layout directly:
+
+```text
+captures/<session_id>/truth/*adsb_<session_id>*.txt.gz
+captures/<session_id>/logs/*.log
+captures/<session_id>/session_manifest.json
+```
+
+Each `session_manifest.json` includes numeric `receiver_origin_lla` metadata, defaulting to `[42.2999333, -71.349333, 15.0]`, plus `capture_type: "adsb_only_holdout"`, `campaign_id`, `window_id`, `pi_host`, `pi_user`, `remote_log_file`, `adsb_files`, `log_files`, and `radar_files: []`. Override the receiver origin with `--receiver-origin-lla <lat,lon,alt_m>` when needed so Stage 3C/4A do not fall back to the default receiver origin.
+
 ## Integration Checkpoint and Architecture Reference
 
 The branch `checkpoint/working-integration-nonfunctional-detector-2026-07-08` is the preservation milestone for the current integrated replay, truth-diagnostic, visualization-profile, and offline-toolbox-evaluation work. Treat it as a durable handoff point for a **working integration with a still non-functional detector**, not as a release or detector-tuned baseline.
@@ -82,7 +122,7 @@ The bring-up checklist now includes the same observed field-trial matrix plus sh
 
 - **USRP N320:** Phase-coherent dual-channel software-defined radio for HDTV passive radar (540 MHz, 6 MHz bandwidth)
 - **Raspberry Pi 4B (Bullseye):** Data collection coordinator and ADS-B/GPS logger
-- **RTL-SDR (×2):** Low-cost SDRs for ADS-B (1090 MHz) and FM signal reception
+- **RTL-SDR (x2):** Low-cost SDRs for ADS-B (1090 MHz) and FM signal reception
 - **GPS-Hat:** Precision GPS with PPS (Pulse-Per-Second) for time synchronization
 - **Dual-Antenna Configuration:** 
   - High-gain Yagi (surveillance channel) - monitors airspace
@@ -90,11 +130,11 @@ The bring-up checklist now includes the same observed field-trial matrix plus sh
 
 ### System Configuration
 
-- **Receiver Location:** Apple Hill Campus, MathWorks, Natick, MA (42.3007°N, -71.3490°W)
-- **Transmitter:** ATSC TV Tower, Eastern Massachusetts (42.311389°N, -71.216111°W)
+- **Receiver Location:** Apple Hill Campus, MathWorks, Natick, MA (42.3007 deg N, -71.3490 deg W)
+- **Transmitter:** ATSC TV Tower, Eastern Massachusetts (42.311389 deg N, -71.216111 deg W)
 - **Baseline:** ~12 km bistatic separation
 - **Primary Coverage:** Aircraft approaching Logan International Airport
-- **Detection Range:** ~62 km for 1.0 m² RCS targets
+- **Detection Range:** ~62 km for 1.0 m^2 RCS targets
 
 ---
 
@@ -345,6 +385,31 @@ If the sync preflight fails and the script suggests that `--user` may be wrong, 
 On macOS, the sync script will try `/Applications/MATLAB*.app/bin/matlab` automatically if `matlab` is not already on `PATH`.
 Pass `--matlab-bin` if the development machine needs a non-default MATLAB executable path or if you want to override the auto-detected MATLAB binary.
 
+To archive only ADS-B truth files for a separate analysis project, sync the packaged `truth` files from the testing machine and the Pi-only logger outputs separately. From a Bash shell on the development machine:
+
+```bash
+mkdir -p adsb_archive/testing_machine adsb_archive/pi_only/truth
+
+rsync -avm --prune-empty-dirs \
+  --include='/captures/' \
+  --include='/captures/*/' \
+  --include='/captures/*/truth/' \
+  --include='/captures/*/truth/*adsb*.txt' \
+  --include='/captures/*/truth/*adsb*.txt.gz' \
+  --exclude='*' \
+  <testing-user>@<testing-machine>:~/agenticProjects/flightTest/ \
+  adsb_archive/testing_machine/
+
+rsync -avm --prune-empty-dirs \
+  --include='*adsb*.txt' \
+  --include='*adsb*.txt.gz' \
+  --exclude='*' \
+  pi2@192.168.10.131:/home/pi2/flightTest/ADSB_GPS/ \
+  adsb_archive/pi_only/truth/
+```
+
+These commands copy SBS-1 ADS-B text/gzip logs only. They exclude radar `.bb` captures, GPS/NMEA files, session logs, MATLAB artifacts, and other repository files.
+
 ### 3. Analyze on the Development Machine
 
 To run the analysis without editing `analyzeBistaticData.m`, use the MATLAB session wrapper:
@@ -378,7 +443,7 @@ off = estimateTruthMeasurementOffset(cmp.metadata_output);
 off.summary
 ```
 
-That diagnostic builds a residual heatmap of `detection - truth` in `(ΔR, Δf)` space for time-near candidate pairs, estimates the strongest constant offset cluster, and re-scores the detections after compensating by that offset. If compensated TP jumps sharply, the remaining problem is detector localization or projection bias rather than timing alone.
+That diagnostic builds a residual heatmap of `detection - truth` in `(delta R, delta f)` space for time-near candidate pairs, estimates the strongest constant offset cluster, and re-scores the detections after compensating by that offset. If compensated TP jumps sharply, the remaining problem is detector localization or projection bias rather than timing alone.
 When ADS-B truth is present, the analysis now overlays the projected truth directly on both the single-window per-part Range-Doppler viewer and the interactive RD viewer in bistatic `(R_excess, f_D)` space.
 The shared convention for that truth/tracker path is now:
 - `R_excess = R_tx + R_rx - L_3D`
@@ -788,7 +853,7 @@ Use the shell coordinator, `sync_capture_session.sh`, and `runBistaticAnalysisSe
 
 ## Repository Structure
 
-### 📁 [`TestSetupTesting/`](TestSetupTesting/)
+### [`TestSetupTesting/`](TestSetupTesting/)
 **Passive Bistatic Radar System - Main Processing Pipeline**
 
 Complete MATLAB implementation for passive radar data collection, quality assessment, system characterization, and aircraft detection/localization.
@@ -819,14 +884,14 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 
 #### Detection Engines
 - [`compute_radar_caf.m`](TestSetupTesting/compute_radar_caf.m) - **Standard** Cross-Ambiguity Function (time-domain xcorr)
-- [`compute_radar_caf_nitro.m`](TestSetupTesting/compute_radar_caf_nitro.m) - **Nitro** FFT-accelerated engine (5-10× faster)
+- [`compute_radar_caf_nitro.m`](TestSetupTesting/compute_radar_caf_nitro.m) - **Nitro** FFT-accelerated engine (5-10x faster)
 - [`compute_radar_caf_thresholded.m`](TestSetupTesting/compute_radar_caf_thresholded.m) - CFAR detection with thresholding
 - [`compute_radar_caf_interpolated.m`](TestSetupTesting/compute_radar_caf_interpolated.m) - Spline interpolation for sub-sample accuracy
 - [`compute_radar_caf_localized_TbxFns.m`](TestSetupTesting/compute_radar_caf_localized_TbxFns.m) - **Production localization** (geographic coordinates + bistatic ellipses)
 
 **Engine Comparison:**
 - **Standard Engine:** Uses time-domain `xcorr()` for cross-correlation. More memory efficient, easier to understand, but slower.
-- **Nitro Engine:** Uses frequency-domain correlation via FFT/IFFT. Exploits FFT speed advantages for large datasets. Produces numerically equivalent results but 5-10× faster. Recommended for production batch processing.
+- **Nitro Engine:** Uses frequency-domain correlation via FFT/IFFT. Exploits FFT speed advantages for large datasets. Produces numerically equivalent results but 5-10x faster. Recommended for production batch processing.
 - [`BenchmarkEngine.m`](TestSetupTesting/BenchmarkEngine.m) validates both engines produce identical detections and measures speedup.
 
 #### Batch Processing & Utilities
@@ -887,7 +952,7 @@ Complete MATLAB implementation for passive radar data collection, quality assess
 
 ---
 
-### 📁 [`ADSB_GPS/`](ADSB_GPS/)
+### [`ADSB_GPS/`](ADSB_GPS/)
 **Ground Truth Collection System - ADS-B & GPS Logging**
 
 Raspberry Pi-based data collection system for capturing aircraft transponder messages and GPS ground truth synchronized with passive radar observations.
@@ -1013,7 +1078,7 @@ For multi-case sweeps with the `Cases` struct, see the earlier **3c. Re-run Only
 
 ### 3. Run System Characterization
 ```matlab
-script_QualityEtc  % Complete workflow: quality → characterization → detection
+script_QualityEtc  % Complete workflow: quality -> characterization -> detection
 ```
 
 ### 4. Batch Process Long Recordings
@@ -1043,11 +1108,11 @@ sudo ./start_adsb_gps_loggers.sh --adsb-only --adsb-session-id 20260610T094500 -
 |-----------|-------|-------|
 | **Range Resolution** | ~50 m | Limited by 6 MHz bandwidth |
 | **Velocity Resolution** | ~0.5 m/s | 100 ms integration time |
-| **Detection Threshold** | +13 dB | Pfa = 1×10⁻⁶ |
-| **Maximum Range** | ~62 km | For 1 m² RCS targets |
-| **Range Accuracy** | ±5-10 m | At 20 dB SNR |
-| **Velocity Accuracy** | ±0.3-0.5 m/s | At 20 dB SNR |
-| **Processing Speed** | 5-10× | Nitro vs standard engine |
+| **Detection Threshold** | +13 dB | Pfa = 1e-6 |
+| **Maximum Range** | ~62 km | For 1 m^2 RCS targets |
+| **Range Accuracy** | +/-5-10 m | At 20 dB SNR |
+| **Velocity Accuracy** | +/-0.3-0.5 m/s | At 20 dB SNR |
+| **Processing Speed** | 5-10x | Nitro vs standard engine |
 
 ---
 
@@ -1073,40 +1138,38 @@ sudo ./start_adsb_gps_loggers.sh --adsb-only --adsb-session-id 20260610T094500 -
 
 ## Workflow Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PASSIVE RADAR WORKFLOW                        │
-└─────────────────────────────────────────────────────────────────┘
+```text
+PASSIVE RADAR WORKFLOW
 
 1. DATA COLLECTION (PassiveRadarCollection_wPreFlightChecks.m)
-   ├─ Linux kernel optimization
-   ├─ 10-second dry run with validation
-   ├─ Dual-channel coherence check
-   └─ Production capture (hours)
+   - Linux kernel optimization
+   - 10-second dry run with validation
+   - Dual-channel coherence check
+   - Production capture (hours)
 
 2. QUALITY ASSESSMENT (assess_bb_quality.m)
-   ├─ Signal quality metrics (SNR, DC offset)
-   ├─ Power spectral density analysis
-   ├─ ATSC pilot tone detection
-   └─ Spectrogram visualization
+   - Signal quality metrics (SNR, DC offset)
+   - Power spectral density analysis
+   - ATSC pilot tone detection
+   - Spectrogram visualization
 
 3. SYSTEM CHARACTERIZATION (script_QualityEtc.m)
-   ├─ Resolution calculation
-   ├─ Self-Ambiguity Function (clutter)
-   ├─ Cross-Ambiguity Function (targets)
-   ├─ Detection threshold calculation
-   └─ Coverage and accuracy analysis
+   - Resolution calculation
+   - Self-Ambiguity Function (clutter)
+   - Cross-Ambiguity Function (targets)
+   - Detection threshold calculation
+   - Coverage and accuracy analysis
 
 4. DETECTION & LOCALIZATION (compute_radar_caf_localized_TbxFns.m)
-   ├─ CFAR detection in delay-Doppler space
-   ├─ Spline interpolation refinement
-   ├─ Guard zone filtering
-   └─ Geographic coordinate conversion
+   - CFAR detection in delay-Doppler space
+   - Spline interpolation refinement
+   - Guard zone filtering
+   - Geographic coordinate conversion
 
 5. VALIDATION (ADSB_GPS data)
-   ├─ Compare radar detections with ADS-B positions
-   ├─ Calculate localization errors
-   └─ Generate performance statistics
+   - Compare radar detections with ADS-B positions
+   - Calculate localization errors
+   - Generate performance statistics
 ```
 
 ---
@@ -1115,12 +1178,12 @@ sudo ./start_adsb_gps_loggers.sh --adsb-only --adsb-session-id 20260610T094500 -
 
 - **Bistatic Geometry:** Cross-Ambiguity Function with dual-channel correlation
 - **Clutter Suppression:** Reference channel projection subtraction
-- **Decimation:** 10× sample rate reduction for processing speed (6.144 MHz → 614.4 kHz)
+- **Decimation:** 10x sample rate reduction for processing speed (6.144 MHz -> 614.4 kHz)
 - **CFAR Detection:** Cell-Averaging Constant False Alarm Rate (2D) with guard bands
 - **Spline Interpolation:** Sub-sample peak refinement for improved localization accuracy
 - **FFT Acceleration (Nitro):** Frequency-domain correlation using FFT/IFFT instead of time-domain xcorr
-  - Leverages FFT computational efficiency: O(N log N) vs O(N²)
-  - Equivalent to time-domain results but 5-10× faster
+  - Leverages FFT computational efficiency: O(N log N) vs O(N^2)
+  - Equivalent to time-domain results but 5-10x faster
   - Essential for real-time or large dataset processing
 - **Guard Zones:** Site-specific clutter rejection based on delay/Doppler thresholds
 - **Geographic Mapping:** Bistatic ellipse plotting with Mapping Toolbox
@@ -1158,4 +1221,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: July 28, 2026*
+*Last Updated: August 18, 2026*
