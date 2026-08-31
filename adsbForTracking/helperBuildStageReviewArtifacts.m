@@ -2,7 +2,8 @@ function review = helperBuildStageReviewArtifacts(varargin)
 %HELPERBUILDSTAGEREVIEWARTIFACTS Load saved stage artifacts for review.
 % This helper does not train, collect, or mutate source data. It aligns the
 % ADS-B next-state target, native constvel prediction, Stage 2B smoke NN
-% output, and the optional Stage 3A delta-target MLP output.
+% output, optional Stage 3A/3B results, and the compact Stage 4C native
+% maneuver-baseline extension.
 
 projectRoot = fileparts(mfilename("fullpath"));
 defaultDatasetPath = fullfile(projectRoot, "artifacts", "stage2B", "localADSBStatePairDataset.mat");
@@ -10,6 +11,7 @@ defaultTrainingPath = fullfile(projectRoot, "artifacts", "stage2B", "localADSBML
 defaultCharacterizationPath = fullfile(projectRoot, "artifacts", "stage2C", "stage2CManeuverCharacterization.mat");
 defaultStage3TrainingPath = fullfile(projectRoot, "artifacts", "stage3", "localADSBMLPStage3Training.mat");
 defaultStage3BEvaluationPath = fullfile(projectRoot, "artifacts", "stage3B", "localADSBAggregateStage3BEvaluation.mat");
+defaultStage4CComparisonPath = fullfile(projectRoot, "artifacts", "stage4CRetrain", "expandedPost3DayMeanMLPComparison_v1.mat");
 
 parser = inputParser;
 parser.FunctionName = mfilename;
@@ -19,6 +21,7 @@ addParameter(parser, "TrainingPath", defaultTrainingPath);
 addParameter(parser, "CharacterizationPath", defaultCharacterizationPath);
 addParameter(parser, "Stage3TrainingPath", defaultStage3TrainingPath);
 addParameter(parser, "Stage3BEvaluationPath", defaultStage3BEvaluationPath);
+addParameter(parser, "Stage4CComparisonPath", defaultStage4CComparisonPath);
 parse(parser, varargin{:});
 opts = parser.Results;
 
@@ -28,12 +31,14 @@ trainingPath = string(opts.TrainingPath);
 characterizationPath = string(opts.CharacterizationPath);
 stage3TrainingPath = string(opts.Stage3TrainingPath);
 stage3BEvaluationPath = string(opts.Stage3BEvaluationPath);
+stage4CComparisonPath = string(opts.Stage4CComparisonPath);
 
 dataset = localLoadDataset(datasetPath);
 training = localLoadTraining(trainingPath);
 characterization = localLoadCharacterization(characterizationPath);
 stage3Training = localLoadStage3Training(stage3TrainingPath);
 stage3BEvaluation = localLoadStage3BEvaluation(stage3BEvaluationPath);
+stage4CComparison = localLoadStage4CComparison(stage4CComparisonPath);
 localValidateArtifactAlignment(dataset, training, characterization, stage3Training);
 
 constvelPredictedState = localPredictConstvel( ...
@@ -63,8 +68,12 @@ review.trainingPath = trainingPath;
 review.characterizationPath = characterizationPath;
 review.stage3TrainingPath = stage3TrainingPath;
 review.stage3BEvaluationPath = stage3BEvaluationPath;
+review.stage4CComparisonPath = stage4CComparisonPath;
 review.hasStage3A = stage3Training.hasStage3A;
 review.hasStage3B = stage3BEvaluation.hasStage3B;
+review.hasStage4C = stage4CComparison.hasStage4C;
+review.hasStage4CNativeManeuverBaseline = ...
+    stage4CComparison.hasNativeManeuverBaseline;
 review.dataset = dataset;
 review.trainingSummary = training.trainingSummary;
 review.characterization = characterization;
@@ -74,6 +83,10 @@ review.stage3BMetricComparisonTable = stage3BEvaluation.metricComparisonTable;
 review.stage3BDataReadiness = stage3BEvaluation.dataReadiness;
 review.stage3BTrackSummary = stage3BEvaluation.trackSummary;
 review.stage3BPairErrorTable = stage3BEvaluation.pairErrorTable;
+review.stage4CSummary = stage4CComparison.stage4CSummary;
+review.stage4CNativeManeuverBaseline = ...
+    stage4CComparison.nativeManeuverBaseline;
+review.stage4CNativeMetricTable = stage4CComparison.nativeMetricTable;
 review.constvelPredictedState = constvelPredictedState;
 review.nnPredictedNextState = nnPredictedNextState;
 review.stage3PredictedNextState = stage3PredictedNextState;
@@ -82,7 +95,10 @@ review.nnPredictedNextStateNormalized = double(training.predictedNextStateNormal
 review.nnPredictedVarianceNormalized = double(training.predictedVarianceNormalized);
 review.pairReviewTable = pairReviewTable;
 review.defaultTrackHex = localChooseDefaultTrack(characterization.trackSummary);
-review.phaseSummaryTable = localBuildPhaseSummaryTable(stage3Training.hasStage3A, stage3BEvaluation.hasStage3B);
+review.phaseSummaryTable = localBuildPhaseSummaryTable( ...
+    stage3Training.hasStage3A, ...
+    stage3BEvaluation.hasStage3B, ...
+    stage4CComparison.hasNativeManeuverBaseline);
 review.metricComparisonTable = localBuildMetricComparisonTable( ...
     dataset.baselineConstVelMetrics, ...
     training.trainingSummary, ...
@@ -221,6 +237,50 @@ stage3BEvaluation.pairErrorTable = summary.pairErrorTable;
 
 end
 
+function stage4CComparison = localLoadStage4CComparison(stage4CComparisonPath)
+%LOCALLOADSTAGE4CCOMPARISON Load compact Stage 4C evaluation evidence.
+
+stage4CComparison = struct();
+stage4CComparison.hasStage4C = false;
+stage4CComparison.hasNativeManeuverBaseline = false;
+stage4CComparison.stage4CSummary = [];
+stage4CComparison.nativeManeuverBaseline = [];
+stage4CComparison.nativeMetricTable = table();
+
+if exist(stage4CComparisonPath, "file") ~= 2
+    return;
+end
+
+try
+    loaded = load(stage4CComparisonPath, "stage4CSummary");
+catch err
+    error("StageReview:Stage4CLoadFailed", ...
+        "Failed to load the Stage 4C comparison artifact: %s", ...
+        err.message);
+end
+
+if ~isfield(loaded, "stage4CSummary")
+    error("StageReview:Stage4CMissingSummary", ...
+        "The Stage 4C artifact does not contain stage4CSummary.");
+end
+
+stage4CComparison.hasStage4C = true;
+stage4CComparison.stage4CSummary = loaded.stage4CSummary;
+
+if isfield(loaded.stage4CSummary, "nativeManeuverBaseline") && ...
+        isfield( ...
+        loaded.stage4CSummary.nativeManeuverBaseline, ...
+        "completed") && ...
+        loaded.stage4CSummary.nativeManeuverBaseline.completed
+    stage4CComparison.hasNativeManeuverBaseline = true;
+    stage4CComparison.nativeManeuverBaseline = ...
+        loaded.stage4CSummary.nativeManeuverBaseline;
+    stage4CComparison.nativeMetricTable = ...
+        loaded.stage4CSummary.nativeManeuverBaseline.metrics.table;
+end
+
+end
+
 function localValidateArtifactAlignment(dataset, training, characterization, stage3Training)
 %LOCALVALIDATEARTIFACTALIGNMENT Verify saved artifact rows line up.
 
@@ -344,7 +404,8 @@ defaultTrackHex = string(candidateTable.hex(bestIdx));
 
 end
 
-function phaseSummaryTable = localBuildPhaseSummaryTable(hasStage3A, hasStage3B)
+function phaseSummaryTable = localBuildPhaseSummaryTable( ...
+        hasStage3A, hasStage3B, hasStage4CNative)
 %LOCALBUILDPHASESUMMARYTABLE Summarize project progress for the Live Script.
 
 phase = ["Stage 1"; "Stage 2A"; "Stage 2B"; "Stage 2C"];
@@ -376,6 +437,22 @@ if hasStage3B
 else
     phase = [phase; "Stage 3B"];
     latestOutcome = [latestOutcome; "No Stage 3B aggregate evaluation artifact found yet."];
+    status = [status; "Pending"];
+end
+
+if hasStage4CNative
+    phase = [phase; "Stage 4C"];
+    latestOutcome = [ ...
+        latestOutcome; ...
+        "Frozen Stage 4C models are compared with causal native constacc and constturn baselines on matched maneuver rows."];
+    status = [ ...
+        status; ...
+        "Complete as an evaluation-only maneuver-baseline extension"];
+else
+    phase = [phase; "Stage 4C"];
+    latestOutcome = [ ...
+        latestOutcome; ...
+        "No completed native constacc/constturn maneuver-baseline extension was found."];
     status = [status; "Pending"];
 end
 
