@@ -11,7 +11,12 @@
 - (completed) Stage 3C: Archived ADS-B evaluation extension. Inventory and score `adsb_archive/adsb_archive` without retraining, using MATLAB `gunzip` first and a narrow .NET fallback for native gzip failures.
 - (completed) Stage 4A: ADS-B truth capture-planning checkpoint. Now prefers the saved Stage 3C artifact, keeps Stage 3B fallback compatibility, and turns archive caveats into targeted ADS-B collection priorities before any retraining.
 - (completed) Stage 4B: Testing-machine ADS-B interval capture coordinator. Run from the Ubuntu testing machine; it SSHes to the Pi for bounded ADS-B-only windows, fetches gzip truth logs, and packages local `captures/<session_id>/` sessions with receiver-origin manifests.
-- (deferred) Stage 4C: Testing and verification. Do not start until refreshed Stage 4A plots show enough representative coverage for a real model-quality evaluation.
+- (completed) Stage 4B-Post: Versioned dataset integration and motion-diversity gate. The prior 16-session evaluation is preserved as `Legacy-16`, the new campaign is independently rerunnable as the `3-Day Campaign Increment`, and their union is `Expanded-3Day`. The expanded data pass the local gated-retraining criteria but do not support broad-generalization claims.
+- (completed) Stage 4C-Retrain: Expanded-3Day exploratory mean-MLP training. The scratch and normalization-rebased warm-start controls were trained on the frozen global ICAO-disjoint split, evaluated on untouched holdouts, and retained as exploratory artifacts without model promotion.
+- (completed) Stage 4C-Native: Evaluation-only native maneuver-baseline extension. Raw causal finite differences initialize native `constacc` and `constturn` on matched eligible maneuver slices without retraining or model promotion.
+- (completed) Stage 4C-Review: Unified review dashboard. `stageReviewLiveScript.m` is the Run All entry point for frozen split/motion counts, a test-only native-versus-neural RMSE dashboard, a separate neural validation-versus-test dashboard, and three configurable class-specific `trackingGlobeViewer` trajectory collections.
+- (completed) Stage 4D: Standalone frozen-warm characterization. `stage4DFrozenWarmCharacterizationLiveScript.m` audits the unchanged warm artifact, runs deterministic synthetic and held-out ADS-B dropout benchmarks, and keeps same-information warm-versus-`constvel` conclusions separate from predecessor-assisted `constacc`/`constturn` results.
+- (completed) Stage 4E: Recursive filter evaluation. Validation-only `trackingFilterTuner` parameters are frozen before matched recursive CV/CA/CT EKF, native IMM, and frozen-warm UKF testing on synthetic truth and held-out ADS-B scoring proxies.
 
 ## Summary
 
@@ -25,6 +30,8 @@
 - Stage 3C completed the archive evaluation extension: the frozen Stage 3A model and `constvel` were scored on 16 archived truth files, 16 usable sessions, 15,013 one-step pairs, and 222 aircraft tracks; no retraining was run.
 - Stage 4A completed the ADS-B truth capture-planning checkpoint and has been updated after Stage 3C: no retraining, only plots that show basic gates now pass while Pi-only holdout data, receiver-origin metadata, source diversity, targeted motion/update coverage, and passive-radar-relevant geometry remain collection priorities.
 - Stage 4B adds the testing-machine ADS-B interval capture coordinator under `adsbForTracking/piCaptureCampaign/`; it schedules ADS-B-only truth captures by SSHing to the Pi, then fetches and packages ADS-B-only holdout sessions with `session_manifest.json` receiver-origin metadata for Stage 3C/4A review.
+- Stage 4B-Post integrated the completed three-day campaign without erasing the smaller Stage 3C baseline. The named legacy, incremental, and expanded variants use the same parser, state-pair rules, maneuver thresholds, frozen Stage 3A MLP, and native `constvel` baseline. Expanded-3Day passes the event-, contributor-, campaign-day-, joint-regime-, and split-level local retraining gate, while broad generalization remains unsupported.
+- Stage 4E completed the recursive diagnostic that Stage 4D deferred. It does not promote the learned model: the native CV/CA/CT IMM is the strongest tested recursive estimator, while the frozen-warm UKF is less accurate and substantially slower on both independent synthetic truth and held-out ADS-B scoring proxies.
 
 ## (completed) Stage 1: Literature And Resource Review
 
@@ -750,24 +757,648 @@ bash adsbForTracking/piCaptureCampaign/run_stage4_adsb_interval_campaign.sh --ca
 ```
 
 Post-campaign validation remains to sync packaged ADS-B-only sessions as needed, preserve `captures/<session_id>/session_manifest.json` with receiver LLA metadata, rerun Stage 3C, rerun Stage 4A, and check movement toward Pi-only holdout, metadata completeness, source diversity, targeted motion/update coverage, and passive-radar-relevant geometry.
-## Stage 4C: Testing And Verification Skeleton
 
-Do not begin until refreshed Stage 4A capture-readiness plots show enough representative coverage for a real model-quality evaluation.
+## (completed) Stage 4B-Post: Versioned Dataset Integration And Motion-Diversity Gate
 
-Questions Stage 4C must answer:
+Stage 4B-Post integrates the completed three-day ADS-B campaign, preserves the earlier evaluation as an independently rerunnable baseline, and answers:
 
-- Does the learned prediction-step model beat or match `constvel` and `trackingEKF` prediction-only baselines on held-out aircraft and held-out days?
-- Does it remain stable during multi-step rollout?
-- Are covariance outputs positive semidefinite and calibrated?
-- Does performance degrade gracefully across sparse ADS-B updates, irregular `dt`, turns, climbs/descents, and low-density traffic?
-- What acceptance thresholds define success: RMSE reduction, consistency improvement, maneuver robustness, or runtime?
-- What plots and reports are required for review?
+> Have we collected enough heterogeneous motion data to justify training a more robust neural prediction model?
 
-Expected Stage 4C output:
+This is an integration and data-readiness stage. Keep the Stage 3A MLP frozen and do not retrain while measuring how the dataset changed.
 
-- Test suite plan.
-- Verification report template.
-- Acceptance criteria tied to Stage 2 goals and Stage 3 model design.
+### Named Dataset Variants
+
+Use these names consistently in code, reports, plots, and artifact folders:
+
+| Variant ID | Display name | Contents | Known pre-integration evidence |
+| :--- | :--- | :--- | :--- |
+| `legacy_pre3day_v1` | **Legacy-16** | The exact 16 archived truth files used by the 2026-08-18 Stage 3C run. | 16 usable sessions, 15,013 pairs, 222 session/aircraft tracks, 350 constturn-like pairs, and 336 sparse-update pairs. |
+| `campaign_3day_increment_v1` | **3-Day Campaign Increment** | Only the completed Stage 4B campaign `stage4B_3Day_nohup_20260819T132526Z`. | 144 packaged windows, 144 valid manifests, 143 gzip truth files, and one permitted no-gzip window (`w133`). |
+| `expanded_post3day_v2` | **Expanded-3Day** | The union of `Legacy-16` and the `3-Day Campaign Increment`. | Expected inventory before parsing: 159 truth files; final usable session, track, and pair counts must come from MATLAB ingestion. |
+
+The named difference between the old and new evaluation is the **3-Day Campaign Increment**:
+
+```text
+Expanded-3Day = Legacy-16 + 3-Day Campaign Increment
+```
+
+Do not describe the new result merely as a rerun of Stage 3C. It is an expanded-data evaluation, and every comparison must identify which named variant produced it.
+
+### Verified Transfer Input
+
+- Transfer package: `stage4B_adsb_3day.zip`.
+- Windows SHA-256: `BE2457298D38768DB950BF0A2EE15DBE5B5264B8532220F4AD6E44B4DA56AF3C`.
+- Archive contents: 575 readable file entries, 144 session folders, 144 valid `session_manifest.json` files, 143 `*.txt.gz` truth files, and 288 log files.
+- Every manifest has numeric `receiver_origin_lla = [42.2999333, -71.349333, 15.0]`.
+- All entries belong to campaign `stage4B_3Day_nohup_20260819T132526Z`; no unrelated Pluto capture files are present.
+- Keep the ZIP until integration, parsing, and variant-manifest verification all pass. Do not automatically delete or move it.
+
+### Native MATLAB Workflow Audit
+
+| Proposed workflow | Native or existing MATLAB analogue | Update needed for this stage |
+| :--- | :--- | :--- |
+| Extract the transport package to a temporary staging area | `unzip`, `tempname`, `onCleanup` | Validate the staged layout and collisions before copying any session into the append-only archive. |
+| Import ADS-B truth trajectories | Existing `loadADSBTruth` | Reuse it unchanged; ADS-B remains truth trajectory data and must not be converted to `objectDetection`. |
+| Build local motion states | Existing `helperBuildLocalADSBStatePairs`, `wgs84Ellipsoid`, `geodetic2enu` | Preserve `[x, vx, y, vy, z, vz]`, units, receiver-origin metadata, and `0 < dt <= 30` seconds. |
+| Evaluate the frozen predictor | Existing Stage 3B/3C path, `minibatchpredict`, native `constvel` | Run identical scoring separately for all three named variants; do not retrain. |
+| Summarize motion coverage | `table`, `findgroups`, `splitapply`, `groupsummary`, `discretize`, `prctile` | Add independent maneuver-event, contributor-concentration, time-block, and prospective split summaries. |
+| Visualize the old/new difference | `figure`, `tiledlayout`, `nexttile`, `bar`, `barh`, `heatmap` or `imagesc` | Plot percentages and independent contributors as well as raw pair counts. |
+
+Custom code is justified only for dataset-variant membership, safe collision handling, contiguous maneuver-event segmentation, and the final readiness decision. Do not write another ADS-B parser, coordinate converter, motion propagator, or optimizer.
+
+### Integration And Versioning Workflow
+
+1. **Stage and validate without changing the archive.**
+   - Extract the ZIP under a temporary folder.
+   - Require the sole top-level data folder to be `captures/`.
+   - Verify all 144 manifests parse, all session IDs match their folder names, all 143 named truth files exist, and the one no-gzip window is explicitly represented.
+   - Test every gzip through the existing MATLAB truth-import path.
+   - Reject path traversal, unexpected file types, duplicate session IDs, unexplained missing truth, or nonfinite receiver origins.
+
+2. **Integrate into an append-only source store.**
+   - Copy validated session folders into `adsb_archive/adsb_archive/testing_machine/captures/`.
+   - Before each copy, check for an existing session folder.
+   - If an existing session has identical file hashes, record it as already present.
+   - If any same-named session differs, abort the integration; never overwrite it.
+   - Retain the complete session package so `truth/`, `logs/`, and `session_manifest.json` stay together.
+
+3. **Freeze logical dataset membership.**
+   - Add one durable dataset-version manifest containing relative source path, source-file hash, session ID, campaign ID, capture date/time, receiver-origin source, and membership flags for all three variants.
+   - `legacy_pre3day_v1` must explicitly list the original 16 files, not rediscover whatever happens to be under the archive root later.
+   - `campaign_3day_increment_v1` must explicitly list the 143 campaign truth files.
+   - `expanded_post3day_v2` must be the verified, duplicate-free union of the other two sets.
+   - Assert that the legacy and increment file sets are disjoint and that `Expanded-3Day = Legacy-16 union 3-Day Campaign Increment`.
+
+4. **Provide one-command reruns.**
+   - Add a variant-aware entry point with this intended calling convention:
+
+```matlab
+legacy = runADSBDatasetVariantEvaluation("legacy_pre3day_v1");
+increment = runADSBDatasetVariantEvaluation("campaign_3day_increment_v1");
+expanded = runADSBDatasetVariantEvaluation("expanded_post3day_v2");
+comparison = runStage4BPostCampaignMotionDiversityGate;
+```
+
+   - Resolve source files from the version manifest, never from unconstrained directory discovery.
+   - Write each run to a separate immutable output folder:
+
+```text
+artifacts/stage4BPostCampaign/legacy_pre3day_v1/
+artifacts/stage4BPostCampaign/campaign_3day_increment_v1/
+artifacts/stage4BPostCampaign/expanded_post3day_v2/
+artifacts/stage4BPostCampaign/comparison/
+```
+
+   - Preserve the existing `artifacts/stage3C/` result as historical evidence; do not overwrite it.
+   - Allow Stage 4A to receive the explicit `Expanded-3Day` Stage 3C artifact path and write refreshed outputs to the versioned folder.
+
+### Reproducibility Check Against The Previous Run
+
+Before interpreting new data, rerun `Legacy-16` through the variant-aware path and require:
+
+- 16 usable sessions and 16 source files;
+- 15,013 one-step pairs and 222 session/aircraft tracks;
+- 350 constturn-like and 336 sparse-update pairs;
+- 4,919 climb and 4,374 descent pairs;
+- native `constvel` position RMSE approximately 23.870 m; and
+- frozen Stage 3A MLP position RMSE approximately 151.260 m.
+
+Material disagreement means the import, thresholds, source membership, or frozen model changed. Stop and resolve that before comparing `3-Day Campaign Increment` or `Expanded-3Day`.
+
+### Motion-Heterogeneity Evaluation
+
+Keep the existing pair-level labels for backward compatibility, but do not treat adjacent pair count as independent evidence. Evaluate all three variants at five levels:
+
+1. **Continuous motion distributions**
+   - Horizontal speed and altitude.
+   - Absolute turn rate, with bins `<0.5`, `0.5-1`, `1-3`, and `>=3` deg/s.
+   - Absolute horizontal acceleration, with bins `<0.1`, `0.1-0.5`, `0.5-1`, and `>=1` m/s^2.
+   - Vertical rate, climb/descent status, and vertical acceleration.
+   - Update interval, with bins `<0.75`, `0.75-2`, `2-5`, `5-15`, and `15-30` seconds.
+
+2. **Independent maneuver events**
+   - Segment contiguous rows within each `(sessionID, hex)` track.
+   - Define sustained turn and acceleration events as at least three consecutive qualifying pairs spanning at least two seconds.
+   - Define sustained climb and descent events as contiguous qualifying segments spanning at least ten seconds.
+   - Treat sparse updates as separate gap events rather than multiplying their evidence by neighboring regular samples.
+   - Report event count, duration, peak magnitude, unique ICAO count, session count, and 24-hour campaign-block count.
+
+3. **Joint-regime coverage**
+   - Cross turn intensity, acceleration intensity, vertical status, and update regime.
+   - Show both raw pair occupancy and independent event/track occupancy.
+   - Identify empty or nearly empty combinations rather than collapsing everything into `mixed_or_sparse`.
+
+4. **Contributor diversity and concentration**
+   - Report unique ICAO addresses, session/aircraft tracks, sessions, UTC dates, and three 24-hour campaign blocks.
+   - For every critical regime, report the contribution share from the largest aircraft, session, and time block.
+   - Report how many aircraft and sessions contribute at least one sustained event; a single prolific aircraft must not make a regime appear well covered.
+
+5. **Prospective train/validation/test support**
+   - Audit both an aircraft-disjoint grouping and a chronological blocked grouping.
+   - Keep every ICAO wholly within one aircraft-disjoint split.
+   - Keep complete sessions and contiguous time blocks together.
+   - Require motion-regime support in train, validation, and test before freezing a final split.
+   - Compute normalization only from the future training partition.
+
+The comparison report must show `Legacy-16`, `3-Day Campaign Increment`, `Expanded-3Day`, and the named increment `Expanded-3Day minus Legacy-16` side by side.
+
+### Robust-NN Readiness Decision
+
+Produce two separate verdicts:
+
+1. **Local gated retraining readiness** asks whether `Expanded-3Day` can support a better local-receiver NN experiment.
+2. **Broad generalization readiness** asks whether the data support claims across receiver locations, collection geometries, traffic mixes, or data sources.
+
+Provisional minimum gate for **local gated retraining readiness**:
+
+- All source files are classified; no unexplained parse failures or conflicting duplicate sessions remain.
+- At least 95% of truth-bearing campaign files produce usable state pairs.
+- Sustained turn and acceleration each have at least 30 events from at least 10 unique ICAO addresses across all three 24-hour campaign blocks.
+- Sustained climb and descent each have at least 50 events from at least 15 unique ICAO addresses across all three campaign blocks.
+- Sparse-update coverage has at least 100 gap events from at least 20 session/aircraft tracks across all three campaign blocks.
+- No single ICAO contributes more than 20% of any critical maneuver regime, and no one campaign block contributes more than 60%.
+- Both proposed split strategies retain every critical motion regime in train, validation, and test, with at least five independent rare-regime events in validation and test.
+- The expanded dataset adds independent motion events and occupied joint-regime cells, not merely more constvel-like pairs.
+
+If these pass, the result is **ready for a local gated retraining experiment**, not proof that the new NN will beat `constvel`.
+
+The **broad generalization** verdict must remain false unless the evaluated data also include independent receiver geometry or a genuinely separate source/collection domain. Three days from one Pi/receiver location can improve local motion diversity but cannot alone justify broad deployment claims.
+
+### Required Outputs
+
+- Dataset-version manifest and a human-readable variant summary.
+- Version-aware evaluation entry point and focused helpers.
+- Separate Stage 3C-style artifacts and reports for all three variants.
+- One comparison report answering the robustness question directly.
+- Minimum figures:
+  - old/increment/expanded counts and percentages by motion regime;
+  - continuous motion and `dt` distributions;
+  - independent maneuver events and contributor concentration;
+  - joint-regime occupancy;
+  - prospective split coverage; and
+  - frozen Stage 3A MLP versus native `constvel` by variant and regime.
+- Updated Stage 4A outputs driven explicitly by `Expanded-3Day`.
+- Focused integration, variant-membership, event-segmentation, split-leakage, and regression tests.
+- Updated `concepts.md` entry when the workflow is implemented.
+
+### Acceptance Checks
+
+- Integration never overwrites a nonidentical session and leaves the transfer ZIP untouched.
+- All new manifests preserve the receiver origin and campaign identity.
+- The one no-gzip window is retained in campaign provenance but excluded from truth scoring.
+- Variant membership is explicit, hash-validated, and stable across reruns.
+- `Legacy-16` reproduces the prior Stage 3C counts and metrics within documented tolerance.
+- `Expanded-3Day` equals the duplicate-free union of the legacy and increment variants.
+- The same maneuver thresholds and frozen Stage 3A model are used for all three comparisons.
+- Readiness uses independent events and contributor/split diversity, not pair totals alone.
+- No neural training occurs during this gate.
+- Code Analyzer is clean for changed MATLAB files.
+- Existing Stage 3B, Stage 3C, Stage 4A, and Stage 4B tests remain passing alongside the new focused tests.
+
+### Stage 4B-Post Outcome
+
+Implementation completed on 2026-08-26:
+
+- The transferred ZIP hash matched `BE2457298D38768DB950BF0A2EE15DBE5B5264B8532220F4AD6E44B4DA56AF3C`.
+- All 144 packaged sessions were integrated into the append-only archive. The 143 truth files and 288 log files matched their manifests; `w133` was retained as the one expected no-truth session.
+- Dataset membership is frozen by relative path and SHA-256 in `adsb_archive/datasetVersions/adsbDatasetVariants.csv`: 16 Legacy-16 files, 143 3-Day Campaign Increment files, and 159 Expanded-3Day files.
+- Legacy-16 reproduced 16 usable sessions, 15,013 pairs, 222 session/aircraft tracks, 23.870 m native `constvel` position RMSE, and 151.260 m frozen-MLP position RMSE.
+- The 3-Day Campaign Increment produced 138 usable sessions from 143 truth files, 442,890 pairs, and 2,933 session/aircraft tracks. Five truth files parsed without error but produced no usable state pairs.
+- Expanded-3Day produced 154 usable sessions, 457,903 pairs, and 3,155 session/aircraft tracks. Its native `constvel` position RMSE was 24.520 m, while the unchanged frozen Stage 3A MLP was 211.710 m.
+- Expanded-3Day contains 1,276 sustained-turn, 7,588 sustained-acceleration, 1,841 sustained-climb, 1,478 sustained-descent, and 15,036 sparse-gap events. Every critical event type spans all three 24-hour campaign blocks.
+- The largest single-aircraft contribution to any critical event regime is 1.6%, and the largest campaign-block contribution is 46.6%.
+- Aircraft-disjoint and chronological blocked split audits retain every critical event type in train, validation, and test with at least five validation and test events.
+- All approved local gated-retraining checks pass. This authorizes proposing a separate local-receiver retraining milestone; it does not demonstrate that the frozen MLP beats `constvel`.
+- Broad-generalization readiness remains false because the added data come from one receiver location and one local collection domain.
+- No neural training was performed during Stage 4B-Post.
+- Final verification passed 33 focused and regression tests across Stage 3B, frozen Legacy-16 Stage 3C, Stage 4A, Stage 4B, and Stage 4B-Post. The Stage 3C regression now selects the frozen Legacy-16 manifest explicitly so later append-only archive growth cannot change its historical test dataset. MATLAB Code Analyzer reported no issues in the 14 changed MATLAB implementation and test files.
+
+Primary outputs:
+
+- `adsb_archive/datasetVersions/adsbDatasetVariants.csv`
+- `artifacts/stage4BPostCampaign/comparison/stage4BPostCampaignMotionDiversityReport.md`
+- `artifacts/stage4BPostCampaign/comparison/stage4BPostCampaignMotionDiversity.mat`
+- `artifacts/stage4BPostCampaign/<variant>/`
+- `artifacts/stage4BPostCampaign/expanded_post3day_v2/stage4A/`
+
+### Stage Boundary
+
+If local gated retraining readiness passes, propose a new, separately approved training milestone with a frozen dataset manifest and split manifest. Stage 4C-Retrain was subsequently approved as that separate milestone.
+
+If it fails, report the exact missing motion regimes, contributors, or split cells and recommend the smallest targeted collection needed.
+
+## (completed) Stage 4C-Retrain: Expanded-3Day Exploratory Mean-MLP Training
+
+Stage 4B-Post authorized one local exploratory retraining experiment. This
+stage does not promote a model or support broad-generalization claims.
+
+Implementation:
+
+- Use `runStage4CRetrainExpandedADSBMLP` as the entry point.
+- Preserve the memoryless 20–64–64–6 ReLU MLP and normalized six-state
+  delta-MSE objective through MATLAB `trainnet`.
+- Keep ICAO out of the 20 network features. Use it only to apply the frozen
+  `adsb_archive/datasetVersions/expandedPost3DayICAODisjointSplit_v1.csv`
+  assignment.
+- Use all 457,903 Expanded-3Day pairs:
+  - Train: 277,959 pairs and 1,188 ICAOs.
+  - Validation: 86,420 pairs and 395 ICAOs.
+  - Test: 93,524 pairs and 395 ICAOs.
+- Ignore the inherited smoke split because 394 ICAOs occur in more than one
+  inherited partition.
+- Compute feature and target normalization from the new training partition
+  only.
+- Train one scratch candidate and one warm-start control. Rebase the warm
+  control's first and output affine layers so its physical predictions are
+  unchanged under the new input/target normalization, then start Adam with
+  fresh optimizer state.
+- Use seed 123, CPU execution, Adam learning rate `1e-3`, L2 `1e-4`, batch
+  size 1024, at most 50 epochs, validation once per epoch, patience 8, and
+  the best-validation output network.
+- Run a 128-row tiny-overfit check before either full-data training run.
+
+Model identities and outputs:
+
+- `legacy_stage3a_v1`: frozen
+  `artifacts/stage3/localADSBMLPStage3Training.mat`, never overwritten.
+- `expanded_scratch_mean_v1`:
+  `artifacts/stage4CRetrain/expandedPost3DayScratchMeanMLP_v1.mat`.
+- `expanded_warm_mean_v1`:
+  `artifacts/stage4CRetrain/expandedPost3DayWarmStartMeanMLP_v1.mat`.
+- Compact comparison evidence:
+  `artifacts/stage4CRetrain/expandedPost3DayMeanMLPComparison_v1.mat`,
+  `stage4CRetrainMetricComparison.csv`, and
+  `stage4CRetrainExpandedADSBMLPReport.md`.
+
+Evaluation:
+
+- Compare native `constvel`, frozen Stage 3A, scratch, and warm predictions
+  on identical untouched validation and test rows.
+- Report position and velocity RMSE, median, and P95 for constvel-like,
+  acceleration, turn, mixed/sparse, climb, descent, level, regular-update,
+  and sparse-update regimes.
+- Report both pair-weighted metrics and independent-event-weighted metrics.
+  An independent event is a contiguous run within one session/ICAO track
+  and one reported regime.
+- Plot training curves and representative held-out trajectories.
+- Report success or failure directly without promoting either candidate.
+
+Verification:
+
+- Require exact dataset membership, all 159 source hashes, dataset/split
+  hashes, one split per ICAO, train-only normalization, and no identity
+  feature.
+- Require physical-prediction equivalence after warm-start rebasing.
+- Require finite tiny-overfit and one-epoch scratch/warm smoke results.
+- Require distinct output paths and an unchanged Stage 3A SHA-256 digest.
+- Run Stage 3A, Stage 3B, and Stage 4B-Post regressions plus MATLAB Code
+  Analyzer.
+
+Deferred:
+
+- Twelve-output mean-plus-variance training, recurrent/history models,
+  hyperparameter sweeps, deployment, multi-step rollout, covariance
+  calibration, and broad-generalization claims.
+
+### Stage 4C-Retrain Outcome
+
+- The frozen split contains 277,959 training, 86,420 validation, and 93,524
+  test pairs across 1,188/395/395 globally disjoint ICAOs.
+- All 159 Expanded-3Day source files matched the frozen source manifest and
+  SHA-256 digests. The dataset, split manifest, and original Stage 3A
+  artifact hashes are recorded in both model artifacts.
+- The warm-start affine rebase preserved physical predictions to
+  `2.98e-4` maximum absolute state difference on 512 checked rows.
+- The 128-row tiny-overfit loss decreased from `0.693553` to `0.091436`.
+- Scratch stopped after 47 epochs on validation patience; its best
+  normalized validation delta MSE was `0.624472`.
+- Warm start stopped after 27 epochs on validation patience; its best
+  normalized validation delta MSE was `0.626225`.
+- On the untouched test partition, pair-weighted position RMSE was:
+  - `constvel`: 23.303 m.
+  - frozen `legacy_stage3a_v1`: 208.972 m.
+  - `expanded_scratch_mean_v1`: 28.149 m.
+  - `expanded_warm_mean_v1`: 27.469 m.
+- Test velocity RMSE was 3.467 m/s for `constvel`, 3.547 m/s for frozen
+  Stage 3A, 3.453 m/s for scratch, and 3.453 m/s for warm start.
+- Both retrained models greatly improved on frozen Stage 3A and were
+  essentially tied with `constvel` in velocity, but neither beat
+  `constvel` in position. Neither model is promoted.
+- The complete metric table includes pair-weighted and
+  independent-event-weighted RMSE, median, and P95 for validation/test,
+  maneuver class, vertical status, and update regime.
+- Verification passed 25 focused tests: 3 Stage 3A, 4 Stage 3B, 10 Stage
+  4B-Post, and 8 Stage 4C. MATLAB Code Analyzer reported zero issues in the
+  seven new Stage 4C implementation/test files.
+
+## (completed) Stage 4C-Native: Causal Maneuver-Baseline Extension
+
+This evaluation-only extension tests whether native maneuver models improve
+the Stage 4C comparison when they receive causal motion initialization from
+the immediately preceding observation. It does not retrain or modify the
+Stage 3A, scratch, or warm networks.
+
+Implementation:
+
+- Use `runStage4CNativeManeuverBaselineEvaluation` after the completed
+  Stage 4C retraining run.
+- Apply policy `raw_causal_finite_difference_v1`.
+- Estimate raw 3-D acceleration as the velocity difference from the
+  immediately preceding observation divided by its positive `dt`.
+- Estimate native turn rate as the wrapped change in mathematical ENU
+  heading divided by prior `dt`. MATLAB `constturn` receives this value in
+  degrees per second.
+- Require the predecessor to be temporally adjacent and in the same
+  session, ICAO, and frozen split. Exclude first rows, temporal gaps,
+  nonpositive prior intervals, split mismatches, and nonfinite inputs.
+- Apply no clipping or smoothing.
+- Build predictions before assigning retrospective truth-derived maneuver
+  labels. Labels select evaluation slices only; ICAO remains a grouping and
+  partition key.
+
+Evaluation:
+
+- Compare native `constacc`, `constvel`, frozen Stage 3A, scratch, and warm
+  models on identical eligible `constacc_like` rows.
+- Compare native `constturn` and the same four comparators on identical
+  eligible `constturn_like` rows.
+- Report pair-weighted and independent-event-weighted position/velocity
+  RMSE, median, and P95.
+- Extend the existing Stage 4C comparison MAT artifact, metric CSV, and
+  report. Add one compact maneuver-baseline comparison figure.
+
+Outcome:
+
+- Frozen coverage exactly matched the approved counts:
+  - Validation `constacc_like`: 16,896 / 17,030.
+  - Validation `constturn_like`: 2,075 / 2,084.
+  - Test `constacc_like`: 17,890 / 18,028.
+  - Test `constturn_like`: 2,164 / 2,186.
+- On test `constacc_like` rows, pair-weighted position RMSE was 8.524 m for
+  `constacc` and 8.551 m for `constvel`; velocity RMSE was 1.104 m/s and
+  1.013 m/s, respectively.
+- On test `constturn_like` rows, pair-weighted position RMSE was 16.023 m
+  for `constturn` and 14.388 m for `constvel`; velocity RMSE was 17.220 m/s
+  and 15.370 m/s, respectively.
+- The corresponding `constturn` median errors were lower than `constvel`
+  (5.586 versus 6.090 m position; 0.783 versus 2.343 m/s velocity), but raw
+  turn-rate spikes dominated RMSE.
+- Test absolute turn-rate initialization had P99 8.278 deg/s, P99.9
+  325.285 deg/s, and maximum 385.017 deg/s. These values remain unmodified
+  in the primary comparison.
+- No model is promoted. Bounded or smoothed causal initialization remains a
+  future sensitivity study.
+
+Primary files:
+
+- `runStage4CNativeManeuverBaselineEvaluation.m`
+- `helperBuildStage4CNativeManeuverBaselines.m`
+- `helperScoreStage4CNativeManeuverModels.m`
+- `helperWriteStage4CNativeManeuverFigure.m`
+- `tests/Stage4CNativeManeuverBaselineEvaluationTest.m`
+- `artifacts/stage4CRetrain/expandedPost3DayMeanMLPComparison_v1.mat`
+- `artifacts/stage4CRetrain/stage4CRetrainMetricComparison.csv`
+- `artifacts/stage4CRetrain/stage4CRetrainExpandedADSBMLPReport.md`
+- `artifacts/stage4CRetrain/stage4C_native_maneuver_baseline_comparison.png`
+
+## (completed) Stage 4C-Review: Unified Review Dashboard
+
+The Stage Review Live Script now presents the completed Stage 4C evidence
+without training or modifying frozen artifacts.
+
+Native MATLAB audit for the configurable trajectory collections:
+
+| Proposed workflow | Native MATLAB path | Update for this review |
+| :--- | :--- | :--- |
+| Deterministic event selection | `sortrows`, table indexing, `unique` | Reuse the existing longest-first event table and select its first `N` rows. |
+| Frozen neural inference | `minibatchpredict` | Concatenate selected event rows for one call per network, then split predictions by event. |
+| Geodetic trajectory display | `enu2geodetic`, `geoTrajectory`, `trackingGlobeViewer`, `plotTrajectory` | Pass one cell array per model so five calls draw `5N` paths, with truth last. |
+
+Implementation:
+
+- Load the frozen 457,903-row Expanded-3Day dataset and global
+  ICAO-disjoint split.
+- Cross-tabulate all four motion classes by train, validation, and test.
+- Plot a primary 3-by-2 dashboard with motion class by row and
+  position/velocity RMSE by column.
+- On the primary dashboard, compare each class-aligned native model with
+  the frozen Stage 3A legacy, Expanded scratch, and Expanded warm networks
+  on matched held-out test rows only. “Test” identifies the evaluated
+  partition; deterministic native algorithms are not trained or validated.
+- Plot a separate 3-by-2 neural-only dashboard comparing validation and
+  test RMSE for the three frozen networks.
+- Preserve the original longest continuous test event for compatibility,
+  and add `stage4CGlobeTrajectoryCount`, defaulting to 50, so each viewer
+  can select the longest `N` eligible events for its motion class using the
+  same deterministic session, ICAO, time, and dataset-row tie-breakers.
+- Build each requested collection on demand, cap `N` at class availability,
+  and report requested/plotted event, path, pair, session, and ICAO counts.
+- Batch all selected rows through each frozen neural network, split the
+  outputs back into continuous events, and validate test membership, motion
+  class, native eligibility, strictly increasing time, and finite LLA.
+- Convert local ENU positions with `enu2geodetic`, construct
+  `geoTrajectory` objects, and open three independent
+  `trackingGlobeViewer` windows through five model-batched
+  `plotTrajectory` calls per viewer, with truth drawn last.
+- Keep `enableInteractiveGlobe=false` as the automated/headless path.
+
+Outcome:
+
+- Split allocation is 277,959 train, 86,420 validation, and 93,524 test
+  pairs; the motion-class cross-tabulation covers all 457,903 rows.
+- Each class-specific request plots `min(N, eligible event count)` events
+  and therefore five times that many paths: truth, its respective native
+  model, `legacy_stage3a_v1`, `expanded_scratch_mean_v1`, and
+  `expanded_warm_mean_v1`.
+- The default is 50 events (250 paths) per viewer. Counts such as 100, 500,
+  and 1,000 can be requested by changing the Live Script variable and
+  rerunning only the desired viewer section.
+- The original representatives remain available for compatibility and
+  documentation: 176 `constvel_like`, 40 `constacc_like`, and 25
+  `constturn_like` pairs, selected from 12,537, 10,340, and 1,242 eligible
+  events, respectively.
+- The primary RMSE figure contains 12 test rows: one class-aligned native
+  model and three frozen neural models for each motion class. The
+  neural-only figure contains 18 rows spanning both held-out splits.
+- Paths are sequences of one-step predictions from observed states, not
+  recursive forecasts or tracker outputs.
+- No training, clipping, smoothing, or frozen-artifact mutation occurs.
+- Verification passed 39 focused tests: 23 Stage Review, 8 Stage 4C native,
+  and 8 Stage 4C retraining regressions. The Stage Review suite covers
+  counts of 1, 50, 100, 500, and 1,000; deterministic ranking; class and
+  eligibility checks; continuity, monotonic-time, and finite-LLA checks;
+  capping above availability; invalid inputs; and headless Run All.
+  Interactive 50-, 100-, 500-, and 1,000-event viewers were inspected.
+  MATLAB Code Analyzer reported no issues in the five changed MATLAB files.
+- The frozen model SHA-256 digests remained
+  `2459D134...B906`, `941AFD71...F81F`, and `1999F972...FFE`
+  for Stage 3A legacy, Expanded scratch, and Expanded warm, respectively.
+
+Primary files:
+
+- `stageReviewLiveScript.m`
+- `helperBuildStage4CReviewDashboard.m`
+- `helperBuildStage4CTrajectoryCollection.m`
+- `helperPlotStage4CRMSEDashboard.m`
+- `helperPlotStage4CNNValidationTest.m`
+- `helperOpenStage4CReviewGlobe.m`
+- `tests/StageReviewLiveScriptTest.m`
+
+## (completed) Stage 4D: Frozen Warm-Model Characterization
+
+Stage 4D treats `expanded_warm_mean_v1` as a frozen learned reference. It is
+a standalone one-step predictor study, not a recursive tracker evaluation or
+a promotion decision.
+
+Implementation:
+
+- Use `stage4DFrozenWarmCharacterizationLiveScript.m` as the standalone
+  review entry point and `runStage4DFrozenWarmCharacterization.m` as the
+  reusable computation entry point.
+- Generate independent latent ENU truth with `kinematicTrajectory`.
+- Run 21 canonical motion/profile cases, 100 ten-minute in-distribution
+  mixed-motion trajectories, and 50 ten-minute out-of-distribution
+  trajectories in full mode.
+- Apply ideal, empirical-training-timing, and degraded noise/dropout
+  observation profiles.
+- Reconstruct all 887 contiguous frozen real test events under baseline,
+  10 percent random dropout, 25 percent random dropout, and burst-outage
+  profiles.
+- Compare only the frozen warm model with native `constvel`, `constacc`, and
+  `constturn`. Warm versus `constvel` is the same-information headline;
+  causal acceleration and turn models are reported separately because they
+  receive one predecessor.
+- Score synthetic predictions against latent truth and real perturbations
+  against the next retained ADS-B observation.
+- Build one interactive `trackingGlobeViewer` collection for all seven
+  canonical motions and a second for one selectable held-out ADS-B dropout
+  event. Convert ENU positions with `enu2geodetic`, represent each path with
+  `geoTrajectory`, and overlay input, scoring reference, warm, `constvel`,
+  `constacc`, and `constturn` using six model-batched `plotTrajectory` calls.
+- Keep globe generation optional for headless execution, but always expose
+  the selected-view summary, legend, and trajectory validation tables in the
+  Live Script.
+- Write results only under
+  `artifacts/stage4DFrozenWarmCharacterization/`.
+
+Outcome:
+
+- All 20 executable verification checks passed: deterministic generation,
+  continuous and finite synthetic trajectories, monotonic times, exact
+  frozen-test baseline reconstruction, matched comparison rows, leakage
+  exclusions, separate outputs, and unchanged model integrity.
+- The warm artifact remained
+  `1999F972DBDABE67F45953C52CD4CDB1620F1FECF1716C075F391064D3B32FFE`
+  before and after execution. No scratch or Stage 3A model was loaded.
+- Full mode scored 638,010 same-information pairs across synthetic and real
+  profiles in 51.1 seconds.
+- On in-distribution synthetic trajectories with empirical timing, position
+  RMSE was 58.598 m for warm and 43.598 m for `constvel`.
+- On the frozen real baseline, position RMSE was 27.469 m for warm and
+  23.303 m for `constvel`. The paired event-RMSE difference was
+  10.668 m with a 95 percent interval of [9.689, 11.647] m.
+- Causal native results remain contextual rather than headline comparisons.
+  For example, real baseline `constturn` position RMSE was 16.039 m on its
+  92,637 eligible predecessor-assisted rows.
+- The Stage 4D decision is to retain `constvel` as the deployed prediction
+  reference and not begin recursive warm-model or `trackingIMM` integration
+  from this evidence.
+- Both smoke and full benchmarks completed, and the new Live Script loaded
+  the saved full result successfully in a headless run.
+- The canonical degraded globe review produced seven motion trajectories and
+  42 displayed paths; the held-out burst-outage review produced one event
+  and six paths. Both passed finite-LLA, monotonic-time, and matched-count
+  validation, and both native viewers opened successfully.
+- All 51 focused and regression tests passed: 12 Stage 4D, 8 Stage 4C
+  retraining, 8 Stage 4C native-baseline, and 23 Stage Review tests.
+- MATLAB Code Analyzer reported no issues in the nine Stage 4D MATLAB files.
+- `stageReviewLiveScript.m` and all Stage 4C artifacts were left unchanged.
+
+Primary files:
+
+- `stage4DFrozenWarmCharacterizationLiveScript.m`
+- `runStage4DFrozenWarmCharacterization.m`
+- `helperGenerateStage4DSyntheticBenchmark.m`
+- `helperBuildStage4DRealDropoutBenchmark.m`
+- `helperEvaluateStage4DPredictors.m`
+- `helperPlotStage4DCharacterization.m`
+- `helperBuildStage4DGlobeReview.m`
+- `helperOpenStage4DGlobe.m`
+- `tests/Stage4DFrozenWarmCharacterizationTest.m`
+- `artifacts/stage4DFrozenWarmCharacterization/stage4DFrozenWarmCharacterizationResults.mat`
+
+## (completed) Stage 4E: Recursive Filter Evaluation
+
+Stage 4E asks what changes when one-step predictors become complete recursive
+estimators. In plain language, each filter carries its last estimate forward,
+uses an available position report to correct that prediction, and coasts on
+growing uncertainty when a report is missing.
+
+Implementation:
+
+- Use `stage4ERecursiveFilterEvaluationLiveScript.m` as the review entry point
+  and `runStage4ERecursiveFilterEvaluation.m` as the reusable computation
+  entry point.
+- Compare position-updated native CV, CA, and CT `trackingEKF` estimators, a
+  native three-model `trackingIMM`, and a `trackingUKF` whose state transition
+  is the unchanged `expanded_warm_mean_v1` network.
+- Tune process-noise and IMM transition properties with
+  `trackingFilterTuner` on three validation events of at most 120 pairs each.
+  Freeze the resulting artifact before any test scoring; do not retrain the
+  network.
+- Evaluate matched timestamps, position measurements, update masks, scoring
+  rows, and physical six-state initialization for every filter.
+- Score 48 full-mode synthetic sequences against latent `kinematicTrajectory`
+  truth and 40 held-out ADS-B events under baseline, 10 percent random
+  dropout, 25 percent random dropout, and burst-outage profiles.
+- Reserve every fifth real ADS-B report beginning with the third for scoring
+  before dropout is applied. These reports never correct a filter, so the
+  real result remains an ADS-B scoring proxy rather than independent truth.
+- Report prior/posterior position and velocity error, synthetic NEES and
+  coverage, NIS, event win rate, error versus correction age, recursive
+  runtime, input integrity, and optional `trackingGlobeViewer` paths.
+- Keep smoke-mode real events bounded to 240 pairs for practical regression
+  testing; full mode retains the complete selected events.
+
+Outcome:
+
+- All 17 executable integrity checks passed, including identical inputs and
+  tolerance-equivalent initialization, scheduled corrections, reserved score
+  rows, deterministic dropout, finite states, positive-definite covariance,
+  validation-only frozen tuning, no neural training, and unchanged warm-model
+  SHA-256.
+- On degraded canonical synthetic truth, native IMM achieved 81.436 m
+  posterior position RMSE, followed by CA EKF at 94.160 m, CT EKF at
+  116.120 m, CV EKF at 122.190 m, and frozen-warm UKF at 399.620 m.
+- On the held-out ADS-B baseline scoring proxy, native IMM achieved 11.616 m
+  posterior position RMSE, followed by CT EKF at 20.118 m, CV EKF at
+  20.990 m, CA EKF at 27.389 m, and frozen-warm UKF at 239.390 m.
+- Each model executed 117,010 recursive predictions. Measured time per
+  prediction was 112.1 microseconds for CV EKF, 124.9 for CA EKF, 165.4 for
+  CT EKF, 1,428 for native IMM, and 8,505 for frozen-warm UKF.
+- Replacing repeated tiny-batch `minibatchpredict` calls with direct
+  `predict` preserved output within `2.27e-13`, made the transition call
+  4.09 times faster, and reduced the Stage 4E test runtime from 247 seconds
+  to 75 seconds.
+- The verified full run completed in 1,226.9 seconds. The native IMM is the
+  strongest tested recursive estimator; the frozen-warm UKF is not promoted.
+- The result does not evaluate association, clutter, confirmation, deletion,
+  GNN, JPDA, or passive-radar detection performance.
+
+Primary files:
+
+- `stage4ERecursiveFilterEvaluationLiveScript.m`
+- `runStage4ERecursiveFilterEvaluation.m`
+- `helperTuneStage4EFilters.m`
+- `helperInitializeStage4EFilter.m`
+- `helperEvaluateStage4ESequences.m`
+- `helperStage4EWarmTransition.m`
+- `helperPlotStage4ERecursiveEvaluation.m`
+- `helperBuildStage4EGlobeReview.m`
+- `helperOpenStage4EGlobe.m`
+- `tests/Stage4ERecursiveFilterEvaluationTest.m`
+- `artifacts/stage4ERecursiveFilterEvaluation/stage4ERecursiveFilterEvaluationResults.mat`
+
 ## Assumptions
 
 - No code or data collection starts during Stage 1.

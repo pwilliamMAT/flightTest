@@ -1,0 +1,21 @@
+check,passed,detail
+canonical_case_count,1,21
+in_distribution_trajectory_count,1,100
+out_of_distribution_trajectory_count,1,50
+mixed_trajectory_duration,1,600 s
+deterministic_generation,1,Seeded canonical generation reproduced exactly
+continuous_synthetic_trajectories,1,Position increments satisfy velocity/acceleration continuity bounds
+monotonic_synthetic_time,1,All synthetic time vectors and pairs are increasing
+finite_synthetic_states,1,All synthetic truth and observed states are finite
+finite_real_states,1,All real retained-observation states are finite
+monotonic_real_time,1,All real retained-observation pairs have increasing time
+real_baseline_matches_frozen_test_rows,1,Baseline reconstruction equals sorted frozen test pairs
+matched_model_rows,1,Every model within each comparison family uses identical rows
+no_target_leakage,1,Prediction interfaces exclude targetState
+no_motion_label_leakage,1,Prediction interfaces exclude retrospective motion labels
+no_scratch_model_loaded,1,Only expanded_warm_mean_v1 was loaded
+no_stage3a_model_loaded,1,Only expanded_warm_mean_v1 was loaded
+warm_hash_unchanged,1,1999F972DBDABE67F45953C52CD4CDB1620F1FECF1716C075F391064D3B32FFE
+warm_hash_matches_expected,1,1999F972DBDABE67F45953C52CD4CDB1620F1FECF1716C075F391064D3B32FFE
+separate_stage4d_output,1,C:\Users\pwilliam\agenticProjects\flightTest\adsbForTracking\artifacts\stage4DFrozenWarmCharacterization
+real_baseline_pair_count,1,93524

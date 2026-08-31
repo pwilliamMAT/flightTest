@@ -13,6 +13,8 @@ This repository contains a complete passive bistatic radar system and multi-sens
 
 ### ADS-B Prediction Review
 
+Stage 4D adds the standalone `adsbForTracking/stage4DFrozenWarmCharacterizationLiveScript.m` review. It freezes `expanded_warm_mean_v1`, generates 21 canonical cases plus 100 ten-minute in-distribution and 50 ten-minute out-of-distribution `kinematicTrajectory` truths, reconstructs held-out ADS-B events under baseline and dropout conditions, and compares only warm, `constvel`, `constacc`, and `constturn`. Run All loads the saved full result by default; set `regenerateStage4DResults = true` and choose `stage4DBenchmarkMode = "smoke"` or `"full"` to recompute. With `enableStage4DInteractiveGlobe = true`, Run All also opens native `trackingGlobeViewer` collections for all seven canonical motions and one selectable held-out ADS-B dropout event. Use `stage4DCanonicalGlobeProfile`, `stage4DRealGlobeProfile`, and `stage4DRealGlobeEventRank` to change those views. The verified full run keeps `constvel` as the deployed prediction reference and leaves recursive and `trackingIMM` integration deferred.
+
 The `adsbForTracking/` workspace contains the MATLAB ADS-B prediction-step review pipeline. The Stage 3B entrypoint, `runStage3BAggregateADSBEvaluation.m`, remains the original one-session baseline: it aggregates the discoverable local ADS-B truth data, compares the frozen Stage 3A delta-target MLP against native `constvel` on identical state-pair rows, and writes the evaluation under `adsbForTracking/artifacts/stage3B/`. Stage 3C adds `runStage3CArchiveADSBEvaluation.m`, which inventories `adsbForTracking/adsb_archive/adsb_archive`, uses MATLAB `gunzip` first with a narrow .NET gzip fallback for the two native failures, and writes archive scoring under `adsbForTracking/artifacts/stage3C/`. The Stage 3C archive pass evaluates 16 source files, 16 usable sessions, 15,013 one-step pairs, and 222 aircraft tracks without retraining; the basic Stage 3B gates pass, but `pi_only/truth` is still empty and all truth-only sessions use the default receiver origin. Stage 4A `stage4ADSBTruthCapturePlanningLiveScript.m` now prefers the saved Stage 3C artifact, falls back to Stage 3B only for compatibility, and makes the next collection priorities independent Pi-only holdout sessions, receiver-origin metadata preservation, source diversity, targeted motion/update regimes, and passive-radar-relevant geometry.
 
 Run the archive extension from MATLAB with:
@@ -409,6 +411,75 @@ rsync -avm --prune-empty-dirs \
 ```
 
 These commands copy SBS-1 ADS-B text/gzip logs only. They exclude radar `.bb` captures, GPS/NMEA files, session logs, MATLAB artifacts, and other repository files.
+
+After transferring the completed three-day Stage 4B package to
+`adsbForTracking/stage4B_adsb_3day.zip`, integrate and evaluate it from
+MATLAB with:
+
+```matlab
+cd adsbForTracking
+integration = integrateStage4BThreeDayArchive;
+legacy = runADSBDatasetVariantEvaluation("legacy_pre3day_v1");
+increment = runADSBDatasetVariantEvaluation("campaign_3day_increment_v1");
+expanded = runADSBDatasetVariantEvaluation("expanded_post3day_v2");
+comparison = runStage4BPostCampaignMotionDiversityGate( ...
+    "RebuildVariantEvaluations", false);
+```
+
+The three named variants are **Legacy-16**, **3-Day Campaign Increment**,
+and **Expanded-3Day**. Their source membership is frozen by path and SHA-256
+under `adsbForTracking/adsb_archive/datasetVersions/`; outputs are isolated
+under `adsbForTracking/artifacts/stage4BPostCampaign/`. This gate evaluates
+motion diversity with the frozen Stage 3A network and does not retrain it.
+
+Stage 4C trains the frozen-split scratch and normalization-rebased warm
+mean-MLP controls once, then a separate evaluation-only entry point adds
+causal native maneuver baselines:
+
+```matlab
+cd adsbForTracking
+training = runStage4CRetrainExpandedADSBMLP;
+evaluation = runStage4CNativeManeuverBaselineEvaluation;
+```
+
+The native extension estimates raw 3-D acceleration or wrapped heading rate
+from the immediately preceding adjacent observation, then uses MATLAB
+`constacc` on `constacc_like` rows and `constturn` on `constturn_like` rows.
+It does not retrain or alter Stage 3A, scratch, or warm artifacts. All five
+models in each section use identical eligible validation/test rows and are
+reported with pair and independent-event weighting. The raw policy applies
+no clipping or smoothing; its large turn-rate spikes are retained and
+documented, while bounded or smoothed causal initialization remains a
+future sensitivity study. Outputs extend
+`adsbForTracking/artifacts/stage4CRetrain/`.
+
+Run the complete Stage 4C review dashboard from the plain-text Live Script:
+
+```matlab
+cd adsbForTracking
+enableInteractiveGlobe = true;
+stage4CGlobeTrajectoryCount = 50;
+stageReviewLiveScript
+```
+
+The Run All workflow shows the frozen Expanded-3Day train/validation/test
+allocation and motion-class cross-tabulation. Its primary 3-by-2
+position/velocity RMSE dashboard compares each class-aligned native model
+with the three frozen neural networks on held-out test rows only; “test”
+names the evaluated partition and does not imply that a deterministic
+native algorithm was trained or validated. A second 3-by-2 dashboard
+compares validation and test RMSE for the neural networks only. The workflow
+also opens independent `trackingGlobeViewer` windows for configurable
+collections of deterministic eligible `constvel_like`, `constacc_like`,
+and `constturn_like` test events. `stage4CGlobeTrajectoryCount = N` means
+the longest `N` continuous eligible events in each class, capped at the
+class's availability. Each viewer overlays `5N` paths—ADS-B truth, the
+class-aligned native model, and the frozen Stage 3A legacy, Expanded
+scratch, and Expanded warm networks—using five model-batched plotting
+calls. Change the count and rerun only the desired viewer section when a
+larger collection is needed. Set `enableInteractiveGlobe = false` for
+automated or headless execution; this path does not build the multi-event
+trajectory collections.
 
 ### 3. Analyze on the Development Machine
 
