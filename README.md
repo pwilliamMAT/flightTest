@@ -11,6 +11,20 @@ This repository contains a complete passive bistatic radar system and multi-sens
 3. **Multi-Sensor Fusion:** Integrate passive radar with RF beacon tracking for enhanced situational awareness
 4. **Toolbox Validation:** Generate real-world datasets for testing MathWorks radar and tracking algorithms
 
+### Pluto Calibration Precheck
+
+The standalone Pluto tone precheck is developed separately from the working
+acquisition path. Its phase-1 contract is documented in
+`TestSetupTesting/plutoTonePrecheckDesignSpec.md`. The workflow provides
+deterministic Pluto waveform startup, N320 capture, `.bb` readback, scoring,
+artifact review, and baseline commissioning.
+
+Use `TestSetupTesting/PlutoPhase1ValidationLive.m` as the primary software
+validation entry point. For field operation and calibration, follow
+`TestSetupTesting/plutoCalibrationHardwareBringup.md` and
+`TestSetupTesting/plutoBaselineCommissioningFieldPlan.md`. The precheck remains
+standalone and is not yet a hard gate in `run_coordinated_hdtv_capture.sh`.
+
 ### Hardware Platform
 
 - **USRP N320:** Phase-coherent dual-channel software-defined radio for HDTV passive radar (540 MHz, 6 MHz bandwidth)

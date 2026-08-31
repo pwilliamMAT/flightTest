@@ -17,6 +17,61 @@ This repository contains MATLAB code for evaluating, characterizing, and process
 
 ---
 
+## Standalone Pluto Tone Precheck
+
+The Pluto-driven standalone precheck is being developed separately from the working coordinated acquisition path so the hardware-readiness gate can be proven before any integration work.
+The frozen pre-implementation contract lives in [plutoTonePrecheckDesignSpec.md](plutoTonePrecheckDesignSpec.md) and defines the exact MATLAB entrypoints, result and baseline schemas, summary metrics, artifact layout, and fail/warn codes for this phase.
+The current implemented slice covers the live standalone wrapper `runPlutoTonePrecheck.m`, baseline loading and mismatch checks, deterministic Pluto waveform/TX startup, reuse of `runLocalHDTVCapture.m`, capture readback through `BistaticDataAnalysis/loadIQData.m`, channel and joint scoring, compact result/artifact writing, saved-result review, and baseline commissioning from prior standalone run artifacts or in-memory results.
+The wrapper is still intentionally separate from the working coordinated capture path, and `commissionPlutoToneBaseline` still uses the temporary offline `RunSources` path rather than starting hardware itself.
+When the Pluto support package runtime is missing, the wrapper now fails cleanly with `PLUTO_CONNECT_FAILED` and writes a reviewable run folder without attempting the N320 capture.
+A separate companion plan, [PlutoWaveformPlan.md](PlutoWaveformPlan.md), now documents a **Phase 2** standalone follow-on analysis over archived Phase 1 captures. It does not replace the current Phase 1 tone precheck or its public runtime contract.
+For the first Phase 2B multitone smoke experiment, use [runPlutoMultitoneStage6Smoke.m](runPlutoMultitoneStage6Smoke.m). It keeps the existing Pluto TX, N320 capture, and `.bb` readback path, but transmits a tone comb and scores every planned tone on both channels before aggregating the evidence. The multitone scorer now defaults to expected-bin scoring, which uses `pwelch` at the known emitted offsets for the primary integrated-margin measurement and keeps the older nearby-peak search as a frequency-agreement diagnostic warning. After the capture syncs, use [reviewPlutoMultitoneCapture.m](reviewPlutoMultitoneCapture.m) to regenerate the score and write durable `result.mat`, `summary.txt`, and `summary.png` review artifacts without rerunning hardware. To evaluate whether the comb evidence integrates over repeated CPIs, use [reviewPlutoMultitoneCpiIntegration.m](reviewPlutoMultitoneCpiIntegration.m); it extracts the complex FFT coefficient at each planned tone in every 10 ms CPI, then reports noncoherent power integration, slow-time FFT peak integration, and comb-locked REF/SURV coherence. To test a first comb-locked detector, use [runPlutoMultitoneSlowTimeDetector.m](runPlutoMultitoneSlowTimeDetector.m); it now reports both a common-bin comb detector and a tonewise residual-compensated detector that lets each tone peak at its own slow-time frequency before combining the comb evidence.
+For repeatability testing on the field-test computer, use [runPlutoMultitoneRepeatabilityBatch.m](runPlutoMultitoneRepeatabilityBatch.m). It repeats one fixed 11-tone, 100 kHz-spaced comb by default, runs the expected-bin review, CPI integration review, and slow-time detector after each capture, and writes a small `batch_summary.csv` plus per-run review folders that can be copied back without the large `.bb` files.
+The first calibration-health-check wrappers are [runPlutoMultitoneCalibrationBaseline.m](runPlutoMultitoneCalibrationBaseline.m) and [runPlutoMultitoneCalibrationCheck.m](runPlutoMultitoneCalibrationCheck.m). The baseline wrapper commissions a golden reference from saved captures or from a repeatability `batch_summary.csv`; the check wrapper compares a saved capture or a new live run against that baseline and reports pass/warn/fail drift in expected-bin margin, slow-time margin, REF/SURV coherence, and tonewise detector contrast.
+For an SSH-friendly checked-in Stage 6 smoke-test entrypoint, use [runPlutoToneStage6Smoke.m](runPlutoToneStage6Smoke.m) from the `TestSetupTesting/` folder.
+For a fixed-placement commissioning sweep that compares tone offsets and amplitudes before you choose a reusable baseline candidate, use [runPlutoToneCommissioningSweep.m](runPlutoToneCommissioningSweep.m).
+If that sweep writes the per-run folders but then errors while building the top-level summary, recover the saved artifacts with [reviewPlutoToneCommissioningSweep.m](reviewPlutoToneCommissioningSweep.m) before deciding to rerun the hardware.
+For a shareable plain-text Live Editor notebook that runs the current Phase 1 unit tests and smoke tests in order, use [PlutoPhase1ValidationLive.m](PlutoPhase1ValidationLive.m).
+Treat that notebook as the primary Phase 1 verification entrypoint for both human review and future agentic sessions.
+Open that notebook in the MATLAB Live Editor on the testing machine and use **Run All**. The run controls near the top let you skip individual smoke stages or enable the full wrapper once `baselinePath` is set.
+That notebook now also records the accumulated Stage 6 field-trial matrix through the `599 MHz / 1.5 MHz` placement and amplitude experiments, the recovered fixed-placement commissioning sweep review for `stairwell_outside_box_nooelec_4p9in`, and the next recommended geometry-only follow-up test at `599 MHz / 250 kHz / ToneAmplitude 0.50`.
+For a testing-machine procedure that turns those next-step recommendations into a concrete field checklist, use [plutoBaselineCommissioningFieldPlan.md](plutoBaselineCommissioningFieldPlan.md).
+For staged testing-machine bring-up before running the calibration wrapper, see [plutoCalibrationHardwareBringup.md](plutoCalibrationHardwareBringup.md).
+The bring-up checklist now includes the same observed field-trial matrix plus short operator notes about which physical setups and tone-level changes helped and which ones did not.
+
+### Pluto Calibration Sequence
+
+The current standalone calibration/precheck flow is:
+
+1. Load the commissioned Pluto baseline and validate that the frozen runtime settings still match it.
+2. Build one deterministic Pluto baseband CW waveform at the requested `ToneOffset_Hz` and `ToneAmplitude`.
+3. Start Pluto transmission first so the RF tone is present in the air before the receive capture begins.
+4. Run one short dual-channel N320 capture through `runLocalHDTVCapture.m` while the Pluto is transmitting.
+5. Read the first `.bb` file written by that N320 capture, not a Pluto-side file, through `BistaticDataAnalysis/loadIQData.m`.
+6. Interpret the received N320 channels with the frozen mapping `RF0:RX2 -> CH1 / RX1 -> SURV` and `RF1:RX2 -> CH2 / RX2 -> REF`.
+7. Score the received tone on each USRP channel for detect margin, frequency error, absolute level, and baseline-relative level drift, then add the joint channel-frequency consistency check plus advisory-only `xcorr`.
+8. Write a self-contained result folder with `result.mat`, `result.json`, `summary.txt`, `summary.png`, and the capture-file reference so the run can be reviewed later without rerunning hardware.
+
+### Phase 1 Commissioning Sweep
+
+Once the Pluto placement is physically fixed, the preferred path to a reusable baseline is:
+
+1. Run [runPlutoToneCommissioningSweep.m](runPlutoToneCommissioningSweep.m) on that fixed setup.
+2. Review the ranked configuration summary to choose the best tone offset and amplitude candidate.
+3. Rerun the winning configuration for a longer repeated series.
+4. Feed those saved run folders into `commissionPlutoToneBaseline` to create the reusable baseline file.
+
+The default commissioning sweep compares:
+
+- `ToneOffset_Hz = [250e3, 1.5e6]`
+- `ToneAmplitude = [0.50, 0.65, 0.80, 0.90]`
+
+The current code allows amplitudes up to `1.0`, but the first recommended sweep stops at `0.9` to avoid jumping straight to the digital ceiling before the fixed placement is understood.
+The recovered July 24, 2026 sweep review still ranked every configuration as `WEAK`, so the next recommended test is not another amplitude sweep. Freeze the waveform at `599 MHz / 250 kHz / ToneAmplitude 0.50` and run a small placement and orientation matrix first.
+
+Important interpretation note:
+- The `.bb` file used for scoring is the USRP receive capture collected while the Pluto tone is on. It should therefore contain the Pluto-injected tone as received by the USRP antennas, plus any ambient RF and noise present at the time of capture.
+
 ## Evaluation Workflow
 
 The system evaluation follows a multi-stage process to ensure data quality, characterize system performance, and generate aircraft detections:

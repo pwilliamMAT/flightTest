@@ -1,6 +1,10 @@
 function [session_id, written_files] = log_iq_n320_2antennas(varargin)
 % log_iq_n320_2antennas: Dual-channel IQ logger for Passive Radar.
-% Captures phase-coherent data from RX1 (Surveillance) and RX2 (Reference).
+% Captures phase-coherent data from the N320 hardware ports RF0:RX2 and
+% RF1:RX2. Downstream in this repo those two stored channels are interpreted
+% as:
+%   RF0:RX2 -> file column 1 -> CH1/RX1 -> Surveillance
+%   RF1:RX2 -> file column 2 -> CH2/RX2 -> Reference
 %
 % Example run:
 % matlab -batch "log_iq_n320_2antennas('radio','My USRP N320','cf',540e6,'sr',6.144e6,'lo',200e3,'gain',30,'dur',10,'file','n320_dual_capture.bb')"
@@ -96,7 +100,11 @@ end
 % Directly assign both N320 receive ports for coherent dual-channel capture.
 % basebandReceiver defaults to a single antenna on construction, so Antennas
 % must be SET here — reading it back before assignment always returns 1 antenna.
-% N320 port naming convention: RF0:RX2 (channel 0) and RF1:RX2 (channel 1).
+% N320 hardware-port naming convention here is RF0:RX2 first and RF1:RX2
+% second. The resulting .bb file is later read as CH1/RX1 then CH2/RX2 by
+% comm.BasebandFileReader and loadIQData, so the repo-wide frozen mapping is:
+%   RF0:RX2 -> CH1/RX1 -> SURV
+%   RF1:RX2 -> CH2/RX2 -> REF
 bbrx.Antennas = ["RF0:RX2", "RF1:RX2"];
 assert(numel(bbrx.Antennas) == 2, ...
     "Failed to configure dual antennas. Check radio connection and configuration.");
