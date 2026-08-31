@@ -10,11 +10,11 @@ function [multitone_metrics, diagnostics] = helperPlutoMultitoneScoreCapture(ref
 %   requiring matched filtering.
 %
 % Toolbox-first implementation:
-%   This helper uses pwelch to score the planned tone bins directly. That is
-%   intentionally different from the Phase 1 CW scorer, which searches for
-%   the largest nearby peak. For a known multitone comb, the expected bins
-%   are the observation we want to integrate; a stronger nearby spur should
-%   be diagnostic, not the primary measurement.
+%   This helper uses pwelch to score the planned tone bins directly and also
+%   performs a coherent matched-tone integration over the available pulse
+%   samples. The Welch view is a familiar spectrum diagnostic; the coherent
+%   view answers the calibration question more directly: "How much known tone
+%   energy accumulates when we integrate for the whole calibration pulse?"
 
 p = inputParser;
 p.FunctionName = mfilename;
@@ -25,7 +25,7 @@ addRequired(p, 'tone_offsets_hz', @(x) isnumeric(x) && isvector(x) && ~isempty(x
 addParameter(p, 'SearchHalfWidthHz', 20e3, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'PeakExclusionHalfWidthHz', 2e3, @(x) isnumeric(x) && isscalar(x) && x >= 0);
 addParameter(p, 'ScoringMode', "expected-bin", @(x) any(strcmpi(string(x), ["expected-bin", "search-peak"])));
-addParameter(p, 'NumSamplesForSpectrum', 262144, @(x) isnumeric(x) && isscalar(x) && x >= 1024);
+addParameter(p, 'NumSamplesForSpectrum', Inf, @localMustBeSpectrumSampleLimit);
 addParameter(p, 'WelchWindowLength', 8192, @(x) isnumeric(x) && isscalar(x) && x >= 32);
 addParameter(p, 'WelchOverlapLength', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && x >= 0));
 addParameter(p, 'NFFT', 131072, @(x) isnumeric(x) && isscalar(x) && x >= 256);
@@ -65,6 +65,11 @@ switch scoring_mode
         reference_tone_diagnostics = reference_search_diagnostics;
         surveillance_tone_diagnostics = surveillance_search_diagnostics;
 end
+
+reference_tone_metrics = localAttachCoherentMetrics( ...
+    reference_tone_metrics, reference_signal, sample_rate_hz, tone_offsets_hz, "REF");
+surveillance_tone_metrics = localAttachCoherentMetrics( ...
+    surveillance_tone_metrics, surveillance_signal, sample_rate_hz, tone_offsets_hz, "SURV");
 
 reference_summary = localSummarizeChannel("REF", reference_tone_metrics, opts);
 surveillance_summary = localSummarizeChannel("SURV", surveillance_tone_metrics, opts);
@@ -133,7 +138,7 @@ channel_signal = double(channel_signal(:));
 full_scale = localResolveFullScale(channel_signal);
 level_dbfs = 20 * log10(rms(channel_signal) / full_scale + eps);
 
-n_use = min(numel(channel_signal), opts.NumSamplesForSpectrum);
+n_use = localResolveSpectrumSampleCount(numel(channel_signal), opts.NumSamplesForSpectrum);
 analysis_signal = channel_signal(1:n_use);
 analysis_signal = analysis_signal - mean(analysis_signal);
 
@@ -197,6 +202,12 @@ for idx = 1:n_tones
         'tone_peak_dbfs', tone_peak_dbfs, ...
         'local_floor_dbfs', local_floor_dbfs, ...
         'detect_margin_db', detect_margin_db, ...
+        'coherent_tone_dbfs', NaN, ...
+        'coherent_residual_floor_dbfs', NaN, ...
+        'coherent_margin_db', NaN, ...
+        'coherent_samples', 0, ...
+        'coherent_duration_s', NaN, ...
+        'coherent_note', '', ...
         'level_delta_vs_baseline_db', NaN, ...
         'status', status, ...
         'fail_codes', {fail_codes}, ...
@@ -217,6 +228,44 @@ diagnostics = struct( ...
     'scoring_note', 'Expected-bin multitone scoring uses the planned comb frequencies as the primary measurement.');
 end
 
+function tone_metrics = localAttachCoherentMetrics(tone_metrics, channel_signal, sample_rate_hz, tone_offsets_hz, channel_label)
+%LOCALATTACHCOHERENTMETRICS Coherently integrate each planned tone.
+%
+% Plain-language concept:
+%   A known tone is like a metronome. If we multiply the receive samples by
+%   the opposite metronome and average, the planned tone becomes a DC value
+%   that adds coherently while uncorrelated noise averages down. Therefore a
+%   longer calibration pulse should increase this coherent margin when the
+%   expected tone frequency is accurate and the hardware is stable.
+channel_signal = double(channel_signal(:));
+num_samples = numel(channel_signal);
+full_scale = localResolveFullScale(channel_signal);
+signal_power = mean(abs(channel_signal) .^ 2, 'omitnan');
+sample_index = (0:num_samples - 1).';
+
+for idx = 1:numel(tone_offsets_hz)
+    expected_frequency_hz = double(tone_offsets_hz(idx));
+    oscillator = exp(-1j * 2 * pi * expected_frequency_hz / sample_rate_hz * sample_index);
+    coherent_value = mean(channel_signal .* oscillator, 'omitnan');
+    coherent_tone_power = abs(coherent_value) ^ 2;
+
+    % The variance of the coherent average falls with the number of pulse
+    % samples.  This is the processing gain the pulse-duration sweep was
+    % intended to expose.
+    residual_power = max(signal_power - coherent_tone_power, 0);
+    coherent_noise_power = residual_power / max(1, num_samples);
+    coherent_margin_db = 10 * log10(coherent_tone_power / (coherent_noise_power + eps) + eps);
+
+    tone_metrics(idx).coherent_tone_dbfs = 20 * log10(abs(coherent_value) / full_scale + eps);
+    tone_metrics(idx).coherent_residual_floor_dbfs = 10 * log10(coherent_noise_power / (full_scale ^ 2) + eps);
+    tone_metrics(idx).coherent_margin_db = coherent_margin_db;
+    tone_metrics(idx).coherent_samples = double(num_samples);
+    tone_metrics(idx).coherent_duration_s = double(num_samples) / double(sample_rate_hz);
+    tone_metrics(idx).coherent_note = char("Expected-frequency coherent integration over the full provided pulse.");
+    tone_metrics(idx).channel_label = char(channel_label);
+end
+end
+
 function metric = localEmptyToneMetric(channel_label)
 metric = struct( ...
     'channel_label', char(channel_label), ...
@@ -230,6 +279,12 @@ metric = struct( ...
     'tone_peak_dbfs', NaN, ...
     'local_floor_dbfs', NaN, ...
     'detect_margin_db', NaN, ...
+    'coherent_tone_dbfs', NaN, ...
+    'coherent_residual_floor_dbfs', NaN, ...
+    'coherent_margin_db', NaN, ...
+    'coherent_samples', 0, ...
+    'coherent_duration_s', NaN, ...
+    'coherent_note', '', ...
     'level_delta_vs_baseline_db', NaN, ...
     'status', 'FAIL', ...
     'fail_codes', {{'MULTITONE_EXPECTED_BIN_UNEVALUATED'}}, ...
@@ -293,6 +348,21 @@ nfft = min(requested_nfft, max_supported_nfft);
 nfft = max(nfft, 2 ^ nextpow2(window_length));
 end
 
+function localMustBeSpectrumSampleLimit(value)
+if ~(isnumeric(value) && isscalar(value) && (isinf(value) || (isfinite(value) && value >= 1024)))
+    error('helperPlutoMultitoneScoreCapture:invalidSampleLimit', ...
+        'NumSamplesForSpectrum must be Inf or a scalar value >= 1024.');
+end
+end
+
+function n_use = localResolveSpectrumSampleCount(num_samples, requested_limit)
+if isinf(requested_limit)
+    n_use = num_samples;
+else
+    n_use = min(num_samples, requested_limit);
+end
+end
+
 function localValidateToneOffsets(tone_offsets_hz, sample_rate_hz)
 nyquist_hz = sample_rate_hz / 2;
 if any(abs(tone_offsets_hz) >= nyquist_hz)
@@ -309,8 +379,13 @@ frequency_error_hz = arrayfun(@(s) double(s.frequency_error_hz), tone_metrics(:)
 measured_frequency_hz = arrayfun(@(s) double(s.measured_frequency_hz), tone_metrics(:));
 tone_peak_dbfs = arrayfun(@(s) double(s.tone_peak_dbfs), tone_metrics(:));
 local_floor_dbfs = arrayfun(@(s) double(s.local_floor_dbfs), tone_metrics(:));
+coherent_tone_dbfs = arrayfun(@(s) double(s.coherent_tone_dbfs), tone_metrics(:));
+coherent_residual_floor_dbfs = arrayfun(@(s) double(s.coherent_residual_floor_dbfs), tone_metrics(:));
+coherent_margin_db = arrayfun(@(s) double(s.coherent_margin_db), tone_metrics(:));
+coherent_duration_s = arrayfun(@(s) double(s.coherent_duration_s), tone_metrics(:));
 
 integrated_margin_db = 10 * log10(sum(10 .^ (detect_margin_db(tone_found) / 10)) + eps);
+integrated_coherent_margin_db = 10 * log10(sum(10 .^ (coherent_margin_db(tone_found) / 10)) + eps);
 num_tones_found = nnz(tone_found);
 found_fraction = num_tones_found / numel(tone_found);
 
@@ -333,9 +408,17 @@ summary = struct( ...
     'tone_peak_dbfs', tone_peak_dbfs, ...
     'local_floor_dbfs', local_floor_dbfs, ...
     'detect_margin_db', detect_margin_db, ...
+    'coherent_tone_dbfs', coherent_tone_dbfs, ...
+    'coherent_residual_floor_dbfs', coherent_residual_floor_dbfs, ...
+    'coherent_margin_db', coherent_margin_db, ...
+    'coherent_duration_s', coherent_duration_s, ...
     'min_detect_margin_db', min(detect_margin_db, [], 'omitnan'), ...
     'median_detect_margin_db', median(detect_margin_db, 'omitnan'), ...
     'integrated_detect_margin_db', integrated_margin_db, ...
+    'min_coherent_margin_db', min(coherent_margin_db, [], 'omitnan'), ...
+    'median_coherent_margin_db', median(coherent_margin_db, 'omitnan'), ...
+    'integrated_coherent_margin_db', integrated_coherent_margin_db, ...
+    'median_coherent_duration_s', median(coherent_duration_s, 'omitnan'), ...
     'status', char(channel_status));
 end
 

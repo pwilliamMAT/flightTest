@@ -1,0 +1,2064 @@
+function scan = runPlutoAzimuthEnvironmentalScan(varargin)
+%RUNPLUTOAZIMUTHENVIRONMENTALSCAN Operator-guided RF environment azimuth scan.
+%
+% Plain-language concept:
+%   This scan turns the directional antenna into a simple hand-rotated RF
+%   survey instrument. At each requested bearing, the N320 records both the
+%   directional and reference channels. During a short, known window inside
+%   that capture, Pluto transmits the standard 12-tone no-DC comb. The ambient
+%   capture tells us what the RF environment looks like versus azimuth; the
+%   short comb burst gives a same-run calibration marker for the directional
+%   antenna pattern while the reference channel should remain relatively
+%   stable.
+%
+% Operator workflow:
+%   1. Choose the number of azimuth steps for the desired angular spacing.
+%   2. Point the directional antenna at the prompted true bearing.
+%   3. Press Enter when the antenna is stable.
+%   4. The function captures both N320 channels and injects one 1.0 s Pluto
+%      multitone calibration burst during the capture.
+%   5. Repeat clockwise until the full 360 degree scan is complete.
+%
+% Toolbox-first implementation:
+%   The receive path uses basebandReceiver and comm.BasebandFileWriter,
+%   matching the project's existing N320 capture stack. Spectrum estimates
+%   use pwelch from Signal Processing Toolbox so the result is a standard
+%   power spectral density view rather than a custom FFT display.
+%
+% Example:
+%   scan = runPlutoAzimuthEnvironmentalScan('NumAzimuthSteps', 8, ...
+%       'CaptureDuration_s', 4, 'PulseDuration_s', 1.0);
+%
+% See also: helperPlutoMultitoneBuildWaveform, helperPlutoToneStartTx,
+% helperPlutoMultitoneScoreCapture, pwelch.
+
+p = inputParser;
+p.FunctionName = mfilename;
+addParameter(p, 'NumAzimuthSteps', 8, @localMustBePositiveIntegerScalar);
+addParameter(p, 'StartBearing_deg', 0, @(x) isnumeric(x) && isscalar(x) && isfinite(x));
+addParameter(p, 'Clockwise', true, @(x) islogical(x) && isscalar(x));
+addParameter(p, 'CaptureDuration_s', 4, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'PulseStartDelay_s', 0.5, @(x) isnumeric(x) && isscalar(x) && x >= 0);
+addParameter(p, 'PulseDuration_s', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'SessionID', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'CaptureRoot', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'OutputRoot', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'ReprocessScanRoot', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'RadioName', "My USRP N320", @(x) ischar(x) || isstring(x));
+addParameter(p, 'CenterFrequency_Hz', 599e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'SampleRate_Hz', 8e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'LOOffset_Hz', 0, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'Gain', [30 50], @(x) isnumeric(x) && (isscalar(x) || numel(x) == 2));
+addParameter(p, 'ToneOffsets_Hz', [-650 -550 -450 -350 -250 -150 150 250 350 450 550 650] * 1e3, ...
+    @(x) isnumeric(x) && isvector(x) && ~isempty(x));
+addParameter(p, 'TargetRMSAmplitude', 0.20, @(x) isnumeric(x) && isscalar(x) && x > 0 && x < 1);
+addParameter(p, 'PeakLimit', 0.80, @(x) isnumeric(x) && isscalar(x) && x > 0 && x <= 1);
+addParameter(p, 'DirectionalChannel', "SURV", @(x) any(strcmpi(string(x), ["SURV", "REF"])));
+addParameter(p, 'WelchNFFT', 8192, @(x) isnumeric(x) && isscalar(x) && x >= 1024);
+addParameter(p, 'WelchFrameLength', 8192, @(x) isnumeric(x) && isscalar(x) && x >= 1024);
+addParameter(p, 'StreamFrameSamples', 262144, @(x) isnumeric(x) && isscalar(x) && x >= 4096);
+addParameter(p, 'RelativeAnalysisMaxSamples', 1048576, @(x) isnumeric(x) && isscalar(x) && x >= 1024);
+addParameter(p, 'RelativeAnalysisMaxLagSamples', 4096, @(x) isnumeric(x) && isscalar(x) && x >= 1);
+addParameter(p, 'CaptureSegment_s', 0.1, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'AutoConfirm', false, @(x) islogical(x) && isscalar(x));
+addParameter(p, 'DryRun', false, @(x) islogical(x) && isscalar(x));
+addParameter(p, 'PlotFigures', true, @(x) islogical(x) && isscalar(x));
+addParameter(p, 'FigureVisibility', 'off', @(x) any(strcmpi(string(x), ["on", "off"])));
+addParameter(p, 'Verbose', true, @(x) islogical(x) && isscalar(x));
+parse(p, varargin{:});
+opts = p.Results;
+
+if strlength(string(opts.ReprocessScanRoot)) > 0
+    scan = localReprocessExistingScan(opts);
+    return
+end
+
+localValidateTiming(opts);
+
+testRoot = fileparts(mfilename('fullpath'));
+projectRoot = fileparts(testRoot);
+analysisRoot = fullfile(projectRoot, 'BistaticDataAnalysis');
+originalFolder = pwd;
+originalPath = path;
+cleanupFolder = onCleanup(@() cd(originalFolder));
+cleanupPath = onCleanup(@() path(originalPath));
+
+cd(testRoot);
+addpath(analysisRoot, '-begin');
+
+scanId = localResolveScanId(opts.SessionID, opts.NumAzimuthSteps, opts.CaptureDuration_s);
+scanRoot = localResolveOutputRoot(projectRoot, scanId, opts.OutputRoot);
+captureRoot = localResolveCaptureRoot(scanRoot, opts.CaptureRoot);
+if ~isfolder(scanRoot)
+    mkdir(scanRoot);
+end
+if ~isfolder(captureRoot)
+    mkdir(captureRoot);
+end
+
+[combWaveform, waveformInfo] = helperPlutoMultitoneBuildWaveform( ...
+    opts.SampleRate_Hz, ...
+    opts.ToneOffsets_Hz, ...
+    opts.TargetRMSAmplitude, ...
+    'PeakLimit', opts.PeakLimit, ...
+    'Verbose', opts.Verbose);
+
+scan = struct( ...
+    'schema_version', 1, ...
+    'scan_id', char(scanId), ...
+    'created_utc', char(string(datetime('now', 'TimeZone', 'UTC', ...
+        'Format', 'yyyy-MM-dd''T''HH:mm:ss''Z'''))), ...
+    'settings', localSettings(opts, scanRoot, captureRoot), ...
+    'waveform_info', waveformInfo, ...
+    'steps', [], ...
+    'summary_table', table(), ...
+    'analysis', struct(), ...
+    'artifact_paths', struct());
+
+bearingsDeg = localBuildBearings(opts.NumAzimuthSteps, opts.StartBearing_deg, opts.Clockwise);
+stepResults = repmat(localEmptyStepResult(), opts.NumAzimuthSteps, 1);
+
+if opts.Verbose
+    fprintf('\n[runPlutoAzimuthEnvironmentalScan] Scan ID ......... %s\n', scanId);
+    fprintf('[runPlutoAzimuthEnvironmentalScan] Steps ........... %d\n', opts.NumAzimuthSteps);
+    fprintf('[runPlutoAzimuthEnvironmentalScan] Capture/root .... %s\n', captureRoot);
+    fprintf('[runPlutoAzimuthEnvironmentalScan] Output/root ..... %s\n\n', scanRoot);
+end
+
+for stepIndex = 1:opts.NumAzimuthSteps
+    bearingDeg = bearingsDeg(stepIndex);
+    localPromptForBearing(stepIndex, opts.NumAzimuthSteps, bearingDeg, opts.AutoConfirm);
+
+    stepSessionId = localStepSessionId(scanId, stepIndex, bearingDeg);
+    captureFileBase = fullfile(captureRoot, char(stepSessionId) + "__BB_CAPTURE_DO_NOT_RSYNC");
+    if opts.Verbose
+        fprintf('[runPlutoAzimuthEnvironmentalScan] Step %02d/%02d | bearing %06.2f deg true\n', ...
+            stepIndex, opts.NumAzimuthSteps, bearingDeg);
+    end
+
+    if opts.DryRun
+        stepResults(stepIndex) = localRunDryStep(stepIndex, bearingDeg, stepSessionId, opts);
+    else
+        captureInfo = localCaptureN320WithPlutoPulse( ...
+            'SessionID', stepSessionId, ...
+            'CaptureFileBase', captureFileBase, ...
+            'RadioName', opts.RadioName, ...
+            'CenterFrequency_Hz', opts.CenterFrequency_Hz, ...
+            'SampleRate_Hz', opts.SampleRate_Hz, ...
+            'LOOffset_Hz', opts.LOOffset_Hz, ...
+            'Gain', opts.Gain, ...
+            'CaptureDuration_s', opts.CaptureDuration_s, ...
+            'PulseStartDelay_s', opts.PulseStartDelay_s, ...
+            'PulseDuration_s', opts.PulseDuration_s, ...
+            'CombWaveform', combWaveform, ...
+            'Bearing_deg', bearingDeg, ...
+            'CaptureSegment_s', opts.CaptureSegment_s, ...
+            'Verbose', opts.Verbose);
+
+        stepResults(stepIndex) = localAnalyzeCapturedStep( ...
+            stepIndex, ...
+            bearingDeg, ...
+            stepSessionId, ...
+            captureInfo, ...
+            opts);
+    end
+
+    if opts.Verbose
+        localPrintStepSummary(stepResults(stepIndex), opts.DirectionalChannel);
+    end
+end
+
+scan.steps = stepResults;
+scan.summary_table = localBuildSummaryTable(stepResults);
+scan.analysis = localBuildScanAnalysis(scan.summary_table, opts.DirectionalChannel);
+scan = localWriteScanArtifacts(scan, scanRoot, opts);
+
+if opts.Verbose
+    localPrintScanSummary(scan);
+end
+end
+
+function scan = localReprocessExistingScan(opts)
+scanRoot = string(opts.ReprocessScanRoot);
+if ~isfolder(scanRoot)
+    error('runPlutoAzimuthEnvironmentalScan:missingReprocessFolder', ...
+        'ReprocessScanRoot does not exist: %s', scanRoot);
+end
+
+resultMat = fullfile(scanRoot, 'scan_result.mat');
+if ~isfile(resultMat)
+    error('runPlutoAzimuthEnvironmentalScan:missingScanResult', ...
+        'Could not find scan_result.mat under %s.', scanRoot);
+end
+
+testRoot = fileparts(mfilename('fullpath'));
+analysisRoot = fullfile(fileparts(testRoot), 'BistaticDataAnalysis');
+originalFolder = pwd;
+originalPath = path;
+cleanupFolder = onCleanup(@() cd(originalFolder));
+cleanupPath = onCleanup(@() path(originalPath));
+cd(testRoot);
+addpath(analysisRoot, '-begin');
+
+loaded = load(resultMat, 'scan');
+scan = loaded.scan;
+opts = localApplyScanSettings(opts, scan.settings);
+localValidateTiming(opts);
+
+numSteps = numel(scan.steps);
+stepResults = repmat(localEmptyStepResult(), numSteps, 1);
+if opts.Verbose
+    fprintf('\n[runPlutoAzimuthEnvironmentalScan] Reprocessing %s\n', scanRoot);
+    fprintf('[runPlutoAzimuthEnvironmentalScan] Steps ........... %d\n', numSteps);
+    fprintf('[runPlutoAzimuthEnvironmentalScan] Pulse ........... %.3f s after %.3f s\n\n', ...
+        opts.PulseDuration_s, opts.PulseStartDelay_s);
+end
+
+for stepIndex = 1:numSteps
+    oldStep = scan.steps(stepIndex);
+    captureFile = localResolveExistingCaptureFile(oldStep, scanRoot);
+    captureInfo = oldStep.capture_info;
+    captureInfo.local_capture_files = string(captureFile);
+
+    if opts.Verbose
+        fprintf('[runPlutoAzimuthEnvironmentalScan] Reprocess step %02d/%02d | %s\n', ...
+            stepIndex, numSteps, captureFile);
+    end
+
+    analysis = localAnalyzeCaptureFile(captureFile, opts);
+    stepResults(stepIndex) = localBuildStepResult( ...
+        oldStep.step_index, ...
+        oldStep.bearing_deg, ...
+        oldStep.session_id, ...
+        captureInfo, ...
+        analysis, ...
+        opts);
+end
+
+captureRoot = localResolveCaptureRoot(scanRoot, localSetting(scan.settings, 'capture_root', ""));
+scan.schema_version = 2;
+scan.reprocessed_utc = char(string(datetime('now', 'TimeZone', 'UTC', ...
+    'Format', 'yyyy-MM-dd''T''HH:mm:ss''Z''')));
+scan.settings = localSettings(opts, scanRoot, captureRoot);
+scan.settings.reprocess_source_result_mat = char(resultMat);
+scan.steps = stepResults;
+scan.summary_table = localBuildSummaryTable(stepResults);
+scan.analysis = localBuildScanAnalysis(scan.summary_table, opts.DirectionalChannel);
+scan = localWriteScanArtifacts(scan, scanRoot, opts);
+
+if opts.Verbose
+    localPrintScanSummary(scan);
+end
+end
+
+function opts = localApplyScanSettings(opts, settings)
+opts.NumAzimuthSteps = localSetting(settings, 'num_azimuth_steps', opts.NumAzimuthSteps);
+opts.StartBearing_deg = localSetting(settings, 'start_bearing_deg', opts.StartBearing_deg);
+opts.Clockwise = localSetting(settings, 'clockwise', opts.Clockwise);
+opts.CaptureDuration_s = localSetting(settings, 'capture_duration_s', opts.CaptureDuration_s);
+opts.PulseStartDelay_s = localSetting(settings, 'pulse_start_delay_s', opts.PulseStartDelay_s);
+opts.PulseDuration_s = localSetting(settings, 'pulse_duration_s', opts.PulseDuration_s);
+opts.RadioName = string(localSetting(settings, 'radio_name', opts.RadioName));
+opts.CenterFrequency_Hz = localSetting(settings, 'center_frequency_hz', opts.CenterFrequency_Hz);
+opts.SampleRate_Hz = localSetting(settings, 'sample_rate_hz', opts.SampleRate_Hz);
+opts.LOOffset_Hz = localSetting(settings, 'lo_offset_hz', opts.LOOffset_Hz);
+opts.Gain = localSetting(settings, 'gain', opts.Gain);
+opts.ToneOffsets_Hz = localSetting(settings, 'tone_offsets_hz', opts.ToneOffsets_Hz);
+opts.TargetRMSAmplitude = localSetting(settings, 'target_rms_amplitude', opts.TargetRMSAmplitude);
+opts.PeakLimit = localSetting(settings, 'peak_limit', opts.PeakLimit);
+opts.DirectionalChannel = string(localSetting(settings, 'directional_channel', opts.DirectionalChannel));
+opts.WelchNFFT = localSetting(settings, 'welch_nfft', opts.WelchNFFT);
+opts.WelchFrameLength = localSetting(settings, 'welch_frame_length', opts.WelchFrameLength);
+opts.StreamFrameSamples = localSetting(settings, 'stream_frame_samples', opts.StreamFrameSamples);
+opts.RelativeAnalysisMaxSamples = localSetting(settings, 'relative_analysis_max_samples', opts.RelativeAnalysisMaxSamples);
+opts.RelativeAnalysisMaxLagSamples = localSetting(settings, 'relative_analysis_max_lag_samples', opts.RelativeAnalysisMaxLagSamples);
+opts.DryRun = false;
+end
+
+function value = localSetting(settings, fieldName, defaultValue)
+value = defaultValue;
+if isstruct(settings) && isfield(settings, fieldName) && ~isempty(settings.(fieldName))
+    value = settings.(fieldName);
+end
+end
+
+function captureFile = localResolveExistingCaptureFile(step, scanRoot)
+candidates = strings(0, 1);
+if isfield(step.capture_info, 'local_capture_files')
+    candidates = string(step.capture_info.local_capture_files(:));
+end
+
+for idx = 1:numel(candidates)
+    candidate = candidates(idx);
+    if isfile(candidate)
+        captureFile = char(candidate);
+        return
+    end
+
+    [~, name, ext] = fileparts(candidate);
+    localCandidate = fullfile(scanRoot, 'bb_captures_exclude_from_rsync', name + ext);
+    if isfile(localCandidate)
+        captureFile = char(localCandidate);
+        return
+    end
+end
+
+error('runPlutoAzimuthEnvironmentalScan:missingCaptureFile', ...
+    'Could not find the raw baseband capture for step %d. Sync bb_captures_exclude_from_rsync on the field computer before reprocessing.', ...
+    step.step_index);
+end
+
+function localMustBePositiveIntegerScalar(value)
+if ~(isnumeric(value) && isscalar(value) && isfinite(value) && value == fix(value) && value >= 1)
+    error('runPlutoAzimuthEnvironmentalScan:invalidStepCount', ...
+        'NumAzimuthSteps must be a positive integer scalar.');
+end
+end
+
+function localValidateTiming(opts)
+if opts.PulseStartDelay_s + opts.PulseDuration_s > opts.CaptureDuration_s
+    error('runPlutoAzimuthEnvironmentalScan:pulseOutsideCapture', ...
+        'PulseStartDelay_s + PulseDuration_s must fit inside CaptureDuration_s.');
+end
+if opts.PulseDuration_s * opts.SampleRate_Hz < 2048
+    error('runPlutoAzimuthEnvironmentalScan:pulseTooShort', ...
+        'PulseDuration_s is too short for reliable tone scoring at this sample rate.');
+end
+end
+
+function scanId = localResolveScanId(requestedId, numSteps, captureDuration_s)
+scanId = string(requestedId);
+if strlength(scanId) == 0
+    scanId = "az_scan_" + localCountLabel(numSteps) + "steps_" + ...
+        localDurationLabel(captureDuration_s) + "secs_" + localJulianMinuteStamp();
+end
+end
+
+function label = localCountLabel(value)
+label = compose("%02d", round(double(value)));
+end
+
+function label = localDurationLabel(value)
+value = double(value);
+if abs(value - round(value)) < eps(max(1, abs(value)))
+    label = compose("%02d", round(value));
+else
+    label = replace(string(compose("%.3f", value)), ".", "p");
+    label = regexprep(label, "0+$", "");
+    label = regexprep(label, "p$", "");
+end
+end
+
+function stamp = localJulianMinuteStamp()
+nowLocal = datetime('now');
+yearDigit = mod(year(nowLocal), 10);
+dayOfYear = day(nowLocal, 'dayofyear');
+timeText = nowLocal;
+timeText.Format = 'HHmm';
+stamp = string(compose("%1d%03d", yearDigit, dayOfYear)) + ...
+    string(timeText);
+end
+
+function scanRoot = localResolveOutputRoot(projectRoot, scanId, requestedRoot)
+scanRoot = string(requestedRoot);
+if strlength(scanRoot) == 0
+    scanRoot = fullfile(projectRoot, 'captures', 'plutoAzimuthEnvironmentScans', scanId);
+end
+end
+
+function captureRoot = localResolveCaptureRoot(scanRoot, requestedRoot)
+captureRoot = string(requestedRoot);
+if strlength(captureRoot) == 0
+    captureRoot = fullfile(scanRoot, 'bb_captures_exclude_from_rsync');
+end
+end
+
+function settings = localSettings(opts, scanRoot, captureRoot)
+settings = struct( ...
+    'num_azimuth_steps', double(opts.NumAzimuthSteps), ...
+    'start_bearing_deg', double(opts.StartBearing_deg), ...
+    'clockwise', logical(opts.Clockwise), ...
+    'capture_duration_s', double(opts.CaptureDuration_s), ...
+    'pulse_start_delay_s', double(opts.PulseStartDelay_s), ...
+    'pulse_duration_s', double(opts.PulseDuration_s), ...
+    'scan_root', char(string(scanRoot)), ...
+    'capture_root', char(string(captureRoot)), ...
+    'radio_name', char(string(opts.RadioName)), ...
+    'center_frequency_hz', double(opts.CenterFrequency_Hz), ...
+    'sample_rate_hz', double(opts.SampleRate_Hz), ...
+    'lo_offset_hz', double(opts.LOOffset_Hz), ...
+    'capture_tune_frequency_hz', double(opts.CenterFrequency_Hz + opts.LOOffset_Hz), ...
+    'gain', double(opts.Gain(:).'), ...
+    'tone_offsets_hz', double(opts.ToneOffsets_Hz(:)), ...
+    'target_rms_amplitude', double(opts.TargetRMSAmplitude), ...
+    'peak_limit', double(opts.PeakLimit), ...
+    'directional_channel', char(upper(string(opts.DirectionalChannel))), ...
+    'welch_nfft', double(opts.WelchNFFT), ...
+    'welch_frame_length', double(opts.WelchFrameLength), ...
+    'stream_frame_samples', double(opts.StreamFrameSamples), ...
+    'relative_analysis_max_samples', double(opts.RelativeAnalysisMaxSamples), ...
+    'relative_analysis_max_lag_samples', double(opts.RelativeAnalysisMaxLagSamples), ...
+    'dry_run', logical(opts.DryRun));
+end
+
+function bearingsDeg = localBuildBearings(numSteps, startBearingDeg, clockwise)
+stepDeg = 360 / double(numSteps);
+directionSign = 1;
+if ~clockwise
+    directionSign = -1;
+end
+bearingsDeg = mod(double(startBearingDeg) + directionSign * (0:(numSteps - 1)) * stepDeg, 360);
+bearingsDeg = bearingsDeg(:);
+end
+
+function localPromptForBearing(stepIndex, numSteps, bearingDeg, autoConfirm)
+if autoConfirm
+    fprintf('[operator prompt skipped] Step %d/%d: bearing %.1f deg true.\n', ...
+        stepIndex, numSteps, bearingDeg);
+    return
+end
+
+fprintf('\n============================================================\n');
+fprintf('AZIMUTH STEP %d of %d\n', stepIndex, numSteps);
+fprintf('Point the DIRECTIONAL antenna to %.1f degrees TRUE.\n', bearingDeg);
+fprintf('Rotate clockwise to the next prompt after this capture completes.\n');
+fprintf('============================================================\n');
+reply = input('Press Enter when the antenna is stable, or type q then Enter to abort: ', 's');
+if startsWith(lower(strtrim(reply)), 'q')
+    error('runPlutoAzimuthEnvironmentalScan:operatorAbort', ...
+        'Operator aborted before azimuth step %d.', stepIndex);
+end
+end
+
+function stepSessionId = localStepSessionId(scanId, stepIndex, bearingDeg)
+stepSessionId = string(scanId) + "_step" + compose("%02d", stepIndex) + ...
+    "_az" + compose("%03.0f", round(mod(bearingDeg, 360)));
+end
+
+function step = localEmptyStepResult()
+step = struct( ...
+    'step_index', NaN, ...
+    'bearing_deg', NaN, ...
+    'session_id', "", ...
+    'status', "PENDING", ...
+    'capture_info', struct(), ...
+    'capture_analysis_info', struct(), ...
+    'environment_metrics', struct(), ...
+    'calibration_metrics', struct(), ...
+    'diagnostics', struct(), ...
+    'reference_psd', struct(), ...
+    'surveillance_psd', struct(), ...
+    'directional_psd', struct(), ...
+    'static_reference_psd', struct());
+end
+
+function captureInfo = localCaptureN320WithPlutoPulse(varargin)
+p = inputParser;
+p.FunctionName = 'localCaptureN320WithPlutoPulse';
+addParameter(p, 'SessionID', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'CaptureFileBase', "", @(x) ischar(x) || isstring(x));
+addParameter(p, 'RadioName', "My USRP N320", @(x) ischar(x) || isstring(x));
+addParameter(p, 'CenterFrequency_Hz', 599e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'SampleRate_Hz', 8e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'LOOffset_Hz', 0, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'Gain', [30 50], @(x) isnumeric(x) && (isscalar(x) || numel(x) == 2));
+addParameter(p, 'CaptureDuration_s', 10, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'PulseStartDelay_s', 0.5, @(x) isnumeric(x) && isscalar(x) && x >= 0);
+addParameter(p, 'PulseDuration_s', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'CombWaveform', [], @(x) isnumeric(x) && isvector(x) && ~isempty(x));
+addParameter(p, 'Bearing_deg', NaN, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'CaptureSegment_s', 1.0, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'Verbose', true, @(x) islogical(x) && isscalar(x));
+parse(p, varargin{:});
+opts = p.Results;
+
+localPrepareLinuxCaptureHost(opts.Verbose);
+
+captureFileBase = string(opts.CaptureFileBase);
+if strlength(captureFileBase) == 0
+    captureFileBase = string(opts.SessionID);
+end
+captureFile = captureFileBase + "_" + string(opts.SessionID) + "_part1";
+
+radioName = string(opts.RadioName);
+if strlength(radioName) == 0
+    cfgs = radioConfigurations;
+    assert(~isempty(cfgs), "No saved radio configurations found.");
+    radioName = string(cfgs(1).Name);
+end
+
+bbrx = [];
+writer = [];
+txContext = struct();
+try
+    bbrx = basebandReceiver(radioName);
+    bbrx.CenterFrequency = double(opts.CenterFrequency_Hz + opts.LOOffset_Hz);
+    bbrx.SampleRate = double(opts.SampleRate_Hz);
+    if numel(opts.Gain) == 2
+        bbrx.RadioGain = double(opts.Gain(:).');
+    else
+        bbrx.RadioGain = [double(opts.Gain), double(opts.Gain)];
+    end
+    bbrx.Antennas = ["RF0:RX2", "RF1:RX2"];
+
+    metadata = struct( ...
+        'Label', 'Pluto_Azimuth_Environmental_Scan', ...
+        'Antenna1', bbrx.Antennas(1), ...
+        'Antenna2', bbrx.Antennas(2), ...
+        'LOOffset', double(opts.LOOffset_Hz), ...
+        'DateTime', string(datetime('now', 'Format', 'yyyy-MM-dd_HH-mm-ss.SSS')), ...
+        'SessionID', string(opts.SessionID), ...
+        'RecordingUTC', posixtime(datetime('now', 'TimeZone', 'UTC')), ...
+        'Duration_s', double(opts.CaptureDuration_s), ...
+        'AzimuthBearing_deg', double(opts.Bearing_deg), ...
+        'PulseStartDelay_s', double(opts.PulseStartDelay_s), ...
+        'PulseDuration_s', double(opts.PulseDuration_s));
+
+    capturePlan = localBuildCapturePlan( ...
+        opts.CaptureDuration_s, ...
+        opts.PulseStartDelay_s, ...
+        opts.PulseDuration_s, ...
+        opts.CaptureSegment_s, ...
+        opts.Verbose);
+
+    metadata.Duration_s = double(capturePlan.capture_duration_s);
+    metadata.PulseStartDelay_s = double(capturePlan.pulse_start_delay_s);
+    metadata.PulseDuration_s = double(capturePlan.pulse_duration_s);
+    metadata.CaptureFrameDuration_s = double(capturePlan.frame_duration_s);
+
+    writer = comm.BasebandFileWriter(char(captureFile), ...
+        'SampleRate', bbrx.SampleRate, ...
+        'CenterFrequency', double(opts.CenterFrequency_Hz), ...
+        'Metadata', metadata);
+
+    if opts.Verbose
+        fprintf('[azimuth capture] File ........ %s\n', captureFile);
+        fprintf('[azimuth capture] Duration .... %.3f s\n', capturePlan.capture_duration_s);
+        fprintf('[azimuth capture] Frame ....... %.3f s fixed writer frame\n', ...
+            capturePlan.frame_duration_s);
+        fprintf('[azimuth capture] Pulse ....... %.3f s after %.3f s\n', ...
+            capturePlan.pulse_duration_s, capturePlan.pulse_start_delay_s);
+        fprintf('[azimuth capture] Antennas .... %s and %s\n', bbrx.Antennas(1), bbrx.Antennas(2));
+    end
+
+    localCaptureAndWriteFrames(bbrx, writer, capturePlan.pre_frames, capturePlan.frame_duration_s);
+
+    txContext = helperPlutoToneStartTx( ...
+        'CenterFrequencyHz', double(opts.CenterFrequency_Hz + opts.LOOffset_Hz), ...
+        'SampleRateHz', double(opts.SampleRate_Hz), ...
+        'Waveform', opts.CombWaveform, ...
+        'Verbose', opts.Verbose);
+    localCaptureAndWriteFrames(bbrx, writer, capturePlan.pulse_frames, capturePlan.frame_duration_s);
+    localReleaseTransmitter(txContext);
+    txContext = struct();
+
+    localCaptureAndWriteFrames(bbrx, writer, capturePlan.post_frames, capturePlan.frame_duration_s);
+
+    release(writer);
+    writer = [];
+    localReleaseReceiverIfSupported(bbrx);
+catch me
+    localReleaseTransmitter(txContext);
+    if ~isempty(writer)
+        try
+            release(writer);
+        catch
+        end
+    end
+    localReleaseReceiverIfSupported(bbrx);
+    rethrow(me)
+end
+
+captureInfo = struct( ...
+    'session_id', string(opts.SessionID), ...
+    'capture_duration_s', double(capturePlan.capture_duration_s), ...
+    'capture_file_base', captureFileBase, ...
+    'radio_name', radioName, ...
+    'center_frequency_hz', double(opts.CenterFrequency_Hz), ...
+    'sample_rate_hz', double(opts.SampleRate_Hz), ...
+    'lo_offset_hz', double(opts.LOOffset_Hz), ...
+    'header_center_frequency_hz', double(opts.CenterFrequency_Hz), ...
+    'header_lo_offset_hz', double(opts.LOOffset_Hz), ...
+    'header_tune_frequency_hz', double(opts.CenterFrequency_Hz + opts.LOOffset_Hz), ...
+    'header_sample_rate_hz', double(opts.SampleRate_Hz), ...
+    'gain', double(opts.Gain(:).'), ...
+    'recording_utc', metadata.RecordingUTC, ...
+    'pulse_start_delay_s', double(capturePlan.pulse_start_delay_s), ...
+    'pulse_duration_s', double(capturePlan.pulse_duration_s), ...
+    'azimuth_bearing_deg', double(opts.Bearing_deg), ...
+    'local_capture_files', string(captureFile));
+
+fprintf('CAPTURE_SESSION_ID=%s\n', captureInfo.session_id);
+fprintf('CAPTURE_FILE_1=%s\n', captureInfo.local_capture_files(1));
+end
+
+function localPrepareLinuxCaptureHost(verbose)
+if ~isunix
+    return
+end
+
+interfaceName = 'eno1';
+[~, result] = system(['ip link show ', interfaceName]);
+if ~contains(result, 'mtu 9000')
+    if verbose
+        fprintf('Setting MTU 9000 on %s...\n', interfaceName);
+    end
+    rc = system(['sudo -n ip link set ', interfaceName, ' mtu 9000']);
+    if rc ~= 0
+        warning('runPlutoAzimuthEnvironmentalScan:mtuSetFailed', ...
+            'MTU set failed (rc=%d). Run: sudo ip link set %s mtu 9000', rc, interfaceName);
+    end
+elseif verbose
+    fprintf('MTU already 9000 on %s.\n', interfaceName);
+end
+
+if verbose
+    fprintf('Confirming CPU governor = performance...\n');
+end
+rc = system('sudo -n cpupower frequency-set -g performance > /dev/null 2>&1');
+if rc ~= 0
+    warning('runPlutoAzimuthEnvironmentalScan:cpuGovernorSetFailed', ...
+        'CPU governor set failed (rc=%d). Check: systemctl status cpu-performance', rc);
+end
+
+if verbose
+    fprintf('Confirming kernel socket buffers (rmem/wmem = 50MB)...\n');
+end
+rc = system('sudo -n sysctl -w net.core.rmem_max=50000000 net.core.wmem_max=50000000 > /dev/null 2>&1');
+if rc ~= 0
+    warning('runPlutoAzimuthEnvironmentalScan:socketBufferSetFailed', ...
+        'sysctl buffer set failed (rc=%d). Check: /etc/sysctl.d/99-usrp-n320.conf', rc);
+end
+end
+
+function capturePlan = localBuildCapturePlan(captureDuration_s, pulseStartDelay_s, ...
+    pulseDuration_s, frameDuration_s, verbose)
+% BasebandFileWriter locks the input frame size after the first write.  The
+% azimuth scan therefore quantizes the pre-pulse, pulse, and post-pulse
+% windows to an integer number of identical capture frames instead of
+% writing one pre-pulse frame followed by a different-sized pulse frame.
+frameDuration_s = double(frameDuration_s);
+preFrames = max(0, round(double(pulseStartDelay_s) / frameDuration_s));
+pulseFrames = max(1, round(double(pulseDuration_s) / frameDuration_s));
+requestedPostDuration_s = double(captureDuration_s) - double(pulseStartDelay_s) - double(pulseDuration_s);
+postFrames = max(0, round(requestedPostDuration_s / frameDuration_s));
+
+capturePlan = struct( ...
+    'frame_duration_s', frameDuration_s, ...
+    'pre_frames', double(preFrames), ...
+    'pulse_frames', double(pulseFrames), ...
+    'post_frames', double(postFrames), ...
+    'pulse_start_delay_s', double(preFrames) * frameDuration_s, ...
+    'pulse_duration_s', double(pulseFrames) * frameDuration_s, ...
+    'capture_duration_s', double(preFrames + pulseFrames + postFrames) * frameDuration_s);
+
+if verbose
+    requested = [double(captureDuration_s), double(pulseStartDelay_s), double(pulseDuration_s)];
+    actual = [capturePlan.capture_duration_s, capturePlan.pulse_start_delay_s, capturePlan.pulse_duration_s];
+    if any(abs(requested - actual) > 1e-9)
+        fprintf(['[azimuth capture] Quantized timing to fixed %.3f s frames: ', ...
+            'capture %.3f->%.3f s, pulse start %.3f->%.3f s, pulse duration %.3f->%.3f s\n'], ...
+            frameDuration_s, ...
+            double(captureDuration_s), capturePlan.capture_duration_s, ...
+            double(pulseStartDelay_s), capturePlan.pulse_start_delay_s, ...
+            double(pulseDuration_s), capturePlan.pulse_duration_s);
+    end
+end
+end
+
+function localCaptureAndWriteFrames(receiver, writer, frameCount, frameDurationSeconds)
+for frameIndex = 1:double(frameCount)
+    data = capture(receiver, seconds(frameDurationSeconds));
+    writer(data);
+end
+end
+
+function localReleaseTransmitter(txContext)
+if isstruct(txContext) && isfield(txContext, 'transmitter') && ~isempty(txContext.transmitter)
+    try
+        release(txContext.transmitter);
+    catch
+    end
+end
+end
+
+function localReleaseReceiverIfSupported(receiver)
+% basebandReceiver on the FTC is not a MATLAB System object and does not
+% expose release(). Existing project capture helpers simply let the local
+% receiver object go out of scope. Keep this cleanup guarded so it also
+% works if a future receiver implementation does support release().
+if isempty(receiver)
+    return
+end
+
+try
+    methodNames = methods(receiver);
+    if any(strcmp(methodNames, 'release'))
+        release(receiver);
+    end
+catch
+    % Do not mask the capture or analysis error with a cleanup-only issue.
+end
+end
+
+function step = localAnalyzeCapturedStep(stepIndex, bearingDeg, sessionId, captureInfo, opts)
+captureFile = string(captureInfo.local_capture_files(1));
+analysis = localAnalyzeCaptureFile(captureFile, opts);
+step = localBuildStepResult(stepIndex, bearingDeg, sessionId, captureInfo, analysis, opts);
+end
+
+function step = localRunDryStep(stepIndex, bearingDeg, sessionId, opts)
+[referenceSignal, surveillanceSignal, captureInfo] = localSyntheticStepSignals(stepIndex, bearingDeg, sessionId, opts);
+analysis = localAnalyzeSignalVectors(referenceSignal, surveillanceSignal, captureInfo, opts);
+step = localBuildStepResult(stepIndex, bearingDeg, sessionId, captureInfo, analysis, opts);
+step.status = "DRYRUN";
+end
+
+function [referenceSignal, surveillanceSignal, captureInfo] = localSyntheticStepSignals(stepIndex, bearingDeg, sessionId, opts)
+sampleRateHz = double(opts.SampleRate_Hz);
+numSamples = max(4096, round(opts.CaptureDuration_s * sampleRateHz));
+t = (0:(numSamples - 1)).' / sampleRateHz;
+rng(1000 + stepIndex);
+
+% DryRun uses a simple synthetic antenna pattern so the analysis products
+% visibly demonstrate the intended behavior: the directional channel changes
+% with pointing angle, while the reference channel remains mostly stable.
+% This is not meant to model a specific antenna; it is only a deterministic
+% verification signal for the report-generation path.
+directionalGain = 0.15 + 0.85 * ((1 + cosd(bearingDeg)) / 2).^2;
+referenceGain = 0.65;
+noiseScale = 0.02;
+toneOffsetsHz = double(opts.ToneOffsets_Hz(:));
+comb = complex(zeros(numSamples, 1));
+for idx = 1:numel(toneOffsetsHz)
+    comb = comb + exp(1j * 2 * pi * toneOffsetsHz(idx) * t);
+end
+comb = comb ./ max(1, numel(toneOffsetsHz)) * opts.TargetRMSAmplitude;
+
+pulseStart = max(1, floor(opts.PulseStartDelay_s * sampleRateHz) + 1);
+pulseStop = min(numSamples, pulseStart + round(opts.PulseDuration_s * sampleRateHz) - 1);
+envelope = zeros(numSamples, 1);
+envelope(pulseStart:pulseStop) = 1;
+
+interferer = 0.04 * exp(1j * 2 * pi * (-0.32e6) * t);
+surveillanceSignal = directionalGain * (envelope .* comb + interferer) + ...
+    noiseScale * (randn(numSamples, 1) + 1j * randn(numSamples, 1));
+referenceSignal = referenceGain * (envelope .* comb + 0.6 * interferer) + ...
+    noiseScale * (randn(numSamples, 1) + 1j * randn(numSamples, 1));
+
+captureInfo = struct( ...
+    'session_id', string(sessionId), ...
+    'capture_duration_s', double(opts.CaptureDuration_s), ...
+    'capture_file_base', string(sessionId), ...
+    'radio_name', "DRYRUN", ...
+    'center_frequency_hz', double(opts.CenterFrequency_Hz), ...
+    'sample_rate_hz', sampleRateHz, ...
+    'lo_offset_hz', double(opts.LOOffset_Hz), ...
+    'header_center_frequency_hz', double(opts.CenterFrequency_Hz), ...
+    'header_lo_offset_hz', double(opts.LOOffset_Hz), ...
+    'header_tune_frequency_hz', double(opts.CenterFrequency_Hz + opts.LOOffset_Hz), ...
+    'header_sample_rate_hz', sampleRateHz, ...
+    'gain', double(opts.Gain(:).'), ...
+    'recording_utc', posixtime(datetime('now', 'TimeZone', 'UTC')), ...
+    'pulse_start_delay_s', double(opts.PulseStartDelay_s), ...
+    'pulse_duration_s', double(opts.PulseDuration_s), ...
+    'azimuth_bearing_deg', double(bearingDeg), ...
+    'local_capture_files', "");
+end
+
+function analysis = localAnalyzeCaptureFile(captureFile, opts)
+reader = comm.BasebandFileReader(char(captureFile), ...
+    'SamplesPerFrame', double(opts.StreamFrameSamples));
+cleanupReader = onCleanup(@() release(reader));
+
+sampleRateHz = double(reader.SampleRate);
+metadata = reader.Metadata;
+if isstruct(metadata) && isfield(metadata, 'PulseStartDelay_s')
+    pulseStartDelay_s = double(metadata.PulseStartDelay_s);
+else
+    pulseStartDelay_s = double(opts.PulseStartDelay_s);
+end
+if isstruct(metadata) && isfield(metadata, 'PulseDuration_s')
+    pulseDuration_s = double(metadata.PulseDuration_s);
+else
+    pulseDuration_s = double(opts.PulseDuration_s);
+end
+
+pulseStartSample = floor(pulseStartDelay_s * sampleRateHz) + 1;
+pulseStopSample = pulseStartSample + round(pulseDuration_s * sampleRateHz) - 1;
+
+referencePulse = complex(zeros(0, 1));
+surveillancePulse = complex(zeros(0, 1));
+referenceRelative = complex(zeros(0, 1));
+surveillanceRelative = complex(zeros(0, 1));
+refAccumulator = localPsdAccumulator();
+survAccumulator = localPsdAccumulator();
+sampleOffset = 0;
+
+while ~isDone(reader)
+    data = reader();
+    if isempty(data)
+        continue
+    end
+    if size(data, 2) < 2
+        error('runPlutoAzimuthEnvironmentalScan:singleChannelCapture', ...
+            'Expected a two-channel N320 .bb file, but %s has %d channel(s).', ...
+            captureFile, size(data, 2));
+    end
+
+    frameSamples = size(data, 1);
+    frameIndices = sampleOffset + (1:frameSamples).';
+    pulseMask = frameIndices >= pulseStartSample & frameIndices <= pulseStopSample;
+    ambientMask = ~pulseMask;
+
+    if any(pulseMask)
+        surveillancePulse = [surveillancePulse; double(data(pulseMask, 1))]; %#ok<AGROW>
+        referencePulse = [referencePulse; double(data(pulseMask, 2))]; %#ok<AGROW>
+    end
+    if any(ambientMask)
+        surveillanceAmbient = double(data(ambientMask, 1));
+        referenceAmbient = double(data(ambientMask, 2));
+        survAccumulator = localAccumulatePsd(survAccumulator, surveillanceAmbient, sampleRateHz, opts);
+        refAccumulator = localAccumulatePsd(refAccumulator, referenceAmbient, sampleRateHz, opts);
+        [referenceRelative, surveillanceRelative] = localAppendRelativeAnalysisSamples( ...
+            referenceRelative, surveillanceRelative, referenceAmbient, surveillanceAmbient, opts);
+    end
+    sampleOffset = sampleOffset + frameSamples;
+end
+clear cleanupReader
+
+captureInfo = struct( ...
+    'capture_file_path', char(string(captureFile)), ...
+    'reader_metadata', metadata, ...
+    'sample_rate_hz', sampleRateHz, ...
+    'samples_per_channel', double(sampleOffset), ...
+    'pulse_start_sample', double(pulseStartSample), ...
+    'pulse_stop_sample', double(pulseStopSample), ...
+    'pulse_samples_collected', double(numel(referencePulse)));
+
+relativeMetrics = localRelativeChannelMetrics(referenceRelative, surveillanceRelative, sampleRateHz, opts);
+analysis = localFinalizeStepAnalysis(referencePulse, surveillancePulse, ...
+    refAccumulator, survAccumulator, relativeMetrics, captureInfo, opts);
+end
+
+function analysis = localAnalyzeSignalVectors(referenceSignal, surveillanceSignal, captureInfo, opts)
+sampleRateHz = double(captureInfo.sample_rate_hz);
+numSamples = min(numel(referenceSignal), numel(surveillanceSignal));
+referenceSignal = double(referenceSignal(1:numSamples));
+surveillanceSignal = double(surveillanceSignal(1:numSamples));
+
+pulseStartSample = floor(opts.PulseStartDelay_s * sampleRateHz) + 1;
+pulseStopSample = min(numSamples, pulseStartSample + round(opts.PulseDuration_s * sampleRateHz) - 1);
+pulseMask = false(numSamples, 1);
+pulseMask(pulseStartSample:pulseStopSample) = true;
+
+referencePulse = referenceSignal(pulseMask);
+surveillancePulse = surveillanceSignal(pulseMask);
+refAccumulator = localPsdAccumulator();
+survAccumulator = localPsdAccumulator();
+refAccumulator = localAccumulatePsd(refAccumulator, referenceSignal(~pulseMask), sampleRateHz, opts);
+survAccumulator = localAccumulatePsd(survAccumulator, surveillanceSignal(~pulseMask), sampleRateHz, opts);
+relativeMetrics = localRelativeChannelMetrics( ...
+    referenceSignal(~pulseMask), surveillanceSignal(~pulseMask), sampleRateHz, opts);
+
+captureInfo.capture_file_path = "";
+captureInfo.samples_per_channel = double(numSamples);
+captureInfo.pulse_start_sample = double(pulseStartSample);
+captureInfo.pulse_stop_sample = double(pulseStopSample);
+captureInfo.pulse_samples_collected = double(numel(referencePulse));
+
+analysis = localFinalizeStepAnalysis(referencePulse, surveillancePulse, ...
+    refAccumulator, survAccumulator, relativeMetrics, captureInfo, opts);
+end
+
+function accumulator = localPsdAccumulator()
+accumulator = struct( ...
+    'count', 0, ...
+    'frequency_hz', [], ...
+    'psd_sum', [], ...
+    'power_sum', 0, ...
+    'sample_count', 0);
+end
+
+function accumulator = localAccumulatePsd(accumulator, signal, sampleRateHz, opts)
+signal = double(signal(:));
+if isempty(signal)
+    return
+end
+
+accumulator.power_sum = accumulator.power_sum + sum(abs(signal).^2);
+accumulator.sample_count = accumulator.sample_count + numel(signal);
+
+frameLength = min(double(opts.WelchFrameLength), numel(signal));
+if frameLength < 128
+    return
+end
+window = hamming(frameLength, 'periodic');
+overlap = floor(0.5 * frameLength);
+nfft = max(double(opts.WelchNFFT), frameLength);
+[psdEstimate, frequencyHz] = pwelch(signal, window, overlap, nfft, sampleRateHz, 'centered', 'psd');
+
+if accumulator.count == 0
+    accumulator.frequency_hz = frequencyHz(:);
+    accumulator.psd_sum = zeros(size(psdEstimate(:)));
+end
+accumulator.psd_sum = accumulator.psd_sum + psdEstimate(:);
+accumulator.count = accumulator.count + 1;
+end
+
+function [referenceStore, surveillanceStore] = localAppendRelativeAnalysisSamples( ...
+    referenceStore, surveillanceStore, referenceNew, surveillanceNew, opts)
+maxSamples = round(double(opts.RelativeAnalysisMaxSamples));
+currentCount = numel(referenceStore);
+remaining = max(0, maxSamples - currentCount);
+if remaining == 0
+    return
+end
+
+nAdd = min([remaining, numel(referenceNew), numel(surveillanceNew)]);
+if nAdd <= 0
+    return
+end
+
+referenceStore = [referenceStore; double(referenceNew(1:nAdd))];
+surveillanceStore = [surveillanceStore; double(surveillanceNew(1:nAdd))];
+end
+
+function metrics = localRelativeChannelMetrics(referenceSignal, surveillanceSignal, sampleRateHz, opts)
+%LOCALRELATIVECHANNELMETRICS Compare REF and SURV on ambient-only samples.
+%
+% Plain-language concept:
+%   The scalar fit asks, "If SURV were just a scaled-and-phase-rotated copy
+%   of REF, how much error would be left?"  The cross-correlation then asks
+%   whether the strongest shared component is at zero lag, as expected when
+%   both channels see the same direct-path illuminator, or at a nonzero lag,
+%   which is a clue for multipath or a different dominant path.
+referenceSignal = double(referenceSignal(:));
+surveillanceSignal = double(surveillanceSignal(:));
+nUse = min([numel(referenceSignal), numel(surveillanceSignal), round(double(opts.RelativeAnalysisMaxSamples))]);
+if nUse < 2
+    metrics = localEmptyRelativeChannelMetrics();
+    metrics.note = 'Relative channel metrics unavailable because too few ambient samples were available.';
+    return
+end
+
+refUse = referenceSignal(1:nUse);
+survUse = surveillanceSignal(1:nUse);
+refUse = refUse - mean(refUse, 'omitnan');
+survUse = survUse - mean(survUse, 'omitnan');
+
+refRms = rms(refUse);
+survRms = rms(survUse);
+if refRms <= eps || survRms <= eps
+    metrics = localEmptyRelativeChannelMetrics();
+    metrics.samples_used = double(nUse);
+    metrics.note = 'Relative channel metrics unavailable because one channel is effectively zero.';
+    return
+end
+
+% Least-squares complex scalar that maps SURV onto REF. This is the scalar
+% version of the user's a = ref / surv idea, avoiding an NxN right-division
+% when the channels are column vectors.
+ref_over_surv = (survUse' * refUse) / (survUse' * survUse + eps);
+residual = refUse - ref_over_surv .* survUse;
+residualRms = rms(residual);
+normalizedResidual = residualRms / (refRms + eps);
+
+maxLagSamples = min(round(double(opts.RelativeAnalysisMaxLagSamples)), nUse - 1);
+[corrValues, lags] = xcorr(refUse, survUse, maxLagSamples, 'coeff');
+corrAbs = abs(corrValues);
+[peakCorrAbs, peakIdx] = max(corrAbs);
+zeroIdx = find(lags == 0, 1, 'first');
+if isempty(zeroIdx)
+    zeroCorrAbs = NaN;
+else
+    zeroCorrAbs = corrAbs(zeroIdx);
+end
+peakLagSamples = double(lags(peakIdx));
+
+metrics = struct( ...
+    'available', true, ...
+    'samples_used', double(nUse), ...
+    'ref_over_surv_real', double(real(ref_over_surv)), ...
+    'ref_over_surv_imag', double(imag(ref_over_surv)), ...
+    'ref_over_surv_magnitude_db', 20 * log10(abs(ref_over_surv) + eps), ...
+    'ref_over_surv_phase_deg', rad2deg(angle(ref_over_surv)), ...
+    'ref_surv_residual_rms', double(residualRms), ...
+    'ref_surv_normalized_residual', double(normalizedResidual), ...
+    'ref_surv_normalized_residual_db', 20 * log10(normalizedResidual + eps), ...
+    'ref_surv_zero_lag_corr_abs', double(zeroCorrAbs), ...
+    'ref_surv_peak_corr_abs', double(peakCorrAbs), ...
+    'ref_surv_peak_lag_samples', peakLagSamples, ...
+    'ref_surv_peak_lag_us', peakLagSamples / double(sampleRateHz) * 1e6, ...
+    'ref_surv_peak_minus_zero_corr_db', 20 * log10((double(peakCorrAbs) + eps) / (double(zeroCorrAbs) + eps)), ...
+    'ref_surv_corr_lags_samples', double(lags(:)), ...
+    'ref_surv_corr_lags_us', double(lags(:)) / double(sampleRateHz) * 1e6, ...
+    'ref_surv_corr_abs', double(corrAbs(:)), ...
+    'note', 'Ambient-only least-squares REF/SURV scalar fit and normalized cross-correlation.');
+end
+
+function metrics = localEmptyRelativeChannelMetrics()
+metrics = struct( ...
+    'available', false, ...
+    'samples_used', 0, ...
+    'ref_over_surv_real', NaN, ...
+    'ref_over_surv_imag', NaN, ...
+    'ref_over_surv_magnitude_db', NaN, ...
+    'ref_over_surv_phase_deg', NaN, ...
+    'ref_surv_residual_rms', NaN, ...
+    'ref_surv_normalized_residual', NaN, ...
+    'ref_surv_normalized_residual_db', NaN, ...
+    'ref_surv_zero_lag_corr_abs', NaN, ...
+    'ref_surv_peak_corr_abs', NaN, ...
+    'ref_surv_peak_lag_samples', NaN, ...
+    'ref_surv_peak_lag_us', NaN, ...
+    'ref_surv_peak_minus_zero_corr_db', NaN, ...
+    'ref_surv_corr_lags_samples', zeros(0, 1), ...
+    'ref_surv_corr_lags_us', zeros(0, 1), ...
+    'ref_surv_corr_abs', zeros(0, 1), ...
+    'note', '');
+end
+
+function analysis = localFinalizeStepAnalysis(referencePulse, surveillancePulse, ...
+    refAccumulator, survAccumulator, relativeMetrics, captureInfo, opts)
+refPsd = localFinalizePsd(refAccumulator);
+survPsd = localFinalizePsd(survAccumulator);
+
+if isempty(referencePulse) || isempty(surveillancePulse)
+    calibrationMetrics = localEmptyCalibrationMetrics();
+    diagnostics = struct('calibration_error', 'No pulse samples were collected.');
+else
+    [calibrationMetrics, diagnostics] = helperPlutoMultitoneScoreCapture( ...
+        referencePulse, ...
+        surveillancePulse, ...
+        double(captureInfo.sample_rate_hz), ...
+        double(opts.ToneOffsets_Hz(:)), ...
+        'ScoringMode', "expected-bin", ...
+        'Verbose', false);
+end
+
+environmentMetrics = localEnvironmentMetrics(refPsd, survPsd, ...
+    refAccumulator, survAccumulator, opts.DirectionalChannel);
+environmentMetrics = localMergeStructs(environmentMetrics, relativeMetrics);
+
+analysis = struct( ...
+    'capture_info', captureInfo, ...
+    'reference_psd', refPsd, ...
+    'surveillance_psd', survPsd, ...
+    'environment_metrics', environmentMetrics, ...
+    'calibration_metrics', calibrationMetrics, ...
+    'diagnostics', diagnostics);
+end
+
+function psd = localFinalizePsd(accumulator)
+if accumulator.count == 0
+    psd = struct( ...
+        'frequency_hz', zeros(0, 1), ...
+        'psd_linear', zeros(0, 1), ...
+        'psd_db_per_hz', zeros(0, 1), ...
+        'ambient_power_db', NaN, ...
+        'ambient_sample_count', double(accumulator.sample_count));
+    return
+end
+
+psdLinear = accumulator.psd_sum ./ accumulator.count;
+psd = struct( ...
+    'frequency_hz', accumulator.frequency_hz(:), ...
+    'psd_linear', psdLinear(:), ...
+    'psd_db_per_hz', 10 * log10(psdLinear(:) + eps), ...
+    'ambient_power_db', 10 * log10(accumulator.power_sum / max(1, accumulator.sample_count) + eps), ...
+    'ambient_sample_count', double(accumulator.sample_count));
+end
+
+function metrics = localEnvironmentMetrics(refPsd, survPsd, refAccumulator, survAccumulator, directionalChannel)
+if strcmpi(string(directionalChannel), "SURV")
+    directionalPsd = survPsd;
+    referencePsd = refPsd;
+    directionalPowerDb = survPsd.ambient_power_db;
+    referencePowerDb = refPsd.ambient_power_db;
+else
+    directionalPsd = refPsd;
+    referencePsd = survPsd;
+    directionalPowerDb = refPsd.ambient_power_db;
+    referencePowerDb = survPsd.ambient_power_db;
+end
+
+[directionalPeakDb, directionalPeakIdx] = max(directionalPsd.psd_db_per_hz);
+[referencePeakDb, referencePeakIdx] = max(referencePsd.psd_db_per_hz);
+directionalPeakHz = localIndexValue(directionalPsd.frequency_hz, directionalPeakIdx);
+referencePeakHz = localIndexValue(referencePsd.frequency_hz, referencePeakIdx);
+
+metrics = struct( ...
+    'directional_channel', char(upper(string(directionalChannel))), ...
+    'directional_ambient_power_db', directionalPowerDb, ...
+    'reference_ambient_power_db', referencePowerDb, ...
+    'directional_minus_reference_power_db', directionalPowerDb - referencePowerDb, ...
+    'directional_median_psd_db_per_hz', median(directionalPsd.psd_db_per_hz, 'omitnan'), ...
+    'reference_median_psd_db_per_hz', median(referencePsd.psd_db_per_hz, 'omitnan'), ...
+    'directional_peak_psd_db_per_hz', directionalPeakDb, ...
+    'directional_peak_frequency_hz', directionalPeakHz, ...
+    'reference_peak_psd_db_per_hz', referencePeakDb, ...
+    'reference_peak_frequency_hz', referencePeakHz, ...
+    'directional_ambient_sample_count', double(localDirectionalCount(refAccumulator, survAccumulator, directionalChannel)), ...
+    'reference_ambient_sample_count', double(localReferenceCount(refAccumulator, survAccumulator, directionalChannel)));
+end
+
+function out = localMergeStructs(a, b)
+out = a;
+names = fieldnames(b);
+for idx = 1:numel(names)
+    out.(names{idx}) = b.(names{idx});
+end
+end
+
+function value = localIndexValue(values, idx)
+value = NaN;
+if ~isempty(values) && isfinite(idx) && idx >= 1 && idx <= numel(values)
+    value = values(idx);
+end
+end
+
+function count = localDirectionalCount(refAccumulator, survAccumulator, directionalChannel)
+if strcmpi(string(directionalChannel), "SURV")
+    count = survAccumulator.sample_count;
+else
+    count = refAccumulator.sample_count;
+end
+end
+
+function count = localReferenceCount(refAccumulator, survAccumulator, directionalChannel)
+if strcmpi(string(directionalChannel), "SURV")
+    count = refAccumulator.sample_count;
+else
+    count = survAccumulator.sample_count;
+end
+end
+
+function calibrationMetrics = localEmptyCalibrationMetrics()
+emptyChannel = struct( ...
+    'integrated_detect_margin_db', NaN, ...
+    'median_detect_margin_db', NaN, ...
+    'integrated_coherent_margin_db', NaN, ...
+    'median_coherent_margin_db', NaN, ...
+    'num_tones_found', 0, ...
+    'num_tones_expected', 0);
+calibrationMetrics = struct( ...
+    'status', 'ERROR', ...
+    'scoring_mode', 'expected-bin', ...
+    'reference', emptyChannel, ...
+    'surveillance', emptyChannel, ...
+    'joint', struct('median_channel_frequency_delta_hz', NaN), ...
+    'xcorr_advisory', struct('peak_db', NaN, 'lag_samples', NaN));
+end
+
+function step = localBuildStepResult(stepIndex, bearingDeg, sessionId, captureInfo, analysis, opts)
+step = localEmptyStepResult();
+step.step_index = double(stepIndex);
+step.bearing_deg = double(bearingDeg);
+step.session_id = string(sessionId);
+step.status = string(analysis.calibration_metrics.status);
+step.capture_info = captureInfo;
+step.capture_analysis_info = analysis.capture_info;
+step.environment_metrics = analysis.environment_metrics;
+step.calibration_metrics = analysis.calibration_metrics;
+step.diagnostics = analysis.diagnostics;
+step.reference_psd = analysis.reference_psd;
+step.surveillance_psd = analysis.surveillance_psd;
+step.directional_psd = localSelectChannelPsd(analysis, opts.DirectionalChannel, true);
+step.static_reference_psd = localSelectChannelPsd(analysis, opts.DirectionalChannel, false);
+end
+
+function psd = localSelectChannelPsd(analysis, directionalChannel, wantDirectional)
+directionalIsSurv = strcmpi(string(directionalChannel), "SURV");
+if xor(directionalIsSurv, ~wantDirectional)
+    psd = analysis.surveillance_psd;
+else
+    psd = analysis.reference_psd;
+end
+end
+
+function localPrintStepSummary(step, directionalChannel)
+env = step.environment_metrics;
+cal = step.calibration_metrics;
+dirCal = localCalibrationIntegratedMargin(cal, directionalChannel, true);
+refCal = localCalibrationIntegratedMargin(cal, directionalChannel, false);
+dirCoh = localCalibrationCoherentIntegratedMargin(cal, directionalChannel, true);
+refCoh = localCalibrationCoherentIntegratedMargin(cal, directionalChannel, false);
+fprintf(['[azimuth step] Bearing %6.1f deg | ambient dir-ref %+6.2f dB | ', ...
+    'cal dir %.2f dB ref %.2f dB | coherent dir %.2f dB ref %.2f dB | status %s\n'], ...
+    step.bearing_deg, ...
+    env.directional_minus_reference_power_db, ...
+    dirCal, ...
+    refCal, ...
+    dirCoh, ...
+    refCoh, ...
+    string(step.status));
+end
+
+function value = localCalibrationIntegratedMargin(calibrationMetrics, directionalChannel, wantDirectional)
+if strcmpi(string(directionalChannel), "SURV")
+    if wantDirectional
+        value = calibrationMetrics.surveillance.integrated_detect_margin_db;
+    else
+        value = calibrationMetrics.reference.integrated_detect_margin_db;
+    end
+else
+    if wantDirectional
+        value = calibrationMetrics.reference.integrated_detect_margin_db;
+    else
+        value = calibrationMetrics.surveillance.integrated_detect_margin_db;
+    end
+end
+end
+
+function value = localCalibrationCoherentIntegratedMargin(calibrationMetrics, directionalChannel, wantDirectional)
+if strcmpi(string(directionalChannel), "SURV")
+    if wantDirectional
+        value = calibrationMetrics.surveillance.integrated_coherent_margin_db;
+    else
+        value = calibrationMetrics.reference.integrated_coherent_margin_db;
+    end
+else
+    if wantDirectional
+        value = calibrationMetrics.reference.integrated_coherent_margin_db;
+    else
+        value = calibrationMetrics.surveillance.integrated_coherent_margin_db;
+    end
+end
+end
+
+function summaryTable = localBuildSummaryTable(steps)
+numSteps = numel(steps);
+summaryTable = table( ...
+    zeros(numSteps, 1), ...
+    zeros(numSteps, 1), ...
+    strings(numSteps, 1), ...
+    strings(numSteps, 1), ...
+    strings(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    nan(numSteps, 1), ...
+    'VariableNames', { ...
+        'StepIndex', ...
+        'Bearing_deg', ...
+        'SessionID', ...
+        'Status', ...
+        'CaptureFile', ...
+        'DirectionalAmbientPower_dB', ...
+        'ReferenceAmbientPower_dB', ...
+        'DirectionalMinusReferencePower_dB', ...
+        'DirectionalMedianPSD_dBPerHz', ...
+        'ReferenceMedianPSD_dBPerHz', ...
+        'DirectionalPeakPSD_dBPerHz', ...
+        'DirectionalPeakFrequency_Hz', ...
+        'ReferencePeakPSD_dBPerHz', ...
+        'ReferencePeakFrequency_Hz', ...
+        'DirectionalCalibrationIntegratedMargin_dB', ...
+        'ReferenceCalibrationIntegratedMargin_dB', ...
+        'DirectionalCalibrationCoherentIntegratedMargin_dB', ...
+        'ReferenceCalibrationCoherentIntegratedMargin_dB', ...
+        'RefOverSurvMagnitude_dB', ...
+        'RefOverSurvPhase_deg', ...
+        'RefSurvNormalizedRMSError_dB', ...
+        'RefSurvZeroLagCorr', ...
+        'RefSurvPeakCorr', ...
+        'RefSurvPeakLag_samples', ...
+        'RefSurvPeakLag_us', ...
+        'RefSurvPeakMinusZeroCorr_dB'});
+
+for idx = 1:numSteps
+    env = steps(idx).environment_metrics;
+    cal = steps(idx).calibration_metrics;
+    directionalChannel = env.directional_channel;
+    captureFile = "";
+    if isfield(steps(idx).capture_info, 'local_capture_files') && ~isempty(steps(idx).capture_info.local_capture_files)
+        captureFile = string(steps(idx).capture_info.local_capture_files(1));
+    end
+    summaryTable.StepIndex(idx) = steps(idx).step_index;
+    summaryTable.Bearing_deg(idx) = steps(idx).bearing_deg;
+    summaryTable.SessionID(idx) = string(steps(idx).session_id);
+    summaryTable.Status(idx) = string(steps(idx).status);
+    summaryTable.CaptureFile(idx) = captureFile;
+    summaryTable.DirectionalAmbientPower_dB(idx) = env.directional_ambient_power_db;
+    summaryTable.ReferenceAmbientPower_dB(idx) = env.reference_ambient_power_db;
+    summaryTable.DirectionalMinusReferencePower_dB(idx) = env.directional_minus_reference_power_db;
+    summaryTable.DirectionalMedianPSD_dBPerHz(idx) = env.directional_median_psd_db_per_hz;
+    summaryTable.ReferenceMedianPSD_dBPerHz(idx) = env.reference_median_psd_db_per_hz;
+    summaryTable.DirectionalPeakPSD_dBPerHz(idx) = env.directional_peak_psd_db_per_hz;
+    summaryTable.DirectionalPeakFrequency_Hz(idx) = env.directional_peak_frequency_hz;
+    summaryTable.ReferencePeakPSD_dBPerHz(idx) = env.reference_peak_psd_db_per_hz;
+    summaryTable.ReferencePeakFrequency_Hz(idx) = env.reference_peak_frequency_hz;
+    summaryTable.DirectionalCalibrationIntegratedMargin_dB(idx) = ...
+        localCalibrationIntegratedMargin(cal, directionalChannel, true);
+    summaryTable.ReferenceCalibrationIntegratedMargin_dB(idx) = ...
+        localCalibrationIntegratedMargin(cal, directionalChannel, false);
+    summaryTable.DirectionalCalibrationCoherentIntegratedMargin_dB(idx) = ...
+        localCalibrationCoherentIntegratedMargin(cal, directionalChannel, true);
+    summaryTable.ReferenceCalibrationCoherentIntegratedMargin_dB(idx) = ...
+        localCalibrationCoherentIntegratedMargin(cal, directionalChannel, false);
+    summaryTable.RefOverSurvMagnitude_dB(idx) = env.ref_over_surv_magnitude_db;
+    summaryTable.RefOverSurvPhase_deg(idx) = env.ref_over_surv_phase_deg;
+    summaryTable.RefSurvNormalizedRMSError_dB(idx) = env.ref_surv_normalized_residual_db;
+    summaryTable.RefSurvZeroLagCorr(idx) = env.ref_surv_zero_lag_corr_abs;
+    summaryTable.RefSurvPeakCorr(idx) = env.ref_surv_peak_corr_abs;
+    summaryTable.RefSurvPeakLag_samples(idx) = env.ref_surv_peak_lag_samples;
+    summaryTable.RefSurvPeakLag_us(idx) = env.ref_surv_peak_lag_us;
+    summaryTable.RefSurvPeakMinusZeroCorr_dB(idx) = env.ref_surv_peak_minus_zero_corr_db;
+end
+end
+
+function analysis = localBuildScanAnalysis(summaryTable, directionalChannel)
+analysis = struct( ...
+    'directional_channel', char(upper(string(directionalChannel))), ...
+    'num_steps', height(summaryTable), ...
+    'directional_ambient_power_span_db', localRange(summaryTable.DirectionalAmbientPower_dB), ...
+    'reference_ambient_power_span_db', localRange(summaryTable.ReferenceAmbientPower_dB), ...
+    'directional_calibration_span_db', localRange(summaryTable.DirectionalCalibrationIntegratedMargin_dB), ...
+    'reference_calibration_span_db', localRange(summaryTable.ReferenceCalibrationIntegratedMargin_dB), ...
+    'directional_coherent_calibration_span_db', localRange(summaryTable.DirectionalCalibrationCoherentIntegratedMargin_dB), ...
+    'reference_coherent_calibration_span_db', localRange(summaryTable.ReferenceCalibrationCoherentIntegratedMargin_dB), ...
+    'ref_surv_normalized_error_span_db', localRange(summaryTable.RefSurvNormalizedRMSError_dB), ...
+    'ref_surv_zero_lag_corr_span', localRange(summaryTable.RefSurvZeroLagCorr), ...
+    'strongest_zero_lag_corr_bearing_deg', localBearingAtMax(summaryTable, 'RefSurvZeroLagCorr'), ...
+    'largest_multipath_lag_bearing_deg', localBearingAtMax(summaryTable, 'RefSurvPeakMinusZeroCorr_dB'), ...
+    'strongest_ambient_bearing_deg', localBearingAtMax(summaryTable, 'DirectionalAmbientPower_dB'), ...
+    'strongest_calibration_bearing_deg', localBearingAtMax(summaryTable, 'DirectionalCalibrationIntegratedMargin_dB'));
+end
+
+function value = localRange(values)
+value = max(values, [], 'omitnan') - min(values, [], 'omitnan');
+end
+
+function bearing = localBearingAtMax(summaryTable, variableName)
+bearing = NaN;
+values = summaryTable.(variableName);
+if all(isnan(values))
+    return
+end
+[~, idx] = max(values, [], 'omitnan');
+bearing = summaryTable.Bearing_deg(idx);
+end
+
+function toneTable = localBuildCalibrationToneTable(steps)
+rows = cell(numel(steps), 1);
+for stepIdx = 1:numel(steps)
+    rows{stepIdx} = localBuildStepToneTable(steps(stepIdx));
+end
+
+if isempty(rows)
+    toneTable = table();
+else
+    toneTable = vertcat(rows{:});
+end
+end
+
+function toneTable = localBuildStepToneTable(step)
+metrics = step.calibration_metrics;
+directionalChannel = string(step.environment_metrics.directional_channel);
+[directionalMetrics, referenceMetrics] = localDirectionalAndReferenceMetrics(metrics, directionalChannel);
+
+toneOffsetsHz = double(metrics.tone_offsets_hz(:));
+numTones = numel(toneOffsetsHz);
+toneTable = table( ...
+    repmat(double(step.step_index), numTones, 1), ...
+    repmat(double(step.bearing_deg), numTones, 1), ...
+    repmat(string(step.session_id), numTones, 1), ...
+    toneOffsetsHz, ...
+    toneOffsetsHz / 1e3, ...
+    localColumn(referenceMetrics.detect_margin_db, numTones), ...
+    localColumn(directionalMetrics.detect_margin_db, numTones), ...
+    localColumn(directionalMetrics.detect_margin_db, numTones) - localColumn(referenceMetrics.detect_margin_db, numTones), ...
+    localColumn(referenceMetrics.tone_peak_dbfs, numTones), ...
+    localColumn(directionalMetrics.tone_peak_dbfs, numTones), ...
+    localColumn(referenceMetrics.local_floor_dbfs, numTones), ...
+    localColumn(directionalMetrics.local_floor_dbfs, numTones), ...
+    localColumn(referenceMetrics.coherent_margin_db, numTones), ...
+    localColumn(directionalMetrics.coherent_margin_db, numTones), ...
+    localColumn(directionalMetrics.coherent_margin_db, numTones) - localColumn(referenceMetrics.coherent_margin_db, numTones), ...
+    localColumn(referenceMetrics.coherent_tone_dbfs, numTones), ...
+    localColumn(directionalMetrics.coherent_tone_dbfs, numTones), ...
+    localColumn(referenceMetrics.coherent_residual_floor_dbfs, numTones), ...
+    localColumn(directionalMetrics.coherent_residual_floor_dbfs, numTones), ...
+    localColumn(referenceMetrics.coherent_duration_s, numTones), ...
+    localColumn(directionalMetrics.coherent_duration_s, numTones), ...
+    localColumn(referenceMetrics.tone_found, numTones), ...
+    localColumn(directionalMetrics.tone_found, numTones), ...
+    localColumn(metrics.joint.channel_frequency_delta_hz, numTones), ...
+    'VariableNames', { ...
+        'StepIndex', ...
+        'Bearing_deg', ...
+        'SessionID', ...
+        'ToneOffset_Hz', ...
+        'ToneOffset_kHz', ...
+        'ReferenceDetectMargin_dB', ...
+        'DirectionalDetectMargin_dB', ...
+        'DirectionalMinusReferenceMargin_dB', ...
+        'ReferenceTonePeak_dBFS', ...
+        'DirectionalTonePeak_dBFS', ...
+        'ReferenceLocalFloor_dBFS', ...
+        'DirectionalLocalFloor_dBFS', ...
+        'ReferenceCoherentMargin_dB', ...
+        'DirectionalCoherentMargin_dB', ...
+        'DirectionalMinusReferenceCoherentMargin_dB', ...
+        'ReferenceCoherentTone_dBFS', ...
+        'DirectionalCoherentTone_dBFS', ...
+        'ReferenceCoherentResidualFloor_dBFS', ...
+        'DirectionalCoherentResidualFloor_dBFS', ...
+        'ReferenceCoherentDuration_s', ...
+        'DirectionalCoherentDuration_s', ...
+        'ReferenceToneFound', ...
+        'DirectionalToneFound', ...
+        'ChannelFrequencyDelta_Hz'});
+end
+
+function [directionalMetrics, referenceMetrics] = localDirectionalAndReferenceMetrics(metrics, directionalChannel)
+if strcmpi(directionalChannel, "SURV")
+    directionalMetrics = metrics.surveillance;
+    referenceMetrics = metrics.reference;
+else
+    directionalMetrics = metrics.reference;
+    referenceMetrics = metrics.surveillance;
+end
+end
+
+function values = localColumn(valuesIn, numRows)
+if isempty(valuesIn)
+    values = nan(numRows, 1);
+    return
+end
+
+values = valuesIn(:);
+if islogical(values)
+    values = logical(values);
+elseif isnumeric(values)
+    values = double(values);
+end
+
+if numel(values) < numRows
+    if islogical(values)
+        values(end + 1:numRows, 1) = false;
+    else
+        values(end + 1:numRows, 1) = NaN;
+    end
+elseif numel(values) > numRows
+    values = values(1:numRows);
+end
+end
+
+function scan = localWriteScanArtifacts(scan, scanRoot, opts)
+scan.calibration_tone_table = localBuildCalibrationToneTable(scan.steps);
+artifactPaths = struct( ...
+    'scan_folder', string(scanRoot), ...
+    'result_mat', string(fullfile(scanRoot, 'scan_result.mat')), ...
+    'summary_csv', string(fullfile(scanRoot, 'azimuth_summary.csv')), ...
+    'calibration_tone_csv', string(fullfile(scanRoot, 'calibration_tone_summary.csv')), ...
+    'rsync_exclude_txt', string(fullfile(scanRoot, 'rsync_exclude_large_captures.txt')), ...
+    'summary_txt', string(fullfile(scanRoot, 'summary.txt')), ...
+    'html', string(fullfile(scanRoot, 'index.html')), ...
+    'environment_power_png', string(fullfile(scanRoot, 'environment_power_polar.png')), ...
+    'calibration_pattern_png', string(fullfile(scanRoot, 'calibration_pattern_polar.png')), ...
+    'calibration_tone_heatmap_png', string(fullfile(scanRoot, 'calibration_tone_margin_heatmap.png')), ...
+    'calibration_tone_by_frequency_png', string(fullfile(scanRoot, 'calibration_tone_margin_by_frequency.png')), ...
+    'calibration_coherent_tone_by_frequency_png', string(fullfile(scanRoot, 'calibration_coherent_tone_margin_by_frequency.png')), ...
+    'ref_surv_correlation_lag_png', string(fullfile(scanRoot, 'ref_surv_correlation_vs_lag.png')), ...
+    'directional_psd_heatmap_png', string(fullfile(scanRoot, 'directional_psd_heatmap.png')), ...
+    'reference_psd_heatmap_png', string(fullfile(scanRoot, 'reference_psd_heatmap.png')), ...
+    'channel_ratio_png', string(fullfile(scanRoot, 'channel_ratio_and_metrics.png')));
+
+scan.artifact_paths = artifactPaths;
+save(artifactPaths.result_mat, 'scan');
+writetable(scan.summary_table, artifactPaths.summary_csv);
+writetable(scan.calibration_tone_table, artifactPaths.calibration_tone_csv);
+localWriteRsyncExcludeFile(artifactPaths.rsync_exclude_txt);
+localWriteText(artifactPaths.summary_txt, localSummaryText(scan));
+
+if opts.PlotFigures
+    localWritePlots(scan, opts);
+end
+localWriteHtml(scan);
+end
+
+function localWritePlots(scan, opts)
+fig = localPlotEnvironmentPower(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.environment_power_png);
+
+fig = localPlotCalibrationPattern(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.calibration_pattern_png);
+
+fig = localPlotCalibrationToneHeatmap(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.calibration_tone_heatmap_png);
+
+fig = localPlotCalibrationToneByFrequency(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.calibration_tone_by_frequency_png);
+
+fig = localPlotCalibrationCoherentToneByFrequency(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.calibration_coherent_tone_by_frequency_png);
+
+fig = localPlotRefSurvCorrelationLag(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.ref_surv_correlation_lag_png);
+
+fig = localPlotPsdHeatmap(scan, true, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.directional_psd_heatmap_png);
+
+fig = localPlotPsdHeatmap(scan, false, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.reference_psd_heatmap_png);
+
+fig = localPlotChannelRatios(scan, opts.FigureVisibility);
+localExportFigure(fig, scan.artifact_paths.channel_ratio_png);
+end
+
+function fig = localPlotEnvironmentPower(scan, figureVisibility)
+tbl = scan.summary_table;
+theta = deg2rad([tbl.Bearing_deg; tbl.Bearing_deg(1)]);
+dirPower = [tbl.DirectionalAmbientPower_dB; tbl.DirectionalAmbientPower_dB(1)];
+refPower = [tbl.ReferenceAmbientPower_dB; tbl.ReferenceAmbientPower_dB(1)];
+
+fig = figure('Name', 'Azimuth ambient RF power', 'Color', 'w', 'Visible', figureVisibility);
+polarplot(theta, dirPower, '-o', 'LineWidth', 1.3);
+hold on;
+polarplot(theta, refPower, '-o', 'LineWidth', 1.3);
+title('Ambient RF power versus azimuth');
+legend({'Directional', 'Reference'}, 'Location', 'bestoutside');
+end
+
+function fig = localPlotCalibrationPattern(scan, figureVisibility)
+tbl = scan.summary_table;
+theta = deg2rad([tbl.Bearing_deg; tbl.Bearing_deg(1)]);
+dirCal = [tbl.DirectionalCalibrationIntegratedMargin_dB; tbl.DirectionalCalibrationIntegratedMargin_dB(1)];
+refCal = [tbl.ReferenceCalibrationIntegratedMargin_dB; tbl.ReferenceCalibrationIntegratedMargin_dB(1)];
+
+fig = figure('Name', 'Azimuth calibration comb pattern', 'Color', 'w', 'Visible', figureVisibility);
+polarplot(theta, dirCal, '-o', 'LineWidth', 1.3);
+hold on;
+polarplot(theta, refCal, '-o', 'LineWidth', 1.3);
+title('Pluto 12-tone no-DC calibration response versus azimuth');
+legend({'Directional', 'Reference'}, 'Location', 'bestoutside');
+end
+
+function fig = localPlotCalibrationToneHeatmap(scan, figureVisibility)
+toneTable = scan.calibration_tone_table;
+[dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationToneMatrices(toneTable);
+
+fig = figure('Name', 'Per-tone calibration margin heatmap', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Pluto comb calibration margin by tone and azimuth');
+
+nexttile(tl, 1);
+imagesc(toneOffsetsKHz, bearingsDeg, dirMatrix);
+axis xy;
+grid on;
+colorbar;
+ylabel('Bearing (deg true)');
+title('Directional channel detect margin (dB)');
+
+nexttile(tl, 2);
+imagesc(toneOffsetsKHz, bearingsDeg, refMatrix);
+axis xy;
+grid on;
+colorbar;
+ylabel('Bearing (deg true)');
+title('Reference channel detect margin (dB)');
+
+nexttile(tl, 3);
+imagesc(toneOffsetsKHz, bearingsDeg, dirMatrix - refMatrix);
+axis xy;
+grid on;
+colorbar;
+xlabel('Tone offset (kHz)');
+ylabel('Bearing (deg true)');
+title('Directional - reference margin (dB)');
+end
+
+function fig = localPlotCalibrationToneByFrequency(scan, figureVisibility)
+toneTable = scan.calibration_tone_table;
+[dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationToneMatrices(toneTable);
+
+fig = figure('Name', 'Per-tone calibration margin by frequency', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Pluto comb calibration shape across the 12 tones');
+
+nexttile(tl, 1);
+plot(toneOffsetsKHz, dirMatrix.', '-o', 'LineWidth', 1.1);
+grid on;
+xlabel('Tone offset (kHz)');
+ylabel('Directional detect margin (dB)');
+title('Directional channel comb shape');
+legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
+
+nexttile(tl, 2);
+plot(toneOffsetsKHz, (dirMatrix - refMatrix).', '-o', 'LineWidth', 1.1);
+grid on;
+xlabel('Tone offset (kHz)');
+ylabel('Directional - reference margin (dB)');
+title('Baseline-normalized comb shape');
+legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
+end
+
+function fig = localPlotCalibrationCoherentToneByFrequency(scan, figureVisibility)
+toneTable = scan.calibration_tone_table;
+[dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationCoherentToneMatrices(toneTable);
+
+fig = figure('Name', 'Coherent per-tone calibration margin by frequency', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Coherent Pluto comb integration across the calibration pulse');
+
+nexttile(tl, 1);
+plot(toneOffsetsKHz, dirMatrix.', '-o', 'LineWidth', 1.1);
+grid on;
+xlabel('Tone offset (kHz)');
+ylabel('Directional coherent margin (dB)');
+title('Directional channel coherent matched-tone margin');
+legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
+
+nexttile(tl, 2);
+plot(toneOffsetsKHz, (dirMatrix - refMatrix).', '-o', 'LineWidth', 1.1);
+grid on;
+xlabel('Tone offset (kHz)');
+ylabel('Directional - reference coherent margin (dB)');
+title('Baseline-normalized coherent comb shape');
+legend(compose('%.0f deg', bearingsDeg), 'Location', 'bestoutside');
+end
+
+function [dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationToneMatrices(toneTable)
+if isempty(toneTable)
+    dirMatrix = zeros(0, 0);
+    refMatrix = zeros(0, 0);
+    toneOffsetsKHz = zeros(0, 1);
+    bearingsDeg = zeros(0, 1);
+    return
+end
+
+bearingsDeg = unique(toneTable.Bearing_deg, 'stable');
+toneOffsetsKHz = unique(toneTable.ToneOffset_kHz, 'stable');
+dirMatrix = nan(numel(bearingsDeg), numel(toneOffsetsKHz));
+refMatrix = nan(numel(bearingsDeg), numel(toneOffsetsKHz));
+
+for bearingIdx = 1:numel(bearingsDeg)
+    for toneIdx = 1:numel(toneOffsetsKHz)
+        rowMask = toneTable.Bearing_deg == bearingsDeg(bearingIdx) & ...
+            toneTable.ToneOffset_kHz == toneOffsetsKHz(toneIdx);
+        if any(rowMask)
+            firstRow = find(rowMask, 1, 'first');
+            dirMatrix(bearingIdx, toneIdx) = toneTable.DirectionalDetectMargin_dB(firstRow);
+            refMatrix(bearingIdx, toneIdx) = toneTable.ReferenceDetectMargin_dB(firstRow);
+        end
+    end
+end
+end
+
+function [dirMatrix, refMatrix, toneOffsetsKHz, bearingsDeg] = localCalibrationCoherentToneMatrices(toneTable)
+if isempty(toneTable)
+    dirMatrix = zeros(0, 0);
+    refMatrix = zeros(0, 0);
+    toneOffsetsKHz = zeros(0, 1);
+    bearingsDeg = zeros(0, 1);
+    return
+end
+
+bearingsDeg = unique(toneTable.Bearing_deg, 'stable');
+toneOffsetsKHz = unique(toneTable.ToneOffset_kHz, 'stable');
+dirMatrix = nan(numel(bearingsDeg), numel(toneOffsetsKHz));
+refMatrix = nan(numel(bearingsDeg), numel(toneOffsetsKHz));
+
+for bearingIdx = 1:numel(bearingsDeg)
+    for toneIdx = 1:numel(toneOffsetsKHz)
+        rowMask = toneTable.Bearing_deg == bearingsDeg(bearingIdx) & ...
+            toneTable.ToneOffset_kHz == toneOffsetsKHz(toneIdx);
+        if any(rowMask)
+            firstRow = find(rowMask, 1, 'first');
+            dirMatrix(bearingIdx, toneIdx) = toneTable.DirectionalCoherentMargin_dB(firstRow);
+            refMatrix(bearingIdx, toneIdx) = toneTable.ReferenceCoherentMargin_dB(firstRow);
+        end
+    end
+end
+end
+
+function fig = localPlotRefSurvCorrelationLag(scan, figureVisibility)
+[corrMatrix, lagUs, bearingsDeg, zeroLagCorr, peakLagUs] = localRefSurvCorrelationMatrix(scan.steps);
+
+fig = figure('Name', 'Ambient REF/SURV correlation versus lag', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Ambient-only REF/SURV cross-correlation versus azimuth');
+
+nexttile(tl, 1);
+if isempty(corrMatrix)
+    text(0.5, 0.5, 'No REF/SURV correlation data available', 'HorizontalAlignment', 'center');
+    axis off;
+else
+    imagesc(lagUs, bearingsDeg, corrMatrix);
+    axis xy;
+    grid on;
+    colorbar;
+    xlabel('Lag (us)');
+    ylabel('Bearing (deg true)');
+    title('|normalized xcorr(REF, SURV)|');
+end
+
+nexttile(tl, 2);
+if isempty(corrMatrix)
+    text(0.5, 0.5, 'No REF/SURV correlation data available', 'HorizontalAlignment', 'center');
+    axis off;
+else
+    plot(bearingsDeg, zeroLagCorr, '-o', 'LineWidth', 1.2);
+    hold on;
+    yyaxis right;
+    plot(bearingsDeg, peakLagUs, '-s', 'LineWidth', 1.2);
+    grid on;
+    xlabel('Bearing (deg true)');
+    yyaxis left;
+    ylabel('Zero-lag correlation');
+    yyaxis right;
+    ylabel('Peak lag (us)');
+    title('Zero-lag correlation and strongest-path lag');
+    legend({'Zero-lag corr', 'Peak lag'}, 'Location', 'best');
+end
+end
+
+function [corrMatrix, lagUs, bearingsDeg, zeroLagCorr, peakLagUs] = localRefSurvCorrelationMatrix(steps)
+corrMatrix = zeros(0, 0);
+lagUs = zeros(0, 1);
+bearingsDeg = [steps.bearing_deg].';
+zeroLagCorr = nan(numel(steps), 1);
+peakLagUs = nan(numel(steps), 1);
+
+for idx = 1:numel(steps)
+    env = steps(idx).environment_metrics;
+    zeroLagCorr(idx) = localOptionalField(env, 'ref_surv_zero_lag_corr_abs', NaN);
+    peakLagUs(idx) = localOptionalField(env, 'ref_surv_peak_lag_us', NaN);
+    if isfield(env, 'ref_surv_corr_lags_us') && ~isempty(env.ref_surv_corr_lags_us)
+        lagUs = env.ref_surv_corr_lags_us(:);
+        break
+    end
+end
+
+if isempty(lagUs)
+    return
+end
+
+corrMatrix = nan(numel(steps), numel(lagUs));
+for idx = 1:numel(steps)
+    env = steps(idx).environment_metrics;
+    if isfield(env, 'ref_surv_corr_abs') && ...
+            isfield(env, 'ref_surv_corr_lags_us') && ...
+            numel(env.ref_surv_corr_abs) == numel(lagUs) && ...
+            isequal(size(env.ref_surv_corr_lags_us(:)), size(lagUs))
+        corrMatrix(idx, :) = double(env.ref_surv_corr_abs(:)).';
+    end
+end
+end
+
+function value = localOptionalField(s, fieldName, defaultValue)
+value = defaultValue;
+if isstruct(s) && isfield(s, fieldName) && ~isempty(s.(fieldName))
+    value = s.(fieldName);
+end
+end
+
+function fig = localPlotPsdHeatmap(scan, wantDirectional, figureVisibility)
+[psdMatrix, frequencyHz, bearingsDeg] = localPsdMatrix(scan.steps, wantDirectional);
+if wantDirectional
+    titleText = 'Directional-channel ambient PSD by azimuth';
+    figName = 'Directional ambient PSD heatmap';
+else
+    titleText = 'Reference-channel ambient PSD by azimuth';
+    figName = 'Reference ambient PSD heatmap';
+end
+
+fig = figure('Name', figName, 'Color', 'w', 'Visible', figureVisibility);
+imagesc(frequencyHz / 1e6, bearingsDeg, psdMatrix);
+axis xy;
+grid on;
+colorbar;
+xlabel('Baseband frequency offset (MHz)');
+ylabel('Bearing (deg true)');
+title(titleText);
+end
+
+function fig = localPlotChannelRatios(scan, figureVisibility)
+tbl = scan.summary_table;
+fig = figure('Name', 'Azimuth scan channel ratios', 'Color', 'w', 'Visible', figureVisibility);
+tl = tiledlayout(fig, 4, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Azimuth scan summary metrics');
+
+nexttile(tl, 1);
+plot(tbl.Bearing_deg, tbl.DirectionalMinusReferencePower_dB, '-o', 'LineWidth', 1.2);
+grid on;
+xlabel('Bearing (deg true)');
+ylabel('Directional - reference ambient power (dB)');
+title('Ambient channel ratio');
+
+nexttile(tl, 2);
+plot(tbl.Bearing_deg, tbl.DirectionalCalibrationIntegratedMargin_dB - ...
+    tbl.ReferenceCalibrationIntegratedMargin_dB, '-o', 'LineWidth', 1.2);
+grid on;
+xlabel('Bearing (deg true)');
+ylabel('Directional - reference comb margin (dB)');
+title('Calibration comb channel ratio');
+
+nexttile(tl, 3);
+plot(tbl.Bearing_deg, tbl.RefSurvNormalizedRMSError_dB, '-o', 'LineWidth', 1.2);
+grid on;
+xlabel('Bearing (deg true)');
+ylabel('Residual / REF RMS (dB)');
+title('REF - a*SURV normalized residual after best complex scalar fit');
+
+nexttile(tl, 4);
+plot(tbl.Bearing_deg, tbl.RefSurvZeroLagCorr, '-o', 'LineWidth', 1.2);
+hold on;
+plot(tbl.Bearing_deg, tbl.RefSurvPeakCorr, '-s', 'LineWidth', 1.2);
+yyaxis right;
+plot(tbl.Bearing_deg, tbl.RefSurvPeakLag_samples, '-^', 'LineWidth', 1.0);
+grid on;
+xlabel('Bearing (deg true)');
+yyaxis left;
+ylabel('Correlation magnitude');
+yyaxis right;
+ylabel('Peak lag (samples)');
+title('Ambient REF/SURV cross-correlation');
+legend({'Zero lag', 'Peak', 'Peak lag'}, 'Location', 'best');
+end
+
+function [psdMatrix, frequencyHz, bearingsDeg] = localPsdMatrix(steps, wantDirectional)
+frequencyHz = [];
+for idx = 1:numel(steps)
+    if wantDirectional
+        psd = steps(idx).directional_psd;
+    else
+        psd = steps(idx).static_reference_psd;
+    end
+    if ~isempty(psd.frequency_hz)
+        frequencyHz = psd.frequency_hz(:);
+        break
+    end
+end
+
+if isempty(frequencyHz)
+    psdMatrix = zeros(numel(steps), 0);
+    bearingsDeg = [steps.bearing_deg].';
+    return
+end
+
+psdMatrix = nan(numel(steps), numel(frequencyHz));
+bearingsDeg = nan(numel(steps), 1);
+for idx = 1:numel(steps)
+    if wantDirectional
+        psd = steps(idx).directional_psd;
+    else
+        psd = steps(idx).static_reference_psd;
+    end
+    bearingsDeg(idx) = steps(idx).bearing_deg;
+    if numel(psd.psd_db_per_hz) == numel(frequencyHz)
+        psdMatrix(idx, :) = psd.psd_db_per_hz(:).';
+    end
+end
+end
+
+function localExportFigure(fig, outputPath)
+try
+    exportgraphics(fig, outputPath, 'Resolution', 150);
+catch
+    saveas(fig, outputPath);
+end
+if ishghandle(fig)
+    close(fig);
+end
+end
+
+function textLines = localSummaryText(scan)
+analysis = scan.analysis;
+textLines = [
+    "PLUTO AZIMUTH ENVIRONMENTAL SCAN"
+    "Scan ID: " + string(scan.scan_id)
+    "Created UTC: " + string(scan.created_utc)
+    "Steps: " + string(analysis.num_steps)
+    "Directional channel: " + string(analysis.directional_channel)
+    "Capture duration per bearing: " + compose("%.2f", scan.settings.capture_duration_s) + " s"
+    "Pluto calibration pulse: " + compose("%.2f", scan.settings.pulse_duration_s) + " s after " + ...
+        compose("%.2f", scan.settings.pulse_start_delay_s) + " s"
+    "Approximate ambient-only duration: " + compose("%.2f", max(0, scan.settings.capture_duration_s - scan.settings.pulse_duration_s)) + " s"
+    "Ambient directional span: " + compose("%.2f", analysis.directional_ambient_power_span_db) + " dB"
+    "Ambient reference span: " + compose("%.2f", analysis.reference_ambient_power_span_db) + " dB"
+    "Calibration directional span: " + compose("%.2f", analysis.directional_calibration_span_db) + " dB"
+    "Calibration reference span: " + compose("%.2f", analysis.reference_calibration_span_db) + " dB"
+    "Coherent calibration directional span: " + compose("%.2f", analysis.directional_coherent_calibration_span_db) + " dB"
+    "Coherent calibration reference span: " + compose("%.2f", analysis.reference_coherent_calibration_span_db) + " dB"
+    "REF/SURV normalized residual span: " + compose("%.2f", analysis.ref_surv_normalized_error_span_db) + " dB"
+    "REF/SURV zero-lag correlation span: " + compose("%.3f", analysis.ref_surv_zero_lag_corr_span)
+    "Strongest REF/SURV zero-lag bearing: " + compose("%.1f", analysis.strongest_zero_lag_corr_bearing_deg) + " deg true"
+    "Largest nonzero-lag correlation bearing: " + compose("%.1f", analysis.largest_multipath_lag_bearing_deg) + " deg true"
+    "Strongest ambient bearing: " + compose("%.1f", analysis.strongest_ambient_bearing_deg) + " deg true"
+    "Strongest calibration bearing: " + compose("%.1f", analysis.strongest_calibration_bearing_deg) + " deg true"
+    ""
+    "Interpretation:"
+    "The ambient plots estimate the RF environment with the Pluto pulse window removed."
+    "The calibration plots score only the Pluto 12-tone no-DC burst."
+    "The coherent per-tone plots integrate over the full captured pulse window."
+    "The REF/SURV residual and cross-correlation metrics compare ambient-only channel similarity."
+    "A useful scan should show more azimuth variation on the directional channel than on the reference channel."
+    ];
+end
+
+function localWriteText(path, lines)
+fid = fopen(path, 'w');
+if fid < 0
+    error('runPlutoAzimuthEnvironmentalScan:textOpenFailed', ...
+        'Could not open %s for writing.', path);
+end
+cleanupFile = onCleanup(@() fclose(fid));
+fprintf(fid, '%s\n', lines);
+clear cleanupFile
+end
+
+function localWriteRsyncExcludeFile(path)
+lines = [
+    "# rsync exclude patterns for large azimuth-scan N320 baseband captures"
+    "# Example from the scan folder parent:"
+    "#   rsync -av --exclude-from=<scan_id>/rsync_exclude_large_captures.txt <scan_id>/ ./<scan_id>/"
+    "bb_captures_exclude_from_rsync/"
+    "bb_captures_exclude_from_rsync/**"
+    "*__BB_CAPTURE_DO_NOT_RSYNC*"
+    ];
+localWriteText(path, lines);
+end
+
+function localWriteHtml(scan)
+htmlPath = scan.artifact_paths.html;
+fid = fopen(htmlPath, 'w');
+if fid < 0
+    error('runPlutoAzimuthEnvironmentalScan:htmlOpenFailed', ...
+        'Could not open %s for writing.', htmlPath);
+end
+cleanupFile = onCleanup(@() fclose(fid));
+
+fprintf(fid, '<!doctype html>\n<html><head><meta charset="utf-8">\n');
+fprintf(fid, '<title>%s</title>\n', localHtmlEscape("Pluto Azimuth Environmental Scan"));
+fprintf(fid, ['<style>body{font-family:Arial,sans-serif;margin:2rem;line-height:1.4}', ...
+    'img{max-width:100%%;border:1px solid #ccc;margin:1rem 0}', ...
+    'table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:0.25rem 0.45rem}', ...
+    'code{background:#eee;padding:0.1rem 0.25rem}</style>\n']);
+fprintf(fid, '</head><body>\n');
+fprintf(fid, '<h1>Pluto Azimuth Environmental Scan</h1>\n');
+fprintf(fid, '<p><strong>Scan ID:</strong> %s<br>\n', localHtmlEscape(scan.scan_id));
+fprintf(fid, '<strong>Created UTC:</strong> %s<br>\n', localHtmlEscape(scan.created_utc));
+fprintf(fid, '<strong>Directional channel:</strong> %s</p>\n', ...
+    localHtmlEscape(scan.analysis.directional_channel));
+
+fprintf(fid, '<h2>Plain-language interpretation</h2>\n');
+fprintf(fid, ['<p>The ambient spectra show what the two receive channels saw while the Pluto ', ...
+    'calibration burst window was excluded. The calibration pattern scores only the short ', ...
+    '12-tone no-DC Pluto burst. The coherent plots add a matched-tone integration over the full ', ...
+    'pulse window, so longer pulse tests should show their processing gain there. The REF/SURV fit and ', ...
+    'cross-correlation metrics compare the ambient-only channels: low residual and high zero-lag ', ...
+    'correlation indicate a shared direct-path-like signal, while a nonzero correlation peak is a multipath clue. ', ...
+    'If the directional antenna is behaving like a directional sensor, ', ...
+    'its ambient and calibration curves should change more with bearing than the reference channel.</p>\n']);
+
+fprintf(fid, '<h2>Summary</h2>\n<ul>\n');
+fprintf(fid, '<li>Capture duration per bearing: %.2f s</li>\n', scan.settings.capture_duration_s);
+fprintf(fid, '<li>Pluto calibration pulse: %.2f s after %.2f s</li>\n', ...
+    scan.settings.pulse_duration_s, scan.settings.pulse_start_delay_s);
+fprintf(fid, '<li>Approximate ambient-only duration: %.2f s</li>\n', ...
+    max(0, scan.settings.capture_duration_s - scan.settings.pulse_duration_s));
+fprintf(fid, '<li>Directional ambient span: %.2f dB</li>\n', scan.analysis.directional_ambient_power_span_db);
+fprintf(fid, '<li>Reference ambient span: %.2f dB</li>\n', scan.analysis.reference_ambient_power_span_db);
+fprintf(fid, '<li>Directional calibration span: %.2f dB</li>\n', scan.analysis.directional_calibration_span_db);
+fprintf(fid, '<li>Reference calibration span: %.2f dB</li>\n', scan.analysis.reference_calibration_span_db);
+fprintf(fid, '<li>Directional coherent calibration span: %.2f dB</li>\n', scan.analysis.directional_coherent_calibration_span_db);
+fprintf(fid, '<li>Reference coherent calibration span: %.2f dB</li>\n', scan.analysis.reference_coherent_calibration_span_db);
+fprintf(fid, '<li>REF/SURV normalized residual span: %.2f dB</li>\n', scan.analysis.ref_surv_normalized_error_span_db);
+fprintf(fid, '<li>REF/SURV zero-lag correlation span: %.3f</li>\n', scan.analysis.ref_surv_zero_lag_corr_span);
+fprintf(fid, '<li>Strongest REF/SURV zero-lag bearing: %.1f deg true</li>\n', scan.analysis.strongest_zero_lag_corr_bearing_deg);
+fprintf(fid, '<li>Largest nonzero-lag correlation bearing: %.1f deg true</li>\n', scan.analysis.largest_multipath_lag_bearing_deg);
+fprintf(fid, '<li>Strongest ambient bearing: %.1f deg true</li>\n', scan.analysis.strongest_ambient_bearing_deg);
+fprintf(fid, '<li>Strongest calibration bearing: %.1f deg true</li>\n', scan.analysis.strongest_calibration_bearing_deg);
+fprintf(fid, '</ul>\n');
+
+fprintf(fid, '<h2>Plots</h2>\n');
+localHtmlImage(fid, 'environment_power_polar.png', 'Ambient RF power versus azimuth');
+localHtmlImage(fid, 'calibration_pattern_polar.png', 'Pluto calibration comb response versus azimuth');
+localHtmlImage(fid, 'calibration_tone_margin_heatmap.png', 'Per-tone Pluto comb calibration margin heatmap');
+localHtmlImage(fid, 'calibration_tone_margin_by_frequency.png', 'Per-tone Pluto comb shape by bearing');
+localHtmlImage(fid, 'calibration_coherent_tone_margin_by_frequency.png', 'Coherent per-tone Pluto comb shape by bearing');
+localHtmlImage(fid, 'ref_surv_correlation_vs_lag.png', 'Ambient REF/SURV correlation versus lag');
+localHtmlImage(fid, 'directional_psd_heatmap.png', 'Directional-channel ambient PSD heatmap');
+localHtmlImage(fid, 'reference_psd_heatmap.png', 'Reference-channel ambient PSD heatmap');
+localHtmlImage(fid, 'channel_ratio_and_metrics.png', 'Directional/reference ratio metrics');
+
+fprintf(fid, '<h2>Per-bearing table</h2>\n');
+fprintf(fid, '<p>CSV version: <a href="azimuth_summary.csv">azimuth_summary.csv</a></p>\n');
+localWriteHtmlTable(fid, scan.summary_table);
+
+fprintf(fid, '<h2>Per-tone calibration table</h2>\n');
+fprintf(fid, ['<p>CSV version: <a href="calibration_tone_summary.csv">calibration_tone_summary.csv</a>. ', ...
+    'This table is the easiest way to inspect whether one tone or one side of the comb behaves differently across azimuth.</p>\n']);
+
+fprintf(fid, '<h2>Artifacts</h2>\n<ul>\n');
+fprintf(fid, '<li><a href="summary.txt">summary.txt</a></li>\n');
+fprintf(fid, '<li><a href="scan_result.mat">scan_result.mat</a></li>\n');
+fprintf(fid, '<li><a href="azimuth_summary.csv">azimuth_summary.csv</a></li>\n');
+fprintf(fid, '<li><a href="calibration_tone_summary.csv">calibration_tone_summary.csv</a></li>\n');
+fprintf(fid, '<li><a href="rsync_exclude_large_captures.txt">rsync_exclude_large_captures.txt</a></li>\n');
+fprintf(fid, '</ul>\n');
+fprintf(fid, '</body></html>\n');
+clear cleanupFile
+end
+
+function localHtmlImage(fid, fileName, altText)
+fprintf(fid, '<h3>%s</h3>\n', localHtmlEscape(altText));
+fprintf(fid, '<img src="%s" alt="%s">\n', localHtmlEscape(fileName), localHtmlEscape(altText));
+end
+
+function localWriteHtmlTable(fid, tbl)
+fprintf(fid, '<table><thead><tr>');
+for idx = 1:numel(tbl.Properties.VariableNames)
+    fprintf(fid, '<th>%s</th>', localHtmlEscape(tbl.Properties.VariableNames{idx}));
+end
+fprintf(fid, '</tr></thead><tbody>\n');
+for rowIdx = 1:height(tbl)
+    fprintf(fid, '<tr>');
+    for colIdx = 1:numel(tbl.Properties.VariableNames)
+        value = tbl{rowIdx, colIdx};
+        if isnumeric(value)
+            cellText = compose("%.6g", value);
+        else
+            cellText = string(value);
+        end
+        fprintf(fid, '<td>%s</td>', localHtmlEscape(cellText));
+    end
+    fprintf(fid, '</tr>\n');
+end
+fprintf(fid, '</tbody></table>\n');
+end
+
+function escaped = localHtmlEscape(value)
+escaped = string(value);
+escaped = replace(escaped, "&", "&amp;");
+escaped = replace(escaped, "<", "&lt;");
+escaped = replace(escaped, ">", "&gt;");
+escaped = replace(escaped, """", "&quot;");
+escaped = char(escaped);
+end
+
+function localPrintScanSummary(scan)
+disp(localSummaryText(scan));
+fprintf('[runPlutoAzimuthEnvironmentalScan] HTML report: %s\n', scan.artifact_paths.html);
+fprintf('[runPlutoAzimuthEnvironmentalScan] Summary CSV: %s\n', scan.artifact_paths.summary_csv);
+end

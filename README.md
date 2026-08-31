@@ -25,6 +25,12 @@ validation entry point. For field operation and calibration, follow
 `TestSetupTesting/plutoBaselineCommissioningFieldPlan.md`. The precheck remains
 standalone and is not yet a hard gate in `run_coordinated_hdtv_capture.sh`.
 
+The optional azimuth extension in
+`TestSetupTesting/runPlutoAzimuthEnvironmentalScan.m` performs a stepped
+environment scan and supports coherent pulse reprocessing. Its calibration
+procedure and limitations are documented in
+`TestSetupTesting/Azimuth-Calibration.md`.
+
 ### Hardware Platform
 
 - **USRP N320:** Phase-coherent dual-channel software-defined radio for HDTV passive radar (540 MHz, 6 MHz bandwidth)
