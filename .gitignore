@@ -18,6 +18,13 @@ __pycache__/
 n320_*
 adsb_capture/
 captures/
+/TestSetupTesting/SurvYagiCaptures.zip
+/adsbForTracking/stage4B_adsb_3day.zip
 
 # Matlab autosave
 *.asv
+
+# Machine-local agent configuration and application autosaves
+/.mcp.json
+/.claude/settings.local.json
+*Autosaved*.pptx
