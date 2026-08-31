@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository contains a complete passive bistatic radar system and multi-sensor data collection platform for aircraft detection, localization, and tracking validation. The system is designed to generate shareable datasets for verifying MATLAB Radar and Sensor Fusion and Tracking Toolbox functions.
+This repository develops a passive bistatic radar system and multi-sensor data collection platform for aircraft detection, localization, and tracking validation. The system is designed to generate shareable datasets for verifying MATLAB Radar and Sensor Fusion and Tracking Toolbox functions.
 
 ### System Goals
 
@@ -10,6 +10,21 @@ This repository contains a complete passive bistatic radar system and multi-sens
 2. **Ground Truth Collection:** Capture ADS-B and GPS data for validation and performance assessment
 3. **Multi-Sensor Fusion:** Integrate passive radar with RF beacon tracking for enhanced situational awareness
 4. **Toolbox Validation:** Generate real-world datasets for testing MathWorks radar and tracking algorithms
+
+### Latest Status - August 31, 2026
+
+**Shared success criterion:** Produce repeatable aircraft detections and stable tracks in range-Doppler (RD) space, validated against synchronized ADS-B truth.
+
+| Project arm | Current state | Remaining convergence step |
+| --- | --- | --- |
+| System feasibility and RF prechecks | Reproducible link-budget and RF analyses ran successfully on `integration/system-prechecks`; the candidate is ready for technical review. | Review the assumptions and use the predicted operating limits to guide field configuration. |
+| Reference-chain and geometry calibration | The Pluto precheck candidate passed 10 tests and static analysis. The azimuth workflow passed its dry run and 10 Pluto regressions; Yagi findings are preserved separately. | Complete the live Pluto baseline, azimuth scan, and representative Yagi/reference-placement checks. |
+| Coordinated and targeted acquisition | Packaged coordinated capture is established. Interval ADS-B collection passed 8 tests; triggered capture passed 15 tests but retains 16 maintainability warnings. | Confirm the deployment environment, clear the trigger warnings, and complete live preflight and capture validation. |
+| ADS-B truth and estimator evaluation | ADS-B collection candidates are software-ready, and Stage 4E recursive-filter research passed 11 tests and all 17 integrity checks. Stage 4E remains research-only. | Collect independent, provenance-complete holdout truth and decide separately which collection and estimator work should advance toward `main`. |
+| RD processing, detection, and track formation | Replay and truth-diagnostic paths are integrated, but the preserved checkpoint remains a working integration with a non-functional detector. | Obtain repeatable, truth-aligned detections from usable RF captures, form stable RD tracks, and score them against ADS-B. This is the central blocker. |
+| Synthetic and replay validation | Replay tooling supports focused detector and truth iteration; the existing synthetic data remains low fidelity and deferred. | Establish the real-data detection baseline first, then improve synthetic cases for repeatable regression coverage. |
+
+These integration candidates and preservation branches remain isolated from `main` pending explicit review and integration decisions.
 
 ### Hardware Platform
 
@@ -823,4 +838,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: June 22, 2026*
+*Last Updated: August 31, 2026*
