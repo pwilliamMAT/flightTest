@@ -1,5 +1,20 @@
 # SFTT Skill Use Summary
 
+## 2026-08-31 - Stage 4E Recursive Filter Evaluation Completion
+
+- Skills used: `matlab-import-tracking-data`, `matlab-multi-object-tracking`, `matlab-testing`, `matlab-debugging`, and `matlab-optimize-performance`
+- SFTT files read:
+  - `C:\Users\pwilliam\agenticProjects\toolkits\sensor-fusion-and-tracking-toolbox\.claude\skills\matlab-import-tracking-data\SKILL.md`
+  - `C:\Users\pwilliam\agenticProjects\toolkits\sensor-fusion-and-tracking-toolbox\.claude\skills\matlab-multi-object-tracking\SKILL.md`
+- Project task: resume and complete the interrupted Stage 4E recursive comparison of native CV/CA/CT EKF, native IMM, and frozen-warm UKF estimators.
+- How the skills affected the work: preserved `[x, vx, y, vy, z, vz]` physical-state semantics; kept real ADS-B results labeled as a scoring proxy rather than independent truth; used native `trackingEKF`, `trackingIMM`, `trackingUKF`, `trackingFilterTuner`, `objectDetection`, and motion/measurement functions; kept tuning validation-only; and verified the class-based acceptance suite in MATLAB.
+- Resulting files, decisions, and verification:
+  - Produced the frozen validation-only tuning artifact and completed the full 48-synthetic-sequence/40-ADS-B-event benchmark under four update profiles.
+  - Corrected an exact-byte initialization audit that rejected only `trackingIMM` roundoff, while leaving estimator states and covariances unchanged.
+  - Bounded smoke-mode real events to 240 pairs without truncating full-mode events.
+  - Replaced tiny-batch `minibatchpredict` calls with numerically equivalent direct `predict`, reducing the Stage 4E test runtime from 247 seconds to 75 seconds.
+  - All 17 full-run integrity checks and all 11 Stage 4E tests passed. The native IMM was strongest on the degraded synthetic and real baseline proxy headlines; the frozen-warm UKF was not promoted.
+
 ## 2026-08-31 - ADS-B Branch Preservation And Validation
 
 - Skills used: `matlab-multi-object-tracking`, `matlab-testing`
