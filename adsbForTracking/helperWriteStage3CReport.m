@@ -37,6 +37,7 @@ try
     fprintf(fid, "## Inputs And Outputs\n\n");
     fprintf(fid, "| Artifact | Path |\n");
     fprintf(fid, "| :--- | :--- |\n");
+    fprintf(fid, "| Dataset variant | `%s` |\n", localVariantDisplay(stage3CSummary));
     fprintf(fid, "| Archive root | `%s` |\n", stage3CSummary.archiveRoot);
     fprintf(fid, "| Stage 3C MAT artifact | `%s` |\n", stage3CSummary.artifactPath);
     fprintf(fid, "| Stage 3C report | `%s` |\n", stage3CSummary.reportPath);
@@ -90,6 +91,27 @@ try
 catch err
     error("Stage3C:ReportWriteFailed", ...
         "Failed to write Stage 3C report: %s", err.message);
+end
+
+end
+
+function variantID = localVariantDisplay(stage3CSummary)
+%LOCALVARIANTDISPLAY Return a report-safe dataset variant identifier.
+
+if isfield(stage3CSummary, "datasetVariantID") && ...
+        strlength(string(stage3CSummary.datasetVariantID)) > 0
+    variantID = string(stage3CSummary.datasetVariantID);
+
+    switch variantID
+        case "legacy_pre3day_v1"
+            variantID = "Legacy-16 (`legacy_pre3day_v1`)";
+        case "campaign_3day_increment_v1"
+            variantID = "3-Day Campaign Increment (`campaign_3day_increment_v1`)";
+        case "expanded_post3day_v2"
+            variantID = "Expanded-3Day (`expanded_post3day_v2`)";
+    end
+else
+    variantID = "default_archive_discovery";
 end
 
 end

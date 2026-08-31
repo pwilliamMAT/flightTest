@@ -1,0 +1,5 @@
+variantID,displayName,sourceFileCount,usableSourceFileCount,sessionCount,aircraftCount,aircraftTrackCount,pairCount,eventCount,occupiedJointRegimeCellCount,constvelPositionRMSEMeters,frozenMLPPositionRMSEMeters
+legacy_pre3day_v1,Legacy-16,16,16,16,188,222,15013,803,129,23.8704419531022,151.260496476313
+campaign_3day_increment_v1,3-Day Campaign Increment,143,138,138,1844,2933,442890,26416,213,24.5418656428501,213.459510213524
+expanded_post3day_v2,Expanded-3Day,159,154,154,1978,3155,457903,27219,213,24.5201435777811,211.710167845085
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,143,138,138,1790,2933,442890,26416,84,NaN,NaN

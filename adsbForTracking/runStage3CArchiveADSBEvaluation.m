@@ -21,6 +21,8 @@ addParameter(parser, "ProjectRoot", projectRoot);
 addParameter(parser, "ArchiveRoot", defaultArchiveRoot);
 addParameter(parser, "OutputFolder", defaultOutputFolder);
 addParameter(parser, "ParserFolder", defaultParserFolder);
+addParameter(parser, "SourceFiles", strings(0, 1));
+addParameter(parser, "DatasetVariantID", "");
 addParameter(parser, "Stage3AArtifactPath", defaultStage3AArtifactPath);
 addParameter(parser, "UseGzipFallback", true);
 addParameter(parser, "CreatePlots", true);
@@ -48,6 +50,8 @@ archiveInventory = helperBuildStage3CArchiveInventory( ...
     config.OutputFolder, ...
     "ParserFolder", ...
     config.ParserFolder, ...
+    "SourceFiles", ...
+    config.SourceFiles, ...
     "UseGzipFallback", ...
     config.UseGzipFallback, ...
     "Verbose", ...
@@ -100,6 +104,7 @@ stage3CSummary = struct();
 stage3CSummary.generatedAt = datetime("now", "TimeZone", "UTC");
 stage3CSummary.projectRoot = config.ProjectRoot;
 stage3CSummary.archiveRoot = config.ArchiveRoot;
+stage3CSummary.datasetVariantID = config.DatasetVariantID;
 stage3CSummary.outputFolder = config.OutputFolder;
 stage3CSummary.artifactPath = config.ArtifactPath;
 stage3CSummary.reportPath = config.ReportPath;
@@ -144,6 +149,9 @@ config.ProjectRoot = string(opts.ProjectRoot);
 config.ArchiveRoot = string(opts.ArchiveRoot);
 config.OutputFolder = outputFolder;
 config.ParserFolder = string(opts.ParserFolder);
+config.SourceFiles = string(opts.SourceFiles);
+config.SourceFiles = config.SourceFiles(strlength(strtrim(config.SourceFiles)) > 0);
+config.DatasetVariantID = string(opts.DatasetVariantID);
 config.Stage3AArtifactPath = string(opts.Stage3AArtifactPath);
 config.UseGzipFallback = logical(opts.UseGzipFallback);
 config.CreatePlots = logical(opts.CreatePlots);

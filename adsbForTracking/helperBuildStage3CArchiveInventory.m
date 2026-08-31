@@ -15,8 +15,9 @@ parser.FunctionName = mfilename;
 addParameter(parser, "ArchiveRoot", defaultArchiveRoot);
 addParameter(parser, "OutputFolder", defaultOutputFolder);
 addParameter(parser, "ParserFolder", defaultParserFolder);
+addParameter(parser, "SourceFiles", strings(0, 1));
 addParameter(parser, "UseGzipFallback", true);
-addParameter(parser, "FallbackFolder", fullfile(defaultOutputFolder, "fallback_truth"));
+addParameter(parser, "FallbackFolder", "");
 addParameter(parser, "DefaultReceiverOriginLLA", [42.2999333, -71.349333, 15.0]);
 addParameter(parser, "CovarianceStdAssumed", [100, 10, 100, 10, 150, 5]);
 addParameter(parser, "MaxDtSeconds", 30);
@@ -30,7 +31,13 @@ if isfolder(config.ParserFolder)
     addpath(config.ParserFolder);
 end
 
-sourceFiles = localDiscoverArchiveTruthFiles(config.ArchiveRoot);
+sourceFiles = config.SourceFiles;
+
+if isempty(sourceFiles)
+    sourceFiles = localDiscoverArchiveTruthFiles(config.ArchiveRoot);
+end
+
+sourceFiles = unique(sourceFiles(:), "stable");
 sourceFileTable = localBuildSourceFileTable(config, sourceFiles);
 layoutSummary = localBuildLayoutSummary(config, sourceFileTable);
 selectedMask = sourceFileTable.selectedForEvaluation;
@@ -64,8 +71,15 @@ config = struct();
 config.ArchiveRoot = string(opts.ArchiveRoot);
 config.OutputFolder = string(opts.OutputFolder);
 config.ParserFolder = string(opts.ParserFolder);
+config.SourceFiles = string(opts.SourceFiles);
+config.SourceFiles = config.SourceFiles(strlength(strtrim(config.SourceFiles)) > 0);
 config.UseGzipFallback = logical(opts.UseGzipFallback);
 config.FallbackFolder = string(opts.FallbackFolder);
+
+if strlength(config.FallbackFolder) == 0
+    config.FallbackFolder = fullfile(config.OutputFolder, "fallback_truth");
+end
+
 config.DefaultReceiverOriginLLA = double(opts.DefaultReceiverOriginLLA);
 config.CovarianceStdAssumed = double(opts.CovarianceStdAssumed);
 config.MaxDtSeconds = double(opts.MaxDtSeconds);

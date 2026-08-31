@@ -1,0 +1,22 @@
+variantID,displayName,variable,units,finiteCount,minimum,medianValue,percentile95,maximum
+legacy_pre3day_v1,Legacy-16,horizontal_speed_mps,m/s,15013,24.6934230092721,159.9922084,235.6155352,309.1810844
+legacy_pre3day_v1,Legacy-16,altitude_m,m,15013,333.43363695215,3477.31372946565,11783.7500753034,13121.4520620563
+legacy_pre3day_v1,Legacy-16,abs_turn_rate_degps,deg/s,15013,0,0,1.1754801428429,164.704260505849
+legacy_pre3day_v1,Legacy-16,abs_horizontal_acceleration_mps2,m/s^2,15013,0,0,0.789859776435254,2.54675417890197
+legacy_pre3day_v1,Legacy-16,vertical_rate_mps,m/s,15013,-18.873285423038,0,13.0048,25.0284900114306
+legacy_pre3day_v1,Legacy-16,abs_vertical_acceleration_mps2,m/s^2,15013,0,0,0.71310423425036,5.62989963677054
+legacy_pre3day_v1,Legacy-16,dt_seconds,s,15013,0.398999929428101,0.584999799728394,2.93799996376038,29.6510000228882
+campaign_3day_increment_v1,3-Day Campaign Increment,horizontal_speed_mps,m/s,442890,7.2022216,167.19443,273.6844208,310.7244176
+campaign_3day_increment_v1,3-Day Campaign Increment,altitude_m,m,442890,113.707945350972,3666.88445877478,11008.7971766829,13717.6825402559
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_turn_rate_degps,deg/s,442890,0,0,1.06496284960762,425.860056485127
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_horizontal_acceleration_mps2,m/s^2,442890,0,0,0.731122589066531,149.110953646913
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_rate_mps,m/s,442890,-25.9279196348789,0,12.35456,37.3811305021156
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_vertical_acceleration_mps2,m/s^2,442890,0,0,0.660812869793438,11.039788844454
+campaign_3day_increment_v1,3-Day Campaign Increment,dt_seconds,s,442890,0.384999990463257,0.878999948501587,3.78999996185303,29.9980001449585
+expanded_post3day_v2,Expanded-3Day,horizontal_speed_mps,m/s,457903,7.2022216,167.19443,272.655532,310.7244176
+expanded_post3day_v2,Expanded-3Day,altitude_m,m,457903,113.707945350972,3660.51927958384,11040.8822744172,13717.6825402559
+expanded_post3day_v2,Expanded-3Day,abs_turn_rate_degps,deg/s,457903,0,0,1.06723608940521,425.860056485127
+expanded_post3day_v2,Expanded-3Day,abs_horizontal_acceleration_mps2,m/s^2,457903,0,0,0.732646070478755,149.110953646913
+expanded_post3day_v2,Expanded-3Day,vertical_rate_mps,m/s,457903,-25.9279196348789,0,12.35456,37.3811305021156
+expanded_post3day_v2,Expanded-3Day,abs_vertical_acceleration_mps2,m/s^2,457903,0,0,0.662158944354262,11.039788844454
+expanded_post3day_v2,Expanded-3Day,dt_seconds,s,457903,0.384999990463257,0.872999906539917,3.75199993848801,29.9980001449585

@@ -1,0 +1,91 @@
+variantID,displayName,splitStrategy,eventType,split,eventCount
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_turn,train,16
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_turn,validation,17
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_turn,test,6
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_acceleration,train,160
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_acceleration,validation,69
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_acceleration,test,46
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_climb,train,51
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_climb,validation,13
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_climb,test,12
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_descent,train,47
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_descent,validation,18
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sustained_descent,test,12
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sparse_gap,train,194
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sparse_gap,validation,71
+legacy_pre3day_v1,Legacy-16,aircraft_disjoint,sparse_gap,test,71
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_turn,train,12
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_turn,validation,6
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_turn,test,21
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_acceleration,train,100
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_acceleration,validation,37
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_acceleration,test,138
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_climb,train,42
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_climb,validation,10
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_climb,test,24
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_descent,train,31
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_descent,validation,9
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sustained_descent,test,37
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sparse_gap,train,182
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sparse_gap,validation,34
+legacy_pre3day_v1,Legacy-16,chronological_blocked,sparse_gap,test,120
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_turn,train,756
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_turn,validation,214
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_turn,test,267
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_acceleration,train,4708
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_acceleration,validation,1190
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_acceleration,test,1415
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_climb,train,1071
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_climb,validation,352
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_climb,test,342
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_descent,train,894
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_descent,validation,240
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sustained_descent,test,267
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sparse_gap,train,8983
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sparse_gap,validation,2740
+campaign_3day_increment_v1,3-Day Campaign Increment,aircraft_disjoint,sparse_gap,test,2977
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_turn,train,993
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_turn,validation,184
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_turn,test,60
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_acceleration,train,5271
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_acceleration,validation,1286
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_acceleration,test,756
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_climb,train,1120
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_climb,validation,386
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_climb,test,259
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_descent,train,926
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_descent,validation,289
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sustained_descent,test,186
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sparse_gap,train,9378
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sparse_gap,validation,3166
+campaign_3day_increment_v1,3-Day Campaign Increment,chronological_blocked,sparse_gap,test,2156
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_turn,train,756
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_turn,validation,253
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_turn,test,267
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_acceleration,train,4580
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_acceleration,validation,1486
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_acceleration,test,1522
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_climb,train,1101
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_climb,validation,370
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_climb,test,370
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_descent,train,886
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_descent,validation,267
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sustained_descent,test,325
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sparse_gap,train,9073
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sparse_gap,validation,3014
+expanded_post3day_v2,Expanded-3Day,aircraft_disjoint,sparse_gap,test,2949
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_turn,train,1028
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_turn,validation,151
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_turn,test,97
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_acceleration,train,5469
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_acceleration,validation,1181
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_acceleration,test,938
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_climb,train,1163
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_climb,validation,368
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_climb,test,310
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_descent,train,996
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_descent,validation,262
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sustained_descent,test,220
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sparse_gap,train,9557
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sparse_gap,validation,2916
+expanded_post3day_v2,Expanded-3Day,chronological_blocked,sparse_gap,test,2563

@@ -1,0 +1,721 @@
+variantID,displayName,turnIntensity,accelerationIntensity,verticalStatus,updateInterval,pairCount,trackCount,aircraftCount,sessionCount,occupied
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,descent,<0.75,1765,53,49,12,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,descent,<0.75,23,11,10,7,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,descent,<0.75,76,18,18,8,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,descent,<0.75,6,3,3,3,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,descent,<0.75,400,44,39,13,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,descent,<0.75,31,13,13,8,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,descent,<0.75,24,7,7,6,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,descent,<0.75,2,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,descent,<0.75,278,35,34,11,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,descent,<0.75,5,4,4,3,1
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,descent,<0.75,63,18,18,9,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,descent,<0.75,2,2,2,2,1
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,descent,<0.75,44,17,16,8,1
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,descent,<0.75,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,>=1,descent,<0.75,17,8,8,5,1
+legacy_pre3day_v1,Legacy-16,>=3,>=1,descent,<0.75,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,level,<0.75,2241,66,62,16,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,level,<0.75,32,13,13,9,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,level,<0.75,139,24,22,11,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,level,<0.75,19,4,4,3,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,level,<0.75,187,42,41,13,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,level,<0.75,40,16,16,9,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,level,<0.75,19,5,5,3,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,level,<0.75,3,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,level,<0.75,164,42,39,12,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,level,<0.75,5,5,5,5,1
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,level,<0.75,91,22,20,9,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,level,<0.75,6,5,5,3,1
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,level,<0.75,57,19,19,8,1
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,level,<0.75,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,level,<0.75,50,13,12,7,1
+legacy_pre3day_v1,Legacy-16,>=3,>=1,level,<0.75,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,climb,<0.75,1673,54,44,15,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,climb,<0.75,20,10,10,6,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,climb,<0.75,67,20,19,8,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,climb,<0.75,3,2,2,2,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,climb,<0.75,210,44,36,14,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,climb,<0.75,15,10,10,6,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,climb,<0.75,9,5,5,4,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,climb,<0.75,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,climb,<0.75,190,33,29,12,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,climb,<0.75,7,3,3,3,1
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,climb,<0.75,52,16,15,8,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,climb,<0.75,2,2,2,2,1
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,climb,<0.75,73,22,20,11,1
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,climb,<0.75,2,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,>=1,climb,<0.75,25,9,9,6,1
+legacy_pre3day_v1,Legacy-16,>=3,>=1,climb,<0.75,3,2,2,2,1
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,descent,0.75-2,739,64,59,15,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,descent,0.75-2,22,12,12,9,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,descent,0.75-2,8,5,5,4,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,descent,0.75-2,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,descent,0.75-2,396,55,51,14,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,descent,0.75-2,34,16,16,10,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,descent,0.75-2,11,4,4,2,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,descent,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,descent,0.75-2,69,27,27,10,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,descent,0.75-2,5,5,5,5,1
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,descent,0.75-2,15,7,7,5,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,descent,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,descent,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,descent,0.75-2,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,>=1,descent,0.75-2,5,1,1,1,1
+legacy_pre3day_v1,Legacy-16,>=3,>=1,descent,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,level,0.75-2,1689,88,79,15,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,level,0.75-2,34,20,20,8,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,level,0.75-2,17,11,11,6,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,level,0.75-2,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,level,0.75-2,311,69,63,14,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,level,0.75-2,43,21,20,12,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,level,0.75-2,14,6,6,3,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,level,0.75-2,3,2,2,2,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,level,0.75-2,26,16,16,7,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,level,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,level,0.75-2,16,7,7,4,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,level,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,level,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,level,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,level,0.75-2,5,1,1,1,1
+legacy_pre3day_v1,Legacy-16,>=3,>=1,level,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,climb,0.75-2,1184,72,60,14,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,climb,0.75-2,29,20,20,11,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,climb,0.75-2,31,10,10,9,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,climb,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,climb,0.75-2,554,69,57,14,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,climb,0.75-2,49,25,24,12,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,climb,0.75-2,31,5,5,4,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,climb,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,climb,0.75-2,143,37,29,12,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,climb,0.75-2,14,9,9,8,1
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,climb,0.75-2,23,7,7,6,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,climb,0.75-2,3,2,2,2,1
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,climb,0.75-2,19,6,6,6,1
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,climb,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,climb,0.75-2,3,2,2,2,1
+legacy_pre3day_v1,Legacy-16,>=3,>=1,climb,0.75-2,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,descent,2-5,116,45,44,15,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,descent,2-5,2,2,2,2,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,descent,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,descent,2-5,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,descent,2-5,113,42,41,13,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,descent,2-5,2,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,descent,2-5,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,descent,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,descent,2-5,5,4,4,3,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,descent,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,descent,2-5,4,3,3,2,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,descent,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,descent,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,descent,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,descent,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,descent,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,level,2-5,285,70,64,15,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,level,2-5,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,level,2-5,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,level,2-5,73,38,36,11,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,level,2-5,4,3,3,3,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,level,2-5,6,3,3,3,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,level,2-5,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,level,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,climb,2-5,189,46,40,14,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,climb,2-5,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,climb,2-5,3,3,3,2,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,climb,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,climb,2-5,143,47,40,15,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,climb,2-5,10,8,8,8,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,climb,2-5,8,5,4,4,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,climb,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,climb,2-5,17,9,8,6,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,climb,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,climb,2-5,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,climb,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,climb,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,climb,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,climb,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,climb,2-5,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,descent,5-15,40,25,25,12,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,descent,5-15,29,19,18,10,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,descent,5-15,3,3,3,3,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,descent,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,level,5-15,92,47,43,13,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,level,5-15,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,level,5-15,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,level,5-15,16,11,11,6,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,level,5-15,4,2,2,2,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,level,5-15,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,level,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,climb,5-15,53,29,27,13,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,climb,5-15,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,climb,5-15,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,climb,5-15,2,1,1,1,1
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,climb,5-15,33,20,20,9,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,climb,5-15,5,4,4,4,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,climb,5-15,4,4,4,4,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,climb,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,climb,5-15,2,2,2,2,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,climb,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,climb,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,climb,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,climb,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,climb,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,climb,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,climb,5-15,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,descent,15-30,4,4,4,2,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,descent,15-30,7,5,5,5,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,descent,15-30,2,1,1,1,1
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,descent,15-30,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,descent,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,level,15-30,18,15,15,8,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,level,15-30,4,4,4,3,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,level,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,<0.1,climb,15-30,9,8,8,8,1
+legacy_pre3day_v1,Legacy-16,0.5-1,<0.1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,<0.1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,<0.1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.1-0.5,climb,15-30,2,2,2,2,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.1-0.5,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.1-0.5,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,0.1-0.5,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,0.5-1,climb,15-30,1,1,1,1,1
+legacy_pre3day_v1,Legacy-16,0.5-1,0.5-1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,0.5-1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,0.5-1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,<0.5,>=1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,0.5-1,>=1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,1-3,>=1,climb,15-30,0,0,0,0,0
+legacy_pre3day_v1,Legacy-16,>=3,>=1,climb,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,descent,<0.75,50264,759,604,124,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,descent,<0.75,790,302,267,107,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,descent,<0.75,1747,390,329,113,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,descent,<0.75,201,56,51,40,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,descent,<0.75,11431,657,525,125,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,descent,<0.75,926,339,286,108,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,descent,<0.75,409,162,143,78,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,descent,<0.75,50,25,24,19,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,descent,<0.75,8922,588,479,123,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,descent,<0.75,250,154,140,87,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,descent,<0.75,1364,388,320,112,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,descent,<0.75,116,38,36,29,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,descent,<0.75,1478,373,312,115,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,descent,<0.75,24,19,18,17,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,descent,<0.75,378,172,150,93,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,descent,<0.75,91,21,21,16,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,level,<0.75,51527,908,717,123,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,level,<0.75,741,257,209,90,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,level,<0.75,2647,371,290,94,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,level,<0.75,408,94,79,57,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,level,<0.75,4442,642,515,114,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,level,<0.75,779,280,225,88,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,level,<0.75,472,157,130,67,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,level,<0.75,86,38,31,31,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,level,<0.75,4326,572,465,116,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,level,<0.75,180,106,92,62,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,level,<0.75,1511,333,256,87,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,level,<0.75,197,73,65,46,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,level,<0.75,1612,319,264,100,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,level,<0.75,20,15,15,14,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,level,<0.75,745,189,155,72,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,level,<0.75,106,42,38,31,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,climb,<0.75,40846,820,638,116,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,climb,<0.75,850,285,259,95,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,climb,<0.75,2268,336,285,94,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,climb,<0.75,286,88,81,46,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,climb,<0.75,6676,670,528,116,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,climb,<0.75,842,280,246,91,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,climb,<0.75,575,165,147,70,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,climb,<0.75,67,35,30,26,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,climb,<0.75,6062,569,464,113,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,climb,<0.75,237,115,109,60,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,climb,<0.75,1458,299,262,88,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,climb,<0.75,175,68,57,36,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,climb,<0.75,1754,310,269,96,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,climb,<0.75,34,22,21,20,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,climb,<0.75,603,168,147,73,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,climb,<0.75,100,36,34,27,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,descent,0.75-2,25866,950,776,127,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,descent,0.75-2,917,406,358,113,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,descent,0.75-2,715,242,217,91,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,descent,0.75-2,49,23,22,17,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,descent,0.75-2,13444,903,735,127,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,descent,0.75-2,1184,439,387,111,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,descent,0.75-2,858,212,193,85,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,descent,0.75-2,44,28,25,22,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,descent,0.75-2,2439,530,455,123,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,descent,0.75-2,245,158,146,89,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,descent,0.75-2,297,165,154,78,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,descent,0.75-2,23,16,16,13,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,descent,0.75-2,59,47,45,41,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,descent,0.75-2,10,10,10,9,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,descent,0.75-2,24,20,20,17,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,descent,0.75-2,7,4,4,4,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,level,0.75-2,47802,1404,1113,135,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,level,0.75-2,847,384,335,100,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,level,0.75-2,454,214,194,84,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,level,0.75-2,43,28,25,21,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,level,0.75-2,8507,1171,956,131,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,level,0.75-2,974,429,376,104,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,level,0.75-2,569,187,162,76,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,level,0.75-2,79,41,36,27,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,level,0.75-2,1318,480,424,117,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,level,0.75-2,154,106,96,60,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,level,0.75-2,277,153,136,70,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,level,0.75-2,34,26,25,18,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,level,0.75-2,57,43,42,34,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,level,0.75-2,9,9,9,9,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,level,0.75-2,26,24,23,21,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,level,0.75-2,3,3,3,3,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,climb,0.75-2,45303,1171,924,126,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,climb,0.75-2,1360,477,410,112,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,climb,0.75-2,747,261,246,88,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,climb,0.75-2,38,32,30,21,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,climb,0.75-2,18385,1095,863,125,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,climb,0.75-2,1510,507,444,109,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,climb,0.75-2,1080,253,227,89,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,climb,0.75-2,55,35,33,25,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,climb,0.75-2,3029,600,522,119,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,climb,0.75-2,311,166,161,74,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,climb,0.75-2,521,195,186,78,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,climb,0.75-2,30,20,20,18,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,climb,0.75-2,161,80,79,50,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,climb,0.75-2,27,21,21,18,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,climb,0.75-2,51,29,29,23,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,climb,0.75-2,9,7,7,7,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,descent,2-5,4053,819,694,127,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,descent,2-5,117,84,84,58,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,descent,2-5,153,86,84,51,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,descent,2-5,10,7,7,7,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,descent,2-5,4183,815,685,125,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,descent,2-5,199,147,139,78,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,descent,2-5,305,156,145,70,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,descent,2-5,19,14,12,13,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,descent,2-5,181,126,124,76,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,descent,2-5,2,2,2,2,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,descent,2-5,26,21,21,19,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,descent,2-5,7,7,7,6,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,descent,2-5,2,2,2,2,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,descent,2-5,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,descent,2-5,2,2,2,2,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,descent,2-5,2,2,2,2,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,level,2-5,10158,1238,1000,136,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,level,2-5,91,71,68,46,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,level,2-5,107,80,74,49,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,level,2-5,14,12,12,12,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,level,2-5,2492,951,805,132,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,level,2-5,142,102,98,59,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,level,2-5,245,127,118,59,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,level,2-5,30,20,17,19,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,level,2-5,163,101,91,62,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,level,2-5,17,12,12,11,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,level,2-5,40,31,30,25,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,level,2-5,6,5,5,5,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,level,2-5,3,3,3,3,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,level,2-5,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,level,2-5,2,2,2,2,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,level,2-5,4,3,3,3,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,climb,2-5,7691,1047,838,125,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,climb,2-5,179,135,129,78,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,climb,2-5,85,65,63,42,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,climb,2-5,9,9,9,8,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,climb,2-5,5411,1030,812,125,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,climb,2-5,215,155,144,79,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,climb,2-5,295,156,150,73,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,climb,2-5,28,23,23,19,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,climb,2-5,367,188,183,82,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,climb,2-5,23,18,18,17,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,climb,2-5,63,43,43,28,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,climb,2-5,8,6,6,6,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,climb,2-5,10,8,7,7,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,climb,2-5,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,climb,2-5,5,4,4,4,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,climb,2-5,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,descent,5-15,1484,606,534,122,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,descent,5-15,39,39,39,31,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,descent,5-15,68,55,55,35,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,descent,5-15,3,3,3,3,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,descent,5-15,1155,514,447,121,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,descent,5-15,72,56,55,42,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,descent,5-15,125,81,79,46,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,descent,5-15,8,8,7,8,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,descent,5-15,42,34,34,33,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,descent,5-15,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,descent,5-15,14,11,11,8,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,descent,5-15,2,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,descent,5-15,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,descent,5-15,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,descent,5-15,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,descent,5-15,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,level,5-15,3679,1046,879,135,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,level,5-15,42,34,33,28,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,level,5-15,49,38,38,29,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,level,5-15,8,7,7,6,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,level,5-15,481,309,281,96,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,level,5-15,40,33,33,30,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,level,5-15,98,68,64,39,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,level,5-15,9,9,8,8,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,level,5-15,32,29,29,27,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,level,5-15,4,4,4,4,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,level,5-15,10,8,8,7,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,level,5-15,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,level,5-15,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,level,5-15,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,level,5-15,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,level,5-15,2,2,2,2,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,climb,5-15,2884,840,695,124,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,climb,5-15,123,96,94,65,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,climb,5-15,42,38,38,32,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,climb,5-15,7,5,5,5,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,climb,5-15,1425,613,523,118,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,climb,5-15,115,92,89,59,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,climb,5-15,119,92,90,52,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,climb,5-15,9,8,8,8,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,climb,5-15,84,58,58,44,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,climb,5-15,7,7,7,7,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,climb,5-15,14,13,13,13,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,climb,5-15,6,5,5,5,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,climb,5-15,3,3,3,3,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,climb,5-15,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,climb,5-15,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,climb,5-15,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,descent,15-30,308,248,234,105,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,descent,15-30,12,11,11,11,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,descent,15-30,16,13,13,12,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,descent,15-30,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,descent,15-30,190,155,148,83,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,descent,15-30,10,10,10,9,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,descent,15-30,13,13,13,12,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,descent,15-30,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,descent,15-30,2,2,2,2,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,descent,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,descent,15-30,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,descent,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,descent,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,descent,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,descent,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,descent,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,level,15-30,791,507,458,118,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,level,15-30,15,13,13,12,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,level,15-30,11,11,11,10,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,level,15-30,3,3,3,3,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,level,15-30,77,71,69,45,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,level,15-30,9,9,9,7,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,level,15-30,12,12,12,10,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,level,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,level,15-30,4,4,4,4,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,level,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,level,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,level,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,level,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,level,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,level,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,level,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,<0.1,climb,15-30,590,384,339,114,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,<0.1,climb,15-30,24,22,22,19,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,<0.1,climb,15-30,6,6,6,6,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,<0.1,climb,15-30,2,2,2,2,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.1-0.5,climb,15-30,229,197,185,93,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.1-0.5,climb,15-30,29,27,27,24,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.1-0.5,climb,15-30,17,15,15,13,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.1-0.5,climb,15-30,4,4,4,4,1
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,0.5-1,climb,15-30,9,9,9,9,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,0.5-1,climb,15-30,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,0.5-1,climb,15-30,3,3,3,3,1
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,0.5-1,climb,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,<0.5,>=1,climb,15-30,1,1,1,1,1
+campaign_3day_increment_v1,3-Day Campaign Increment,0.5-1,>=1,climb,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,1-3,>=1,climb,15-30,0,0,0,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,>=3,>=1,climb,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,descent,<0.75,52029,812,643,136,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,descent,<0.75,813,313,276,114,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,descent,<0.75,1823,408,343,121,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,descent,<0.75,207,59,54,43,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,descent,<0.75,11831,701,559,138,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,descent,<0.75,957,352,297,116,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,descent,<0.75,433,169,150,84,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,descent,<0.75,52,26,25,20,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,descent,<0.75,9200,623,507,134,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,descent,<0.75,255,158,144,90,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,descent,<0.75,1427,406,335,121,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,descent,<0.75,118,40,38,31,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,descent,<0.75,1522,390,328,123,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,descent,<0.75,25,20,19,18,1
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,descent,<0.75,395,180,157,98,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,descent,<0.75,92,22,22,17,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,level,<0.75,53768,974,764,139,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,level,<0.75,773,270,221,99,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,level,<0.75,2786,395,307,105,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,level,<0.75,427,98,83,60,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,level,<0.75,4629,684,549,127,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,level,<0.75,819,296,240,97,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,level,<0.75,491,162,135,70,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,level,<0.75,89,39,32,32,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,level,<0.75,4490,614,493,128,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,level,<0.75,185,111,97,67,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,level,<0.75,1602,355,270,96,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,level,<0.75,203,78,70,49,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,level,<0.75,1669,338,277,108,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,level,<0.75,20,15,15,14,1
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,level,<0.75,795,202,163,79,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,level,<0.75,106,42,38,31,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,climb,<0.75,42519,874,671,131,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,climb,<0.75,870,295,267,101,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,climb,<0.75,2335,356,301,102,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,climb,<0.75,289,90,82,48,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,climb,<0.75,6886,714,556,130,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,climb,<0.75,857,290,255,97,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,climb,<0.75,584,170,152,74,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,climb,<0.75,67,35,30,26,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,climb,<0.75,6252,602,488,125,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,climb,<0.75,244,118,112,63,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,climb,<0.75,1510,315,273,96,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,climb,<0.75,177,70,58,38,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,climb,<0.75,1827,332,285,107,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,climb,<0.75,36,23,22,21,1
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,climb,<0.75,628,177,153,79,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,climb,<0.75,103,38,36,29,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,descent,0.75-2,26605,1014,828,142,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,descent,0.75-2,939,418,369,122,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,descent,0.75-2,723,247,222,95,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,descent,0.75-2,50,24,23,18,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,descent,0.75-2,13840,958,782,141,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,descent,0.75-2,1218,455,402,121,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,descent,0.75-2,869,216,197,87,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,descent,0.75-2,44,28,25,22,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,descent,0.75-2,2508,557,479,133,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,descent,0.75-2,250,163,151,94,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,descent,0.75-2,312,172,160,83,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,descent,0.75-2,23,16,16,13,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,descent,0.75-2,59,47,45,41,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,descent,0.75-2,11,11,11,10,1
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,descent,0.75-2,29,21,21,18,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,descent,0.75-2,7,4,4,4,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,level,0.75-2,49491,1492,1176,150,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,level,0.75-2,881,404,353,108,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,level,0.75-2,471,225,205,90,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,level,0.75-2,44,29,26,22,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,level,0.75-2,8818,1240,1007,145,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,level,0.75-2,1017,450,394,116,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,level,0.75-2,583,193,167,79,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,level,0.75-2,82,43,38,29,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,level,0.75-2,1344,496,440,124,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,level,0.75-2,154,106,96,60,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,level,0.75-2,293,160,143,74,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,level,0.75-2,34,26,25,18,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,level,0.75-2,57,43,42,34,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,level,0.75-2,9,9,9,9,1
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,level,0.75-2,31,25,24,22,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,level,0.75-2,3,3,3,3,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,climb,0.75-2,46487,1243,968,140,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,climb,0.75-2,1389,497,427,123,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,climb,0.75-2,778,271,254,97,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,climb,0.75-2,38,32,30,21,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,climb,0.75-2,18939,1164,908,139,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,climb,0.75-2,1559,532,466,121,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,climb,0.75-2,1111,258,231,93,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,climb,0.75-2,55,35,33,25,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,climb,0.75-2,3172,637,545,131,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,climb,0.75-2,325,175,170,82,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,climb,0.75-2,544,202,193,84,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,climb,0.75-2,33,22,22,20,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,climb,0.75-2,180,86,85,56,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,climb,0.75-2,27,21,21,18,1
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,climb,0.75-2,54,31,31,25,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,climb,0.75-2,9,7,7,7,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,descent,2-5,4169,864,733,142,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,descent,2-5,119,86,86,60,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,descent,2-5,153,86,84,51,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,descent,2-5,11,8,8,8,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,descent,2-5,4296,857,724,138,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,descent,2-5,201,148,140,79,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,descent,2-5,306,157,146,71,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,descent,2-5,19,14,12,13,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,descent,2-5,186,130,127,79,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,descent,2-5,2,2,2,2,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,descent,2-5,30,24,24,21,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,descent,2-5,7,7,7,6,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,descent,2-5,2,2,2,2,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,descent,2-5,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,descent,2-5,2,2,2,2,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,descent,2-5,2,2,2,2,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,level,2-5,10443,1308,1052,151,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,level,2-5,92,72,69,47,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,level,2-5,108,81,75,50,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,level,2-5,14,12,12,12,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,level,2-5,2565,989,834,143,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,level,2-5,146,105,101,62,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,level,2-5,251,130,121,62,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,level,2-5,31,21,18,20,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,level,2-5,163,101,91,62,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,level,2-5,17,12,12,11,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,level,2-5,40,31,30,25,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,level,2-5,6,5,5,5,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,level,2-5,3,3,3,3,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,level,2-5,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,level,2-5,2,2,2,2,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,level,2-5,4,3,3,3,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,climb,2-5,7880,1093,866,139,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,climb,2-5,180,136,130,79,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,climb,2-5,88,68,66,44,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,climb,2-5,9,9,9,8,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,climb,2-5,5554,1077,843,140,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,climb,2-5,225,163,152,87,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,climb,2-5,303,161,154,77,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,climb,2-5,28,23,23,19,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,climb,2-5,384,197,190,88,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,climb,2-5,23,18,18,17,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,climb,2-5,64,44,44,29,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,climb,2-5,8,6,6,6,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,climb,2-5,10,8,7,7,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,climb,2-5,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,climb,2-5,5,4,4,4,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,climb,2-5,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,descent,5-15,1524,631,558,134,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,descent,5-15,39,39,39,31,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,descent,5-15,68,55,55,35,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,descent,5-15,3,3,3,3,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,descent,5-15,1184,533,465,131,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,descent,5-15,72,56,55,42,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,descent,5-15,128,84,82,49,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,descent,5-15,8,8,7,8,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,descent,5-15,42,34,34,33,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,descent,5-15,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,descent,5-15,14,11,11,8,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,descent,5-15,2,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,descent,5-15,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,descent,5-15,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,descent,5-15,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,descent,5-15,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,level,5-15,3771,1093,913,148,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,level,5-15,43,35,34,29,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,level,5-15,49,38,38,29,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,level,5-15,9,8,8,7,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,level,5-15,497,320,290,102,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,level,5-15,40,33,33,30,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,level,5-15,102,70,66,41,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,level,5-15,9,9,8,8,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,level,5-15,32,29,29,27,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,level,5-15,4,4,4,4,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,level,5-15,11,9,9,8,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,level,5-15,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,level,5-15,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,level,5-15,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,level,5-15,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,level,5-15,2,2,2,2,1
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,climb,5-15,2937,869,717,137,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,climb,5-15,124,97,95,66,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,climb,5-15,43,39,39,33,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,climb,5-15,9,6,6,6,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,climb,5-15,1458,633,540,127,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,climb,5-15,120,96,93,63,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,climb,5-15,123,96,94,56,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,climb,5-15,9,8,8,8,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,climb,5-15,86,60,60,46,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,climb,5-15,7,7,7,7,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,climb,5-15,14,13,13,13,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,climb,5-15,6,5,5,5,1
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,climb,5-15,3,3,3,3,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,climb,5-15,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,climb,5-15,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,climb,5-15,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,descent,15-30,312,252,238,107,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,descent,15-30,12,11,11,11,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,descent,15-30,16,13,13,12,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,descent,15-30,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,descent,15-30,197,160,153,88,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,descent,15-30,12,11,11,10,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,descent,15-30,14,14,14,13,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,descent,15-30,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,descent,15-30,2,2,2,2,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,descent,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,descent,15-30,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,descent,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,descent,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,descent,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,descent,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,descent,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,level,15-30,809,522,469,126,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,level,15-30,15,13,13,12,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,level,15-30,11,11,11,10,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,level,15-30,3,3,3,3,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,level,15-30,81,75,72,48,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,level,15-30,9,9,9,7,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,level,15-30,12,12,12,10,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,level,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,level,15-30,4,4,4,4,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,level,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,level,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,level,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,level,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,level,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,level,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,level,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,<0.1,climb,15-30,599,392,347,122,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,<0.1,climb,15-30,24,22,22,19,1
+expanded_post3day_v2,Expanded-3Day,1-3,<0.1,climb,15-30,6,6,6,6,1
+expanded_post3day_v2,Expanded-3Day,>=3,<0.1,climb,15-30,2,2,2,2,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.1-0.5,climb,15-30,231,199,187,95,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.1-0.5,climb,15-30,29,27,27,24,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.1-0.5,climb,15-30,17,15,15,13,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.1-0.5,climb,15-30,4,4,4,4,1
+expanded_post3day_v2,Expanded-3Day,<0.5,0.5-1,climb,15-30,10,10,10,10,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,0.5-1,climb,15-30,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,1-3,0.5-1,climb,15-30,3,3,3,3,1
+expanded_post3day_v2,Expanded-3Day,>=3,0.5-1,climb,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,<0.5,>=1,climb,15-30,1,1,1,1,1
+expanded_post3day_v2,Expanded-3Day,0.5-1,>=1,climb,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,1-3,>=1,climb,15-30,0,0,0,0,0
+expanded_post3day_v2,Expanded-3Day,>=3,>=1,climb,15-30,0,0,0,0,0

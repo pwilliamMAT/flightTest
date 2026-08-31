@@ -1,0 +1,7 @@
+variantID,displayName,method,sampleCount,positionRMSEMeters,velocityRMSEMetersPerSecond,positionMedianErrorMeters,positionP95ErrorMeters,interpretation
+legacy_pre3day_v1,Legacy-16,constvel baseline,15013,23.8704419531022,5.05349265170549,5.9844835805415,18.7131420094738,Native Sensor Fusion constant-velocity prediction on the exact Stage 3B samples.
+legacy_pre3day_v1,Legacy-16,Frozen Stage 3A delta MLP,15013,151.260496476313,5.06664026918111,26.6967546383104,162.565948549172,Frozen Stage 3A delta-target MLP reconstructed as previousState + predictedDelta.
+campaign_3day_increment_v1,3-Day Campaign Increment,constvel baseline,442890,24.5418656428501,3.87322094027817,5.87575148749961,19.8161370152412,Native Sensor Fusion constant-velocity prediction on the exact Stage 3B samples.
+campaign_3day_increment_v1,3-Day Campaign Increment,Frozen Stage 3A delta MLP,442890,213.459510213524,3.95038142490085,30.2718283654164,256.451587436042,Frozen Stage 3A delta-target MLP reconstructed as previousState + predictedDelta.
+expanded_post3day_v2,Expanded-3Day,constvel baseline,457903,24.5201435777811,3.91756001245716,5.87879958224076,19.7716737763014,Native Sensor Fusion constant-velocity prediction on the exact Stage 3B samples.
+expanded_post3day_v2,Expanded-3Day,Frozen Stage 3A delta MLP,457903,211.710167845085,3.99193180600044,30.1173186597361,252.823535720154,Frozen Stage 3A delta-target MLP reconstructed as previousState + predictedDelta.

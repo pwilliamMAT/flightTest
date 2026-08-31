@@ -1,0 +1,13 @@
+gate,observed,required,passed
+all source files classified,"143/143 classified; 0 parse failures","all classified; zero failures",1
+campaign files with usable pairs,"138/143 (96.5%)",">=95%",1
+sustained turn diversity,"1276 events, 483 ICAO, 3 campaign days",">=30 events, >=10 ICAO, 3 campaign days",1
+sustained acceleration diversity,"7588 events, 1191 ICAO, 3 campaign days",">=30 events, >=10 ICAO, 3 campaign days",1
+sustained climb diversity,"1841 events, 989 ICAO, 3 campaign days",">=50 events, >=15 ICAO, 3 campaign days",1
+sustained descent diversity,"1478 events, 859 ICAO, 3 campaign days",">=50 events, >=15 ICAO, 3 campaign days",1
+sparse-update diversity,"15036 events, 2715 tracks, 3 campaign days",">=100 events, >=20 tracks, 3 campaign days",1
+contributor concentration,"max ICAO 1.6%; max campaign day 46.6%","each critical regime: ICAO <=20%, campaign day <=60%",1
+aircraft-disjoint split support,"minimum train/validation/test = 756/253/267 events","all regimes in train; >=5 each in validation/test",1
+chronological split support,"minimum train/validation/test = 996/151/97 events","all regimes in train; >=5 each in validation/test",1
+expanded independent coverage,"+26416 events; +84 occupied cells","positive events and occupied cells",1
+no neural retraining,"0 retraining run(s)","0",1

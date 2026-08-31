@@ -1,0 +1,81 @@
+variantID,displayName,dimension,regime,pairCount,percent,aircraftCount,trackCount,sessionCount,campaignBlockCount
+legacy_pre3day_v1,Legacy-16,turn_intensity,<0.5,13663,91.0077932458536,185,219,16,0
+legacy_pre3day_v1,Legacy-16,turn_intensity,1-3,849,5.6550989142743,68,77,16,0
+legacy_pre3day_v1,Legacy-16,turn_intensity,0.5-1,441,2.93745420635449,85,96,16,0
+legacy_pre3day_v1,Legacy-16,turn_intensity,>=3,60,0.399653633517618,11,11,7,0
+legacy_pre3day_v1,Legacy-16,acceleration_intensity,0.5-1,1210,8.05968160927196,101,118,16,0
+legacy_pre3day_v1,Legacy-16,acceleration_intensity,<0.1,10640,70.8719110104576,176,209,16,0
+legacy_pre3day_v1,Legacy-16,acceleration_intensity,0.1-0.5,2857,19.0301738493306,167,197,16,0
+legacy_pre3day_v1,Legacy-16,acceleration_intensity,>=1,306,2.03823353093985,53,59,15,0
+legacy_pre3day_v1,Legacy-16,vertical_status,level,5720,38.1003130620129,98,109,16,0
+legacy_pre3day_v1,Legacy-16,vertical_status,climb,4919,32.7649370545527,81,95,16,0
+legacy_pre3day_v1,Legacy-16,vertical_status,descent,4374,29.1347498834344,80,85,15,0
+legacy_pre3day_v1,Legacy-16,update_interval,<0.75,8142,54.2329980683408,125,144,16,0
+legacy_pre3day_v1,Legacy-16,update_interval,0.75-2,5548,36.9546393125958,176,209,16,0
+legacy_pre3day_v1,Legacy-16,update_interval,5-15,288,1.91833744088457,115,130,16,0
+legacy_pre3day_v1,Legacy-16,update_interval,2-5,987,6.57430227136482,159,187,16,0
+legacy_pre3day_v1,Legacy-16,update_interval,15-30,48,0.319722906814094,40,40,13,0
+legacy_pre3day_v1,Legacy-16,legacy_maneuver_class,constacc_like,3129,20.8419369879438,146,173,16,0
+legacy_pre3day_v1,Legacy-16,legacy_maneuver_class,constvel_like,10699,71.2649037500833,182,214,16,0
+legacy_pre3day_v1,Legacy-16,legacy_maneuver_class,constturn_like,350,2.33131286218611,52,56,14,0
+legacy_pre3day_v1,Legacy-16,legacy_maneuver_class,mixed_or_sparse,835,5.56184639978685,148,168,16,0
+campaign_3day_increment_v1,3-Day Campaign Increment,turn_intensity,<0.5,403895,91.1953306690149,1833,2893,138,3
+campaign_3day_increment_v1,3-Day Campaign Increment,turn_intensity,0.5-1,14750,3.33039806724017,1127,1645,131,3
+campaign_3day_increment_v1,3-Day Campaign Increment,turn_intensity,1-3,21744,4.9095712253607,895,1286,127,3
+campaign_3day_increment_v1,3-Day Campaign Increment,turn_intensity,>=3,2501,0.564700038384249,240,309,83,3
+campaign_3day_increment_v1,3-Day Campaign Increment,acceleration_intensity,0.1-0.5,91255,20.6044390254917,1715,2667,136,3
+campaign_3day_increment_v1,3-Day Campaign Increment,acceleration_intensity,<0.1,309590,69.9022330601278,1812,2854,138,3
+campaign_3day_increment_v1,3-Day Campaign Increment,acceleration_intensity,0.5-1,34616,7.81593623698887,1232,1818,132,3
+campaign_3day_increment_v1,3-Day Campaign Increment,acceleration_intensity,>=1,7429,1.67739167739168,661,877,126,3
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_status,descent,137451,31.0350199823884,918,1154,130,3
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_status,level,149844,33.8332317279686,1265,1671,137,3
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_status,climb,155595,35.131748289643,1062,1425,126,3
+campaign_3day_increment_v1,3-Day Campaign Increment,update_interval,0.75-2,179951,40.6310822100296,1796,2815,138,3
+campaign_3day_increment_v1,3-Day Campaign Increment,update_interval,2-5,37166,8.39169997064734,1771,2779,138,3
+campaign_3day_increment_v1,3-Day Campaign Increment,update_interval,5-15,12309,2.77924541082436,1675,2505,137,3
+campaign_3day_increment_v1,3-Day Campaign Increment,update_interval,<0.75,211073,47.6581092370566,1251,1928,133,3
+campaign_3day_increment_v1,3-Day Campaign Increment,update_interval,15-30,2391,0.539863171442119,1085,1421,131,3
+campaign_3day_increment_v1,3-Day Campaign Increment,legacy_maneuver_class,constvel_like,319977,72.2475106685633,1807,2837,138,3
+campaign_3day_increment_v1,3-Day Campaign Increment,legacy_maneuver_class,mixed_or_sparse,27137,6.1272550746235,1743,2686,137,3
+campaign_3day_increment_v1,3-Day Campaign Increment,legacy_maneuver_class,constacc_like,85359,19.2731829573935,1596,2421,136,3
+campaign_3day_increment_v1,3-Day Campaign Increment,legacy_maneuver_class,constturn_like,10417,2.35205129941972,768,1076,126,3
+expanded_post3day_v2,Expanded-3Day,turn_intensity,<0.5,417558,91.189181988325,1964,3112,154,3
+expanded_post3day_v2,Expanded-3Day,turn_intensity,1-3,22593,4.93401440916526,943,1363,143,3
+expanded_post3day_v2,Expanded-3Day,turn_intensity,0.5-1,15191,3.31751484484705,1193,1741,147,3
+expanded_post3day_v2,Expanded-3Day,turn_intensity,>=3,2561,0.559288757662649,249,320,90,3
+expanded_post3day_v2,Expanded-3Day,acceleration_intensity,0.5-1,35826,7.82392777509647,1309,1936,148,3
+expanded_post3day_v2,Expanded-3Day,acceleration_intensity,<0.1,320230,69.9340253285084,1938,3063,154,3
+expanded_post3day_v2,Expanded-3Day,acceleration_intensity,0.1-0.5,94112,20.5528245065003,1838,2864,152,3
+expanded_post3day_v2,Expanded-3Day,acceleration_intensity,>=1,7735,1.6892223898948,699,936,141,3
+expanded_post3day_v2,Expanded-3Day,vertical_status,level,155564,33.9731340480407,1337,1780,153,3
+expanded_post3day_v2,Expanded-3Day,vertical_status,climb,160514,35.054149022828,1123,1520,142,3
+expanded_post3day_v2,Expanded-3Day,vertical_status,descent,141825,30.9727169291313,985,1239,145,3
+expanded_post3day_v2,Expanded-3Day,update_interval,<0.75,219215,47.873676302623,1343,2072,149,3
+expanded_post3day_v2,Expanded-3Day,update_interval,0.75-2,185499,40.5105448097086,1925,3024,154,3
+expanded_post3day_v2,Expanded-3Day,update_interval,5-15,12597,2.75101932068582,1758,2635,153,3
+expanded_post3day_v2,Expanded-3Day,update_interval,2-5,38153,8.33211400667827,1886,2966,154,3
+expanded_post3day_v2,Expanded-3Day,update_interval,15-30,2439,0.532645560304257,1117,1461,144,3
+expanded_post3day_v2,Expanded-3Day,legacy_maneuver_class,constacc_like,88488,19.3246167856511,1706,2594,152,3
+expanded_post3day_v2,Expanded-3Day,legacy_maneuver_class,constvel_like,330676,72.2152945056049,1937,3051,154,3
+expanded_post3day_v2,Expanded-3Day,legacy_maneuver_class,constturn_like,10767,2.35137136030993,803,1132,140,3
+expanded_post3day_v2,Expanded-3Day,legacy_maneuver_class,mixed_or_sparse,27972,6.10871734843406,1846,2854,153,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,turn_intensity,<0.5,403895,0.181388742471441,1779,2893,138,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,turn_intensity,1-3,21744,-0.721084505109036,875,1286,127,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,turn_intensity,0.5-1,14750,0.38006063849256,1108,1645,131,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,turn_intensity,>=3,2501,0.159635124145031,238,309,83,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,acceleration_intensity,0.5-1,34616,-0.235753834175491,1208,1818,132,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,acceleration_intensity,<0.1,309590,-0.937885681949169,1762,2854,138,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,acceleration_intensity,0.1-0.5,91255,1.52265065716971,1671,2667,136,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,acceleration_intensity,>=1,7429,-0.349011141045049,646,877,126,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,vertical_status,level,149844,-4.12717901397218,1239,1671,137,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,vertical_status,climb,155595,2.28921196827526,1042,1425,126,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,vertical_status,descent,137451,1.83796704569692,905,1154,130,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,update_interval,<0.75,211073,-6.35932176571772,1218,1928,133,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,update_interval,0.75-2,179951,3.55590549711285,1749,2815,138,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,update_interval,5-15,12309,0.832681879801255,1643,2505,137,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,update_interval,2-5,37166,1.75781173531345,1727,2779,138,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,update_interval,15-30,2391,0.212922653490162,1077,1421,131,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,legacy_maneuver_class,constacc_like,85359,-1.51732020229267,1560,2421,136,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,legacy_maneuver_class,constvel_like,319977,0.950390755521639,1755,2837,138,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,legacy_maneuver_class,constturn_like,10417,0.0200584981238294,751,1076,126,3
+expanded_minus_legacy,Expanded-3Day minus Legacy-16,legacy_maneuver_class,mixed_or_sparse,27137,0.546870948647205,1698,2686,137,3

@@ -1,0 +1,109 @@
+variantID,displayName,variable,bin,binOrder,sampleCount,percent
+legacy_pre3day_v1,Legacy-16,horizontal_speed_mps,<50,1,446,2.97075867581429
+legacy_pre3day_v1,Legacy-16,horizontal_speed_mps,50-100,2,3269,21.7744621328182
+legacy_pre3day_v1,Legacy-16,horizontal_speed_mps,100-150,3,2775,18.4839805501898
+legacy_pre3day_v1,Legacy-16,horizontal_speed_mps,150-200,4,5136,34.2103510291081
+legacy_pre3day_v1,Legacy-16,horizontal_speed_mps,200-250,5,3133,20.8685805635116
+legacy_pre3day_v1,Legacy-16,horizontal_speed_mps,>=250,6,254,1.69186704855792
+legacy_pre3day_v1,Legacy-16,altitude_m,<0,1,0,0
+legacy_pre3day_v1,Legacy-16,altitude_m,0-1k,2,1361,9.06547658695797
+legacy_pre3day_v1,Legacy-16,altitude_m,1k-3k,3,5199,34.6299873443016
+legacy_pre3day_v1,Legacy-16,altitude_m,3k-6k,4,3878,25.830946513022
+legacy_pre3day_v1,Legacy-16,altitude_m,6k-10k,5,2643,17.6047425564511
+legacy_pre3day_v1,Legacy-16,altitude_m,10k-15k,6,1932,12.8688469992673
+legacy_pre3day_v1,Legacy-16,altitude_m,>=15k,7,0,0
+legacy_pre3day_v1,Legacy-16,abs_turn_rate_degps,<0.5,1,13663,91.0077932458536
+legacy_pre3day_v1,Legacy-16,abs_turn_rate_degps,0.5-1,2,441,2.93745420635449
+legacy_pre3day_v1,Legacy-16,abs_turn_rate_degps,1-3,3,849,5.6550989142743
+legacy_pre3day_v1,Legacy-16,abs_turn_rate_degps,3-10,4,56,0.373010057949777
+legacy_pre3day_v1,Legacy-16,abs_turn_rate_degps,>=10,5,4,0.0266435755678412
+legacy_pre3day_v1,Legacy-16,abs_horizontal_acceleration_mps2,<0.1,1,10640,70.8719110104576
+legacy_pre3day_v1,Legacy-16,abs_horizontal_acceleration_mps2,0.1-0.5,2,2857,19.0301738493306
+legacy_pre3day_v1,Legacy-16,abs_horizontal_acceleration_mps2,0.5-1,3,1210,8.05968160927196
+legacy_pre3day_v1,Legacy-16,abs_horizontal_acceleration_mps2,1-2,4,301,2.00492906148005
+legacy_pre3day_v1,Legacy-16,abs_horizontal_acceleration_mps2,2-5,5,5,0.0333044694598015
+legacy_pre3day_v1,Legacy-16,abs_horizontal_acceleration_mps2,>=5,6,0,0
+legacy_pre3day_v1,Legacy-16,vertical_rate_mps,<-10,1,189,1.2589089455805
+legacy_pre3day_v1,Legacy-16,vertical_rate_mps,-10--5,2,2416,16.0927196429761
+legacy_pre3day_v1,Legacy-16,vertical_rate_mps,-5--1,3,1769,11.7831212948778
+legacy_pre3day_v1,Legacy-16,vertical_rate_mps,-1-1,4,5720,38.1003130620129
+legacy_pre3day_v1,Legacy-16,vertical_rate_mps,1-5,5,1221,8.13295144208353
+legacy_pre3day_v1,Legacy-16,vertical_rate_mps,5-10,6,2276,15.1601944981016
+legacy_pre3day_v1,Legacy-16,vertical_rate_mps,>=10,7,1422,9.47179111436755
+legacy_pre3day_v1,Legacy-16,dt_seconds,<0.75,1,8142,54.2329980683408
+legacy_pre3day_v1,Legacy-16,dt_seconds,0.75-2,2,5548,36.9546393125958
+legacy_pre3day_v1,Legacy-16,dt_seconds,2-5,3,987,6.57430227136482
+legacy_pre3day_v1,Legacy-16,dt_seconds,5-15,4,288,1.91833744088457
+legacy_pre3day_v1,Legacy-16,dt_seconds,15-30,5,48,0.319722906814094
+campaign_3day_increment_v1,3-Day Campaign Increment,horizontal_speed_mps,<50,1,13047,2.9458782090361
+campaign_3day_increment_v1,3-Day Campaign Increment,horizontal_speed_mps,50-100,2,73619,16.6224118855698
+campaign_3day_increment_v1,3-Day Campaign Increment,horizontal_speed_mps,100-150,3,81695,18.4458894985211
+campaign_3day_increment_v1,3-Day Campaign Increment,horizontal_speed_mps,150-200,4,176563,39.866106708212
+campaign_3day_increment_v1,3-Day Campaign Increment,horizontal_speed_mps,200-250,5,64021,14.4552823500192
+campaign_3day_increment_v1,3-Day Campaign Increment,horizontal_speed_mps,>=250,6,33945,7.66443134864187
+campaign_3day_increment_v1,3-Day Campaign Increment,altitude_m,<0,1,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,altitude_m,0-1k,2,47268,10.6726275147328
+campaign_3day_increment_v1,3-Day Campaign Increment,altitude_m,1k-3k,3,123648,27.91844476055
+campaign_3day_increment_v1,3-Day Campaign Increment,altitude_m,3k-6k,4,130971,29.5719027297975
+campaign_3day_increment_v1,3-Day Campaign Increment,altitude_m,6k-10k,5,93710,21.1587527377001
+campaign_3day_increment_v1,3-Day Campaign Increment,altitude_m,10k-15k,6,47293,10.6782722572196
+campaign_3day_increment_v1,3-Day Campaign Increment,altitude_m,>=15k,7,0,0
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_turn_rate_degps,<0.5,1,403895,91.1953306690149
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_turn_rate_degps,0.5-1,2,14750,3.33039806724017
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_turn_rate_degps,1-3,3,21744,4.9095712253607
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_turn_rate_degps,3-10,4,2241,0.505994716521032
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_turn_rate_degps,>=10,5,260,0.0587053218632166
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_horizontal_acceleration_mps2,<0.1,1,309590,69.9022330601278
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_horizontal_acceleration_mps2,0.1-0.5,2,91255,20.6044390254917
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_horizontal_acceleration_mps2,0.5-1,3,34616,7.81593623698887
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_horizontal_acceleration_mps2,1-2,4,7218,1.62975005080268
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_horizontal_acceleration_mps2,2-5,5,207,0.0467384677910994
+campaign_3day_increment_v1,3-Day Campaign Increment,abs_horizontal_acceleration_mps2,>=5,6,4,0.00090315879789564
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_rate_mps,<-10,1,7962,1.79773758721127
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_rate_mps,-10--5,2,75857,17.1277292329924
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_rate_mps,-5--1,3,53632,12.1095531621847
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_rate_mps,-1-1,4,149844,33.8332317279686
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_rate_mps,1-5,5,39851,8.99794531373479
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_rate_mps,5-10,6,74421,16.8034952245479
+campaign_3day_increment_v1,3-Day Campaign Increment,vertical_rate_mps,>=10,7,41323,9.33030775136038
+campaign_3day_increment_v1,3-Day Campaign Increment,dt_seconds,<0.75,1,211073,47.6581092370566
+campaign_3day_increment_v1,3-Day Campaign Increment,dt_seconds,0.75-2,2,179951,40.6310822100296
+campaign_3day_increment_v1,3-Day Campaign Increment,dt_seconds,2-5,3,37166,8.39169997064734
+campaign_3day_increment_v1,3-Day Campaign Increment,dt_seconds,5-15,4,12309,2.77924541082436
+campaign_3day_increment_v1,3-Day Campaign Increment,dt_seconds,15-30,5,2391,0.539863171442119
+expanded_post3day_v2,Expanded-3Day,horizontal_speed_mps,<50,1,13493,2.94669395046549
+expanded_post3day_v2,Expanded-3Day,horizontal_speed_mps,50-100,2,76888,16.7913291679679
+expanded_post3day_v2,Expanded-3Day,horizontal_speed_mps,100-150,3,84470,18.4471383677329
+expanded_post3day_v2,Expanded-3Day,horizontal_speed_mps,150-200,4,181699,39.6806747280538
+expanded_post3day_v2,Expanded-3Day,horizontal_speed_mps,200-250,5,67154,14.6655514377499
+expanded_post3day_v2,Expanded-3Day,horizontal_speed_mps,>=250,6,34199,7.46861234803004
+expanded_post3day_v2,Expanded-3Day,altitude_m,<0,1,0,0
+expanded_post3day_v2,Expanded-3Day,altitude_m,0-1k,2,48629,10.6199347896825
+expanded_post3day_v2,Expanded-3Day,altitude_m,1k-3k,3,128847,28.1384922134164
+expanded_post3day_v2,Expanded-3Day,altitude_m,3k-6k,4,134849,29.4492501687039
+expanded_post3day_v2,Expanded-3Day,altitude_m,6k-10k,5,96353,21.0422294678131
+expanded_post3day_v2,Expanded-3Day,altitude_m,10k-15k,6,49225,10.7500933603842
+expanded_post3day_v2,Expanded-3Day,altitude_m,>=15k,7,0,0
+expanded_post3day_v2,Expanded-3Day,abs_turn_rate_degps,<0.5,1,417558,91.189181988325
+expanded_post3day_v2,Expanded-3Day,abs_turn_rate_degps,0.5-1,2,15191,3.31751484484705
+expanded_post3day_v2,Expanded-3Day,abs_turn_rate_degps,1-3,3,22593,4.93401440916526
+expanded_post3day_v2,Expanded-3Day,abs_turn_rate_degps,3-10,4,2297,0.501634625673996
+expanded_post3day_v2,Expanded-3Day,abs_turn_rate_degps,>=10,5,264,0.0576541319886526
+expanded_post3day_v2,Expanded-3Day,abs_horizontal_acceleration_mps2,<0.1,1,320230,69.9340253285084
+expanded_post3day_v2,Expanded-3Day,abs_horizontal_acceleration_mps2,0.1-0.5,2,94112,20.5528245065003
+expanded_post3day_v2,Expanded-3Day,abs_horizontal_acceleration_mps2,0.5-1,3,35826,7.82392777509647
+expanded_post3day_v2,Expanded-3Day,abs_horizontal_acceleration_mps2,1-2,4,7519,1.64205082735863
+expanded_post3day_v2,Expanded-3Day,abs_horizontal_acceleration_mps2,2-5,5,212,0.0462980150817968
+expanded_post3day_v2,Expanded-3Day,abs_horizontal_acceleration_mps2,>=5,6,4,0.000873547454373524
+expanded_post3day_v2,Expanded-3Day,vertical_rate_mps,<-10,1,8151,1.78007132514965
+expanded_post3day_v2,Expanded-3Day,vertical_rate_mps,-10--5,2,78273,17.0937949740447
+expanded_post3day_v2,Expanded-3Day,vertical_rate_mps,-5--1,3,55401,12.0988506299369
+expanded_post3day_v2,Expanded-3Day,vertical_rate_mps,-1-1,4,155564,33.9731340480407
+expanded_post3day_v2,Expanded-3Day,vertical_rate_mps,1-5,5,41072,8.96958526150735
+expanded_post3day_v2,Expanded-3Day,vertical_rate_mps,5-10,6,76697,16.7496172770216
+expanded_post3day_v2,Expanded-3Day,vertical_rate_mps,>=10,7,42745,9.33494648429908
+expanded_post3day_v2,Expanded-3Day,dt_seconds,<0.75,1,219215,47.873676302623
+expanded_post3day_v2,Expanded-3Day,dt_seconds,0.75-2,2,185499,40.5105448097086
+expanded_post3day_v2,Expanded-3Day,dt_seconds,2-5,3,38153,8.33211400667827
+expanded_post3day_v2,Expanded-3Day,dt_seconds,5-15,4,12597,2.75101932068582
+expanded_post3day_v2,Expanded-3Day,dt_seconds,15-30,5,2439,0.532645560304257

@@ -1,0 +1,6 @@
+displayName,eventType,eventCount,totalDurationSeconds
+Expanded-3Day minus Legacy-16,sustained_turn,1237,17061.806
+Expanded-3Day minus Legacy-16,sustained_acceleration,7313,75260.513
+Expanded-3Day minus Legacy-16,sustained_climb,1765,205824.792
+Expanded-3Day minus Legacy-16,sustained_descent,1401,148651.58
+Expanded-3Day minus Legacy-16,sparse_gap,14700,148594.978
