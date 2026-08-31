@@ -7,8 +7,8 @@
   - `C:\Users\pwilliam\agenticProjects\toolkits\sensor-fusion-and-tracking-toolbox\.claude\skills\matlab-multi-object-tracking\SKILL.md`
   - `C:\Users\pwilliam\.agents\skills\matlab-testing\SKILL.md`
 - Project task: preserve the completed ADS-B Stage 4B-Post through Stage 4D work in coherent Git commits, isolate Stage 4E as work in progress, and verify each boundary before publishing it remotely.
-- How the skills affected the work: retained the native `constvel`, `constacc`, `constturn`, `trackingEKF`, `trackingUKF`, and `trackingIMM` semantics; used the existing class-based tests as the acceptance evidence; and treated Stage 4E as WIP because its saved verification table does not satisfy the identical-filter-initialization invariant.
-- Result: Stage 4B-Post passed 33 focused and regression tests, Stage 4C passed 39 tests, and Stage 4D passed 52 focused and regression tests. Their changed MATLAB files passed Code Analyzer. Stage 4E remains on a dedicated WIP branch.
+- How the skills affected the work: retained the native `constvel`, `constacc`, `constturn`, `trackingEKF`, `trackingUKF`, and `trackingIMM` semantics; used the existing class-based tests as the acceptance evidence; and kept Stage 4E isolated as unapproved recursive-filter research.
+- Result: Stage 4B-Post passed 33 focused and regression tests, Stage 4C passed 39 tests, Stage 4D passed 52 focused and regression tests, and Stage 4E passed 11 tests after regenerating its previously stale verification artifact. All current Stage 4E invariants, including identical projected six-state initialization, pass. The changed MATLAB files passed Code Analyzer, and Stage 4E remains on a dedicated WIP branch pending an explicit milestone decision.
 
 ## 2026-08-28 - Stage 4D Condition Interpretation
 
