@@ -11,6 +11,15 @@ This repository contains a complete passive bistatic radar system and multi-sens
 3. **Multi-Sensor Fusion:** Integrate passive radar with RF beacon tracking for enhanced situational awareness
 4. **Toolbox Validation:** Generate real-world datasets for testing MathWorks radar and tracking algorithms
 
+### ADS-B-Triggered Capture
+
+The `TriggerAcquisition/` workflow monitors ADS-B geometry, scores aircraft
+against the configured bistatic collection region, and starts a coordinated
+radar/truth session only when the frozen trigger criteria are met. Run
+`TriggerAcquisition/runADSBTriggerPreflight.m` before enabling live hardware,
+and use `TriggerAcquisition/TriggerPhase1ValidationLive.m` for the offline
+review path.
+
 ### Hardware Platform
 
 - **USRP N320:** Phase-coherent dual-channel software-defined radio for HDTV passive radar (540 MHz, 6 MHz bandwidth)
