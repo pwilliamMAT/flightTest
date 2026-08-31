@@ -81,6 +81,13 @@ To find the latest status of this work or get up to speed on the overall project
 3. **Multi-Sensor Fusion:** Integrate passive radar with RF beacon tracking for enhanced situational awareness
 4. **Toolbox Validation:** Generate real-world datasets for testing MathWorks radar and tracking algorithms
 
+### System Prechecks
+
+The `SystemPrechecks/` workflow evaluates transmitter geometry, terrain-aware
+link budgets, receiver-chain RF levels, and detectability assumptions before
+field collection. Run `SystemPrechecks/generateSystemPrecheckArtifacts.m` to
+regenerate the canonical tables, figures, and technical-story deck.
+
 ### Hardware Platform
 
 - **USRP N320:** Phase-coherent dual-channel software-defined radio for HDTV passive radar (540 MHz, 6 MHz bandwidth)

@@ -1,0 +1,9 @@
+AnalysisName,AnalysisDisplayName,Path,IntegrationTime_s,MeanTargetPathPower_dBm,PreProcessingSNR_dB,PostProcessingSNR_dB,Above13dBThreshold,DetectabilityBasis
+WestCorridor,due-west surveillance corridor,Newton,0.1,-72.9908121632809,89.5749507399051,147.356463243742,1,Newton detectability uses the due-west surveillance corridor mean target-path power through the shared RF-chain model.
+WestCorridor,due-west surveillance corridor,Newton,0.5,-72.9908121632809,89.5749507399051,154.346163287102,1,Newton detectability uses the due-west surveillance corridor mean target-path power through the shared RF-chain model.
+WestCorridor,due-west surveillance corridor,Newton,1,-72.9908121632809,89.5749507399051,157.356463243742,1,Newton detectability uses the due-west surveillance corridor mean target-path power through the shared RF-chain model.
+WestCorridor,due-west surveillance corridor,Newton,2,-72.9908121632809,89.5749507399051,160.366763200381,1,Newton detectability uses the due-west surveillance corridor mean target-path power through the shared RF-chain model.
+WestCorridor,due-west surveillance corridor,Hudson,0.1,-70.739048030393,91.8821058638564,149.663618367693,1,Hudson detectability uses the due-west surveillance corridor mean target-path power through the shared RF-chain model.
+WestCorridor,due-west surveillance corridor,Hudson,0.5,-70.739048030393,91.8821058638564,156.653318411053,1,Hudson detectability uses the due-west surveillance corridor mean target-path power through the shared RF-chain model.
+WestCorridor,due-west surveillance corridor,Hudson,1,-70.739048030393,91.8821058638564,159.663618367693,1,Hudson detectability uses the due-west surveillance corridor mean target-path power through the shared RF-chain model.
+WestCorridor,due-west surveillance corridor,Hudson,2,-70.739048030393,91.8821058638564,162.673918324333,1,Hudson detectability uses the due-west surveillance corridor mean target-path power through the shared RF-chain model.

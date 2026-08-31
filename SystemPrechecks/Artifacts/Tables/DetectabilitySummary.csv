@@ -1,0 +1,9 @@
+AnalysisName,AnalysisDisplayName,Path,IntegrationTime_s,MeanTargetPathPower_dBm,PreProcessingSNR_dB,PostProcessingSNR_dB,Above13dBThreshold,DetectabilityBasis
+RecoveredRoi,recovered-ROI baseline,Newton,0.1,-67.5623992106799,95.0033636925062,152.784876196343,1,Newton detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model.
+RecoveredRoi,recovered-ROI baseline,Newton,0.5,-67.5623992106799,95.0033636925062,159.774576239703,1,Newton detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model.
+RecoveredRoi,recovered-ROI baseline,Newton,1,-67.5623992106799,95.0033636925062,162.784876196343,1,Newton detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model.
+RecoveredRoi,recovered-ROI baseline,Newton,2,-67.5623992106799,95.0033636925062,165.795176152982,1,Newton detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model.
+RecoveredRoi,recovered-ROI baseline,Hudson,0.1,-70.6164531424314,92.004700751818,149.786213255654,1,Hudson detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model.
+RecoveredRoi,recovered-ROI baseline,Hudson,0.5,-70.6164531424314,92.004700751818,156.775913299015,1,Hudson detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model.
+RecoveredRoi,recovered-ROI baseline,Hudson,1,-70.6164531424314,92.004700751818,159.786213255654,1,Hudson detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model.
+RecoveredRoi,recovered-ROI baseline,Hudson,2,-70.6164531424314,92.004700751818,162.796513212294,1,Hudson detectability uses the recovered-ROI baseline mean target-path power through the shared RF-chain model.
