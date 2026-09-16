@@ -68,7 +68,8 @@ Use the Ubuntu SDR capture machine as the coordinator. From the repo root, run:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh
+SETUP_NOTES='CH1 RF0:RX2 surveillance <antenna/chain>; CH2 RF1:RX2 reference <antenna/chain>; polarization/pointing <...>; mapping proof <...>; anomalies <...>'
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --operator-setup-notes "$SETUP_NOTES"
 ```
 
 This script verifies SSH access to the Pi, starts `gatherTCPcompress.py` remotely, waits 15 s, runs the local HDTV capture through `matlab -batch`, keeps ADS-B running until the local SDR step actually finishes, leaves ADS-B running for 5 s after that capture, and then stops the Pi logger gracefully before packaging the session locally as:
@@ -89,10 +90,10 @@ Important syntax notes:
 - The default Pi host is `192.168.10.131` and the default Pi user is `pi2`.
 - The default local SDR settings are hidden behind `runLocalHDTVCapture.m`:
   - `radio = 'My USRP N320'`
-  - `cf = 540e6`
+  - `cf = 599e6`
   - `sr = 6.144e6`
-  - `lo = 200e3`
-  - `gain = [30 50]`
+  - `lo = 0`
+  - `gain = [16 16]`
   - `capture-duration = 30`
   - `repetitions = 1`
   - `repetition-spacing = 1.0`
@@ -103,6 +104,10 @@ Important syntax notes:
 - `--repetition-spacing <seconds>` inserts a gap only between repetitions, not after the final one.
 - `--center-frequency <hz>` overrides the local radar capture center frequency and is written into the packaged session manifest.
 - `--lo-offset <hz>` overrides the local SDR LO offset and is passed through to `runLocalHDTVCapture`.
+- `--sample-rate <hz>`, `--antenna-ports <p1,p2>`, and
+  `--channel-roles <r1,r2>` are passed through in stored-channel order.
+- `--operator-setup-notes <text>` is required by shell capture. It is saved
+  verbatim in manifest version 3 together with ordered port/role/gain records.
 - `--capture-file` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
 - `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `30,50`.
 - `--announce-host` overrides the hostname/IP that the coordinator prints into the development-machine sync command.
@@ -116,14 +121,14 @@ Continuous 30 s capture:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --lo-offset 200000 --gain 28,48 --capture-duration 30 --capture-file n320_hdtv_capture
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 599000000 --lo-offset 0 --gain 16,16 --capture-duration 30 --operator-setup-notes "$SETUP_NOTES" --capture-file n320_hdtv_capture
 ```
 
 Burst-style capture to reduce analysis time:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --lo-offset 200000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --capture-file n320_hdtv_capture
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 599000000 --lo-offset 0 --gain 16,16 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --operator-setup-notes "$SETUP_NOTES" --capture-file n320_hdtv_capture
 ```
 
 That burst example spans about 29 s wall-clock, but it records only 15 s of radar IQ and packages 15 separate radar files instead of one long continuous file.
@@ -134,7 +139,7 @@ Testing machine:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 599000000 --lo-offset 0 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --capture-file n320_hdtv_capture
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 599000000 --lo-offset 0 --gain 16,16 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --operator-setup-notes "$SETUP_NOTES" --capture-file n320_hdtv_capture
 ```
 
 Development machine after the sync command is printed:
@@ -501,7 +506,7 @@ If you want to run only the local SDR step from a terminal, use:
 
 ```bash
 cd /path/to/flightTest
-matlab -batch "cd('TestSetupTesting'); runLocalHDTVCapture();"
+matlab -batch "cd('TestSetupTesting'); runLocalHDTVCapture('OperatorSetupNotes','CH1/CH2 antenna chains, pointing, mapping proof, and anomalies');"
 ```
 
 Legacy MATLAB-owned coordination is still available, but it is now the secondary path:
@@ -647,7 +652,8 @@ PassiveRadarCollection_wPreFlightChecks  % Runs pre-flight checks and captures d
 ### 1b. Coordinate a 30 s HDTV Capture with Raspberry Pi ADS-B Logging
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh
+SETUP_NOTES='CH1/CH2 antenna chains, polarization/pointing, mapping proof, and anomalies'
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --operator-setup-notes "$SETUP_NOTES"
 ```
 This starts ADS-B on the Pi, waits 15 s, runs the local SDR capture, keeps ADS-B running until that local capture completes, lets ADS-B run a few seconds longer, then stops the Pi logger gracefully and writes a packaged session to `captures/<session_id>/`.
 With the defaults, that local SDR step is one continuous 30 s radar file. For shorter burst-style sessions, set `--capture-duration`, `--repetitions`, and `--repetition-spacing` explicitly.
@@ -657,14 +663,14 @@ To tune gains or timing without rewriting a long MATLAB command:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 28,48 --lead-seconds 15 --tail-seconds 5
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --gain 16,16 --lead-seconds 15 --tail-seconds 5 --operator-setup-notes "$SETUP_NOTES"
 ```
 
 To collect 15 one-second radar files across about 29 seconds of wall-clock time:
 
 ```bash
 cd /path/to/flightTest
-bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 600000000 --gain 28,48 --capture-duration 1 --repetitions 15 --repetition-spacing 1
+bash TestSetupTesting/run_coordinated_hdtv_capture.sh --center-frequency 599000000 --gain 16,16 --capture-duration 1 --repetitions 15 --repetition-spacing 1 --operator-setup-notes "$SETUP_NOTES"
 ```
 
 ### 1c. Sync One Packaged Session to a Development Machine

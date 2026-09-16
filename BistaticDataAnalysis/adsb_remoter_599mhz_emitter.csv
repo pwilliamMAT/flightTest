@@ -1,0 +1,2 @@
+authorization_id,facility_id,call_sign,rf_channel,center_frequency_mhz,tx_latitude_deg,tx_longitude_deg,tx_altitude_m,erp_kw,eirp_kw,directional_flag,rotation_deg,site_name,asrn
+5,72145,WHDH/WLVI,35,599.0,42.311389,-71.216111,348.386404,1000.0,1640.5897731995394,ND,0.0,Newton (MA),1005862

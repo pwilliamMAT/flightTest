@@ -47,7 +47,7 @@ addParameter(p, 'ReferenceChainPenalty_dB', NaN, @(x) isnumeric(x) && isscalar(x
 addParameter(p, 'MaxFixAge_s', 30, @(x) isnumeric(x) && isscalar(x) && x >= 0);
 addParameter(p, 'MinimumTrackFixCount', 2, @(x) isnumeric(x) && isscalar(x) && x >= 1);
 
-addParameter(p, 'CenterFrequency_Hz', 540e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
+addParameter(p, 'CenterFrequency_Hz', 599e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'MissionReportPath', default_mission_report, @(x) ischar(x) || isstring(x));
 addParameter(p, 'RFBudgetPath', default_rf_budget, @(x) ischar(x) || isstring(x));
 

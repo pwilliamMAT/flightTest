@@ -21,7 +21,7 @@ REPETITION_SPACING_S="1.0"
 LEAD_SECONDS_S="15"
 TAIL_SECONDS_S="5"
 CAPTURE_FILE="n320_hdtv_capture"
-GAIN_SPEC="30,50"
+GAIN_SPEC="16,16"
 SESSION_ID="$(date +%Y%m%dT%H%M%S)"
 ADSB_STAGE_DIR="$REPO_ROOT/adsb_capture"
 SESSION_ROOT="$REPO_ROOT/captures"
@@ -29,9 +29,12 @@ REMOTE_WAIT_TIMEOUT_S="60"
 REMOTE_POLL_PERIOD_S="2"
 
 RADIO_NAME="My USRP N320"
-CENTER_FREQUENCY_HZ="540000000"
+CENTER_FREQUENCY_HZ="599000000"
 SAMPLE_RATE_HZ="6144000"
-LO_OFFSET_HZ="200000"
+LO_OFFSET_HZ="0"
+ANTENNA_PORTS="RF0:RX2,RF1:RX2"
+CHANNEL_ROLES="surveillance,reference"
+OPERATOR_SETUP_NOTES=""
 
 SSH_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
 SCP_OPTIONS=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
@@ -54,12 +57,17 @@ Options:
   --capture-duration <seconds>     Local SDR capture duration per repetition (default: 30)
   --repetitions <count>            Number of local SDR repetitions/files (default: 1)
   --repetition-spacing <seconds>   Gap between repetitions (default: 1.0)
-  --center-frequency <hz>          Local SDR center frequency in Hz (default: 540000000)
-  --lo-offset <hz>                 Local SDR LO offset in Hz (default: 200000)
+  --center-frequency <hz>          Local SDR center frequency in Hz (default: 599000000)
+  --sample-rate <hz>               Local SDR sample rate in Hz (default: 6144000)
+  --lo-offset <hz>                 Local SDR LO offset in Hz (default: 0)
+  --radio-name <name>              Saved radio configuration (default: My USRP N320)
+  --antenna-ports <p1,p2>          Ordered receive ports (default: RF0:RX2,RF1:RX2)
+  --channel-roles <r1,r2>          Ordered roles (default: surveillance,reference)
+  --operator-setup-notes <text>    Required physical-setup provenance record
   --lead-seconds <seconds>         ADS-B lead time before SDR capture (default: 15)
   --tail-seconds <seconds>         ADS-B tail time after SDR capture (default: 5)
   --capture-file <base>            Base name for local SDR files (default: n320_hdtv_capture)
-  --gain <g>                       Gain as N or N,M (default: 30,50)
+  --gain <g>                       Gain as N or N,M (default: 16,16)
   --session-id <id>                Shared session ID (default: current timestamp)
   --announce-host <host>           Hostname/IP to print in the development-machine sync command
   --adsb-stage-dir <path>          Local staging folder for fetched ADS-B files
@@ -174,6 +182,40 @@ gain_to_matlab_expr() {
     fi
 
     printf "[%s %s]" "${parts[0]}" "${parts[1]}"
+}
+
+normalize_text_pair() {
+    local label="$1"
+    local raw="${2// /}"
+    local first
+    local second
+    local extra
+
+    IFS=',' read -r first second extra <<< "$raw"
+    if [[ -z "$first" || -z "$second" || -n "$extra" ]]; then
+        die "$label must contain exactly two comma-separated nonempty values."
+    fi
+    printf "%s,%s" "$first" "$second"
+}
+
+text_pair_to_matlab_cell_expr() {
+    local normalized="$1"
+    local first
+    local second
+    IFS=',' read -r first second <<< "$normalized"
+    printf "{%s,%s}" "$(quote_matlab_string "$first")" "$(quote_matlab_string "$second")"
+}
+
+gain_to_json_array() {
+    local normalized
+    local first
+    local second
+    normalized="$(normalize_gain_spec "$1")"
+    IFS=',' read -r first second <<< "$normalized"
+    if [[ -z "$second" ]]; then
+        second="$first"
+    fi
+    printf "[%s, %s]" "$first" "$second"
 }
 
 run_ssh_body() {
@@ -439,9 +481,34 @@ while [[ $# -gt 0 ]]; do
             CENTER_FREQUENCY_HZ="$2"
             shift 2
             ;;
+        --sample-rate)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            SAMPLE_RATE_HZ="$2"
+            shift 2
+            ;;
         --lo-offset)
             [[ $# -ge 2 ]] || die "Missing value for $1"
             LO_OFFSET_HZ="$2"
+            shift 2
+            ;;
+        --radio-name)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            RADIO_NAME="$2"
+            shift 2
+            ;;
+        --antenna-ports)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            ANTENNA_PORTS="$2"
+            shift 2
+            ;;
+        --channel-roles)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            CHANNEL_ROLES="$2"
+            shift 2
+            ;;
+        --operator-setup-notes)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            OPERATOR_SETUP_NOTES="$2"
             shift 2
             ;;
         --lead-seconds)
@@ -523,11 +590,13 @@ validate_positive_number "capture duration" "$CAPTURE_DURATION_S"
 validate_positive_integer "repetitions" "$REPETITIONS"
 validate_nonnegative_number "repetition spacing" "$REPETITION_SPACING_S"
 validate_positive_number "center frequency" "$CENTER_FREQUENCY_HZ"
+validate_positive_number "sample rate" "$SAMPLE_RATE_HZ"
 validate_nonnegative_number "LO offset" "$LO_OFFSET_HZ"
 validate_nonnegative_number "lead seconds" "$LEAD_SECONDS_S"
 validate_nonnegative_number "tail seconds" "$TAIL_SECONDS_S"
 validate_nonnegative_number "remote wait timeout" "$REMOTE_WAIT_TIMEOUT_S"
 validate_positive_number "remote poll period" "$REMOTE_POLL_PERIOD_S"
+command -v gzip >/dev/null 2>&1 || die "The local gzip command is required to validate fetched ADS-B archives."
 
 ANNOUNCE_USER="$(resolve_local_user || true)"
 ANNOUNCE_HOST="$(resolve_announce_host || true)"
@@ -539,6 +608,25 @@ RADAR_ACTIVE_WINDOW_S="$(capture_window_seconds "$CAPTURE_DURATION_S" "$REPETITI
 TOTAL_RADAR_CAPTURE_S="$(product_seconds "$CAPTURE_DURATION_S" "$REPETITIONS")"
 ADSB_TARGET_WINDOW_S="$(sum_seconds "$LEAD_SECONDS_S" "$RADAR_ACTIVE_WINDOW_S" "$TAIL_SECONDS_S")"
 MATLAB_GAIN_EXPR="$(gain_to_matlab_expr "$GAIN_SPEC")"
+GAIN_JSON="$(gain_to_json_array "$GAIN_SPEC")"
+NORMALIZED_GAIN_SPEC="$(normalize_gain_spec "$GAIN_SPEC")"
+IFS=',' read -r CHANNEL_GAIN_1 CHANNEL_GAIN_2 <<< "$NORMALIZED_GAIN_SPEC"
+if [[ -z "$CHANNEL_GAIN_2" ]]; then
+    CHANNEL_GAIN_2="$CHANNEL_GAIN_1"
+fi
+NORMALIZED_ANTENNA_PORTS="$(normalize_text_pair "Antenna ports" "$ANTENNA_PORTS")"
+NORMALIZED_CHANNEL_ROLES="$(normalize_text_pair "Channel roles" "$CHANNEL_ROLES")"
+if [[ "$NORMALIZED_CHANNEL_ROLES" != "surveillance,reference" && \
+      "$NORMALIZED_CHANNEL_ROLES" != "reference,surveillance" ]]; then
+    die "Channel roles must contain exactly one surveillance and one reference role."
+fi
+MATLAB_ANTENNA_EXPR="$(text_pair_to_matlab_cell_expr "$NORMALIZED_ANTENNA_PORTS")"
+MATLAB_ROLE_EXPR="$(text_pair_to_matlab_cell_expr "$NORMALIZED_CHANNEL_ROLES")"
+IFS=',' read -r ANTENNA_PORT_1 ANTENNA_PORT_2 <<< "$NORMALIZED_ANTENNA_PORTS"
+IFS=',' read -r CHANNEL_ROLE_1 CHANNEL_ROLE_2 <<< "$NORMALIZED_CHANNEL_ROLES"
+if [[ -z "${OPERATOR_SETUP_NOTES//[[:space:]]/}" ]]; then
+    die "Operator setup notes are required before ADS-B logging or RF capture. Include both channel chains, polarization, pointing, mapping proof, and anomalies."
+fi
 REMOTE_LOG_FILE="$PI_WORKDIR/adsb_capture_${SESSION_ID}.log"
 
 MATLAB_STATUS=0
@@ -592,7 +680,7 @@ echo "[2/5] Waiting $LEAD_SECONDS_S s before the local SDR capture ..."
 sleep "$LEAD_SECONDS_S"
 
 echo "[3/5] Running local SDR capture: $REPETITIONS repetition(s) x $CAPTURE_DURATION_S s with $REPETITION_SPACING_S s spacing (active window $RADAR_ACTIVE_WINDOW_S s, recorded IQ $TOTAL_RADAR_CAPTURE_S s, session $SESSION_ID) ..."
-matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'LOOffset_Hz', $LO_OFFSET_HZ, 'Gain', $MATLAB_GAIN_EXPR, 'Repetitions', $REPETITIONS, 'RepetitionSpacing_s', $REPETITION_SPACING_S);"
+matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); info = runLocalHDTVCapture('SessionID', $(quote_matlab_string "$SESSION_ID"), 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'RadioName', $(quote_matlab_string "$RADIO_NAME"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'SampleRate_Hz', $SAMPLE_RATE_HZ, 'LOOffset_Hz', $LO_OFFSET_HZ, 'Gain', $MATLAB_GAIN_EXPR, 'AntennaPorts', $MATLAB_ANTENNA_EXPR, 'ChannelRoles', $MATLAB_ROLE_EXPR, 'OperatorSetupNotes', $(quote_matlab_string "$OPERATOR_SETUP_NOTES"), 'Repetitions', $REPETITIONS, 'RepetitionSpacing_s', $REPETITION_SPACING_S);"
 set +e
 "$MATLAB_BIN" -batch "$matlab_cmd" > >(tee "$MATLAB_OUTPUT_LOG") 2>&1
 MATLAB_STATUS=$?
@@ -671,6 +759,11 @@ else
             echo "Warning: failed to copy $remote_file from the Pi." >&2
             continue
         fi
+        if ! gzip -t -- "$local_stage_path"; then
+            FETCH_STATUS=1
+            echo "Warning: copied ADS-B archive failed gzip integrity checking and will not be packaged: $local_stage_path" >&2
+            continue
+        fi
         append_if_exists "$local_stage_path" staged_adsb_files
     done
 fi
@@ -721,7 +814,7 @@ fi
 
 {
     printf "{\n"
-    printf '  "manifest_version": 1,\n'
+    printf '  "manifest_version": 3,\n'
     printf '  "session_id": "%s",\n' "$(json_escape "$SESSION_ID")"
     printf '  "session_folder": "%s",\n' "$(json_escape "$SESSION_ID")"
     printf '  "session_created_utc": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -741,6 +834,14 @@ fi
     printf '  "adsb_stop_mode": "signal_after_capture",\n'
     printf '  "capture_file_base": "%s",\n' "$(json_escape "$CAPTURE_FILE")"
     printf '  "gain_spec": "%s",\n' "$(json_escape "$(normalize_gain_spec "$GAIN_SPEC")")"
+    printf '  "gain_db": %s,\n' "$GAIN_JSON"
+    printf '  "operator_setup_notes": "%s",\n' "$(json_escape "$OPERATOR_SETUP_NOTES")"
+    printf '  "channel_mapping": [\n'
+    printf '    {"stored_channel_index": 1, "n320_port": "%s", "semantic_role": "%s", "gain_db": %s},\n' \
+        "$(json_escape "$ANTENNA_PORT_1")" "$(json_escape "$CHANNEL_ROLE_1")" "$CHANNEL_GAIN_1"
+    printf '    {"stored_channel_index": 2, "n320_port": "%s", "semantic_role": "%s", "gain_db": %s}\n' \
+        "$(json_escape "$ANTENNA_PORT_2")" "$(json_escape "$CHANNEL_ROLE_2")" "$CHANNEL_GAIN_2"
+    printf '  ],\n'
     printf '  "pi_host": "%s",\n' "$(json_escape "$PI_HOST")"
     printf '  "pi_user": "%s",\n' "$(json_escape "$PI_USER")"
     printf '  "remote_log_file": "%s",\n' "$(json_escape "$REMOTE_LOG_FILE")"

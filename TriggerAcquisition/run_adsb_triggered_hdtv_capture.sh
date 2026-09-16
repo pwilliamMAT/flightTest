@@ -22,7 +22,7 @@ ADSB_ROTATION_S="5"
 TAIL_SECONDS_S="5"
 CAPTURE_DURATION_S="30"
 CAPTURE_FILE="n320_hdtv_capture"
-GAIN_SPEC="30,50"
+GAIN_SPEC="16,16"
 SESSION_ID="$(date -u +%Y%m%dT%H%M%S)"
 SESSION_ROOT="$REPO_ROOT/captures"
 ADSB_STAGE_DIR=""
@@ -32,9 +32,12 @@ REMOTE_WAIT_TIMEOUT_S="60"
 FETCH_POLL_S="2"
 
 RADIO_NAME="My USRP N320"
-CENTER_FREQUENCY_HZ="540000000"
+CENTER_FREQUENCY_HZ="599000000"
 SAMPLE_RATE_HZ="6144000"
-LO_OFFSET_HZ="200000"
+LO_OFFSET_HZ="0"
+ANTENNA_PORTS="RF0:RX2,RF1:RX2"
+CHANNEL_ROLES="surveillance,reference"
+OPERATOR_SETUP_NOTES=""
 SURVEILLANCE_BORESIGHT_AZIMUTH_DEG="270"
 CORRIDOR_AZIMUTH_CENTER_DEG="270"
 
@@ -63,12 +66,17 @@ Options:
   --adsb-rotation <seconds>         Pi ADS-B file rotation period (default: 5)
   --capture-duration <seconds>      Local radar capture duration (default: 30)
   --tail-seconds <seconds>          ADS-B tail after trigger/capture (default: 5)
-  --center-frequency <hz>           Local SDR center frequency (default: 540000000)
-  --lo-offset <hz>                  Local SDR LO offset (default: 200000)
+  --center-frequency <hz>           Local SDR center frequency (default: 599000000)
+  --sample-rate <hz>                Local SDR sample rate (default: 6144000)
+  --lo-offset <hz>                  Local SDR LO offset (default: 0)
+  --radio-name <name>               Saved radio configuration (default: My USRP N320)
+  --antenna-ports <p1,p2>           Ordered receive ports (default: RF0:RX2,RF1:RX2)
+  --channel-roles <r1,r2>           Ordered roles (default: surveillance,reference)
+  --operator-setup-notes <text>    Required physical-setup provenance for live capture
   --surveillance-boresight-azimuth <deg>
                                      Surveillance boresight azimuth (default: 270)
   --corridor-azimuth-center <deg>   Corridor center azimuth (default: 270)
-  --gain <g>                        Gain as N or N,M (default: 30,50)
+  --gain <g>                        Gain as N or N,M (default: 16,16)
   --session-id <id>                 Shared session ID (default: current UTC timestamp)
   --session-root <path>             Packaged-session root (default: <repo>/captures)
   --adsb-stage-dir <path>           Local ADS-B staging folder (default: runtime folder)
@@ -171,6 +179,29 @@ gain_to_matlab_expr() {
     fi
 
     printf "[%s %s]" "${parts[0]}" "${parts[1]}"
+}
+
+normalize_text_pair() {
+    local label="$1"
+    local raw="${2// /}"
+    local first
+    local second
+    local extra
+
+    IFS=',' read -r first second extra <<< "$raw"
+    if [[ -z "$first" || -z "$second" || -n "$extra" ]]; then
+        die "$label must contain exactly two comma-separated nonempty values."
+    fi
+    printf "%s,%s" "$first" "$second"
+}
+
+text_pair_to_matlab_cell_expr() {
+    local normalized="$1"
+    local first
+    local second
+
+    IFS=',' read -r first second <<< "$normalized"
+    printf "{%s,%s}" "$(quote_matlab_string "$first")" "$(quote_matlab_string "$second")"
 }
 
 write_status() {
@@ -389,9 +420,34 @@ while [[ $# -gt 0 ]]; do
             CENTER_FREQUENCY_HZ="$2"
             shift 2
             ;;
+        --sample-rate)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            SAMPLE_RATE_HZ="$2"
+            shift 2
+            ;;
         --lo-offset)
             [[ $# -ge 2 ]] || die "Missing value for $1"
             LO_OFFSET_HZ="$2"
+            shift 2
+            ;;
+        --radio-name)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            RADIO_NAME="$2"
+            shift 2
+            ;;
+        --antenna-ports)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            ANTENNA_PORTS="$2"
+            shift 2
+            ;;
+        --channel-roles)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            CHANNEL_ROLES="$2"
+            shift 2
+            ;;
+        --operator-setup-notes)
+            [[ $# -ge 2 ]] || die "Missing value for $1"
+            OPERATOR_SETUP_NOTES="$2"
             shift 2
             ;;
         --surveillance-boresight-azimuth)
@@ -480,11 +536,26 @@ validate_positive_number "ADS-B rotation" "$ADSB_ROTATION_S"
 validate_positive_number "capture duration" "$CAPTURE_DURATION_S"
 validate_nonnegative_number "tail seconds" "$TAIL_SECONDS_S"
 validate_positive_number "center frequency" "$CENTER_FREQUENCY_HZ"
+validate_positive_number "sample rate" "$SAMPLE_RATE_HZ"
 validate_nonnegative_number "LO offset" "$LO_OFFSET_HZ"
 validate_number "surveillance boresight azimuth" "$SURVEILLANCE_BORESIGHT_AZIMUTH_DEG"
 validate_number "corridor azimuth center" "$CORRIDOR_AZIMUTH_CENTER_DEG"
 validate_nonnegative_number "remote wait timeout" "$REMOTE_WAIT_TIMEOUT_S"
 validate_positive_number "fetch poll" "$FETCH_POLL_S"
+
+NORMALIZED_ANTENNA_PORTS="$(normalize_text_pair "Antenna ports" "$ANTENNA_PORTS")"
+NORMALIZED_CHANNEL_ROLES="$(normalize_text_pair "Channel roles" "$CHANNEL_ROLES")"
+if [[ "$NORMALIZED_CHANNEL_ROLES" != "surveillance,reference" && \
+      "$NORMALIZED_CHANNEL_ROLES" != "reference,surveillance" ]]; then
+    die "Channel roles must contain exactly one surveillance and one reference role."
+fi
+MATLAB_ANTENNA_EXPR="$(text_pair_to_matlab_cell_expr "$NORMALIZED_ANTENNA_PORTS")"
+MATLAB_ROLE_EXPR="$(text_pair_to_matlab_cell_expr "$NORMALIZED_CHANNEL_ROLES")"
+
+if [[ "$MODE" == "live" && "$PREFLIGHT_ONLY" -eq 0 && \
+      -z "${OPERATOR_SETUP_NOTES//[[:space:]]/}" ]]; then
+    die "Operator setup notes are required before ADS-B logging or RF capture. Include both channel chains, polarization, pointing, mapping proof, and anomalies."
+fi
 
 RUNTIME_ROOT="$REPO_ROOT/TriggerAcquisition/runtime/$SESSION_ID"
 if [[ -z "$ADSB_STAGE_DIR" ]]; then
@@ -562,7 +633,7 @@ if [[ $PREFLIGHT_ONLY -eq 1 ]]; then
     exit 0
 fi
 
-matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); result = runADSBTriggeredCaptureSession('SessionID', $(quote_matlab_string "$SESSION_ID"), 'Mode', $(quote_matlab_string "$MODE"), 'OpportunityPolicy', $(quote_matlab_string "$OPPORTUNITY_POLICY"), 'WatchTimeout_s', $WATCH_TIMEOUT_S, 'PollPeriod_s', $POLL_PERIOD_S, 'ADSBRotation_s', $ADSB_ROTATION_S, 'TailSeconds_s', $TAIL_SECONDS_S, 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'RadioName', $(quote_matlab_string "$RADIO_NAME"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'SampleRate_Hz', $SAMPLE_RATE_HZ, 'LOOffset_Hz', $LO_OFFSET_HZ, 'Gain', $MATLAB_GAIN_EXPR, 'SessionRoot', $(quote_matlab_string "$SESSION_ROOT"), 'ADSBStageDir', $(quote_matlab_string "$ADSB_STAGE_DIR"), 'CoordinatorControlDir', $(quote_matlab_string "$CONTROL_DIR"), 'CoordinatorStatusFile', $(quote_matlab_string "$STATUS_FILE"), 'RemoteLogLocalPath', $(quote_matlab_string "$LOCAL_REMOTE_LOG"), 'PiUser', $(quote_matlab_string "$PI_USER"), 'PiHost', $(quote_matlab_string "$PI_HOST"), 'PiWorkingDir', $(quote_matlab_string "$PI_WORKDIR"), 'PiLoggerScript', $(quote_matlab_string "$PI_LOGGER_SCRIPT"), 'RemoteLogFile', $(quote_matlab_string "$REMOTE_LOG_FILE"), 'CorridorAzimuthCenter_deg', $CORRIDOR_AZIMUTH_CENTER_DEG, 'SurveillanceBoresightAzimuth_deg', $SURVEILLANCE_BORESIGHT_AZIMUTH_DEG, 'ReferenceChainPenalty_dB', $REFERENCE_CHAIN_PENALTY_DB, 'Verbose', true);"
+matlab_cmd="cd($(quote_matlab_string "$SCRIPT_DIR")); result = runADSBTriggeredCaptureSession('SessionID', $(quote_matlab_string "$SESSION_ID"), 'Mode', $(quote_matlab_string "$MODE"), 'OpportunityPolicy', $(quote_matlab_string "$OPPORTUNITY_POLICY"), 'WatchTimeout_s', $WATCH_TIMEOUT_S, 'PollPeriod_s', $POLL_PERIOD_S, 'ADSBRotation_s', $ADSB_ROTATION_S, 'TailSeconds_s', $TAIL_SECONDS_S, 'CaptureDuration_s', $CAPTURE_DURATION_S, 'CaptureFile', $(quote_matlab_string "$CAPTURE_FILE"), 'RadioName', $(quote_matlab_string "$RADIO_NAME"), 'CenterFrequency_Hz', $CENTER_FREQUENCY_HZ, 'SampleRate_Hz', $SAMPLE_RATE_HZ, 'LOOffset_Hz', $LO_OFFSET_HZ, 'Gain', $MATLAB_GAIN_EXPR, 'AntennaPorts', $MATLAB_ANTENNA_EXPR, 'ChannelRoles', $MATLAB_ROLE_EXPR, 'OperatorSetupNotes', $(quote_matlab_string "$OPERATOR_SETUP_NOTES"), 'SessionRoot', $(quote_matlab_string "$SESSION_ROOT"), 'ADSBStageDir', $(quote_matlab_string "$ADSB_STAGE_DIR"), 'CoordinatorControlDir', $(quote_matlab_string "$CONTROL_DIR"), 'CoordinatorStatusFile', $(quote_matlab_string "$STATUS_FILE"), 'RemoteLogLocalPath', $(quote_matlab_string "$LOCAL_REMOTE_LOG"), 'PiUser', $(quote_matlab_string "$PI_USER"), 'PiHost', $(quote_matlab_string "$PI_HOST"), 'PiWorkingDir', $(quote_matlab_string "$PI_WORKDIR"), 'PiLoggerScript', $(quote_matlab_string "$PI_LOGGER_SCRIPT"), 'RemoteLogFile', $(quote_matlab_string "$REMOTE_LOG_FILE"), 'CorridorAzimuthCenter_deg', $CORRIDOR_AZIMUTH_CENTER_DEG, 'SurveillanceBoresightAzimuth_deg', $SURVEILLANCE_BORESIGHT_AZIMUTH_DEG, 'ReferenceChainPenalty_dB', $REFERENCE_CHAIN_PENALTY_DB, 'Verbose', true);"
 
 set +e
 "$MATLAB_BIN" -batch "$matlab_cmd"
