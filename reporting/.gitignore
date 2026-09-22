@@ -1,0 +1,29 @@
+# Regenerable working areas from the ManagerReport archive
+_full_deck_work/
+_human_story_work/
+_pilot_work/
+_pilot_v2_work/
+
+# Rendered presentation output and montages
+**/*_rendered/
+**/powerpoint_renders/
+**/*_pptx_rendered/
+**/*_montage.*
+**/montage/
+
+# Immutable releases, staging areas, and generated release artifacts
+**/TechnicalSummaryFamily_Releases/
+**/release_artifacts/
+**/*_release_artifacts/
+**/*_staging/
+**/staging/
+
+# Temporary extraction products. Do not ignore accepted report-local *_assets folders.
+**/_extraction/
+**/_extracted/
+**/extracted_assets/
+**/*_extraction_assets/
+**/*_extracted_assets/
+
+# Office temporary files
+~$*.pptx

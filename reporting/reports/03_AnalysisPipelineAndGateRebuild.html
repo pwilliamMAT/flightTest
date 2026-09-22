@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analysis Pipeline and Gate Rebuild</title>
+<style>
+:root{--ink:#172033;--muted:#526176;--line:#cbd5e1;--panel:#f8fafc;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--purple:#6d28d9;--purple2:#f5f3ff}
+*{box-sizing:border-box} body{max-width:1240px;margin:2rem auto;padding:0 1rem 3rem;color:var(--ink);background:#fff;font:16px/1.52 "Segoe UI",Arial,sans-serif} h1,h2,h3{line-height:1.22;color:#102a43} h1{font-size:2.15rem;margin-bottom:.25rem} h2{margin-top:2.8rem;padding-top:.35rem;border-top:2px solid #e2e8f0;font-size:1.55rem} h3{margin-top:1.5rem;font-size:1.15rem} p{max-width:1060px} a{color:#075caa;text-decoration-thickness:1px;text-underline-offset:2px} a:hover{color:#003f73} nav{position:sticky;top:0;z-index:2;margin:1rem 0 1.4rem;padding:.75rem 1rem;background:rgba(255,255,255,.96);border:1px solid var(--line);box-shadow:0 2px 7px #182b4915} nav a{margin-right:.8rem;white-space:nowrap} code{font: .92em Consolas,"Courier New",monospace;background:#f1f5f9;padding:.08rem .25rem;border-radius:3px} .subtitle{color:var(--muted);font-size:1.05rem;margin:.15rem 0 .7rem}.status-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin:1.2rem 0 1.3rem}.status-strip div,.callout,.card{border:1px solid var(--line);padding:.8rem 1rem;background:var(--panel)}.status-strip strong{display:block;color:#102a43}.callout{border-left:5px solid var(--blue);margin:1rem 0;background:var(--blue2)}.callout.warn{border-left-color:var(--amber);background:var(--amber2)}.callout.stop{border-left-color:var(--red);background:var(--red2)}.eli5{padding:.85rem 1rem;border-left:5px solid var(--blue);background:var(--blue2);font-size:1.03rem}.technical{padding-left:1rem;border-left:2px solid #cbd5e1}.source{font-size:.92rem;color:var(--muted);margin-top:.65rem}.source a{font-weight:600}.table-wrap{overflow-x:auto;margin:1rem 0 1.4rem}.decision-table{width:100%;min-width:940px;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border:1px solid var(--line);padding:.65rem;vertical-align:top;text-align:left;overflow-wrap:anywhere}.decision-table th{background:#edf3f8;color:#102a43}.decision-table tbody tr:nth-child(even){background:#fbfdff}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin:1rem 0}.card h3{margin:.1rem 0 .55rem}.tag{display:inline-block;border-radius:99px;padding:.16rem .55rem;font-size:.83rem;font-weight:700;white-space:nowrap}.implemented,.demonstrated{color:#075caa;background:#eaf3fb}.investigated{color:#6d28d9;background:#f5f3ff}.supported{color:#9a5b00;background:#fff7e6}.progress{color:#9a5b00;background:#fff7e6}.blocked{color:#a61b1b;background:#fff1f1}.figure{margin:1.25rem 0 1.6rem;padding:1rem;border:1px solid var(--line);background:#fff}.figure svg{display:block;width:100%;height:auto}.figure figcaption{margin:.7rem .2rem 0;color:var(--muted);font-size:.94rem}.legend{display:flex;flex-wrap:wrap;gap:.5rem 1rem;margin:.8rem 0}.legend span{font-size:.92rem}.dot{display:inline-block;width:.75rem;height:.75rem;border-radius:50%;margin-right:.3rem}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.pathway{display:grid;gap:.45rem;margin:1rem 0}.pathway div{padding:.7rem .85rem;border-left:5px solid var(--blue);background:#f8fafc;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}.pathway .blockedstep{border-left-color:var(--red);background:var(--red2)}.pathway .pendingstep{border-left-color:var(--amber);background:var(--amber2)}.small{font-size:.92rem;color:var(--muted)}.plain-list li{margin:.45rem 0} dl dt{font-weight:700;margin-top:1rem} dl dd{margin:.25rem 0 0 1rem} footer{margin-top:3rem;padding-top:1rem;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}@media(max-width:760px){body{margin:1rem auto}.status-strip,.two-col{grid-template-columns:1fr}h1{font-size:1.7rem}.decision-table{min-width:760px}nav{position:static}.figure{padding:.55rem}}
+</style>
+</head>
+<body>
+<header>
+<h1>Analysis Pipeline and Gate Rebuild</h1>
+<p class="subtitle">Passive HDTV aircraft-localization program — standalone evidence report</p>
+<p class="small">Status snapshot: 18 September 2026. This report is self-contained: all styling and explanatory figures are embedded. Its evidence links point to local project artifacts in <code>PassiveBistaticRestart</code>; they are available when opened on the originating workstation.</p>
+</header>
+
+<nav aria-label="Report navigation">
+<a href="#purpose">Purpose</a>
+<a href="#background">Background</a>
+<a href="#pipeline">Pipeline</a>
+<a href="#restart">Restart</a>
+<a href="#architecture">Gate architecture</a>
+<a href="#gates">G1–G10</a>
+<a href="#capabilities">Demonstrated work</a>
+<a href="#boundaries">Boundaries</a>
+<a href="#blockers">What remains</a>
+<a href="#evidence">Local evidence</a>
+<a href="#glossary">Glossary</a>
+</nav>
+
+<section id="purpose">
+<h2>1. Purpose and current status</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> This project is rebuilding a chain of careful checks that turns a pair of HDTV radio recordings into a trustworthy aircraft measurement. Some early pieces work and several diagnostic studies have taught us useful things. The project is deliberately stopped before formal detection because one of the map-validation tests failed. That stop is evidence that the gates are protecting the result, not that the work has no value.</p>
+<div class="technical">
+<p>The stable objective is a trustworthy passive-bistatic capability that can detect and track aircraft in field data, characterize where a link can provide useful measurements, and support later multi-measurement localization. The current milestone is <strong>G4-R Map-Rate Validity and Field-Readiness Closure</strong>: a bounded remediation of the passive-map stage, not an eleventh gate. The completed R5A matrix failed its frozen criteria; the current status is <code>retune_pending_bounded_correction</code>. Formal G5 product selection, G6 detector-input freeze, G8 detection, <code>objectDetection</code>, and tracking remain disabled.</p>
+<p>There is nevertheless specific positive evidence: the reference-session ingest contract passed; the synchronization core produced a repeatable correction model; the initial G4-R R2/R3/R4 sequence identified and corrected an invalid comparison setup; a bounded native-first frozen-NLMS R4 checkpoint passed; and a paired real-background diagnostic showed that a 15 km synthetic truth had been excluded by historical detector support before a detector decision. None of these statements is a live-aircraft detection, tracking, or localization claim.</p>
+</div>
+<div class="status-strip" aria-label="Current project status">
+<div><strong>Active milestone</strong>G4-R upstream map-validity retune and field-readiness closure.</div>
+<div><strong>Formal downstream state</strong>G5, G6, G7 claims, G8, G9, and G10 are not advanced.</div>
+<div><strong>Immediate decision</strong>Review and controlled verification of the bounded cancellation-order correction before any replacement R5A authorization.</div>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S03 Project State</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/NorthStar.md">S01 North Star</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/G4RMapRateValidityPlan.md">S04 active G4-R plan</a>.</p>
+</section>
+
+<section id="background">
+<h2>2. Project background</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Passive bistatic processing listens to a broadcast that already exists. One receiver channel is the cleanest available copy of the broadcast; the other sees the same broadcast plus reflections. The system looks for a delayed, Doppler-shifted reflection that could be caused by an aircraft. That is more like finding a faint echo in a noisy room than transmitting a radar pulse and waiting for it to return.</p>
+<div class="technical">
+<p>The baseline collection is a dual-channel recording. G1 establishes what was captured and how it decodes. G2 establishes channel roles and RF/collection caveats. G3 estimates time lag, residual frequency, phase behavior, and coherence. G4 forms and validates a passive cross-ambiguity map whose axes are delay and Doppler. Subsequent gates may mitigate direct-path/interference structure, freeze a detector-input product, align truth without leaking it into detection, validate detection, determine whether detections are suitable measurements for a tracker, and finally evaluate tracks against truth.</p>
+<p>“Localization” is broader than the present G1–G10 gate sequence. It requires trustworthy aircraft measurements, known sensor/transmitter geometry, and normally multiple suitable observations or links. It is a future system-level use of validated measurements; it is not produced by the current diagnostic artifacts.</p>
+</div>
+<div class="callout warn"><strong>Collection caveat that matters:</strong> the reference-session G2 work accepted a manual channel-role mapping and found analytically valid receiver data, but kept the dataset diagnostic because the reference path was weaker than surveillance and explicit lock, overrun/drop-counter, and mapping-verification evidence was missing. This is an acquisition-evidence gap, not proof that the analysis code is broken.</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md">S02 README</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G2_RF_Health_Stage1_AcquisitionEvidence/20260806T202837Z/summary.md">S08 G2 Stage 1</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G2_RF_Health_Stage2_ReceiverIntegrity/20260806T202947Z/summary.md">S09 G2 Stage 2</a>.</p>
+</section>
+
+<section id="pipeline">
+<h2>3. End-to-end passive-bistatic pipeline overview</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Each stage answers one question before the next stage is trusted. A later stage is not allowed to “fix” uncertainty that an earlier stage has not measured. If a contract changes, the workflow returns to the earliest affected gate.</p>
+<div class="technical">
+<p>The following is the intended processing and evidence flow. It distinguishes collection, data preparation, physics/map formation, measurement generation, and later use of measurements. A green-looking upstream box below means “has concrete evidence in a stated scope,” not “the entire operational pipeline is complete.”</p>
+</div>
+<figure class="figure" id="pipeline-overview">
+<svg viewBox="0 0 1180 655" role="img" aria-labelledby="pipeline-title pipeline-desc">
+<title id="pipeline-title">Passive bistatic processing pipeline with gates G1 through G10</title>
+<desc id="pipeline-desc">A left-to-right and top-to-bottom chain from collection to localization. G4 is marked as under bounded remediation, gates G5 through G10 are not formally advanced, and localization is future work beyond gate G10.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#64748b"/></marker>
+<style>.s{font-family:Segoe UI,Arial,sans-serif;fill:#172033}.t{font-size:18px;font-weight:700}.b{font-size:14px}.sm{font-size:12px;fill:#526176}.a{stroke:#64748b;stroke-width:2.4;fill:none;marker-end:url(#arrow)}.box{stroke:#64748b;stroke-width:1.4}.ok{fill:#ecfdf3}.work{fill:#fff7e6}.hold{fill:#fff1f1}.future{fill:#f5f3ff}.lane{fill:#f8fafc;stroke:#cbd5e1;stroke-width:1.4}</style>
+</defs>
+<rect class="lane" x="18" y="18" width="1144" height="150" rx="8"/>
+<text class="s t" x="42" y="52">1. Collect and make the data trustworthy</text>
+<rect class="box ok" x="42" y="76" width="182" height="66" rx="8"/><text class="s t" x="57" y="105">Collection</text><text class="s b" x="57" y="127">Dual-channel HDTV IQ</text>
+<rect class="box ok" x="267" y="76" width="182" height="66" rx="8"/><text class="s t" x="282" y="105">G1 Ingest</text><text class="s b" x="282" y="127">Decode, timing, CPI contract</text>
+<rect class="box work" x="492" y="76" width="182" height="66" rx="8"/><text class="s t" x="507" y="105">G2 RF health</text><text class="s b" x="507" y="127">Roles, quality, collection class</text>
+<rect class="box ok" x="717" y="76" width="182" height="66" rx="8"/><text class="s t" x="732" y="105">G3 Sync</text><text class="s b" x="732" y="127">Lag, frequency, coherence</text>
+<rect class="box work" x="942" y="76" width="182" height="66" rx="8"/><text class="s t" x="957" y="105">G4 Map</text><text class="s b" x="957" y="127">Passive delay–Doppler map</text>
+<line class="a" x1="224" y1="109" x2="265" y2="109"/><line class="a" x1="449" y1="109" x2="490" y2="109"/><line class="a" x1="674" y1="109" x2="715" y2="109"/><line class="a" x1="899" y1="109" x2="940" y2="109"/>
+<rect class="lane" x="18" y="195" width="1144" height="174" rx="8"/>
+<text class="s t" x="42" y="229">2. Form a frozen, truth-separated aircraft-measurement process</text>
+<rect class="box hold" x="42" y="255" width="185" height="76" rx="8"/><text class="s t" x="57" y="285">G5 Mitigation</text><text class="s b" x="57" y="306">Compare interference products</text><text class="s sm" x="57" y="323">formal selection blocked</text>
+<rect class="box hold" x="264" y="255" width="185" height="76" rx="8"/><text class="s t" x="279" y="285">G6 Freeze</text><text class="s b" x="279" y="306">CPI, integration, map product</text><text class="s sm" x="279" y="323">formal freeze blocked</text>
+<rect class="box hold" x="486" y="255" width="185" height="76" rx="8"/><text class="s t" x="501" y="285">G7 Truth alignment</text><text class="s b" x="501" y="306">Time, geometry, windows</text><text class="s sm" x="501" y="323">claims not enabled</text>
+<rect class="box hold" x="708" y="255" width="185" height="76" rx="8"/><text class="s t" x="723" y="285">G8 Detection</text><text class="s b" x="723" y="306">Truth-blind CFAR and validation</text><text class="s sm" x="723" y="323">formal execution refused</text>
+<rect class="box future" x="930" y="255" width="194" height="76" rx="8"/><text class="s t" x="945" y="285">Validated measurement</text><text class="s b" x="945" y="306">Delay/Doppler + uncertainty</text><text class="s sm" x="945" y="323">not yet generated</text>
+<line class="a" x1="227" y1="293" x2="262" y2="293"/><line class="a" x1="449" y1="293" x2="484" y2="293"/><line class="a" x1="671" y1="293" x2="706" y2="293"/><line class="a" x1="893" y1="293" x2="928" y2="293"/>
+<rect class="lane" x="18" y="396" width="1144" height="192" rx="8"/>
+<text class="s t" x="42" y="430">3. Use validated measurements — only after G8</text>
+<rect class="box future" x="152" y="466" width="220" height="78" rx="8"/><text class="s t" x="167" y="497">G9 Tracker readiness</text><text class="s b" x="167" y="518">Measurement schema and continuity</text><text class="s sm" x="167" y="535">not opened</text>
+<rect class="box future" x="480" y="466" width="220" height="78" rx="8"/><text class="s t" x="495" y="497">G10 Tracking / truth</text><text class="s b" x="495" y="518">Track-to-truth evaluation</text><text class="s sm" x="495" y="535">not opened</text>
+<rect class="box future" x="808" y="466" width="220" height="78" rx="8"/><text class="s t" x="823" y="497">Localization</text><text class="s b" x="823" y="518">Multiple trustworthy observations</text><text class="s sm" x="823" y="535">future system-level capability</text>
+<line class="a" x1="372" y1="505" x2="478" y2="505"/><line class="a" x1="700" y1="505" x2="806" y2="505"/>
+<text class="s sm" x="48" y="620">Design rule: truth may evaluate results after map formation, CFAR, and nonmaximum suppression; it must not steer those operations.</text>
+</svg>
+<figcaption><strong>Figure 1 — Processing chain and gate locations.</strong> Green: a bounded workflow component has concrete saved evidence. Amber: evidence is caveated or G4-R is active. Red: a formal downstream gate is disabled. Purple: future use of validated measurements. This is a workflow schematic, not a performance chart.</figcaption>
+</figure>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md">S02 gate terminology</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/docs/flowcharts/PipelineFlowchart.md">canonical flowchart source</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-003--ads-b-truth-remains-post-hoc">S05 D-003 truth boundary</a>.</p>
+</section>
+
+<section id="restart">
+<h2>4. Why the gated restart happened</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The earlier workflow had results, but its key map-rate comparison was not comparing like with like. Before trusting any later detector result, the team rebuilt the test so the two maps represented the same physics, filtering, axes, normalization, and timing. The restart is a quality-control repair: it makes later evidence meaningful instead of merely plentiful.</p>
+<div class="technical">
+<p>The restart was motivated by two connected concerns. First, a direct-path-dominated map can be repeatable without showing useful off-origin scene structure. Second, the historical raw/reduced-rate comparison mixed unequal map semantics: an unfiltered native map was compared with an anti-alias-filtered reduced map, while earlier cut/full-map logic also mixed representations. The apparent discrepancy could not be interpreted as radar signal loss or a valid rate limit.</p>
+<p>G4-R therefore separated numerical correctness, causal diagnosis, synchronization reuse/runtime, frozen verification, the full validation matrix, and collection suitability. It introduced independent CAF and aggregation checks, explicit orientation/filtering conventions, production-map parity, source/configuration fingerprints, compact evidence retention, and fail-closed reuse of validated G3 synchronization. The central design principle is that a corrected implementation must pass predeclared criteria before it can authorize a later study; a convenient diagnostic result cannot silently advance a formal gate.</p>
+</div>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th>Earlier limitation</th><th>Gated-restart response</th><th>Why the distinction matters</th></tr></thead>
+<tbody>
+<tr><td>Map-rate comparisons did not initially share equivalent filtering and map semantics.</td><td>R1/R2 introduced independent numerical checks and identified a <code>comparison_implementation_defect</code>; matching filter semantics produced a verified correction candidate.</td><td>A large difference between unlike products is not evidence of lost target information.</td></tr>
+<tr><td>A stable direct-path peak was being mistaken for enough scene readiness.</td><td>G4-R kept scene observability and map-rate validity explicit, and retained downstream work as diagnostic until map formation is validated.</td><td>Repeatability alone does not prove a detector has a useful, trustworthy input.</td></tr>
+<tr><td>Expensive G3 preparation could be recomputed without a strict provenance contract.</td><td>R3 added a fail-closed cache tied to dataset, metadata, configuration, source, evidence, and scientific-payload fingerprints.</td><td>Faster runs are useful only if they cannot silently change the science.</td></tr>
+<tr><td>Later diagnostic detections could be misread as formal gate completion.</td><td>Truth remains post-hoc, G6-D remains diagnostic, and G8 refuses formal execution until G6 and G7 prerequisites exist.</td><td>A useful experiment must not blur the line between a diagnostic and validated aircraft measurement.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/LessonsLearned.md">S06 LL-001, LL-007, LL-009, LL-013, and LL-016</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Map_Rate_Diagnosis/20260908T131638861Z/summary.md">S11 R2 diagnosis</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R4_Checkpoint/20260911T185618631Z/summary.md">S12 R4 checkpoint</a>.</p>
+</section>
+
+<section id="architecture">
+<h2>5. Gate architecture and rationale</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> A gate is a promise about what has been checked, not a project-management label. Passing a gate permits the next question; it does not answer every later question. Failing a gate sends work back to the smallest earlier question that can fix the problem.</p>
+<div class="technical">
+<p>G1–G10 are the stable pipeline gates. G4-R is a remediation ladder inside G4. The ladder deliberately prevents an R4 pilot or an attractive close-target diagnostic from being reinterpreted as formal G5/G6/G8 authorization. R5A validates map formation in an exact 108-condition matrix; R5B independently evaluates collection suitability under a reviewed numerical ADS-B timing/geometry policy. Both are necessary to close the relevant aspects of G4, and neither validates the complete pipeline.</p>
+</div>
+<figure class="figure" id="gate-rebuild">
+<svg viewBox="0 0 1180 560" role="img" aria-labelledby="rebuild-title rebuild-desc">
+<title id="rebuild-title">G4-R remediation and formal gate protection</title>
+<desc id="rebuild-desc">A diagram showing R1 through R5B inside G4 remediation. R1 through R4 have produced evidence, R5A failed, R5B is blocked, and G5 through G10 remain formally closed.</desc>
+<defs><marker id="arrow2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#64748b"/></marker><style>.s{font-family:Segoe UI,Arial,sans-serif;fill:#172033}.t{font-size:18px;font-weight:700}.b{font-size:14px}.sm{font-size:12px;fill:#526176}.a{stroke:#64748b;stroke-width:2.4;fill:none;marker-end:url(#arrow2)}.box{stroke:#64748b;stroke-width:1.4}.pass{fill:#ecfdf3}.work{fill:#fff7e6}.fail{fill:#fff1f1}.future{fill:#f5f3ff}.lane{fill:#f8fafc;stroke:#cbd5e1;stroke-width:1.4}</style></defs>
+<rect class="lane" x="20" y="24" width="1140" height="318" rx="10"/>
+<text class="s t" x="45" y="58">G4-R: bounded remediation inside the passive-baseline-map gate</text>
+<text class="s b" x="45" y="82">Each step authorizes only the next stated step. It does not create a new formal pipeline gate.</text>
+<rect class="box pass" x="48" y="122" width="155" height="112" rx="8"/><text class="s t" x="63" y="152">R1</text><text class="s b" x="63" y="176">Numerical oracle</text><text class="s b" x="63" y="196">and aggregation</text><text class="s sm" x="63" y="218">complete</text>
+<rect class="box pass" x="242" y="122" width="155" height="112" rx="8"/><text class="s t" x="257" y="152">R2</text><text class="s b" x="257" y="176">Causal diagnosis</text><text class="s b" x="257" y="196">of mismatch</text><text class="s sm" x="257" y="218">defect identified</text>
+<rect class="box pass" x="436" y="122" width="155" height="112" rx="8"/><text class="s t" x="451" y="152">R3</text><text class="s b" x="451" y="176">Verified G3 reuse</text><text class="s b" x="451" y="196">and runtime</text><text class="s sm" x="451" y="218">complete</text>
+<rect class="box pass" x="630" y="122" width="155" height="112" rx="8"/><text class="s t" x="645" y="152">R4</text><text class="s b" x="645" y="176">Frozen verification</text><text class="s b" x="645" y="196">and fixed pilot</text><text class="s sm" x="645" y="218">passed, bounded</text>
+<rect class="box fail" x="824" y="122" width="155" height="112" rx="8"/><text class="s t" x="839" y="152">R5A</text><text class="s b" x="839" y="176">108-pair map</text><text class="s b" x="839" y="196">validation matrix</text><text class="s sm" x="839" y="218">failed frozen criteria</text>
+<rect class="box fail" x="1018" y="122" width="115" height="112" rx="8"/><text class="s t" x="1033" y="152">R5B</text><text class="s b" x="1033" y="176">Collection</text><text class="s b" x="1033" y="196">suitability</text><text class="s sm" x="1033" y="218">policy blocked</text>
+<line class="a" x1="203" y1="178" x2="240" y2="178"/><line class="a" x1="397" y1="178" x2="434" y2="178"/><line class="a" x1="591" y1="178" x2="628" y2="178"/><line class="a" x1="785" y1="178" x2="822" y2="178"/><line class="a" x1="979" y1="178" x2="1016" y2="178"/>
+<path d="M901,234 C901,292 704,292 704,252" fill="none" stroke="#a61b1b" stroke-width="2.5" marker-end="url(#arrow2)"/><text class="s b" x="744" y="306" fill="#a61b1b">Retune the upstream map contract; do not bypass the failure.</text>
+<rect class="lane" x="20" y="374" width="1140" height="145" rx="10"/>
+<text class="s t" x="45" y="410">Formal downstream gates remain protected</text>
+<rect class="box future" x="115" y="440" width="150" height="48" rx="8"/><text class="s t" x="157" y="470">G5</text>
+<rect class="box future" x="332" y="440" width="150" height="48" rx="8"/><text class="s t" x="374" y="470">G6</text>
+<rect class="box future" x="549" y="440" width="150" height="48" rx="8"/><text class="s t" x="591" y="470">G7</text>
+<rect class="box future" x="766" y="440" width="150" height="48" rx="8"/><text class="s t" x="808" y="470">G8</text>
+<rect class="box future" x="983" y="440" width="110" height="48" rx="8"/><text class="s t" x="1014" y="470">G9–G10</text>
+<line class="a" x1="265" y1="464" x2="330" y2="464"/><line class="a" x1="482" y1="464" x2="547" y2="464"/><line class="a" x1="699" y1="464" x2="764" y2="464"/><line class="a" x1="916" y1="464" x2="981" y2="464"/>
+</svg>
+<figcaption><strong>Figure 2 — Why G4-R is a restart, not a shortcut.</strong> The failed R5A result is retained as evidence. The corrective candidate can be reviewed and reverified, but it cannot itself select a mitigation product or enable formal detection/tracking.</figcaption>
+</figure>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/G4RMapRateValidityPlan.md">S04 G4-R plan</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R5A_Matrix/20260915T155816449Z/summary.md">S13 failed R5A summary</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-014--accept-the-cancellation-characterization-as-a-reviewed-r4-correction-candidate-only">S05 D-014</a>.</p>
+</section>
+
+<section id="gates">
+<h2>6. Gate-by-gate walkthrough: what each gate proves</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The gates are ordered because later answers rely on earlier ones. “Implemented” means code exists. “Demonstrated” means a bounded result was produced. Neither word means every gate after it is approved.</p>
+<div class="technical">
+<p>The status column is intentionally conservative. It reports the strongest supported state as of this snapshot, not an optimistic interpretation of what might be possible. “Diagnostic” means a study answered a useful bounded question under stated controls; it does not alter a formal gate decision.</p>
+</div>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th style="width:9%">Gate</th><th style="width:25%">What it is intended to prove</th><th style="width:28%">Evidence needed for that proof</th><th style="width:18%">Current status</th><th style="width:20%">Boundary today</th></tr></thead>
+<tbody>
+<tr><th>G1<br>Ingest</th><td>The recorded files, channel order, timing, seams, and CPI segmentation are understood well enough to be a reproducible input contract.</td><td>Inventory reconciliation; decode contract; metadata/timing checks; seam continuity; frozen CPI segmentation.</td><td><span class="tag demonstrated">Demonstrated on the reference session</span></td><td>One baseline session passed G1. It is not a blanket acceptance of every collection or a later-gate result.</td></tr>
+<tr><th>G2<br>RF health</th><td>Channel roles, RF condition, direct-path usability, and collection classification are traceable.</td><td>Role evidence, spectral/receiver metrics, acquisition logs, mapping proof, lock/overrun evidence, and a collection classification.</td><td><span class="tag supported">Investigated and caveated</span></td><td>The manual mapping is usable for development, but the reference channel was weaker and several acquisition records are missing; the dataset remains diagnostic.</td></tr>
+<tr><th>G3<br>Sync</th><td>Reference and surveillance can be aligned with a stable lag, residual-frequency correction, and coherent CPI behavior.</td><td>Lag stability; residual frequency/phase; coherence across CPI windows; a selected correction contract.</td><td><span class="tag demonstrated">Demonstrated core on baseline</span></td><td>The saved G3 core was ready on the frozen baseline. This enables controlled upstream analysis, not detector validation.</td></tr>
+<tr><th>G4<br>Passive baseline map</th><td>Passive delay–Doppler maps have correct axes, formation semantics, repeatability, and map-rate equivalence.</td><td>Equivalent map comparisons, production parity, independent checks, fixed pilot, matrix validation, and collection suitability.</td><td><span class="tag blocked">Retune pending</span></td><td>R1–R4 produced important evidence, but R5A failed and R5B is independently blocked. G4 is not formally closed.</td></tr>
+<tr><th>G5<br>Mitigation</th><td>A mitigation product improves the relevant interference/scene trade-off without breaking protected signal content or the validated map contract.</td><td>Approved map input; controlled product comparison; held-out confirmation; explicit product-selection decision.</td><td><span class="tag investigated">Diagnostic studies completed</span></td><td>No formal G5 product is selected. Native-first frozen NLMS is only an upstream R4 correction candidate, not a G5 decision.</td></tr>
+<tr><th>G6<br>CPI / integration freeze</th><td>The detector input has a frozen CPI, overlap/integration rule, and map product with a defined contract.</td><td>Passed upstream G4/G5; repeatability and integration comparison; formal frozen configuration record.</td><td><span class="tag blocked">Formal freeze deferred</span></td><td>G6-D compared fixed diagnostic products, but it cannot freeze formal G6 or enable G8.</td></tr>
+<tr><th>G7<br>Truth alignment</th><td>Radar/map time and geometry can be paired with truth using defined timing uncertainty and product-level association windows.</td><td>Frozen detector product; time audit; geometry convention; truth-quality/uncertainty policy; validation windows.</td><td><span class="tag supported">Truth context investigated</span></td><td>Truth was imported and timing-audited, but truth claims are disabled until a formal G6 product exists. Truth remains post-hoc for diagnostics.</td></tr>
+<tr><th>G8<br>Detection</th><td>A truth-blind detector operating on the frozen product has validated behavior and a measurement output contract.</td><td>Frozen G6 product; G7 windows; detector tuning/validation; false-alarm and detection evidence appropriate to the claim.</td><td><span class="tag blocked">Formal execution refused</span></td><td>Diagnostic CFAR/NMS studies exist, but formal CFAR execution, tuning, and the detection table are disabled.</td></tr>
+<tr><th>G9<br>Tracker readiness</th><td>Validated detections have the required measurement schema, uncertainty, continuity, and fragmentation behavior for a tracker.</td><td>Validated G8 output; measurement-model contract; continuity and schema review.</td><td><span class="tag blocked">Not opened</span></td><td>No validated aircraft measurements are available to assess tracker readiness.</td></tr>
+<tr><th>G10<br>Tracking / truth validation</th><td>Fixed-input tracks can be compared with truth using suitable assignment, continuity, coast, and error metrics.</td><td>G9-ready measurements; fixed tracker configuration; track-to-truth evaluation protocol and metrics.</td><td><span class="tag blocked">Not opened</span></td><td>No tracking-performance claim is supported. Localization remains further downstream still.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md#gate-and-investigation-terminology">S02 G1–G10 definitions</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S03 current status</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G8_Detection_Prerequisite_Gate/20260807T124005Z/summary.md">S20 G8 refusal</a>.</p>
+</section>
+
+<section id="capabilities">
+<h2>7. What has actually been demonstrated</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The project has not demonstrated operational aircraft detection. It has demonstrated that the team can build, preserve, test, and diagnose the early processing chain—and that the workflow refuses to turn a promising diagnostic into an unsupported operational claim.</p>
+<div class="technical">
+<p>To prevent status inflation, this report uses the following terms exactly:</p>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th>Label</th><th>Meaning in this report</th><th>What it does not mean</th></tr></thead>
+<tbody>
+<tr><td><span class="tag implemented">Implemented</span></td><td>Code, an artifact schema, or a fail-safe workflow exists.</td><td>It has not necessarily met a formal acceptance criterion.</td></tr>
+<tr><td><span class="tag investigated">Investigated</span></td><td>A bounded question was studied with saved evidence.</td><td>The study need not select a product or advance a gate.</td></tr>
+<tr><td><span class="tag demonstrated">Demonstrated</span></td><td>A stated result was reproduced under a specific input, configuration, and acceptance contract.</td><td>The result does not generalize automatically to field performance.</td></tr>
+<tr><td><span class="tag supported">Supported diagnostic</span></td><td>Evidence supports a narrow causal or feasibility statement.</td><td>It is not operational Pd/Pfa, a product-selection, or a readiness claim.</td></tr>
+<tr><td><span class="tag progress">In progress</span></td><td>A bounded next action exists and requires review or controlled verification.</td><td>Authorization or completion has not been assumed.</td></tr>
+<tr><td><span class="tag blocked">Blocked</span></td><td>A prerequisite is absent or a frozen criterion failed.</td><td>“Blocked” does not erase evidence already collected.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="grid">
+<article class="card"><h3><span class="tag demonstrated">Demonstrated infrastructure</span></h3><p><strong>Reference-session ingest:</strong> the 18 required manifest artifacts were present; the decode, timing, seams, and CPI segmentation were frozen for that session. The native baseband reader produced a <code>6144000 × 2</code> complex-int16 contract per file.</p><p class="source"><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G1_Ingest/20260806T203131Z/summary.md">S07 G1 summary</a></p></article>
+<article class="card"><h3><span class="tag demonstrated">Demonstrated workflow component</span></h3><p><strong>Synchronization core:</strong> the baseline run reported zero-sample maximum lag spread, a 0.019 Hz median absolute residual frequency, and coherent short/medium/long review windows under the selected global-session correction.</p><p class="source"><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G3_Sync_Core/20260806T210509Z/summary.md">S10 G3 summary</a></p></article>
+<article class="card"><h3><span class="tag demonstrated">Demonstrated rebuild component</span></h3><p><strong>Equivalent map comparison:</strong> R2 identified a comparison-implementation defect; R4 then passed the fixed pilot with production-G4 parity and focused/regression checks. This proves a bounded map-rate contract, not the whole pipeline.</p><p class="source"><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R4_Checkpoint/20260911T185618631Z/summary.md">S12 R4 summary</a></p></article>
+<article class="card"><h3><span class="tag demonstrated">Demonstrated provenance-safe reuse</span></h3><p><strong>G3 cache:</strong> the fail-closed cache maintained unchanged scientific hashes and reduced median warm-load time from a 411.2 s rebuild to 4.62 s (89.0×), while rejecting mismatched evidence rather than silently refreshing it.</p><p class="source"><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_G3_Cache_Benchmark/20260908T144302775Z/summary.md">R3 cache benchmark</a></p></article>
+<article class="card"><h3><span class="tag supported">Supported diagnostic finding</span></h3><p><strong>Close-target policy consequence:</strong> the 15 km synthetic truth was outside historical delay–Doppler CUT support, so its original baseline was not a detector miss. It became eligible under a diagnostic-only grid-derived override. Production support did not change.</p><p class="source"><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Close_Target_Atlas_Recovery/20260918T134014380Z/summary.html">S16 close-target report</a></p></article>
+<article class="card"><h3><span class="tag supported">Supported diagnostic finding</span></h3><p><strong>Cancellation-order candidate:</strong> target-free calibration followed by frozen native-rate 16-tap NLMS scoring passed the bounded map-rate controls and a 15 km map-preservation guard. It is evidence for review of an upstream correction only.</p><p class="source"><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Cancellation_Characterization/20260916T125719176Z/summary.md">S14 cancellation characterization</a></p></article>
+<article class="card"><h3><span class="tag investigated">Investigated</span></h3><p><strong>Opportunity geometry:</strong> the Phase A study reconstructed sampled ADS-B/geometry context and found that current G6-D CUT support represented 42.559% of its equal-episode sampled opportunity. This is eligibility context, not a probability of detection or localization-coverage result.</p><p class="source"><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/aircraft_surveillance_envelope/20260910T124054969Z/summary.md">S17 PBR-SVE-001 Phase A</a></p></article>
+<article class="card"><h3><span class="tag implemented">Implemented fail-safe behavior</span></h3><p><strong>Downstream refusal:</strong> G6 defers product freeze, G7 does not enable truth claims, and G8 refuses formal detector execution because a frozen detector product and truth windows are missing. This prevents a false appearance of readiness.</p><p class="source"><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G6_CPI_Integration_Freeze/20260807T124003Z/summary.md">S18 G6</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G7_Truth_Context_Diagnostic/20260807T124004Z/summary.md">S19 G7</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G8_Detection_Prerequisite_Gate/20260807T124005Z/summary.md">S20 G8</a></p></article>
+</div>
+</section>
+
+<section id="boundaries">
+<h2>8. Current evidence boundaries</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> A controlled synthetic echo in a real recording is very useful for testing the plumbing. It is not the same as proving that the system detects arbitrary live aircraft in all field conditions.</p>
+<div class="technical">
+<p>The strongest narrow diagnostic result is deliberately truth-separated: the system forms the map, applies CFAR, and applies nonmaximum suppression without generated truth. Only afterward is the known synthetic target used to associate an already-retained candidate. The paired untouched control asks whether that same target-specific window contains an associated candidate; it is not a map-wide false-alarm measurement.</p>
+<p>Similarly, the PBR-SVE opportunity figures are based on sampled ADS-B/geometry states. They quantify which states would lie in a specified support rectangle; they do not run CFAR, inject signals, measure aircraft detection performance, or establish localization-capable coverage.</p>
+</div>
+<div class="two-col">
+<div class="callout"><strong>This report establishes:</strong><ul class="plain-list"><li>the intended pipeline and evidence ownership;</li><li>why G4-R was necessary and what it is protecting;</li><li>specific early-stage and bounded diagnostic results;</li><li>the exact dependency path that prevents formal aircraft measurement generation today.</li></ul></div>
+<div class="callout stop"><strong>This report does not establish:</strong><ul class="plain-list"><li>live-aircraft detection performance;</li><li>operational probability of detection or operational false alarm rate;</li><li>a selected mitigation product or frozen detector input;</li><li>tracking performance, track-to-truth quality, localization performance, or localization accuracy;</li><li>hardware or site sufficiency.</li></ul></div>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-003--ads-b-truth-remains-post-hoc">S05 D-003</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Close_Target_Atlas_Recovery/20260918T134014380Z/summary.html">S16 diagnostic method and limits</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/aircraft_surveillance_envelope/20260910T124054969Z/summary.md">S17 opportunity boundaries</a>.</p>
+</section>
+
+<section id="value">
+<h2>9. Project value delivered so far</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The value so far is not a claim that aircraft are ready to track. It is a tested way to avoid building a tracking or localization demo on untrustworthy measurements—and a set of concrete findings that tell the team exactly where to work next.</p>
+<div class="technical">
+<ul class="plain-list">
+<li><strong>Reproducible engineering contracts:</strong> the project can trace source files, configuration, map semantics, acceptance checks, and compact outputs instead of relying on a single attractive visualization.</li>
+<li><strong>Root-cause discrimination:</strong> G4-R separated an invalid comparison implementation from a presumed physical limitation, then kept the later matrix failure as a distinct, product-specific finding.</li>
+<li><strong>Evidence-preserving safety:</strong> downstream refusal scaffolds prevent diagnostic detector work from being mistaken for formal detection readiness.</li>
+<li><strong>Better collection and support questions:</strong> G2 identifies missing acquisition evidence; PBR-SVE describes sampled geometry/opportunity; the close-target study identifies a support-policy exclusion rather than calling it a detector miss.</li>
+<li><strong>Efficient, provenance-safe iteration:</strong> validated G3 reuse reduces repeatable setup time without silently changing inputs.</li>
+</ul>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/LessonsLearned.md">S06 lessons learned</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S03 verified current state</a>.</p>
+</section>
+
+<section id="blockers">
+<h2>10. What remains before aircraft measurement generation</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Before the system can issue a trusted aircraft measurement, it must first prove that the map is reliable, choose and freeze the exact product that feeds the detector, define how truth is aligned for validation, and then validate the detector without letting truth steer it. The current close-target diagnostic helps explain one issue, but it cannot skip these steps.</p>
+<div class="technical">
+<p>The next work is a dependency chain, not a collection of independent improvements. The first active decision is whether to adopt the evidence-supported native-first frozen-NLMS ordering as a bounded upstream R4 correction. If approved, it must be reverified under the existing map contract and regressions. Only then can a separately authorized replacement R5A matrix be considered. Collection suitability (R5B) remains a separate block until a reviewed ADS-B timing/geometry policy exists.</p>
+</div>
+<figure class="figure" id="measurement-dependencies">
+<svg viewBox="0 0 1180 625" role="img" aria-labelledby="dependency-title dependency-desc">
+<title id="dependency-title">Dependency path to validated aircraft measurement generation</title>
+<desc id="dependency-desc">A vertical chain beginning with the G4-R correction review, then R4 verification, replacement R5A and separate R5B, formal G5 selection, G6 freeze, G7 truth alignment, and G8 detection validation. G9 tracking and localization follow only after validated measurements.</desc>
+<defs><marker id="arrow3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#64748b"/></marker><style>.s{font-family:Segoe UI,Arial,sans-serif;fill:#172033}.t{font-size:17px;font-weight:700}.b{font-size:13px}.sm{font-size:12px;fill:#526176}.a{stroke:#64748b;stroke-width:2.3;fill:none;marker-end:url(#arrow3)}.box{stroke:#64748b;stroke-width:1.4}.next{fill:#fff7e6}.block{fill:#fff1f1}.future{fill:#f5f3ff}.good{fill:#ecfdf3}</style></defs>
+<rect class="box next" x="390" y="20" width="400" height="58" rx="8"/><text class="s t" x="414" y="46">1. Review bounded R4 correction candidate</text><text class="s b" x="414" y="66">Native-first frozen-NLMS ordering is evidence-supported, not adopted.</text>
+<rect class="box next" x="390" y="112" width="400" height="58" rx="8"/><text class="s t" x="414" y="138">2. Controlled R4 verification</text><text class="s b" x="414" y="158">Pass existing map contract, parity, and regressions with the approved correction.</text>
+<rect class="box block" x="120" y="208" width="400" height="68" rx="8"/><text class="s t" x="144" y="235">3a. Replacement R5A authorization and matrix</text><text class="s b" x="144" y="256">A new exact matrix is separately authorized only after corrected R4 verification.</text>
+<rect class="box block" x="660" y="208" width="400" height="68" rx="8"/><text class="s t" x="684" y="235">3b. R5B collection-suitability policy</text><text class="s b" x="684" y="256">Reviewed numerical ADS-B timing/geometry policy remains required.</text>
+<rect class="box future" x="390" y="321" width="400" height="58" rx="8"/><text class="s t" x="414" y="347">4. Formal G5 mitigation decision</text><text class="s b" x="414" y="367">Select/retune a product using the validated map contract and held-out evidence.</text>
+<rect class="box future" x="390" y="413" width="400" height="58" rx="8"/><text class="s t" x="414" y="439">5. Formal G6 freeze and G7 truth alignment</text><text class="s b" x="414" y="459">Freeze the detector input, then define product-level timing/geometry windows.</text>
+<rect class="box good" x="390" y="505" width="400" height="58" rx="8"/><text class="s t" x="414" y="531">6. Formal G8 detector validation → aircraft measurement</text><text class="s b" x="414" y="551">Truth-blind detection evaluated against declared validation evidence.</text>
+<line class="a" x1="590" y1="78" x2="590" y2="110"/><line class="a" x1="500" y1="170" x2="355" y2="206"/><line class="a" x1="680" y1="170" x2="825" y2="206"/><path d="M320,276 C320,300 475,300 510,319" fill="none" stroke="#64748b" stroke-width="2.3" marker-end="url(#arrow3)"/><path d="M860,276 C860,300 705,300 670,319" fill="none" stroke="#64748b" stroke-width="2.3" marker-end="url(#arrow3)"/><line class="a" x1="590" y1="379" x2="590" y2="411"/><line class="a" x1="590" y1="471" x2="590" y2="503"/>
+<text class="s sm" x="807" y="531">G9 and G10 may begin only after this point.</text><text class="s sm" x="807" y="549">Localization follows validated measurements/tracks.</text>
+</svg>
+<figcaption><strong>Figure 3 — Dependency path to measurement generation.</strong> The green box is an outcome to be validated, not a current capability. The parallel R5A/R5B conditions emphasize that map formation and collection suitability are separate evidence questions.</figcaption>
+</figure>
+<div class="pathway">
+<div class="pendingstep"><strong>Major technical blocker:</strong> R5A’s 108-condition matrix is integrity-valid but failed the frozen map-rate criteria. The observed candidate correction must not be adopted without a reviewed R4 re-verification.</div>
+<div class="blockedstep"><strong>Major evidence gap:</strong> collection suitability is independently blocked pending a reviewed numerical ADS-B timing/geometry policy; G2 also preserves missing acquisition-state evidence as a caveat.</div>
+<div class="blockedstep"><strong>Formal detection gap:</strong> no formal G5 product is selected, no G6 detector input is frozen, G7 product-level truth claims are disabled, and G8 currently refuses formal execution.</div>
+<div class="blockedstep"><strong>Later-use gap:</strong> no validated measurement contract exists for G9; therefore no tracker performance, track-to-truth validation, or localization accuracy can be claimed.</div>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md#current-blocker">S03 current blocker and next action</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R5A_Matrix/20260915T155816449Z/summary.md">S13 R5A failure</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G6_CPI_Integration_Freeze/20260807T124003Z/summary.md">S18 G6 refusal</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G8_Detection_Prerequisite_Gate/20260807T124005Z/summary.md">S20 G8 refusal</a>.</p>
+</section>
+
+<section id="meaning">
+<h2>11. Meaning and limits</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The restart has produced meaningful engineering progress because it changed unknowns into tested, traceable facts. It has not yet produced the kind of validated aircraft measurement that a tracker or localization system should consume.</p>
+<div class="technical">
+<p>The report’s central interpretation is therefore two-part. First, the project has a defendable basis for continuing: it has instrumented early gates, demonstrated bounded G4-R correction and diagnostic workflows, protected truth separation, and located specific collection/map/support questions. Second, it must retain the formal stop because the map-formation matrix failed and the downstream contract has not been frozen or validated.</p>
+<p>This distinction is useful to a manager: it preserves the value of evidence already produced while making the resource and decision path to the next milestone explicit. It also prevents later tracking/localization work from becoming a visually compelling but unvalidated demonstration.</p>
+</div>
+</section>
+
+<section id="evidence">
+<h2>12. Local evidence navigation</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> A reader should be able to move from a claim in this report to its governing decision, plan, or saved result without needing to rerun the analysis.</p>
+<div class="grid">
+<article class="card"><h3>Project authority</h3><ul class="plain-list"><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/NorthStar.md">North Star</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">Current Project State</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/G4RMapRateValidityPlan.md">Active G4-R plan</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md">Decision log</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/LessonsLearned.md">Lessons learned</a></li></ul></article>
+<article class="card"><h3>Early pipeline evidence</h3><ul class="plain-list"><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G1_Ingest/20260806T203131Z/summary.md">G1 ingest summary</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G2_RF_Health_Stage1_AcquisitionEvidence/20260806T202837Z/summary.md">G2 acquisition evidence</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G2_RF_Health_Stage2_ReceiverIntegrity/20260806T202947Z/summary.md">G2 receiver integrity</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G3_Sync_Core/20260806T210509Z/summary.md">G3 sync core</a></li></ul></article>
+<article class="card"><h3>G4-R rebuild evidence</h3><ul class="plain-list"><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Map_Rate_Diagnosis/20260908T131638861Z/summary.md">R2 diagnosis</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R4_Checkpoint/20260911T185618631Z/summary.md">R4 fixed-pilot checkpoint</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R5A_Matrix/20260915T155816449Z/summary.md">Failed R5A matrix</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Cancellation_Characterization/20260916T125719176Z/summary.html">Cancellation characterization</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R4_NativeFirst_Checkpoint/20260916T183355960Z/summary.md">Native-first R4 checkpoint</a></li></ul></article>
+<article class="card"><h3>Diagnostic and downstream boundary evidence</h3><ul class="plain-list"><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Close_Target_Atlas_Recovery/20260918T134014380Z/summary.html">Close-target atlas/recovery report</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/aircraft_surveillance_envelope/20260910T124054969Z/summary.md">PBR-SVE-001 Phase A</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G6_CPI_Integration_Freeze/20260807T124003Z/summary.md">G6 formal freeze refusal</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G7_Truth_Context_Diagnostic/20260807T124004Z/summary.md">G7 truth-context diagnostic</a></li><li><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G8_Detection_Prerequisite_Gate/20260807T124005Z/summary.md">G8 formal-detection refusal</a></li></ul></article>
+</div>
+<p>Supporting inventories: <a href="figure_inventory.csv">figure inventory</a> and <a href="source_inventory.csv">source inventory</a>.</p>
+</section>
+
+<section id="glossary">
+<h2>13. Gate glossary</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The labels below are shorthand for evidence questions. They are not maturity badges.</p>
+<dl>
+<dt>G1 — Ingest</dt><dd>Validate inventory, decode, timing, seams, and CPI segmentation.</dd>
+<dt>G2 — RF health</dt><dd>Establish channel quality, direct-path usability, spectral cleanliness, roles, and collection classification.</dd>
+<dt>G3 — Sync</dt><dd>Establish channel roles, lag, residual-frequency correction, and coherence.</dd>
+<dt>G4 — Passive baseline map</dt><dd>Validate passive-map formation, axes, repeatability, and map-rate equivalence.</dd>
+<dt>G5 — Mitigation</dt><dd>Compare direct-path/interference mitigation candidates without losing required target/map content.</dd>
+<dt>G6 — CPI / integration freeze</dt><dd>Select and freeze CPI, overlap/integration rules, and the detector-input product.</dd>
+<dt>G7 — Truth alignment</dt><dd>Align map time with ADS-B truth timing and geometry under an explicit validation policy.</dd>
+<dt>G8 — Detection</dt><dd>Tune and validate detection on the frozen product while preserving truth-blind measurement generation.</dd>
+<dt>G9 — Tracker readiness</dt><dd>Decide whether validated detections form a usable measurement contract for tracking.</dd>
+<dt>G10 — Tracking / truth validation</dt><dd>Evaluate fixed-input tracks and track-to-truth performance.</dd>
+<dt>G4-R</dt><dd>Bounded remediation and revalidation within G4, not an additional formal gate.</dd>
+<dt>R1–R5B</dt><dd>The ordered G4-R acceptance ladder: numerical validation, diagnosis, verified reuse, frozen pilot, map-formation matrix, and separate collection-suitability assessment.</dd>
+</dl>
+<p class="source">Authoritative terminology: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md#gate-and-investigation-terminology">S02 README</a> and <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/G4RMapRateValidityPlan.md#g4-r-terminology-and-remediation-ladder">S04 G4-R plan</a>.</p>
+</section>
+
+<section id="sources">
+<h2>14. Source inventory</h2>
+<p>The concise inventory below identifies the source class used for each group of claims. The complete file-level inventory is available in <a href="source_inventory.csv">source_inventory.csv</a>.</p>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th>Source group</th><th>Role</th><th>Use in this report</th><th>Boundary</th></tr></thead>
+<tbody>
+<tr><td>S01–S06: objective, state, plan, decisions, lessons</td><td>Authority and project history</td><td>Defines status, gate architecture, restart rationale, and allowed claims.</td><td>Does not replace primary artifact results.</td></tr>
+<tr><td>S07–S10: G1–G3 summaries</td><td>Primary early-pipeline results</td><td>Supports bounded statements about ingest, collection caveats, and synchronization.</td><td>Reference-session evidence only.</td></tr>
+<tr><td>S11–S15: G4-R results</td><td>Primary remediation evidence</td><td>Supports comparison-defect diagnosis, passed bounded R4 work, failed R5A, and correction-candidate status.</td><td>Does not close G4 or enable formal downstream gates.</td></tr>
+<tr><td>S16–S17: close-target and opportunity diagnostics</td><td>Primary diagnostic evidence</td><td>Supports the support-policy and sampled-opportunity conclusions.</td><td>Not live-aircraft detection performance, operational support, or localization coverage.</td></tr>
+<tr><td>S18–S20: G6–G8 summaries</td><td>Formal downstream controls</td><td>Supports the stated freeze, truth-claim, and detection blocks.</td><td>Diagnostic studies elsewhere do not override these formal refusals.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<footer>
+<p><strong>Reporting boundary:</strong> This report describes the analysis pipeline and its evidence state. It does not generate a PowerPoint, prescribe a presentation, or claim a validated aircraft-measurement, tracking, or localization capability.</p>
+</footer>
+</body>
+</html>

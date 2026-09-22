@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlightTest — End-to-End Human Story</title>
+<style>
+:root{--ink:#142033;--muted:#526176;--line:#cbd5e1;--blue:#075caa;--blue2:#eef7fd;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--purple:#5b21b6;--purple2:#f5f3ff;--paper:#fff;--panel:#f8fafc}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{max-width:1240px;margin:0 auto;padding:26px 22px 58px;color:var(--ink);background:var(--paper);font:16px/1.55 "Segoe UI",Arial,sans-serif}h1,h2,h3,h4{line-height:1.18;color:#102a43}h1{font-size:2.35rem;margin:.15rem 0 .45rem}h2{margin:3rem 0 1rem;padding-top:.5rem;border-top:2px solid #e2e8f0;font-size:1.7rem}h3{font-size:1.02rem;margin:1.2rem 0 .32rem}h4{margin:.1rem 0 .35rem;font-size:1rem}p{max-width:1080px}a{color:var(--blue);text-decoration-thickness:1px;text-underline-offset:2px}a:hover{color:#003f73}.subtitle,.quiet{color:var(--muted)}.subtitle{font-size:1.08rem;margin:.15rem 0}.quiet{font-size:.92rem}code{font:.92em Consolas,"Courier New",monospace;background:#f1f5f9;padding:.08rem .23rem;border-radius:3px}
+nav{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:.2rem .85rem;margin:1.2rem 0 1.5rem;padding:.72rem .9rem;border:1px solid var(--line);background:rgba(255,255,255,.96);box-shadow:0 2px 8px #102a4314}nav a{font-size:.9rem;white-space:nowrap}
+.hero{padding:1.3rem 1.35rem;border:1px solid var(--line);border-top:6px solid var(--blue);background:linear-gradient(135deg,#f5fbff,#fff)}.hero p{margin:.55rem 0}.hero strong{color:#102a43}.boundary{margin:1.1rem 0;padding:.9rem 1rem;border:1px solid #efce90;border-left:6px solid var(--amber);background:var(--amber2)}.boundary p{margin:.25rem 0}.key{margin:1.1rem 0;padding:.9rem 1rem;border:1px solid #b7d8ed;border-left:6px solid var(--blue);background:var(--blue2)}.key p{margin:.25rem 0}
+.chip{display:inline-block;margin:0 .16rem .18rem 0;padding:.14rem .48rem;border-radius:999px;font-size:.78rem;font-weight:750;line-height:1.2;white-space:nowrap}.modeled{color:#5b21b6;background:var(--purple2)}.implemented{color:#075caa;background:var(--blue2)}.proposed{color:#9a5b00;background:var(--amber2)}.blocked{color:#a61b1b;background:var(--red2)}.diagnostic{color:#6d28d9;background:var(--purple2)}.demonstrated{color:#166534;background:var(--green2)}
+.table-wrap{overflow-x:auto;margin:1rem 0 1.45rem}.spine{width:100%;min-width:980px;border-collapse:collapse;font-size:.78rem;line-height:1.26}.spine th,.spine td{padding:.48rem .52rem;border:1px solid var(--line);vertical-align:top;text-align:left}.spine th{background:#102a43;color:#fff}.spine tbody tr:nth-child(even){background:#f8fafc}.spine strong{color:#102a43}.spine td:first-child{min-width:72px;font-weight:750}
+.stage{margin:2.25rem 0;padding:1.15rem 1.22rem 1.3rem;border:1px solid var(--line);border-top:5px solid var(--blue);background:#fff}.stage.stage-history{border-top-color:var(--purple)}.stage.stage-diagnostic{border-top-color:var(--amber)}.stage.stage-status{border-top-color:var(--red)}.stage>h2{margin:.05rem 0 1rem;padding:0;border:0;font-size:1.48rem}.stage-no{display:inline-block;margin-right:.45rem;color:var(--blue);font:750 .82rem Consolas,"Courier New",monospace}.stage-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(260px,.95fr);gap:1.4rem;align-items:start}.stage-grid p{margin:.28rem 0}.fact{padding:.8rem .9rem;border:1px solid var(--line);background:var(--panel)}.fact h3{margin-top:0}.fact + .fact{margin-top:.7rem}.handoff{margin-top:1rem;padding:.75rem .85rem;border-left:5px solid var(--green);background:var(--green2)}.handoff strong{color:#0e4b29}.visual{margin:0;border:1px solid var(--line);background:#fff}.visual img{display:block;width:100%;height:auto;background:#eef2f7}.visual figcaption{padding:.72rem .8rem;color:#40566e;font-size:.89rem;line-height:1.42}.visual figcaption strong{color:#102a43}.visual-link{display:block;min-height:178px;padding:1rem;background:linear-gradient(135deg,#f7fbff,#eef7fd);border:1px solid #b7d8ed;color:#075caa;text-decoration:none}.visual-link:hover{background:#e2f1fb}.visual-link .visual-kicker{display:block;margin-bottom:.65rem;color:#526176;font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}.visual-link .visual-title{display:block;font-size:1.12rem;font-weight:750;line-height:1.28}.visual-link .visual-arrow{display:block;margin-top:1.35rem;font-size:.92rem;font-weight:700}
+.definition{margin:1.25rem 0;padding:.9rem 1rem;border:1px solid var(--line);background:#f8fafc}.definition strong{color:#102a43}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}.card{padding:.95rem 1rem;border:1px solid var(--line);background:#fff}.card h3{margin:.05rem 0 .4rem}.card p{margin:.25rem 0}.claim-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}.claim-grid>section{padding:1rem 1.05rem;border:1px solid var(--line);background:#fff}.claim-grid .yes{border-top:5px solid var(--green)}.claim-grid .not-yet{border-top:5px solid var(--red)}.claim-grid li,.next-list li{margin:.46rem 0}.claim-grid ul,.next-list{padding-left:1.2rem}.sequence{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin:1rem 0}.sequence>div{position:relative;padding:.75rem .75rem .75rem 2.9rem;border:1px solid var(--line);background:#fff;font-size:.9rem}.sequence .number{position:absolute;left:.72rem;top:.72rem;display:grid;place-items:center;width:1.55rem;height:1.55rem;border-radius:50%;background:#102a43;color:#fff;font-weight:800}.sequence strong{display:block;color:#102a43;margin-bottom:.2rem}.management{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0}.management>section{padding:.9rem 1rem;border:1px solid var(--line);background:#fff}.management>section:nth-child(1){border-top:5px solid var(--green)}.management>section:nth-child(2){border-top:5px solid var(--red)}.management>section:nth-child(3){border-top:5px solid var(--blue)}.management h3{margin:.05rem 0 .45rem}.management ul{margin:.35rem 0;padding-left:1.15rem}.management li{margin:.3rem 0;font-size:.92rem}.footnote{font-size:.9rem;color:var(--muted)}footer{margin-top:3rem;padding-top:1rem;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}
+@media(max-width:860px){body{padding:18px 14px 40px}.stage-grid,.two-col,.claim-grid,.management{grid-template-columns:1fr}.sequence{grid-template-columns:1fr 1fr}nav{position:static}h1{font-size:1.8rem}.stage{padding:.95rem}.spine{font-size:.76rem}}@media(max-width:540px){.sequence{grid-template-columns:1fr}.hero,.stage{padding:.85rem}.spine{font-size:.73rem}.table-wrap{margin-left:-.1rem;margin-right:-.1rem}}
+</style>
+</head>
+<body>
+<header class="hero">
+<p class="quiet">Accepted Technical Summary Family synthesis · Canonical release <strong>20260921_181348</strong></p>
+<h1>FlightTest: from a broadcast signal to a trustworthy future aircraft measurement</h1>
+<p class="subtitle">An end-to-end engineering story for a technical manager, a new project engineer, and future report-generation work.</p>
+<p><strong>The short version:</strong> the program is investigating whether an existing HDTV broadcast can illuminate aircraft while a two-channel receiver listens to the broadcast and the surrounding scene. It has built design rationale, field infrastructure, replayable recordings, a controlled synthetic-truth experiment, and a gated analysis process. Its strongest result is a bounded synthetic recovery study. It has <strong>not</strong> yet established a field-qualified reference chain, a valid formal map contract, live-aircraft detection, operational probability of detection or false alarm, tracking, or localization.</p>
+</header>
+
+<nav aria-label="Human-story navigation">
+<a href="#spine">Story spine</a><a href="#stage-01">Why this project</a><a href="#stage-01a">Illuminator &amp; geometry</a><a href="#stage-01b">Receiver design</a><a href="#stage-02">Hardware &amp; collection</a><a href="#stage-02a">Synthetic truth</a><a href="#stage-03">Pipeline</a><a href="#stage-04">Recovery</a><a href="#stage-05">Evidence</a><a href="#stage-06">Status</a><a href="#demonstrated">Claims</a><a href="#join">New engineer</a><a href="#management">Management</a>
+</nav>
+
+<section class="key">
+<strong>How to read this document.</strong>
+<p>Each stage answers one human question, gives the accepted result and decision, names the artifact handed forward, and states the next dependency. “Modeled preference” describes a design conclusion from a model; “implemented decision” describes what was built or put into the evidence process; “proposed future action” is deliberately not a completed result. The nine accepted reports remain the evidence owners.</p>
+</section>
+
+<section class="definition">
+<strong>Passive HDTV in this project, in one decision-oriented paragraph.</strong>
+<p>An HDTV transmitter is used as an illuminator of opportunity: the team does not transmit radar energy. One receiver path is intended to capture a reference version of the broadcast; the other is intended to capture scene content that may include reflected broadcast energy. Comparing the two produces a delay–Doppler, or cross-ambiguity, map. A bright map feature is not automatically an aircraft measurement: the reference path, map contract, detector, truth separation, and measurement uncertainty must all be validated first. One bistatic link can supply a future measurement opportunity; it is not by itself aircraft localization.</p>
+</section>
+
+<section id="spine">
+<h2>Story spine: the engineering program in one view</h2>
+<p class="quiet">Read across each row: the output of one decision is the input to the next. This compact table is intentionally a program map, not a replacement for the evidence reports.</p>
+<div class="table-wrap">
+<table class="spine">
+<thead><tr><th>Stage</th><th>Human Question</th><th>Key Result</th><th>Decision</th><th>Produced Artifact</th><th>Next Dependency</th></tr></thead>
+<tbody>
+<tr><td>01</td><td>Why pursue passive HDTV?</td><td>Measurement-first North Star; no operational metric.</td><td>Earn evidence before tracking/localization claims.</td><td>Claim boundary and program framing.</td><td>Screen illuminator and geometry.</td></tr>
+<tr><td>01A</td><td>Which illumination geometry is worth studying?</td><td>Historical modeled FOV SNR: Hudson 69.91 dB; Newton 57.78 dB.</td><td>Carry historical cases into RF design, not as current selection.</td><td>Tower, channel, geometry, and signal inputs.</td><td>Design the receive chain.</td></tr>
+<tr><td>01B</td><td>What receive chain can handle the predicted signals?</td><td>Cable, impedance, filter, LNA, and N320 headroom form one system.</td><td>Treat architecture as a model requiring installation qualification.</td><td>RF budget and qualification questions.</td><td>Build and instrument hardware.</td></tr>
+<tr><td>02</td><td>What was built and collected?</td><td>15 packages at 599 MHz and 6.144 MS/s.</td><td>Use replayable packages as infrastructure, not qualification.</td><td>Dual-channel recordings, manifests, and replay context.</td><td>Create controlled truth in real background.</td></tr>
+<tr><td>02A</td><td>How can a known echo test the chain?</td><td>15 km anchor: −76.456 µs, +540.5 Hz.</td><td>Keep truth out of detector generation; use it post hoc.</td><td>Injection manifest, paired control, declared truth.</td><td>Process truth-blind through gates.</td></tr>
+<tr><td>03</td><td>What protects an aircraft claim?</td><td>G1–G10 define evidence gates; downstream formal gates are disabled.</td><td>Do not advance detection, tracking, or localization on diagnostics.</td><td>Gated pipeline and release requirements.</td><td>Resolve map validity and mitigation.</td></tr>
+<tr><td>04</td><td>Why was recovery work needed?</td><td>Formal R5A: 59 of 108 rows violated frozen criteria.</td><td>Retain failure; review only a bounded correction candidate.</td><td>R1–R5A recovery record and limit.</td><td>Interpret the atlas without claiming closure.</td></tr>
+<tr><td>05</td><td>What is the strongest current evidence?</td><td>Native-first frozen NLMS: 8/8 synthetic associations; no mitigation: 0/8.</td><td>Keep it a controlled diagnostic, not operational performance.</td><td>Paired-control recovery evidence bundle.</td><td>Set status, blockers, and next evidence.</td></tr>
+<tr><td>06</td><td>What happens next?</td><td>Map-contract verification and collection/reference qualification are independent blockers.</td><td>Authorize bounded evidence work before a replacement R5A decision.</td><td>Status, action sequence, and claim boundary.</td><td>Validated measurement work only after both branches close.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="stage stage-history" id="stage-01">
+<h2><span class="stage-no">01</span>Start with an honest North Star</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>Why is passive HDTV aircraft-localization work worth pursuing before the system can make an aircraft claim?</p>
+<h3>Result</h3>
+<p>The accepted result is a measurement-first program boundary, not an operational performance metric: the project should pursue a trustworthy passive-bistatic measurement path before claiming tracking or localization.</p>
+<h3>Why It Matters</h3>
+<p>It prevents the work from being judged by visually compelling maps or downstream demos before the upstream evidence can support them.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip implemented">Implemented program decision</span> Make each later claim earn its evidence: collection, map formation, detection, measurement, tracking, and localization are separate questions.</p>
+<h3>Artifact Produced</h3>
+<p>North Star, claim boundary, and evidence-first framing for every downstream report.</p>
+<h3>Still Unknown</h3>
+<p>Whether the field system can produce a validated aircraft measurement at all; the motivation does not answer that.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/01_NorthStarAndMotivation_V2.html">Report 01 — North Star and Motivation</a></p>
+<div class="handoff"><strong>Handed forward:</strong> the program must first determine which broadcast source, receiver site, and geometry are credible enough to investigate.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<a class="visual-link" href="TechnicalSummaryFamily/reports/01_NorthStarAndMotivation_V2.html">
+<span class="visual-kicker">Key Visual · original report view</span><span class="visual-title">Open the Report 01 North Star and measurement-to-localization boundary</span><span class="visual-arrow">View original evidence →</span>
+</a>
+<figcaption><strong>What is shown:</strong> the accepted project vision and evidence boundary. <strong>Why it mattered:</strong> it makes a future tracking/localization aspiration subordinate to a trustworthy measurement path. <strong>What changed:</strong> subsequent stages were framed as evidence-producing decisions rather than a direct path to a demo. <strong>What it does not prove:</strong> any field performance, live-aircraft detection, tracking, or localization.</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="stage stage-history" id="stage-01a">
+<h2><span class="stage-no">01A</span>Choose a broadcast and geometry worth studying</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>Which illuminator, receiver site, and observation geometry should be investigated, and why is HDTV useful for that investigation?</p>
+<h3>Result</h3>
+<p>Historical modeled target-region coverage ranked the Hudson case at <strong>69.91 dB</strong> mean FOV SNR versus <strong>57.78 dB</strong> for Newton. The retained historical cases used 6 MHz HDTV channels: 548 MHz for Hudson and 596.3 MHz for Newton. The Apple Hill East Garage was a practical prototype-site decision.</p>
+<h3>Why It Matters</h3>
+<p>The broadcast, terrain/building line of sight, direct path, surveillance path, and target region jointly determine whether the receiver-design problem is worth solving. A bistatic delay is the excess path of the transmitter–target–receiver route over the direct transmitter–receiver route; Doppler describes relative path-rate change. Those are map coordinates, not yet location coordinates.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip modeled">Modeled preference — historical</span> Hudson’s modeled comparison was preferred for that historical design study. <span class="chip implemented">Implemented prototype decision</span> Apple Hill East Garage became the practical prototype setting. <span class="chip proposed">Proposed future action</span> Re-establish the exact current transmitter, direct-path, and reference-path conditions before qualifying a field result.</p>
+<h3>Artifact Produced</h3>
+<p>Candidate-tower provenance, channel/bandwidth cases, receiver-site and target-region geometry, and modeled signal inputs for the RF budget.</p>
+<h3>Still Unknown</h3>
+<p>The current transmitter configuration and field reference-path adequacy. Historical 548/596.3 MHz cases and 01B’s 551/599 MHz model conventions remain documented historical differences; this story does not reconcile them.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/01A_IlluminatorSelection_V4.html">Report 01A — Illuminator Selection</a></p>
+<div class="handoff"><strong>Handed forward:</strong> candidate frequency, bandwidth, geometry, and modeled signal conditions become receive-chain design inputs—not an installed-transmitter claim.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<img src="TechnicalSummaryFamily/assets/01A_IlluminatorSelection_assets/hudson_snr_coverage.png" alt="Original historical Hudson modeled signal-to-noise-ratio coverage figure for the target region.">
+<figcaption><strong>What is shown:</strong> the original historical Hudson modeled target-region SNR coverage. <strong>Why it mattered:</strong> it made tower/geometry screening quantitative and exposed the 69.91 dB versus 57.78 dB historical comparison. <strong>What changed:</strong> the model cases became inputs to the RF-design investigation. <strong>What it does not prove:</strong> the installed transmitter, field signal level, or qualified reference path.</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="stage stage-history" id="stage-01b">
+<h2><span class="stage-no">01B</span>Turn predicted conditions into a receive-chain design</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>How did predicted direct and target signal conditions drive the receive-side RF design?</p>
+<h3>Result</h3>
+<p>The RF Budget Analyzer work treated antenna, cable, impedance transition, filter, LNA, and N320 headroom as a single cascade. One retained vendor filter datum is <strong>−0.7335926 dB S21 at 599 MHz</strong>; the historical cascade uses a <strong>20 dB LANA context</strong>.</p>
+<h3>Why It Matters</h3>
+<p>A passive system must preserve a usable broadcast reference while handling a much weaker scene path. A good-looking component list cannot establish that the installed cascade has the intended gain, noise, headroom, or reference quality.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip modeled">Modeled preference</span> Use the modeled cascade to reason about cable loss, impedance, filtering, low-noise gain, and SDR headroom together. <span class="chip implemented">Implemented design decision</span> Carry the designed architecture into physical hardware. <span class="chip proposed">Proposed future action</span> Qualify the installed end-to-end response, lock, transport integrity, and reference adequacy.</p>
+<h3>Artifact Produced</h3>
+<p>RF budget, designed architecture, component rationale, and a concrete list of installation/qualification questions.</p>
+<h3>Still Unknown</h3>
+<p>Whether installed hardware matches the model at the actual field configuration. Modeled RF performance is not collection qualification.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/01B_ReceiveChainDesign_V2.html">Report 01B — Receive-Chain Design</a></p>
+<div class="handoff"><strong>Handed forward:</strong> the design rationale becomes an installed dual-path architecture whose physical channel roles and qualification evidence must be checked.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<img src="TechnicalSummaryFamily/assets/01B_ReceiveChainDesign_assets/rf_budget_analyzer_system_model.png" alt="Original RF Budget Analyzer system-model screenshot.">
+<figcaption><strong>What is shown:</strong> the recovered original RF Budget Analyzer system model. <strong>Why it mattered:</strong> it made component interactions and headroom assumptions inspectable instead of implicit. <strong>What changed:</strong> it drove the designed receiver architecture and its qualification questions. <strong>What it does not prove:</strong> installed end-to-end performance, reference lock, or field suitability.</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="stage" id="stage-02">
+<h2><span class="stage-no">02</span>Build the collection system and preserve the recording</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>What physical hardware and collection infrastructure were built, and what does a later engineer inherit from a field session?</p>
+<h3>Result</h3>
+<p>The project has documented deployed hardware, dual-channel collection, ADS-B support, GPS-related support, manifests, and replay. The accepted collection record includes <strong>15 packages at 599 MHz and 6.144 MS/s</strong>.</p>
+<h3>Why It Matters</h3>
+<p>A saved dual-channel IQ package lets analysts replay the same data rather than rely on a one-time rooftop event. Photographs, readback, logs, ADS-B context, and manifests provide provenance—but each proves a different thing.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip implemented">Implemented decision</span> Treat the field setup and named packages as replayable engineering infrastructure. <span class="chip proposed">Proposed future action</span> Gather channel-role verification, reference-path evidence, lock/drop/overrun evidence, reviewed timing/geometry policy, and complete qualification metadata for a future collection decision.</p>
+<h3>Artifact Produced</h3>
+<p>Installed dual-path hardware, coordinated collection workflow, replayable IQ/ADS-B/log/manifests, and collection-qualification gaps.</p>
+<h3>Still Unknown</h3>
+<p>Whether a given collection is field-qualified. Infrastructure, a readable replay, and a photograph do not establish receiver/reference performance or radar performance.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/02_HardwareAndCollection_V4.html">Report 02 — Hardware and Collection</a></p>
+<div class="handoff"><strong>Handed forward:</strong> a replayable real dual-channel recording becomes the background for a controlled synthetic-echo experiment.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<img src="TechnicalSummaryFamily/assets/HardwarePhotos/new_Image%20(4).jpg" alt="Original photograph of deployed rooftop antenna, mast, enclosure, and cable route.">
+<figcaption><strong>What is shown:</strong> original deployed antenna, mast, enclosure, and cable-routing infrastructure. <strong>Why it mattered:</strong> it demonstrates that the designed receiver path became inspectable physical equipment. <strong>What changed:</strong> the program could create packaged real recordings for replay and controlled testing. <strong>What it does not prove:</strong> channel-role correctness, reference adequacy, receiver lock, collection qualification, or aircraft performance.</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="stage" id="stage-02a">
+<h2><span class="stage-no">02A</span>Create known aircraft-like truth inside real recordings</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>How can the team know where an aircraft-like echo should be without pretending that a synthetic echo is a live aircraft?</p>
+<h3>Result</h3>
+<p>The accepted synthetic framework declares target geometry, amplitude, excess path, delay, Doppler, injection, and paired untouched control before analysis. The 15 km anchor maps to <strong>−76.456 µs</strong> and <strong>+540.5 Hz</strong>.</p>
+<h3>Why It Matters</h3>
+<p>Known truth lets the program test whether the processing chain can retain a controlled echo in real field background. Truth is withheld from map formation, CFAR, and nonmaximum suppression; it is used only after candidate generation to evaluate an association.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip implemented">Implemented decision</span> Inject declared synthetic echo content into the surveillance side while retaining an untouched paired control and a manifest. <span class="chip proposed">Proposed future action</span> Keep seed-backed validation distinct from real-background injection and do not promote either mode to live-aircraft performance.</p>
+<h3>Artifact Produced</h3>
+<p>Declared target truth, target geometry and placement, injection manifest, paired controls, and a truth-blind processing contract.</p>
+<h3>Still Unknown</h3>
+<p>Calibrated live-aircraft return behavior, operational false-alarm behavior, and any aircraft-performance statistic. Synthetic truth is a controlled method, not an operational trial.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/02A_SyntheticEchoGeneration_V1.html">Report 02A — Synthetic Echo Generation</a></p>
+<div class="handoff"><strong>Handed forward:</strong> the pipeline receives a real-background package whose known truth is available only after truth-blind map and candidate generation.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<img src="TechnicalSummaryFamily/assets/02A_SyntheticEchoGeneration_assets/delay_doppler_placement.png" alt="Original delay and Doppler placement figure for the declared synthetic target.">
+<figcaption><strong>What is shown:</strong> the original declared delay–Doppler placement for a synthetic target. <strong>Why it mattered:</strong> it makes the controlled target location inspectable before detector results are considered. <strong>What changed:</strong> the team could distinguish an eligible evaluated condition from an excluded one after truth-blind processing. <strong>What it does not prove:</strong> that a live aircraft produced the map feature or that a detector has operational performance.</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="stage" id="stage-03">
+<h2><span class="stage-no">03</span>Use gates to stop a map from becoming an unsupported aircraft claim</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>How does the analysis pipeline turn a paired recording into a future measurement opportunity, and what does each gate protect?</p>
+<h3>Result</h3>
+<p>The accepted G1–G10 architecture separates ingest, RF/collection health, synchronization, passive-map formation, mitigation, product freeze, truth context, detection, tracker readiness, and track-to-truth evaluation. Formal downstream gates remain disabled.</p>
+<h3>Why It Matters</h3>
+<p>A passive map is an upstream delay–Doppler product, not itself a validated aircraft measurement. CFAR is an adaptive threshold that identifies candidate cells under a stated configuration; NMS keeps representative candidates. A configured CFAR <code>Pfa</code> is not an operational false-alarm result, and truth must not steer these steps.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip implemented">Implemented decision</span> Use explicit gate contracts and truth separation to prevent diagnostics from being promoted into formal detections. <span class="chip blocked">Current gate state</span> Formal G5/G6/G8 and later tracking work cannot advance while their upstream requirements are open.</p>
+<h3>Artifact Produced</h3>
+<p>G1–G10 contracts, truth-separation rules, and requirements for any downstream release.</p>
+<h3>Still Unknown</h3>
+<p>Whether the map meets its formal validity contract and whether a frozen detector input can be selected. Without that, no validated measurement stream exists for a tracker.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html">Report 03 — Analysis Pipeline and Gate Rebuild</a></p>
+<div class="handoff"><strong>Handed forward:</strong> the gates expose map validity and direct-path mitigation as the immediate technical turning point, rather than allowing downstream detection work to continue on an untrusted map.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<a class="visual-link" href="TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html#gates">
+<span class="visual-kicker">Key Visual · original inline gate architecture</span><span class="visual-title">Open the G1–G10 processing and evidence-gate diagram</span><span class="visual-arrow">View original evidence →</span>
+</a>
+<figcaption><strong>What is shown:</strong> the original G1–G10 pipeline and gate architecture in Report 03. <strong>Why it mattered:</strong> it separates map creation, detection, measurement, tracking, and localization into evidence-bearing stages. <strong>What changed:</strong> formal downstream work was intentionally held while G4-R evidence is incomplete. <strong>What it does not prove:</strong> that a disabled later gate has been passed merely because an earlier diagnostic exists.</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="stage stage-diagnostic" id="stage-04">
+<h2><span class="stage-no">04</span>Diagnose the map-rate and direct-path problem without erasing failure evidence</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>Why did map-rate recovery and direct-path mitigation work become necessary, and what did it actually establish?</p>
+<h3>Result</h3>
+<p>The formal R5A map-rate matrix remains an authoritative failure: <strong>59 of 108 rows</strong> violated one or more frozen criteria. The recovery record distinguishes an earlier bounded R4 success from the later R5A failure.</p>
+<h3>Why It Matters</h3>
+<p>Direct broadcast energy can dominate the map. The program must show that native-rate and reduced-rate map products are comparable under a common, frozen contract before a detector operates on them. A narrower success cannot replace a broader failed matrix.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip diagnostic">Supported diagnostic</span> A native-first, calibration-trained then frozen 16-tap NLMS ordering is a bounded upstream correction candidate. <span class="chip proposed">Proposed future action</span> Review adoption as an R4 correction and verify it against the unchanged R4 contract before a separately authorized replacement R5A matrix. <span class="chip blocked">Boundary</span> R4 bounded success does not erase R5A failure.</p>
+<h3>Artifact Produced</h3>
+<p>R1–R5A recovery record, map-rate diagnosis, mitigation characterization, retained failure evidence, and a bounded correction decision boundary.</p>
+<h3>Still Unknown</h3>
+<p>Whether the candidate passes controlled verification and a separately authorized replacement matrix. It is not a selected mitigation product or a formal gate closure.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html">Report 04 — Mitigation and Map-Rate Recovery</a></p>
+<div class="handoff"><strong>Handed forward:</strong> the strongest atlas result must be interpreted inside this preserved R5A limit; a useful recovery diagnostic cannot be mistaken for map-contract closure.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<a class="visual-link" href="TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html#recovery-timeline">
+<span class="visual-kicker">Key Visual · original recovery timeline</span><span class="visual-title">Open the R1–R5A map-rate recovery history and formal failure context</span><span class="visual-arrow">View original evidence →</span>
+</a>
+<figcaption><strong>What is shown:</strong> the original recovery sequence, including the R5A matrix context. <strong>Why it mattered:</strong> it preserves the difference between diagnosing a cause and validating the formal contract. <strong>What changed:</strong> only a bounded correction-review path is available next. <strong>What it does not prove:</strong> a replacement R5A pass, production mitigation selection, or downstream detection readiness.</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="stage stage-diagnostic" id="stage-05">
+<h2><span class="stage-no">05</span>Keep the strongest evidence strong by keeping its limits visible</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>What is the strongest current experimental evidence, and what exactly is its scope?</p>
+<h3>Result</h3>
+<p>In the fixed controlled synthetic study, native-first frozen NLMS produced post-hoc-associated candidates for <strong>8 of 8</strong> available injected geometries, while the no-mitigation comparison produced <strong>0 of 8</strong>. The historical 15 km condition was a <strong>support exclusion</strong>, not a detector miss.</p>
+<h3>Why It Matters</h3>
+<p>The study is a disciplined causal experiment: real field background, surveillance-only injection, fixed CFAR/NMS, paired untouched controls, and truth applied only after candidate retention. It identifies a support-policy consequence and controlled recovery behavior without rewriting the formal gate state.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip diagnostic">Supported diagnostic</span> Preserve the native-first frozen-NLMS versus no-mitigation contrast as controlled synthetic-recovery evidence. <span class="chip proposed">Proposed future action</span> Use it to inform bounded R4 correction review and future formal evidence, not product selection or operational claims.</p>
+<h3>Artifact Produced</h3>
+<p>Close-target atlas, declared condition grid, paired-control outcomes, support-exclusion distinction, and exact non-conclusions.</p>
+<h3>Still Unknown</h3>
+<p>Live-aircraft detection; operational <code>Pd</code>; operational <code>Pfa</code>; a production support policy; a formal detector result; validated measurements; tracking; and localization.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html">Report 05 — Strongest Evidence: G4-R Recovery Study</a></p>
+<div class="handoff"><strong>Handed forward:</strong> the evidence bundle provides a precise current diagnostic conclusion and its non-claims, which Report 06 uses to set independent blockers and next actions.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<a class="visual-link" href="TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html#outcomes">
+<span class="visual-kicker">Key Visual · original atlas outcomes</span><span class="visual-title">Open the paired native-first / no-mitigation recovery outcomes</span><span class="visual-arrow">View original evidence →</span>
+</a>
+<figcaption><strong>What is shown:</strong> the original accepted atlas outcomes for injected targets and matched controls. <strong>Why it mattered:</strong> it reports the 8/8 versus 0/8 controlled contrast and preserves the support-exclusion distinction. <strong>What changed:</strong> it justified retaining a bounded recovery candidate for review. <strong>What it does not prove:</strong> live-aircraft detection, operational <code>Pd</code>/<code>Pfa</code>, tracking, localization, or a production detector policy.</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="stage stage-status" id="stage-06">
+<h2><span class="stage-no">06</span>Keep two independent blockers independent</h2>
+<div class="stage-grid">
+<div>
+<h3>Human Question</h3>
+<p>Where does the project stand, what prevents a validated measurement, and what should happen next?</p>
+<h3>Result</h3>
+<p>Two independent blockers remain: <strong>map-contract verification</strong> and <strong>collection/reference-path qualification</strong>. The former retains the R5A failure; the latter requires reviewed ADS-B timing/geometry policy plus acquisition evidence such as immutable mapping, lock state, drop/overrun indicators, and reference-path condition.</p>
+<h3>Why It Matters</h3>
+<p>Fixing the map branch does not make a recording collection-qualified, and qualifying a collection does not repair a failed map contract. Both are prerequisites before a formal detector can generate a trusted measurement stream.</p>
+<h3>Engineering Decision</h3>
+<p><span class="chip proposed">Proposed future action</span> Review the bounded native-first correction candidate; if approved, perform controlled R4 verification against the unchanged contract; seek separate authority only afterward for replacement R5A. In parallel, collect reviewed reference/timing/role/lock/drop evidence for collection suitability. <span class="chip blocked">Formal status</span> G5/G6/G8, <code>objectDetection</code>, tracker readiness, tracking, and localization remain disabled.</p>
+<h3>Artifact Produced</h3>
+<p>Current status, capability boundary, independent blocker set, management decision sequence, and next-evidence requirements.</p>
+<h3>Still Unknown</h3>
+<p>Whether either blocker will close. No validated aircraft measurement exists today to feed a tracker, and localization additionally needs suitable multiple observations. One bistatic link is not localization.</p>
+<h3>Supporting Reports</h3>
+<p><a href="TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html">Report 06 — Status and Future Work</a></p>
+<div class="handoff"><strong>Program consequence:</strong> the next engineer’s job is not to manufacture a tracker result. It is to produce the bounded evidence that makes a trusted measurement decision possible.</div>
+</div>
+<h3>Key Visual</h3>
+<figure class="visual">
+<a class="visual-link" href="TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html#dependency-figure">
+<span class="visual-kicker">Key Visual · original dependency path</span><span class="visual-title">Open the accepted route from correction review to a future validated measurement</span><span class="visual-arrow">View original evidence →</span>
+</a>
+<figcaption><strong>What is shown:</strong> the accepted dependency path and its separate map and collection branches. <strong>Why it mattered:</strong> it prevents a single attractive diagnostic from being treated as permission to advance the whole chain. <strong>What changed:</strong> next work is bounded to correction verification and collection/reference evidence. <strong>What it does not prove:</strong> that any future dependency has already passed or that tracking/localization are enabled.</figcaption>
+</figure>
+</div>
+</section>
+
+<section id="demonstrated">
+<h2>What the Project Has Demonstrated</h2>
+<div class="claim-grid">
+<section class="yes">
+<h3>Evidence that exists today</h3>
+<ul>
+<li>A measurement-first engineering program with explicit claim boundaries.</li>
+<li>Historical illuminator/geometry screening and a modeled RF-design rationale.</li>
+<li>Physical collection infrastructure, named dual-channel package evidence, replay, manifests, and supporting ADS-B/log context.</li>
+<li>A declared synthetic-target method with truth separation and paired controls in real recorded background.</li>
+<li>A G1–G10 evidence architecture that deliberately refuses unsupported downstream advancement.</li>
+<li>A retained R5A failure record and a bounded recovery-candidate characterization.</li>
+<li>A controlled synthetic recovery contrast: 8/8 native-first frozen-NLMS associations versus 0/8 with no mitigation, under the fixed diagnostic setup.</li>
+</ul>
+</section>
+<section class="not-yet">
+<h3>What those facts do not add up to</h3>
+<ul>
+<li><strong>Live-aircraft detection:</strong> the accepted strongest target echo is synthetic, even though the background is real.</li>
+<li><strong>Operational <code>Pd</code>:</strong> eight available deterministic injected geometries are not an operational population or coverage sample.</li>
+<li><strong>Operational <code>Pfa</code>:</strong> configured CFAR <code>Pfa=1e-3</code> and target-specific matched controls are not map-wide operational false-alarm evidence.</li>
+<li><strong>Validated measurement generation:</strong> the formal map, product-freeze, truth-alignment, and detector gates have not enabled a released measurement contract.</li>
+<li><strong>Tracking:</strong> no validated measurement stream with required uncertainty and continuity exists for a tracker.</li>
+<li><strong>Localization:</strong> no multi-observation localization experiment or accuracy result exists; one bistatic link is not localization.</li>
+</ul>
+</section>
+</div>
+</section>
+
+<section id="join">
+<h2>If You Join This Project Tomorrow</h2>
+<p>Start by preserving the distinction between evidence classes. The project is not short of interesting artifacts; it is protecting a small number of decisions from being made on the wrong artifacts.</p>
+<div class="sequence">
+<div><span class="number">1</span><strong>Read the spine, then Reports 06 and 03.</strong> Learn the current blockers, gate vocabulary, and what a validated measurement would need.</div>
+<div><span class="number">2</span><strong>Trace the physical input.</strong> Use Report 02 for the collection package, manifests, receiver roles, replay, and qualification gaps—not to infer performance.</div>
+<div><span class="number">3</span><strong>Trace controlled truth.</strong> Use Report 02A, then Report 05, to understand the declared injection, paired control, support exclusion, and 8/8 versus 0/8 evidence.</div>
+<div><span class="number">4</span><strong>Work only on the active evidence branches.</strong> Map-contract correction verification and collection/reference qualification are the prioritized work; tracker integration is deliberately downstream.</div>
+</div>
+<div class="two-col">
+<article class="card">
+<h3>Artifacts that matter most</h3>
+<p>The accepted family index and manifest; Reports 06 and 03 for status/gates; Report 04 for the R5A boundary; Report 05 for the strongest bounded evidence; Report 02 for package provenance; and Report 02A for synthetic-truth controls. Start from the canonical links in this document rather than older report versions.</p>
+</article>
+<article class="card">
+<h3>Evidence to trust, and evidence to label carefully</h3>
+<p>Trust the accepted reports for their stated scopes. Treat deployed hardware and replay packages as infrastructure evidence; historical models as design evidence; the atlas as controlled diagnostic evidence; and the R5A failure as a retained formal limit. Do not collapse seed-backed synthesis into real-background injection, or historical configuration values into current installation values.</p>
+</article>
+</div>
+<div class="boundary">
+<strong>Practical working rule:</strong> whenever a result sounds like “detection,” ask whether the target was live or injected, whether the cell was eligible for evaluation, whether truth was withheld until after candidate generation, and whether the formal gate required for a measurement has passed. If any answer is missing, keep the statement at its narrower accepted scope.
+</div>
+</section>
+
+<section id="management">
+<h2>What Management Should Understand</h2>
+<div class="management">
+<section>
+<h3>Accomplishments</h3>
+<ul>
+<li>The project converted an idea into a traceable series of design, hardware, collection, replay, and controlled-experiment artifacts.</li>
+<li>It has a strong diagnostic causal result rather than an unsupported performance claim.</li>
+<li>The gate structure has successfully stopped downstream claims from outrunning the evidence.</li>
+</ul>
+</section>
+<section>
+<h3>Current Risks and Blockers</h3>
+<ul>
+<li>Formal R5A map-rate validity remains failed: 59/108 rows violated frozen criteria.</li>
+<li>Collection/reference qualification remains a separate open branch.</li>
+<li>Historical configuration differences must stay visible; they are not silently reconciled by this story.</li>
+</ul>
+</section>
+<section>
+<h3>Recommended Next Decision and Evidence</h3>
+<ul>
+<li>Review whether the native-first frozen-NLMS ordering may be adopted as a bounded R4 correction candidate.</li>
+<li>If approved, verify it against the unchanged R4 contract before considering a separately authorized replacement R5A matrix.</li>
+<li>In parallel, obtain reviewed channel-role, reference-path, lock/drop, timing/geometry, and manifest evidence for collection suitability.</li>
+</ul>
+</section>
+</div>
+<div class="two-col">
+<article class="card">
+<h3>Recommended Success Criteria</h3>
+<p>For the next decision, success is not a new presentation or a tracker demonstration. It is controlled R4 correction verification with the existing contract preserved, plus reviewed collection/reference evidence that supports an explicit suitability decision. Only then can later formal detector and measurement work be considered.</p>
+</article>
+<article class="card">
+<h3>Management interpretation</h3>
+<p>The program is neither “ready for operations” nor “empty.” It has meaningful upstream infrastructure and diagnostic evidence, with two independent evidence branches that must close before the project can responsibly claim a validated measurement—let alone tracking or localization.</p>
+</article>
+</div>
+</section>
+
+<footer>
+<p><strong>Authority and scope.</strong> This is a synthesis layer built only from the accepted nine-report Technical Summary Family. It does not replace those reports, create a new technical conclusion, perform analysis, or modify the canonical family.</p>
+<p>Accepted sources: <a href="TechnicalSummaryFamily/reports/01_NorthStarAndMotivation_V2.html">01</a> · <a href="TechnicalSummaryFamily/reports/01A_IlluminatorSelection_V4.html">01A</a> · <a href="TechnicalSummaryFamily/reports/01B_ReceiveChainDesign_V2.html">01B</a> · <a href="TechnicalSummaryFamily/reports/02_HardwareAndCollection_V4.html">02</a> · <a href="TechnicalSummaryFamily/reports/02A_SyntheticEchoGeneration_V1.html">02A</a> · <a href="TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html">03</a> · <a href="TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html">04</a> · <a href="TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html">05</a> · <a href="TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html">06</a>.</p>
+</footer>
+</body>
+</html>

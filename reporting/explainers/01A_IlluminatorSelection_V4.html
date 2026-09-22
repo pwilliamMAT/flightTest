@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>01A — Illuminator selection and observation geometry</title>
+<style>
+:root{--ink:#142033;--muted:#526176;--line:#cbd5e1;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--panel:#f8fafc;--gray:#475569}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{max-width:1280px;margin:0 auto;padding:28px 20px 52px;color:var(--ink);font:16px/1.52 Arial,sans-serif;background:#fff}h1,h2,h3{line-height:1.15;color:#102a43}h1{font-size:2.35rem;margin:.2rem 0 .45rem}h2{font-size:1.55rem;margin:2.3rem 0 .7rem;padding-top:.2rem;border-top:2px solid #dbe6ef}h3{font-size:1.08rem;margin:.1rem 0 .45rem}.sub{color:var(--muted);margin:.1rem 0 1.25rem}.eyebrow{font-size:.86rem;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0}.takeaway,.boundary,.warning{border:1px solid var(--line);padding:1rem 1.15rem;margin:1rem 0;background:var(--blue2);border-left:6px solid var(--blue)}.boundary{background:var(--amber2);border-left-color:var(--amber)}.warning{background:var(--red2);border-left-color:var(--red)}.tag,.cite{display:inline-block;padding:.13rem .48rem;border-radius:99px;font-size:.78rem;font-weight:700;white-space:nowrap}.history{background:var(--amber2);color:var(--amber)}.current{background:var(--green2);color:var(--green)}.neutral{background:#eef2f7;color:var(--gray)}.cite{background:#edf4fa;color:var(--blue);font-weight:600}.nav{display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 1.4rem}.nav a{color:var(--blue);font-size:.9rem;text-decoration:none;border:1px solid #bdd1e3;padding:.32rem .55rem;border-radius:99px}.nav a:hover{text-decoration:underline;background:var(--blue2)}.executive{display:grid;grid-template-columns:1.18fr .82fr;gap:16px;margin:18px 0}.executive-main{padding:1rem 1.1rem;border:1px solid var(--line);background:#fbfdff}.executive-main h2{border:0;margin:0 0 .65rem;padding:0}.answer-list{display:grid;grid-template-columns:130px 1fr;gap:.45rem .8rem;margin:0}.answer-list dt{font-weight:700;color:var(--blue)}.answer-list dd{margin:0}.figure{border:1px solid var(--line);background:#fff;margin:0}.figure img{display:block;width:100%;height:auto}.figure figcaption{padding:.78rem .9rem;color:var(--muted);font-size:.92rem}.figure figcaption strong{color:var(--ink)}.flow{padding:14px;border:1px solid var(--line);background:#fbfdff;margin:18px 0}.flow svg{display:block;width:100%;height:auto}.facts{border:1px solid var(--line);background:var(--panel);padding:.9rem 1rem}.facts h2{border:0;margin:0 0 .6rem;padding:0;font-size:1.2rem}.fact{padding:.58rem 0;border-top:1px solid #dbe6ef}.fact:first-of-type{border-top:0}.fact strong{display:block}.fact small{display:block;color:var(--muted);margin-top:.15rem}.visual-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0}.split{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin:18px 0}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.card{border:1px solid var(--line);padding:.9rem;background:#fff}.card h3{font-size:1rem;margin:.05rem 0 .35rem}.card p{margin:.35rem 0}.test{border:1px solid var(--line);margin:18px 0;background:#fff}.test-header{display:flex;align-items:center;gap:.7rem;padding:.85rem 1rem;background:var(--blue2);border-bottom:1px solid var(--line)}.test-header .number{display:grid;place-items:center;flex:0 0 1.9rem;height:1.9rem;border-radius:50%;background:var(--blue);color:#fff;font-weight:700}.test-header h3{margin:0;font-size:1.22rem}.test-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}.test-item{padding:.85rem 1rem;border-top:1px solid #e2e8f0}.test-item:nth-child(odd){border-right:1px solid #e2e8f0}.test-item h4{color:var(--blue);margin:0 0 .3rem;font-size:.94rem;text-transform:uppercase;letter-spacing:.035em}.test-item p{margin:0}.table-wrap{overflow-x:auto;border:1px solid var(--line);margin:16px 0}table{width:100%;border-collapse:collapse;font-size:.91rem}caption{text-align:left;font-weight:700;padding:.7rem .85rem;background:var(--panel);color:#102a43}th,td{padding:.65rem .72rem;text-align:left;vertical-align:top;border-bottom:1px solid #dbe6ef}th{background:#eef5fb;color:#173b5c;font-size:.84rem}tr:last-child td{border-bottom:0}.status{font-weight:700;color:var(--blue)}.muted{color:var(--muted)}.callout-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}.callout{border:1px solid var(--line);padding:.78rem .86rem;background:#fff}.callout strong{display:block;color:var(--blue);margin-bottom:.25rem}.callout p{margin:.15rem 0}.source{font-size:.91rem;color:var(--muted);overflow-wrap:anywhere}.source code,.codepath{font:inherit;background:#f1f5f9;padding:.08rem .2rem;overflow-wrap:anywhere}.source a,.codepath a{color:var(--blue)}.key{font-weight:700;color:#102a43}.small{font-size:.9rem}.two-note{display:grid;grid-template-columns:1fr 1fr;gap:12px}.note{padding:.82rem .92rem;border-left:5px solid var(--amber);background:var(--amber2)}.note strong{display:block}.decision{border-left:5px solid var(--green);background:var(--green2);padding:.82rem .95rem}.decision strong{display:block;color:var(--green)}footer{margin-top:32px;padding-top:14px;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}@media(max-width:860px){.executive,.split,.visual-grid,.two-note{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.callout-grid{grid-template-columns:1fr 1fr}.test-grid{grid-template-columns:1fr}.test-item:nth-child(odd){border-right:0}}@media(max-width:560px){body{padding:20px 14px 40px}h1{font-size:1.8rem}.callout-grid{grid-template-columns:1fr}.answer-list{grid-template-columns:1fr;gap:.1rem}.answer-list dd{margin-bottom:.48rem}}
+.decision-banner{display:grid;grid-template-columns:1.42fr 1fr .9fr;border:1px solid var(--line);border-left:6px solid var(--blue);margin:0 0 22px;background:#fbfdff}.decision-banner>div{padding:.85rem .95rem;border-left:1px solid #dbe6ef}.decision-banner>div:first-child{border-left:0}.decision-banner h3{font-size:.9rem;margin:0 0 .3rem;color:var(--blue);text-transform:uppercase;letter-spacing:.035em}.decision-banner p{margin:0}.decision-banner .result{background:#f4f9fd}.decision-banner .decision-cell{background:var(--green2)}.decision-banner .decision-cell h3{color:var(--green)}.decision-banner .unknown{background:var(--amber2)}.decision-banner .unknown h3{color:var(--amber)}.metric{display:block;margin:.32rem 0;font-weight:700;color:#102a43}.why-matters{display:block;margin:.35rem 0;color:var(--muted)}.key-figures{margin-top:.8rem;padding-top:.7rem;border-top:1px solid #dbe6ef}.key-figures h3{font-size:1rem;margin:0 0 .35rem}.key-figures a{display:block;color:var(--blue);text-decoration:none;padding:.24rem 0}.key-figures a:hover{text-decoration:underline}.local-kicker{margin:18px 0 .2rem;color:var(--blue);font-weight:700}.local-study .test-header{background:#f3f8fc}.local-study .number{font-size:.8rem}.local-study .test-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:860px){.decision-banner{grid-template-columns:1fr}.decision-banner>div{border-left:0;border-top:1px solid #dbe6ef}.decision-banner>div:first-child{border-top:0}.local-study .test-grid{grid-template-columns:1fr}}@media(max-width:560px){.local-study .test-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<p class="eyebrow">Report 01A · historical design analysis</p>
+<h1>How the team chose HDTV illuminator candidates and observation geometry</h1>
+<p class="sub">A human-readable account of the original MATLAB link-budget work: what was compared, what the models produced, what changed next, and what still needs field evidence.</p>
+</header>
+
+<section class="takeaway">
+<strong>Executive answer:</strong> Two different decisions came from the historical work. The target-region model favored <strong>Hudson</strong> over Newton (<strong>69.91 dB</strong> versus <strong>57.78 dB</strong> mean modeled SNR), while the first practical installation prototype used <strong>Apple Hill East Garage</strong> because it was accessible for adjustment and had a Newton/Needham direction in the site comparison. The historical model preference did not become a verified installed-transmitter selection. Both findings are design history—not current field qualification or aircraft-detection evidence.
+</section>
+
+<nav class="nav" aria-label="Report sections">
+<a href="#chain">Decision chain</a><a href="#inputs">Inputs</a><a href="#candidate-source">Candidate-list source</a><a href="#test1">Test 1</a><a href="#local-building-study">Apple Hill buildings</a><a href="#test2">Test 2</a><a href="#test3">Test 3</a><a href="#comparison">Comparison</a><a href="#historical-comparison">Newton/Hudson figures</a><a href="#executive-summary">Decision summary</a><a href="#boundaries">Boundaries</a><a href="#code">Code &amp; evidence</a><a href="#glossary">Glossary</a>
+</nav>
+
+<section class="executive">
+<div class="executive-main">
+<h2>1. Executive answer</h2>
+<dl class="answer-list">
+<dt>The question</dt><dd>Which HDTV transmitter geometry, receiver site, and aircraft region were worth investigating before detailed receive-chain design?</dd>
+<dt>Method</dt><dd>Original MATLAB work used station-location and transmitter inputs, geometric line of sight, terrain and building ray tracing, a target region of interest, and modeled direct-path and target-region quantities.</dd>
+<dt>Historical comparison result</dt><dd>The historical slide-42 model favored Hudson across the modeled field of view: 69.91 dB mean modeled SNR versus 57.78 dB for Newton. This comparison ranked modeled geometry; it did not select an installed transmitter.</dd>
+<dt>Prototype implementation decision</dt><dd>Apple Hill East Garage was documented as the first practical prototype location because it was near the office and easy to adjust. Its site comparison favored the Newton/Needham direction; LS Garage remained a later collection option.</dd>
+<dt>Current uncertainty</dt><dd>The analysis contains historical assumptions and conflicting ERP inputs. It did not measure the direct path, verify the installed Reference Path, establish a current broadcast configuration, or demonstrate aircraft detection.</dd>
+<dt>Strongest evidence</dt><dd><a href="#figures">Original LinkBudgetProgress slide 42 paired SNR comparison</a> <span class="cite">SRC-04 · FIG-04/05</span></dd>
+<dt>Top-level code</dt><dd><a href="#code">FlightTest_Bistatic_RadarAndCommsAnalysis.mlx</a> <span class="cite">SRC-01</span></dd>
+</dl>
+</div>
+
+<aside class="facts" aria-label="Key design analysis facts">
+<h2>Key design-analysis facts</h2>
+<div class="fact"><strong>Apple Hill study receiver</strong>42.299293°, −71.349500°, 25 m antenna height <span class="cite">SRC-01</span><small>Historical Live Script input; not a record of the present installed configuration.</small></div>
+<div class="fact"><strong>Investigated HDTV cases</strong>596.3 MHz (Newton) and 548 MHz (Hudson); 6 MHz channel bandwidth <span class="cite">SRC-01</span><small>Historical modeled cases.</small></div>
+<div class="fact"><strong>Target model</strong>6,000 ft altitude and 0.5 m² bistatic RCS <span class="cite">SRC-01</span><small>Later Live Script inputs. An earlier deck ROI slide instead says 3,000 ft; the discrepancy is retained below.</small></div>
+<div class="fact"><strong>Historical modeled direct path</strong>Newton −28.8871 dBm; Hudson −39.8370 dBm <span class="cite">SRC-01</span><small>Saved model outputs—not a received-power measurement.</small></div>
+<div class="fact"><strong>Historical field-of-view comparison</strong>Newton 57.78 dB; Hudson 69.91 dB mean modeled SNR <span class="cite">SRC-04</span><small>Slide-42 historical model result under its stated assumptions.</small></div>
+<div class="fact"><strong>Historical modeled target power</strong>Newton −79.5023 dBm; Hudson −67.3723 dBm <span class="cite">SRC-04</span><small>Design comparison output—not a measured aircraft echo.</small></div>
+<div class="key-figures"><h3>Key figures</h3><a href="#regional-direct-path">Regional tower/direct-path screen</a><a href="#local-building-study">Apple Hill building-aware local screen</a><a href="#historical-comparison">Newton/Hudson target-region comparison</a></div>
+</aside>
+</section>
+
+<section id="chain">
+<h2>2. The engineering decision chain</h2>
+<p>In simple terms: first identify broadcasts that are geographically plausible; then see whether a roof can obtain a clean enough copy of the broadcast; then ask whether the same transmitter–receiver geometry can illuminate the airspace of interest; then carry the promising cases into RF design.</p>
+<div class="flow" aria-label="Illuminator-selection engineering decision chain">
+<svg viewBox="0 0 1160 224" role="img" aria-label="Decision chain from candidate broadcasts through terrain and building screen, direct-path estimate, target-region model, candidate comparison, and prototype-site and RF-design inputs.">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#0f4c81"/></marker></defs>
+<rect x="12" y="54" width="158" height="100" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="91" y="84" text-anchor="middle" font-weight="700" fill="#102a43">Candidate</text><text x="91" y="103" text-anchor="middle" font-weight="700" fill="#102a43">broadcasts</text><text x="91" y="129" text-anchor="middle" font-size="13">tower · channel · ERP</text>
+<line x1="170" y1="104" x2="205" y2="104" stroke="#0f4c81" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="215" y="54" width="165" height="100" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="297" y="84" text-anchor="middle" font-weight="700" fill="#102a43">Terrain &amp; building</text><text x="297" y="103" text-anchor="middle" font-weight="700" fill="#102a43">screen</text><text x="297" y="129" text-anchor="middle" font-size="13">line of sight · ray paths</text>
+<line x1="380" y1="104" x2="415" y2="104" stroke="#0f4c81" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="425" y="54" width="165" height="100" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="507" y="84" text-anchor="middle" font-weight="700" fill="#102a43">Direct-path</text><text x="507" y="103" text-anchor="middle" font-weight="700" fill="#102a43">estimate</text><text x="507" y="129" text-anchor="middle" font-size="13">reference plausibility</text>
+<line x1="590" y1="104" x2="625" y2="104" stroke="#0f4c81" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="635" y="54" width="165" height="100" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="717" y="84" text-anchor="middle" font-weight="700" fill="#102a43">Target-region</text><text x="717" y="103" text-anchor="middle" font-weight="700" fill="#102a43">model</text><text x="717" y="129" text-anchor="middle" font-size="13">altitude · RCS · SNR</text>
+<line x1="800" y1="104" x2="835" y2="104" stroke="#0f4c81" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="845" y="54" width="145" height="100" rx="8" fill="#fff7e6" stroke="#9a5b00"/><text x="917" y="84" text-anchor="middle" font-weight="700" fill="#102a43">Candidate</text><text x="917" y="103" text-anchor="middle" font-weight="700" fill="#102a43">comparison</text><text x="917" y="129" text-anchor="middle" font-size="13">useful region, not power</text>
+<line x1="990" y1="104" x2="1025" y2="104" stroke="#0f4c81" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="1035" y="54" width="113" height="100" rx="8" fill="#ecfdf3" stroke="#166534"/><text x="1091" y="83" text-anchor="middle" font-weight="700" fill="#102a43" font-size="13">Prototype site</text><text x="1091" y="104" text-anchor="middle" font-weight="700" fill="#102a43" font-size="13">and RF inputs</text><text x="1091" y="129" text-anchor="middle" font-size="12">next analysis</text>
+<text x="580" y="196" text-anchor="middle" font-size="14" fill="#526176">The analysis narrows what is worth designing and measuring; it does not prove a qualified reference path or aircraft performance.</text>
+</svg>
+</div>
+</section>
+
+<section id="inputs">
+<h2>3. What information went into the analysis?</h2>
+<div class="cards">
+<article class="card"><h3>Broadcast and tower inputs</h3><p>Location, antenna height, directional behavior, channel/frequency, bandwidth, and transmitter-power/ERP records were gathered for candidate sites. The original source contains both station-derived ERP records and later equal 500 kW placeholder inputs; they are not silently merged. <span class="cite">SRC-01 · SRC-03</span></p></article>
+<article class="card"><h3>Receiver-site inputs</h3><p>Apple Hill East Garage, Apple Hill West Garage, and LS Garage were compared for line-of-sight windows, aircraft view, power, Wi-Fi, proximity, and the ability to adjust the prototype. <span class="cite">SRC-04</span></p></article>
+<article class="card"><h3>Airspace and propagation inputs</h3><p>The model placed target points in a drawn region of interest and used terrain-aware propagation. The later Live Script used 6,000 ft and 0.5 m² bistatic RCS; an earlier deck slide used a 3,000 ft ROI label. <span class="cite">SRC-01 · SRC-04 · SRC-06</span></p></article>
+</div>
+<div class="two-note">
+<div class="note"><strong>Verified historical inputs</strong>Newton tower record: 42.311389°, −71.216111°, 1,000 kW station-record ERP calculation. Hudson tower record: 42.384083°, −71.493139°, 400 kW station-record ERP calculation; the record also notes 100 kW vertical ERP. These are historical station records, not the Live Script's model inputs. <span class="cite">SRC-03</span></div>
+<div class="note"><strong>Values that changed or remain unresolved</strong>The later Live Script explicitly uses <strong>500 kW placeholder ERP</strong> for both HDTV cases. Its wide-area receiver input is 25 m, while the local building ray-tracing script sets the receiver to 0 m to match the garage height; these are different historical modeling contexts, not one reconciled site value. The earlier deck labels its direct-path screen as FM-powered. The project has not used any of these historical items to establish current transmitter verification, installed-path adequacy, or collection suitability. <span class="cite">SRC-01 · SRC-02 · SRC-04 · SRC-09</span></div>
+</div>
+</section>
+
+<section id="candidate-source">
+<h2>Candidate-tower source provenance</h2>
+<div class="split">
+<div>
+<p>The candidate survey began with a saved <strong>RabbitEars Boston market-detail HTML page</strong>. The original <code>scraper.ipynb</code> describes extracting station-level location, height, ERP, channel, and RF-program information from that page. The LinkBudget work then used its own checked-in <code>Radio_Tower_List.txt</code> as the direct MATLAB input for tower coordinates, heights, powers, gains, and later Newton/Hudson screening.</p>
+<div class="decision"><strong>What this establishes</strong>The candidate records were assembled from an initial local broadcast survey and then used as an input to the MATLAB geometry analysis. The source material identifies the saved survey and parser; it does not preserve a named provider, a Leif Hille handoff, a FlightTestAE transfer record, or a fully reproducible transformation from the notebook outputs to the LinkBudget copy.</div>
+</div>
+<div class="note"><strong>Source-discovery boundary</strong>The saved market page identifies RabbitEars and includes a note that its network data comes from the FCC but is a quick reference whose accuracy is not guaranteed. In V4, this survey is treated as historical candidate-screening input—not verified current transmitter configuration. <span class="cite">SRC-13 · SRC-03 · SRC-01</span></div>
+</div>
+</section>
+
+<section id="test1">
+<h2>4. Test 1: Can the rooftop see the illuminator?</h2>
+<div class="decision-banner" aria-label="Test 1 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">Modeled site screen: East Garage was clear toward Newton/Needham and obstructed toward Hudson/Marlborough; West Garage showed the opposite broad direction.</span><span class="why-matters"><strong>Why it matters:</strong> changing the rooftop changes whether the candidate broadcast can plausibly supply a direct-path reference.</span><strong>Conclusion:</strong> rooftop geometry and practical access both mattered before receiver design.</p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Prototype at Apple Hill East Garage for office proximity and adjustment flexibility; retain LS Garage as a possible later collection site. <span class="cite">SRC-04, slide 15</span></p></div>
+<div class="unknown"><h3>Still unknown</h3><p>Whether the installed receiver obtains a qualified Reference Path with correct roles, lock state, integrity, and sufficient signal quality.</p></div>
+</div>
+<p class="local-kicker">Regional screen — Which broad tower-to-rooftop directions appeared plausible?</p>
+<div class="split">
+<figure class="figure" id="regional-direct-path">
+<img src="01A_IlluminatorSelection_assets/terrain_direct_path_screen.png" alt="Original historical direct-path screening map showing a blue receiver icon, candidate transmitter markers, colored path lines, and a received-power legend.">
+<figcaption><strong>Figure 1 — Original terrain-aware direct-path screen.</strong> This LinkBudget screen maps candidate tower-to-rooftop directions and a modeled direct-path power legend. It answered the broad-direction question: which paths were plausible enough to examine further? Because the slide explicitly uses <strong>FM</strong> transmit powers, the result that mattered was the relative geometry—not a final DTV level. It influenced which rooftop/tower directions entered the site comparison. It does not prove a measured direct path, qualified Reference Path, or DTV performance. <span class="cite">FIG-02 · SRC-04, slide 4</span></figcaption>
+</figure>
+<div class="cards" style="grid-template-columns:1fr">
+<article class="card"><h3>Why direct path matters</h3><p>A passive receiver needs a usable copy of the broadcast as a comparison/reference waveform. If terrain or nearby structures block the tower direction, later processing begins with an avoidable disadvantage.</p></article>
+<article class="card"><h3>What the site comparison showed</h3><p>Apple Hill East Garage had clear LOS toward Needham/Newton and an obstruction toward Hudson/Marlborough. Apple Hill West Garage showed the opposite broad pattern. LS Garage had relatively clear windows to both but retained tree and tower-height caveats. <span class="cite">SRC-04, slide 14</span></p></article>
+<article class="card"><h3>What followed</h3><p>The source explicitly documents Apple Hill East Garage as the <strong>prototype</strong> site because it was near the office and easy to revisit while adjusting. It also says LS Garage might be used for full collection later. <span class="cite">SRC-04, slide 15</span></p></article>
+</div>
+</div>
+
+<p class="local-kicker">Local building screen — the regional terrain map asks which broad directions are plausible; the original Apple Hill building study asks whether nearby building geometry could alter the path close to the rooftop.</p>
+<article class="test local-study" id="local-building-study">
+<div class="test-header"><span class="number">1B</span><h3>Could nearby Apple Hill buildings affect the close-to-receiver path?</h3></div>
+<div class="split">
+<figure class="figure">
+<img src="01A_IlluminatorSelection_assets/apple_hill_building_geometry_aoi.png" alt="Original Apple Hill building-footprint map from the building-aware Live Script, showing the local area of interest selected for building import.">
+<figcaption><strong>Figure 1B — Apple Hill building geometry prepared for the local Site Viewer study.</strong> This recovered original Live Script output shows the Apple Hill building footprints selected from <code>applehill.osm</code> for import into Site Viewer. It answered a different question from Figure 1: what nearby buildings could influence the path close to the receiver? The source establishes a local building-aware ray-tracing setup; the retained output establishes the geometry selected for that study, not a quantitative propagation result. It supported the practical rooftop comparison but did not independently choose the prototype site. No source-faithful 3D Site Viewer or plotted-ray screenshot was recovered, so this figure does <strong>not</strong> prove a measured path, verified multipath, received power, or Reference Path qualification. <span class="cite">FIG-08 · SRC-02 · SRC-12</span></figcaption>
+</figure>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Could nearby Apple Hill buildings affect the direct path close to the receiver?</p></div>
+<div class="test-item"><h4>Why we tested it</h4><p>A broad terrain line-of-sight screen can miss a close building obstruction near the rooftop.</p></div>
+<div class="test-item"><h4>Method</h4><p>The Live Script reads <code>applehill.osm</code>, extracts buildings in an area of interest, imports them into Site Viewer, then configures SBR ray tracing with up to three reflections and two diffractions. It sets the local receiver height to 0 m to match the garage-height study. <span class="cite">SRC-02</span></p></div>
+<div class="test-item"><h4>Evidence</h4><p>Figure 1B is the original Apple Hill building-area output embedded in the Live Script package. It is retained as a stable report asset without redrawing or recompressing it. <span class="cite">FIG-08 · SRC-12</span></p></div>
+<div class="test-item"><h4>Result</h4><p>The recovered source output visualizes the actual building geometry selected for local analysis. It does not retain a source-faithful 3D Site Viewer or ray-path rendering, so no quantitative local propagation result is claimed.</p></div>
+<div class="test-item"><h4>Decision</h4><p>Use the local-building study as supporting context for the rooftop comparison and Apple Hill East Garage prototype investigation, not as the sole basis for that practical choice.</p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>Modeled local propagation is not measured received power, measured multipath, installed-antenna performance, a qualified Reference Path, or field-collection acceptance.</p></div>
+</div>
+</div>
+</article>
+
+<article class="test">
+<div class="test-header"><span class="number">1</span><h3>Can the rooftop plausibly obtain the broadcast reference?</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Could the evaluated garage sites see a candidate illuminator clearly enough to make a direct-path reference plausible?</p></div>
+<div class="test-item"><h4>Why we tested it</h4><p>Direct-path availability is a precondition for a future passive comparison. It also affects where an antenna can practically be mounted and serviced.</p></div>
+<div class="test-item"><h4>Method</h4><p>The code uses geometric <code>los</code> checks, terrain-aware propagation, and a separate building-aware SBR ray-tracing setup at Apple Hill. The building script imports an Apple Hill OpenStreetMap building area and allows up to three reflections and two diffractions. <span class="cite">SRC-01 · SRC-02</span></p></div>
+<div class="test-item"><h4>Evidence</h4><p>Figure 1 is the original regional terrain/direct-path screen; Figure 1B preserves the original Apple Hill building geometry prepared for the local Site Viewer study. The deck's garage tradeoff table and prototype-site statement record the practical comparison. <span class="cite">FIG-02 · FIG-08 · SRC-02 · SRC-04, slides 14–16</span></p></div>
+<div class="test-item"><h4>Result</h4><p>The source found different line-of-sight windows by garage: Apple Hill East was favorable toward Newton/Needham, while Apple Hill West was favorable toward Hudson/Marlborough. The result was a geometry and practicality screen, not a measured link test.</p></div>
+<div class="test-item"><h4>Decision</h4><p>Prototype on Apple Hill East Garage for access and adjustment flexibility; retain LS Garage as a later collection option. Carry candidate direct-path estimates forward as RF-design inputs. <span class="cite">SRC-04, slide 15</span></p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>Geometric visibility and a ray trace are not measured received power, lock evidence, role verification, or reference-path adequacy. Those remain separate current gates. <span class="cite">SRC-09 · SRC-10</span></p></div>
+</div>
+</article>
+</section>
+
+<section id="test2">
+<h2>5. Test 2: Which geometry best illuminates the intended airspace?</h2>
+<div class="decision-banner" aria-label="Test 2 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">Hudson: 69.91 dB; Newton: 57.78 dB mean modeled FOV SNR. Hudson target power: −67.3723 dBm; Newton: −79.5023 dBm.</span><span class="why-matters"><strong>Why it matters:</strong> the historical model predicted materially stronger illumination of the same modeled region under Hudson assumptions.</span><strong>Conclusion:</strong> Hudson became the preferred geometry in the historical target-region comparison. <span class="cite">SRC-04, slide 42</span></p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Carry both candidate cases and their historical modeled signal levels into follow-on receiver-design analysis, with Hudson preferred only in this historical comparison.</p></div>
+<div class="unknown"><h3>Still unknown</h3><p>Whether the modeled advantage remains under verified transmitter parameters, current geometry, and field measurements.</p></div>
+</div>
+<div class="visual-grid">
+<figure class="figure">
+<img src="01A_IlluminatorSelection_assets/target_region_of_interest.png" alt="Original map of modeled region of interest with target-grid dots, candidate-site circles, coordinate axes, and a scale bar.">
+<figcaption><strong>Figure 2 — Original modeled aircraft region of interest.</strong> This map shows the selected target grid used to compare transmitter–receiver geometry across a patch of airspace, not merely along one transmitter-to-roof line. It answered where the target-region model should calculate coverage. The result that mattered was a defined region for comparison, which drove the Newton/Hudson coverage study rather than a tower-power-only ranking. An early deck label says “3k feet” while the later Live Script uses 6,000 ft; this figure does not prove one unchanged altitude assumption, a flight observation, or aircraft detection. <span class="cite">FIG-03 · SRC-04, slide 5 · SRC-01</span></figcaption>
+</figure>
+<div>
+<article class="test" style="margin-top:0">
+<div class="test-header"><span class="number">2</span><h3>Which geometry best illuminates the intended airspace?</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Among candidate transmitter–receiver geometries, which one produced a more useful modeled signal level across the intended aircraft region?</p></div>
+<div class="test-item"><h4>Why we tested it</h4><p>A powerful transmitter is not automatically useful. The reflected path depends on where an aircraft is relative to both transmitter and receiver.</p></div>
+<div class="test-item"><h4>Method</h4><p>The Live Script creates a target grid inside a drawn ROI, uses terrain elevation plus target altitude, calculates transmitter-to-target and target-to-receiver paths, and combines the assumed bistatic target properties with propagation loss. <span class="cite">SRC-01 · SRC-05 · SRC-06</span></p></div>
+<div class="test-item"><h4>Evidence</h4><p>The original ROI map and the paired SNR coverage figures below document the airspace model and the resulting historical comparison. <span class="cite">FIG-03 · FIG-04 · FIG-05</span></p></div>
+<div class="test-item"><h4>Result</h4><p>The original slide-42 comparison reports Hudson with the higher mean modeled field-of-view SNR: <strong>69.91 dB</strong>, compared with <strong>57.78 dB</strong> for Newton. It also reports modeled target powers of −67.3723 dBm and −79.5023 dBm, respectively. <span class="cite">SRC-04, slide 42</span></p></div>
+<div class="test-item"><h4>Decision</h4><p>Use the comparison to determine which cases were worth carrying forward to receiver-design analysis; do not use it to make a field-performance claim. Hudson was preferred in this historical modeled comparison. <span class="cite">SRC-04</span></p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>The model's ERP, altitude, RCS, terrain, integration, and propagation assumptions affect the result. A modeled SNR is neither a measured aircraft echo nor an aircraft-detection result.</p></div>
+</div>
+</article>
+</div>
+</div>
+</section>
+
+<section id="test3">
+<h2>6. Test 3: Which tower/channel cases should feed RF design?</h2>
+<div class="decision-banner" aria-label="Test 3 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">Newton: 596.3 MHz; Hudson: 548 MHz; both historical cases use 6 MHz bandwidth. Modeled direct paths: −28.8871 dBm Newton and −39.8370 dBm Hudson.</span><span class="why-matters"><strong>Why it matters:</strong> frequency, bandwidth, and expected signal range define the RF-budget operating cases instead of leaving component design generic.</span><strong>Conclusion:</strong> the analysis produced concrete candidate inputs for receive-chain reasoning.</p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Use the investigated 548 MHz and 596.3 MHz cases, their historical direct-path levels, and their target-region comparison as inputs to <code>01B_ReceiveChainDesign</code>.</p></div>
+<div class="unknown"><h3>Still unknown</h3><p>The final current broadcast configuration, verified ERP, installed-chain headroom, impedance behavior, and Reference Path adequacy.</p></div>
+</div>
+<article class="test">
+<div class="test-header"><span class="number">3</span><h3>Turn geometry results into receiver-design inputs</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Which candidate channel and predicted signal conditions were worth using as inputs to the next RF-budget analysis?</p></div>
+<div class="test-item"><h4>Why we tested it</h4><p>The receive chain must be designed for a plausible direct-path signal and a much weaker target-path signal. Candidate channel frequency and bandwidth determine the hardware-design operating point.</p></div>
+<div class="test-item"><h4>Method</h4><p>The historical Live Script entered Newton at 596.3 MHz and Hudson at 548 MHz, both with 6 MHz bandwidth; it calculated historical direct-path outputs and target-region quantities. Station records and site tradeoffs supplied contextual cross-checks. <span class="cite">SRC-01 · SRC-03 · SRC-04</span></p></div>
+<div class="test-item"><h4>Evidence</h4><p>Saved Live Script output contains historical modeled direct-path values; the original deck's paired comparison gives the visible region-level result. The candidate table below preserves the source discrepancy instead of selecting a convenient ERP value. <span class="cite">SRC-01 · SRC-04</span></p></div>
+<div class="test-item"><h4>Result</h4><p>The analysis made the frequency/bandwidth cases and their predicted levels concrete enough to become inputs to RF-chain reasoning. It did not establish the installed receiver's headroom, impedance behavior, reference quality, or clipping margin.</p></div>
+<div class="test-item"><h4>Decision</h4><p>Use the investigated channel cases, historical modeled direct-path levels, target-region comparison, and unresolved ERP assumptions as the required starting inputs for <code>01B_ReceiveChainDesign</code>. The sources inspected here do not document a final transferred RF-budget configuration. That next report owns filters, gain, impedance, and installed-chain qualification.</p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>The Live Script's equal 500 kW ERP entries are explicitly placeholders, while the station file records different values. The historical design analysis does not verify the current broadcast configuration or a final field channel selection. <span class="cite">SRC-01 · SRC-03</span></p></div>
+</div>
+</article>
+</section>
+
+<section id="comparison">
+<h2>7. Candidate comparison and resulting decision</h2>
+<p>The table records only facts directly supported by the original material. “Preferred” refers to the historical modeled comparison; it does <strong>not</strong> assert a final, field-qualified transmitter or receiver-site selection. The sources explicitly establish Newton and Hudson as the HDTV cases and record Needham/Marlborough directions in the rooftop screen, but they do not preserve a complete verified DTV station/channel record for every marker in the early regional map.</p>
+<div class="table-wrap">
+<table>
+<caption>Historical candidate comparison — source-supported design inputs and outcomes</caption>
+<thead><tr><th>Candidate tower / site</th><th>Channel or frequency</th><th>Receiver-site context</th><th>Modeled direct-path outcome</th><th>Modeled target-region outcome</th><th>Practical advantage / concern</th><th>Important assumption</th><th>Decision status</th></tr></thead>
+<tbody>
+<tr><td><strong>Newton transmitter site</strong><br><span class="small">42.311389°, −71.216111°</span></td><td>596.3 MHz; 6 MHz HDTV case <span class="cite">SRC-01</span></td><td>Apple Hill East Garage: clear toward Needham/Newton in the historical site comparison. <span class="cite">SRC-04</span></td><td>−28.8871 dBm historical saved model output. <span class="cite">SRC-01</span></td><td>Mean FOV SNR 57.78 dB; modeled target power −79.5023 dBm. <span class="cite">SRC-04, slide 42</span></td><td>Clear East-Garage direction; practical prototype access. <span class="cite">SRC-04</span></td><td>Live Script uses 500 kW placeholder ERP; station record separately gives a 1,000 kW ERP calculation. <span class="cite">SRC-01 · SRC-03</span></td><td class="status">Investigated; retained historical comparison case</td></tr>
+<tr><td><strong>Hudson transmitter site</strong><br><span class="small">42.384083°, −71.493139°</span></td><td>548 MHz; 6 MHz HDTV case <span class="cite">SRC-01</span></td><td>Apple Hill West Garage: clear toward Hudson/Marlborough; Apple Hill East Garage: close-building obstruction in that direction. <span class="cite">SRC-04</span></td><td>−39.8370 dBm historical saved model output. <span class="cite">SRC-01</span></td><td>Mean FOV SNR 69.91 dB; modeled target power −67.3723 dBm. <span class="cite">SRC-04, slide 42</span></td><td>Higher historical modeled FOV comparison; but less favorable East-Garage path. <span class="cite">SRC-04</span></td><td>Live Script uses 500 kW placeholder ERP; station record separately gives 400 kW ERP and notes 100 kW vertical ERP. <span class="cite">SRC-01 · SRC-03</span></td><td class="status">Preferred in historical target-region model; no current field selection verified</td></tr>
+<tr><td><strong>Apple Hill East Garage</strong><br><span class="small">receiver-site candidate</span></td><td>Not a transmitter case</td><td>Clear Newton/Needham; Hudson/Marlborough obstructed; aircraft FOV fair; power near stairwell; Wi-Fi weak. <span class="cite">SRC-04, slide 14</span></td><td>Not separately qualified by the site table</td><td>Not a target-region candidate comparison</td><td>Office proximity and adjustment flexibility. <span class="cite">SRC-04, slide 15</span></td><td>Line of sight and practical access do not prove reference-path adequacy.</td><td class="status">Prototype-site decision documented</td></tr>
+<tr><td><strong>LS Garage</strong><br><span class="small">receiver-site candidate</span></td><td>Not a transmitter case</td><td>Relatively clear windows toward both directions; tree and tower-height caveats; aircraft FOV good; Wi-Fi weak+. <span class="cite">SRC-04, slide 14</span></td><td>Not separately qualified by the site table</td><td>Not a target-region candidate comparison</td><td>Possible later full-collection site. <span class="cite">SRC-04, slide 15</span></td><td>Future use was stated as a possibility, not executed or qualified collection evidence.</td><td class="status">Retained as historical alternative</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>What the analysis changed</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Analysis question</th><th>Evidence result</th><th>Engineering decision</th><th>Remaining uncertainty</th></tr></thead>
+<tbody>
+<tr><td>Which broadcasts and rooftops are geographically plausible?</td><td>Original tower map, LOS/ray screen, and garage comparison establish investigated directions and site tradeoffs. <span class="cite">SRC-04</span></td><td>We compared tower and rooftop geometry before detailed receive-chain design; we prototyped at Apple Hill East Garage for access and flexibility.</td><td>Direct-path power and reference quality still require field measurement and qualification.</td></tr>
+<tr><td>Which geometry better illuminates the modeled aircraft region?</td><td>The historical slide-42 model reports Hudson 69.91 dB versus Newton 57.78 dB mean FOV SNR. <span class="cite">SRC-04</span></td><td>We therefore carried the candidate cases and their predicted levels into receiver-design analysis; Hudson was preferred in that historical model.</td><td>ERP, target altitude, RCS, propagation, and integration assumptions are model inputs; no aircraft performance was demonstrated.</td></tr>
+<tr><td>What does RF design need from this work?</td><td>The Live Script makes channel/frequency, bandwidth, and historical modeled direct-path/target outputs explicit. <span class="cite">SRC-01</span></td><td>The analysis supplies the investigated operating cases and signal-level expectations that a follow-on RF-budget problem must use, rather than choosing components from a generic frequency range. The exact later transfer is not directly documented in the sources inspected here.</td><td>The installed chain, impedance behavior, headroom, and field reference condition belong to 01B and Report 02.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="decision"><strong>Explicit historical decision record</strong>The sources explicitly support a prototype-site choice (Apple Hill East Garage), a later possible LS Garage collection option, and a historical Hudson-over-Newton modeled FOV comparison. They do not explicitly establish a final current transmitter, final field receiver site, verified transmitter ERP, or qualified reference path.</div>
+</section>
+
+<section id="figures">
+<h2>8. What the original analysis figures prove</h2>
+<div class="visual-grid" id="historical-comparison">
+<figure class="figure">
+<img src="01A_IlluminatorSelection_assets/candidate_transmitter_map.png" alt="Original Site Viewer regional map showing candidate transmitter markers across the region.">
+<figcaption><strong>Figure 3 — Original candidate-transmitter geography.</strong> This original MATLAB Site Viewer map places candidate transmitter records on the regional terrain map. It answered which geographic options should enter the first screen. The result that mattered was a real-location candidate set—not an abstract channel list—so Newton and Hudson could be carried into the later HDTV comparison. It influenced what the link-budget analysis compared; it does not identify a final station, show a receiver location, or prove coverage. <span class="cite">FIG-01 · SRC-04, slide 2 · SRC-03</span></figcaption>
+</figure>
+<figure class="figure">
+<img src="01A_IlluminatorSelection_assets/newton_snr_coverage.png" alt="Original historical Newton modeled SNR coverage map showing a 43 to 88 dB scale and a transmitter marker east of the modeled region.">
+<figcaption><strong>Figure 4 — Newton historical SNR coverage case.</strong> The left panel of original LinkBudget slide 42 predicts SNR across the modeled field of view using the Newton geometry. It answered how that geometry illuminated the selected region: <strong>57.78 dB</strong> mean modeled FOV SNR and <strong>−79.5023 dBm</strong> modeled target power. That result supplied one side of the historical candidate ranking and RF-design input set. It does not measure field coverage or demonstrate an aircraft return. <span class="cite">FIG-04 · SRC-04, slide 42</span></figcaption>
+</figure>
+<figure class="figure">
+<img src="01A_IlluminatorSelection_assets/hudson_snr_coverage.png" alt="Original historical Hudson modeled SNR coverage map showing a 43 to 88 dB scale and a transmitter marker near the modeled region.">
+<figcaption><strong>Figure 5 — Hudson historical SNR coverage case.</strong> The right panel of original LinkBudget slide 42 evaluates the Hudson geometry over the same modeled region. It answered the same comparison question as Figure 4, reporting <strong>69.91 dB</strong> mean modeled FOV SNR and <strong>−67.3723 dBm</strong> modeled target power. That higher historical result is why Hudson was preferred in the model and carried with Newton into later receiver-design reasoning, subject to the ERP and site-path assumptions. It is not field qualification, an installed selection, or aircraft-detection performance. <span class="cite">FIG-05 · SRC-04, slide 42</span></figcaption>
+</figure>
+<figure class="figure">
+<img src="01A_IlluminatorSelection_assets/target_region_of_interest.png" alt="Original modeled target-grid map with a highlighted rectangular region of interest and candidate location circles.">
+<figcaption><strong>Figure 6 — A region was modeled, not merely a line.</strong> This alternate view of the original ROI map keeps the target-grid detail visible. It shows that the model evaluated a patch of airspace relative to candidate sites. That modeling choice enabled the region-level Newton/Hudson comparison rather than a single-path estimate. It informs where a one-link measurement might be useful; it does not establish a flight plan, a live-aircraft observation, or localization capability. <span class="cite">FIG-03 · SRC-04, slide 5</span></figcaption>
+</figure>
+</div>
+</section>
+
+<section id="boundaries">
+<h2>9. What the analysis did not prove</h2>
+<div class="warning">
+<strong>Do not promote a historical design model into current field evidence.</strong> The original work was valuable because it determined where to spend engineering effort. It did not close today’s collection or downstream-performance gates.
+</div>
+<div class="callout-grid">
+<article class="callout"><strong>Direct-path model ≠ measured direct path</strong><p>The historical dBm outputs are code/model outputs. They are not received-power measurements at the installed receiver.</p></article>
+<article class="callout"><strong>FM screen ≠ DTV result</strong><p>The deck itself says its direct-path screen used FM transmit power. Relative geometry was useful; DTV SNR was not final.</p></article>
+<article class="callout"><strong>Line of sight ≠ reference qualification</strong><p>A visible direction does not demonstrate antenna role, lock, dropped-sample integrity, reference adequacy, or collection suitability.</p></article>
+<article class="callout"><strong>Modeled target SNR ≠ aircraft detection</strong><p>It is not a live-aircraft echo, operational Pd/Pfa, tracking, or localization result.</p></article>
+</div>
+<div class="boundary">
+<strong>Current-state boundary:</strong> Report 02 documents physical collection infrastructure, but the Reference Path and collection suitability remain blocked pending controlled field evidence. Report 06 keeps formal detection, tracking, and localization claims disabled. One modeled bistatic link is a future constrained measurement opportunity—not localization. <span class="cite">SRC-09 · SRC-10</span>
+</div>
+</section>
+
+<section id="executive-summary">
+<h2>Executive decision summary</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Engineering question</th><th>Evidence result</th><th>Decision made</th><th>Remaining uncertainty</th></tr></thead>
+<tbody>
+<tr><td>Which rooftop can plausibly see the investigated tower directions?</td><td>Different garages provided different modeled LOS windows; East Garage was practical for iterative prototyping. <span class="cite">SRC-04, slides 14–16</span></td><td>Prototype at Apple Hill East Garage; retain LS Garage as a possible later site.</td><td>Measured Reference Path quality and field qualification.</td></tr>
+<tr><td>Which historical geometry looked strongest over the modeled aircraft region?</td><td>Hudson 69.91 dB versus Newton 57.78 dB historical mean modeled FOV SNR under stated assumptions. <span class="cite">SRC-04, slide 42</span></td><td>Prefer Hudson in the historical target-region comparison; carry both candidate cases into later analysis.</td><td>Verified ERP, current geometry, and field measurements.</td></tr>
+<tr><td>Which signal cases should feed receiver-chain design?</td><td>548 MHz and 596.3 MHz, 6 MHz bandwidth, and historical predicted signal levels were defined. <span class="cite">SRC-01</span></td><td>Use these as candidate RF-budget inputs for <code>01B_ReceiveChainDesign</code>.</td><td>The exact final transferred configuration is not directly documented in the inspected sources.</td></tr>
+<tr><td>What remains unverified before field use?</td><td>Historical models establish design rationale, not measured performance. <span class="cite">SRC-09 · SRC-10</span></td><td>Require separate Reference Path and collection qualification.</td><td>Role verification, lock/drop evidence, received power, and Reference Path adequacy.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section>
+<h2>10. How this connects to the next report</h2>
+<p>This report stops at the point where illuminator and geometry analysis becomes a design input. The results that carry forward are: the investigated 548/596.3 MHz HDTV cases, 6 MHz bandwidth, historical direct-path/target-level expectations, terrain and building caveats, candidate-site tradeoffs, and unresolved ERP assumptions.</p>
+<div class="decision"><strong>Next report: <code>01B_ReceiveChainDesign</code></strong>That report should explain how predicted signal levels and candidate frequencies drove filters, gain, impedance choices, headroom, and bench/field validation. It must not reuse this historical geometry analysis as proof that the installed chain is qualified.</div>
+</section>
+
+<section id="code">
+<h2>11. Where the analysis lives</h2>
+<p>The files below were inspected for this report. The original saved outputs were used directly. A separate, source-faithful Site Viewer recovery attempt was isolated outside the report folder but exceeded the tool response limit; V4 therefore uses the original embedded Apple Hill building-geometry output and does not claim a recovered 3D/ray-path rendering.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Purpose</th><th>Entry point / path</th><th>Inputs</th><th>Outputs / figures</th><th>Execution in this task</th><th>Known dependency or limitation</th></tr></thead>
+<tbody>
+<tr><td><strong>Primary HDTV candidate and link-budget analysis</strong></td><td><span class="codepath"><a href="../LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx">LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx</a></span><br><span class="small">LOS; Newton/Hudson setup; ROI; terrain link budget.</span></td><td>Station/receiver positions, channels, bandwidth, target altitude, RCS, propagation configuration.</td><td>Geometric LOS, direct-path and target-region quantities; saved outputs used above.</td><td><span class="tag neutral">Inspected only</span></td><td>500 kW ERP inputs are explicitly placeholders; TIREM is used when available, otherwise Longley-Rice.</td></tr>
+<tr><td><strong>Apple Hill building-aware method</strong></td><td><span class="codepath"><a href="../LinkBudget/AppleHill_CustomizeBuildingsForRayTracingAnalysisExample.mlx">LinkBudget/AppleHill_CustomizeBuildingsForRayTracingAnalysisExample.mlx</a></span><br><span class="small">Imports local building data and runs SBR ray tracing.</span></td><td><a href="../LinkBudget/applehill.osm">applehill.osm</a>, selected transmitter/receiver records, building AOI.</td><td>Original embedded building-footprint output is retained as Figure 1B; source code defines the subsequent Site Viewer/ray-tracing method.</td><td><span class="tag neutral">Inspected; recovery run did not complete</span></td><td>Historical local-obstruction study; uses up to 3 reflections and 2 diffractions. The source package did not retain a 3D Site Viewer/ray-path output; Figure 1B is not a field measurement.</td></tr>
+<tr><td><strong>Candidate tower records</strong></td><td><span class="codepath"><a href="../LinkBudget/Radio_Tower_List.txt">LinkBudget/Radio_Tower_List.txt</a></span></td><td>Newton/Hudson locations, station power, gain, heights, directionality notes.</td><td>Machine-readable historical tower inputs.</td><td><span class="tag neutral">Inspected only</span></td><td>Station-record ERP differs from Live Script placeholder ERP; values are shown as a discrepancy.</td></tr>
+<tr><td><strong>Candidate broadcast-survey provenance</strong></td><td><span class="codepath"><a href="../Radio_Stations/Radio_Stations/data_from_web/BostonStationList.html">Radio_Stations/.../BostonStationList.html</a></span><br><span class="codepath"><a href="../Radio_Stations/Radio_Stations/data_from_web/scraper.ipynb">Radio_Stations/.../scraper.ipynb</a></span></td><td>Saved RabbitEars Boston market-detail HTML.</td><td>Station-location, height, ERP, channel, and RF-program survey extraction.</td><td><span class="tag neutral">Inspected only</span></td><td>The saved survey and parser explain the candidate-data origin, but the workspace does not preserve a named person or a complete transformation trace into the LinkBudget copy.</td></tr>
+<tr><td><strong>Terrain propagation helper</strong></td><td><span class="codepath"><a href="../LinkBudget/helperPathlossOverTerrain.m">LinkBudget/helperPathlossOverTerrain.m</a></span></td><td>Transmitter, receiver, target locations, propagation model.</td><td>Additional terrain loss plus transmitter-to-target and target-to-receiver distances.</td><td><span class="tag neutral">Inspected only</span></td><td>Removes duplicated free-space component before combining terrain loss.</td></tr>
+<tr><td><strong>Target-region grid helper</strong></td><td><span class="codepath"><a href="../LinkBudget/helperRadarCoverageTargetGrid.m">LinkBudget/helperRadarCoverageTargetGrid.m</a></span></td><td>ROI polygon, terrain heights, requested altitude, grid spacing.</td><td>Target LLA grid for coverage calculations.</td><td><span class="tag neutral">Inspected only</span></td><td>Produces modeled points, not observed aircraft trajectories.</td></tr>
+<tr><td><strong>Original visual evidence</strong></td><td><span class="codepath"><a href="../LinkBudget/LinkBudgetProgress.pptx">LinkBudget/LinkBudgetProgress.pptx</a></span><br><span class="small">Slides 2, 4–10, 14–16, and 42.</span></td><td>Historical analysis screenshots and site-decision text.</td><td>Original figures reproduced on this page from read-only PPT extraction.</td><td><span class="tag neutral">Inspected only</span></td><td>Mixes preliminary FM screen and later HDTV analysis; captions retain that distinction.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="source"><strong>V4 source inventory:</strong> <a href="01A_IlluminatorSelection_V4_source_inventory.csv">01A_IlluminatorSelection_V4_source_inventory.csv</a> · <strong>V4 figure inventory:</strong> <a href="01A_IlluminatorSelection_V4_figure_inventory.csv">01A_IlluminatorSelection_V4_figure_inventory.csv</a> · <strong>V4 audit:</strong> <a href="01A_IlluminatorSelection_V4_audit.md">01A_IlluminatorSelection_V4_audit.md</a> · <strong>accepted current-state boundaries:</strong> <a href="01_NorthStarAndMotivation_V2.html">Report 01</a>, <a href="02_HardwareAndCollection_V4.html">Report 02</a>, and <a href="06_StatusAndFutureWork_V2.html">Report 06</a>.</p>
+</section>
+
+<section id="glossary">
+<h2>12. Glossary</h2>
+<div class="cards">
+<article class="card"><h3>Direct path</h3><p>The broadcast signal traveling from the transmitter directly to the receiver. It is the candidate source for a comparison/reference waveform; it is not automatically a qualified Reference Path.</p></article>
+<article class="card"><h3>ERP</h3><p>Effective radiated power: a way of describing the transmitter’s radiated strength in a particular direction. It can differ by polarization and antenna pattern, which is why an unverified placeholder is risky.</p></article>
+<article class="card"><h3>Region of interest (ROI)</h3><p>The selected patch of airspace in which model target points were placed so that geometries could be compared across an area, not just along a line.</p></article>
+<article class="card"><h3>Bistatic RCS</h3><p>A modeled measure of how strongly a target reflects energy from a transmitter toward a separate receiver. Here it is an assumption used for historical comparison, not an aircraft measurement.</p></article>
+<article class="card"><h3>SNR</h3><p>Signal-to-noise ratio. In these figures it is a model output used to compare candidate geometry under stated assumptions; it is not a detection rate.</p></article>
+<article class="card"><h3>Ray tracing</h3><p>A model of how a radio path may travel through terrain or around/among buildings. It can identify plausible obstructions and paths; it does not replace site measurement.</p></article>
+</div>
+</section>
+
+<footer>
+<strong>Report-family placement:</strong> Report 01A follows <a href="01_NorthStarAndMotivation_V2.html">01_NorthStarAndMotivation_V2.html</a> and precedes <code>01B_ReceiveChainDesign</code>. It owns historical illuminator, site, and observation-geometry screening. It does not own detailed RF component design, installed hardware qualification, collection packaging, synthetic echo generation, signal-processing recovery, or operational aircraft detection.
+</footer>
+</body>
+</html>
