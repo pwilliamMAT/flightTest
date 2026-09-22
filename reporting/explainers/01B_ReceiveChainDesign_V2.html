@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>01B — Receive-chain design</title>
+<style>
+:root{--ink:#142033;--muted:#526176;--line:#cbd5e1;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--panel:#f8fafc;--gray:#475569}*{box-sizing:border-box}html{scroll-behavior:smooth}body{max-width:1280px;margin:0 auto;padding:28px 20px 52px;color:var(--ink);font:16px/1.52 Arial,sans-serif;background:#fff}h1,h2,h3{line-height:1.15;color:#102a43}h1{font-size:2.35rem;margin:.2rem 0 .45rem}h2{font-size:1.55rem;margin:2.3rem 0 .7rem;padding-top:.2rem;border-top:2px solid #dbe6ef}h3{font-size:1.08rem;margin:.1rem 0 .45rem}.sub{color:var(--muted);margin:.1rem 0 1.25rem}.takeaway,.boundary,.warning{border:1px solid var(--line);padding:1rem 1.15rem;margin:1rem 0;background:var(--blue2);border-left:6px solid var(--blue)}.boundary{background:var(--amber2);border-left-color:var(--amber)}.warning{background:var(--red2);border-left-color:var(--red)}.tag,.cite{display:inline-block;padding:.13rem .48rem;border-radius:99px;font-size:.78rem;font-weight:700;white-space:nowrap}.history{background:var(--amber2);color:var(--amber)}.current{background:var(--green2);color:var(--green)}.neutral{background:#eef2f7;color:var(--gray)}.cite{background:#edf4fa;color:var(--blue);font-weight:600}.nav{display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 1.4rem}.nav a{color:var(--blue);font-size:.9rem;text-decoration:none;border:1px solid #bdd1e3;padding:.32rem .55rem;border-radius:99px}.nav a:hover{text-decoration:underline;background:var(--blue2)}.executive{display:grid;grid-template-columns:1.18fr .82fr;gap:16px;margin:18px 0}.executive-main{padding:1rem 1.1rem;border:1px solid var(--line);background:#fbfdff}.executive-main h2{border:0;margin:0 0 .65rem;padding:0}.answer-list{display:grid;grid-template-columns:155px 1fr;gap:.45rem .8rem;margin:0}.answer-list dt{font-weight:700;color:var(--blue)}.answer-list dd{margin:0}.facts{border:1px solid var(--line);background:var(--panel);padding:.9rem 1rem}.facts h2{border:0;margin:0 0 .6rem;padding:0;font-size:1.2rem}.fact{padding:.58rem 0;border-top:1px solid #dbe6ef}.fact:first-of-type{border-top:0}.fact strong{display:block}.fact small{display:block;color:var(--muted);margin-top:.15rem}.flow{padding:14px;border:1px solid var(--line);background:#fbfdff;margin:18px 0}.flow svg{display:block;width:100%;height:auto}.figure{border:1px solid var(--line);background:#fff;margin:0}.figure img{display:block;width:100%;height:auto}.figure figcaption{padding:.78rem .9rem;color:var(--muted);font-size:.92rem}.figure figcaption strong{color:var(--ink)}.visual-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0}.split{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin:18px 0}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.card{border:1px solid var(--line);padding:.9rem;background:#fff}.card h3{font-size:1rem;margin:.05rem 0 .35rem}.card p{margin:.35rem 0}.test{border:1px solid var(--line);margin:18px 0;background:#fff}.test-header{display:flex;align-items:center;gap:.7rem;padding:.85rem 1rem;background:var(--blue2);border-bottom:1px solid var(--line)}.test-header .number{display:grid;place-items:center;flex:0 0 1.9rem;height:1.9rem;border-radius:50%;background:var(--blue);color:#fff;font-weight:700}.test-header h3{margin:0;font-size:1.22rem}.test-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}.test-item{padding:.85rem 1rem;border-top:1px solid #e2e8f0}.test-item:nth-child(odd){border-right:1px solid #e2e8f0}.test-item h4{color:var(--blue);margin:0 0 .3rem;font-size:.94rem;text-transform:uppercase;letter-spacing:.035em}.test-item p{margin:0}.table-wrap{overflow-x:auto;border:1px solid var(--line);margin:16px 0}table{width:100%;border-collapse:collapse;font-size:.91rem}caption{text-align:left;font-weight:700;padding:.7rem .85rem;background:var(--panel);color:#102a43}th,td{padding:.65rem .72rem;text-align:left;vertical-align:top;border-bottom:1px solid #dbe6ef}th{background:#eef5fb;color:#173b5c;font-size:.84rem}tr:last-child td{border-bottom:0}.note{padding:.82rem .92rem;border-left:5px solid var(--amber);background:var(--amber2)}.note strong{display:block}.decision{border-left:5px solid var(--green);background:var(--green2);padding:.82rem .95rem}.decision strong{display:block;color:var(--green)}.source{font-size:.91rem;color:var(--muted);overflow-wrap:anywhere}.source code,.codepath{font:inherit;background:#f1f5f9;padding:.08rem .2rem;overflow-wrap:anywhere}.source a,.codepath a{color:var(--blue)}.decision-banner{display:grid;grid-template-columns:1.42fr 1fr .9fr;border:1px solid var(--line);border-left:6px solid var(--blue);margin:0 0 22px;background:#fbfdff}.decision-banner>div{padding:.85rem .95rem;border-left:1px solid #dbe6ef}.decision-banner>div:first-child{border-left:0}.decision-banner h3{font-size:.9rem;margin:0 0 .3rem;color:var(--blue);text-transform:uppercase;letter-spacing:.035em}.decision-banner p{margin:0}.decision-banner .result{background:#f4f9fd}.decision-banner .decision-cell{background:var(--green2)}.decision-banner .decision-cell h3{color:var(--green)}.decision-banner .unknown{background:var(--amber2)}.decision-banner .unknown h3{color:var(--amber)}.metric{display:block;margin:.32rem 0;font-weight:700;color:#102a43}.why-matters{display:block;margin:.35rem 0;color:var(--muted)}.stage-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:16px 0}.stage{padding:.7rem;border:1px solid var(--line);background:#fff;min-height:145px}.stage strong{display:block;color:var(--blue);margin-bottom:.35rem}.stage small{display:block;color:var(--muted)}.progression{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:16px 0}.progression article{position:relative;padding:.8rem;border:1px solid var(--line);background:#fff;min-height:118px}.progression article:not(:last-child):after{content:"→";position:absolute;right:-15px;top:37%;color:var(--blue);font-size:1.5rem;font-weight:700;z-index:2}.progression strong{display:block;color:var(--blue);font-size:.95rem}.progression small{display:block;color:var(--muted);margin-top:.25rem}.model-note{padding:.82rem .95rem;border-left:5px solid var(--amber);background:var(--amber2);margin-top:12px}.model-note strong{display:block}.architecture{max-width:1120px;margin:18px auto}.caption-list{display:grid;grid-template-columns:128px 1fr;gap:.25rem .7rem;margin:0}.caption-list dt{font-weight:700;color:var(--blue)}.caption-list dd{margin:0}footer{margin-top:32px;padding-top:14px;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}@media(max-width:860px){.executive,.split,.visual-grid{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.test-grid{grid-template-columns:1fr}.test-item:nth-child(odd){border-right:0}.decision-banner{grid-template-columns:1fr}.decision-banner>div{border-left:0;border-top:1px solid #dbe6ef}.decision-banner>div:first-child{border-top:0}.stage-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.progression{grid-template-columns:1fr}.progression article:not(:last-child):after{right:50%;top:auto;bottom:-24px;transform:rotate(90deg)}}@media(max-width:560px){body{padding:20px 14px 40px}h1{font-size:1.8rem}.answer-list{grid-template-columns:1fr;gap:.1rem}.answer-list dd{margin-bottom:.48rem}.stage-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<p style="font-size:.86rem;color:#0f4c81;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0">Report 01B · historical RF design analysis</p>
+<h1>How predicted signal levels drove the receive-side RF design</h1>
+<p class="sub">A human-readable account of how historical link-budget outputs became antenna, cable, filter, amplifier, and N320 design questions—and why the resulting cascade still required measurement.</p>
+</header>
+
+<section class="takeaway">
+<strong>Executive answer:</strong> The team did not choose receive hardware from a generic television-parts list. Historical geometry work supplied candidate frequencies and expected direct-path levels, then an RF cascade made each loss, gain, and digitizer constraint visible. The model led to a directional antenna, explicit cable and 75-to-50 ohm transition assumptions, filtering, low-noise gain, and separate attention to N320 headroom. It did <strong>not</strong> qualify the installed receiver: measured levels, actual filter loss, impedance behavior, channel roles, lock, drops, and reference-path adequacy still require separate evidence.
+</section>
+
+<nav class="nav" aria-label="Report sections">
+<a href="#chain">Decision chain</a><a href="#model">System model</a><a href="#facts">Key facts</a><a href="#test1">Test 1</a><a href="#test2">Test 2</a><a href="#architecture">Designed architecture</a><a href="#test3">Test 3</a><a href="#comparison">Decisions</a><a href="#figures">Original figures</a><a href="#boundaries">Boundaries</a><a href="#handoff">Hardware handoff</a><a href="#code">Code &amp; evidence</a><a href="#glossary">Glossary</a>
+</nav>
+
+<section class="executive">
+<div class="executive-main">
+<h2>1. Executive answer</h2>
+<dl class="answer-list">
+<dt>The question</dt><dd>Given the historical HDTV signal cases, what must the receiver preserve, reject, amplify, and keep below the N320’s input limit?</dd>
+<dt>Design input</dt><dd>Report 01A handed forward historical direct-path estimates of <strong>−28.8871 dBm</strong> for Newton and <strong>−39.8370 dBm</strong> for Hudson, plus the candidate bands and 6 MHz bandwidth. The later RF-budget scripts represent those cases at 599 MHz and 551 MHz. <span class="cite">SRC-01B-10 · SRC-01B-02/03</span></dd>
+<dt>Principal result</dt><dd>The cascade made passive loss, low-noise gain, and radio headroom one connected problem. The historical stage plots end near −7 dBm while marking −15 dBm as an earlier recommended/maximum line: a headroom warning, not an acceptance result. <span class="cite">SRC-01B-01 · FIG-01B-01/02</span></dd>
+<dt>Engineering decision</dt><dd>Design around a directional antenna, long-cable loss, deliberate impedance treatment, filtering, front-end LNA gain, and separately configured N320/reference attenuation—not a single “gain it up” rule.</dd>
+<dt>Largest uncertainty</dt><dd>The later Newton cascade explicitly reuses a Hudson target-power placeholder. Neither this model nor the parts list proves the final installed chain or a qualified Reference Path.</dd>
+<dt>Strongest evidence</dt><dd><a href="#figures">Original RF-budget comparative cascade</a> <span class="cite">SRC-01B-01 · FIG-01B-03</span></dd>
+<dt>Top-level code</dt><dd><a href="#code">RFBudget_Comparative_Analysis.m</a> <span class="cite">SRC-01B-04</span></dd>
+</dl>
+</div>
+<aside class="facts" id="facts" aria-label="Key RF design facts">
+<h2>Key design facts</h2>
+<div class="fact"><strong>Candidate cases</strong>Hudson Ch. 27 at 551 MHz and Newton Ch. 35 at 599 MHz; both model 6 MHz bandwidth. <span class="cite">SRC-01B-02/03/04</span><small>Historical candidate cases, not a current channel configuration.</small></div>
+<div class="fact"><strong>Modelled receive path</strong>12 dBi 75-ohm Yagi → 75 ft RG-6 → modeled 75-to-50 ohm transition → filters → LANA → N320 TwinRX. <span class="cite">SRC-01B-02/03/04</span><small>Modelled sequence, not an as-built proof.</small></div>
+<div class="fact"><strong>Early weak-signal protection</strong>LANA: 20 dB modelled gain; 1.4 dB NF at Hudson. N320: 30 dB modelled gain; 6 dB NF. <span class="cite">SRC-01B-02/04</span><small>Historical values and component assumptions.</small></div>
+<div class="fact"><strong>Impedance question</strong>The scripts model 0.4 dB for 75-to-50 ohm mismatch; review calls for a deliberate 50-ohm architecture or transformer. <span class="cite">SRC-01B-04 · SRC-01B-01 slides 11–12</span></div>
+<div class="fact"><strong>Filter cross-check</strong>The model assumes 1.5 dB loss at 599 MHz; supplied +25°C S2P data shows −0.7335926 dB S21 there. <span class="cite">SRC-01B-03/05</span><small>Discrepancy to measure, not silently average.</small></div>
+<div class="fact"><strong>Modeled N320 headroom</strong>Recommended maximum −15 dBm; absolute maximum +10 dBm; 14-bit ADC and 74 dB theoretical SFDR. <span class="cite">SRC-01B-03/04</span><small>Model inputs, not a measured installed limit check.</small></div>
+</aside>
+</section>
+
+<section id="chain">
+<h2>2. Engineering decision chain</h2>
+<p>The receive chain exists because the direct broadcast and the weak reflected signal create competing requirements. The hardware has to retain weak content while ensuring the strong path does not use up the radio’s usable input range.</p>
+<div class="flow" aria-label="Receive-chain engineering decision chain">
+<svg viewBox="0 0 1160 246" role="img" aria-label="Historical link-budget inputs feed antenna, cable and impedance, filter, low-noise amplifier, N320 headroom review, then physical installation and separate qualification.">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#0f4c81"/></marker></defs>
+<g font-family="Arial" text-anchor="middle" fill="#102a43">
+<rect x="12" y="58" width="158" height="100" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="91" y="88" font-weight="700">Historical signal</text><text x="91" y="107" font-weight="700">cases</text><text x="91" y="132" font-size="13">frequency · bandwidth · power</text>
+<rect x="210" y="58" width="155" height="100" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="287" y="88" font-weight="700">Antenna and</text><text x="287" y="107" font-weight="700">cable loss</text><text x="287" y="132" font-size="13">direction · long run</text>
+<rect x="405" y="58" width="155" height="100" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="482" y="88" font-weight="700">Impedance and</text><text x="482" y="107" font-weight="700">filtering</text><text x="482" y="132" font-size="13">75 Ω → 50 Ω · reject</text>
+<rect x="600" y="58" width="155" height="100" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="677" y="88" font-weight="700">Low-noise</text><text x="677" y="107" font-weight="700">gain</text><text x="677" y="132" font-size="13">protect weak echoes</text>
+<rect x="795" y="58" width="155" height="100" rx="8" fill="#fff7e6" stroke="#9a5b00"/><text x="872" y="88" font-weight="700">N320 input</text><text x="872" y="107" font-weight="700">headroom</text><text x="872" y="132" font-size="13">gain · attenuation · ADC</text>
+<rect x="990" y="58" width="158" height="100" rx="8" fill="#ecfdf3" stroke="#166534"/><text x="1069" y="88" font-weight="700">Build and</text><text x="1069" y="107" font-weight="700">measure</text><text x="1069" y="132" font-size="13">separate qualification</text>
+</g>
+<g stroke="#0f4c81" stroke-width="3" marker-end="url(#arrow)"><line x1="170" y1="108" x2="205" y2="108"/><line x1="365" y1="108" x2="400" y2="108"/><line x1="560" y1="108" x2="595" y2="108"/><line x1="755" y1="108" x2="790" y2="108"/><line x1="950" y1="108" x2="985" y2="108"/></g>
+<text x="580" y="205" text-anchor="middle" font-family="Arial" font-size="14" fill="#526176">The first five blocks are historical design reasoning. The last block requires physical evidence and is owned by Report 02.</text>
+</svg>
+</div>
+</section>
+
+<section id="model">
+<h2>RF Budget System Model</h2>
+<p>Before selecting later direct-sampling hardware, the original work used the RF Budget Analyzer to make the receiver stages, gains, noise figures, and stage outputs visible. This recovered view is the missing “what was simulated?” layer behind the budget outputs.</p>
+<figure class="figure architecture">
+<img src="01B_ReceiveChainDesign_assets/rf_budget_analyzer_system_model.png" alt="Original RF Budget Analyzer system model showing a cascade of RF Filter, RF Amplifier, Demodulator, IF Filter, and IF Amplifier plus a power-characteristics chart.">
+<figcaption><strong>Figure 0 — Original RF Budget Analyzer system model.</strong>
+<dl class="caption-list">
+<dt>Question</dt><dd>What system was modeled?</dd>
+<dt>Result</dt><dd>The original app shows a complete stage-level receiver model: RF filter, RF amplifier, demodulator, IF filter, and IF amplifier, with per-stage gain, noise figure, and OIP3 fields visible above the selected-stage power chart.</dd>
+<dt>Decision</dt><dd>Use a receiver-stage model as the basis for component selection and trade studies instead of selecting filters and amplifiers in isolation.</dd>
+<dt>Boundary</dt><dd>This is an early historical IF/demodulator model, not the later 551/599 MHz direct-sampling N320 cascade and not evidence that the installed receiver behaves identically.</dd>
+</dl>
+<span class="cite">FIG-01B-00 · SRC-01B-11, slide 30</span></figcaption>
+</figure>
+<div class="model-note"><strong>Why this distinction increases trust:</strong> the source records model evolution. The Analyzer view documents the initial stage-by-stage method; the later MATLAB scripts and Figures 1–2 use a direct-sampling Yagi → cable → impedance transition → filtering → LANA → N320 cascade. V2 shows both rather than merging them into an invented single configuration.</div>
+<div class="progression" aria-label="Model to qualification visual progression">
+<article><strong>Historical signal assumptions</strong><small>Report 01A candidate frequency, bandwidth, and predicted direct-path inputs.</small></article>
+<article><strong>RF Budget Model</strong><small>Stages, gain, NF, loss, and power trade studies are made explicit.</small></article>
+<article><strong>Designed architecture</strong><small>Antennas, RF chain, N320, PC/storage, and enclosure layout are planned.</small></article>
+<article><strong>Installed hardware</strong><small>Physical enclosure and site equipment provide implementation context.</small></article>
+<article><strong>Qualification questions</strong><small>Measure role, match, power, headroom, lock, drops, and Reference Path adequacy.</small></article>
+</div>
+</section>
+
+<section>
+<h2>3. Key design constraints, in plain language</h2>
+<div class="stage-grid" aria-label="RF chain component purpose">
+<article class="stage"><strong>Directional antenna</strong><small>Needed gain and a chosen look direction. Its gain and orientation are model inputs until measured in the installed geometry.</small></article>
+<article class="stage"><strong>75 ft cable</strong><small>Connects rooftop antenna and receiver, but its loss happens before the LNA and therefore matters to weak signals.</small></article>
+<article class="stage"><strong>75-to-50 Ω transition</strong><small>TV-side cable and N320 input do not naturally match. The model assigns loss; review requires a deliberate architecture.</small></article>
+<article class="stage"><strong>Filters</strong><small>Limit unwanted energy before gain. The candidate channels are not equally centered in the historical filter model.</small></article>
+<article class="stage"><strong>LANA</strong><small>Restores margin after passive losses. It helps sensitivity, but it also raises the importance of downstream headroom.</small></article>
+<article class="stage"><strong>N320 TwinRX</strong><small>Sets radio gain and digitizes the signal. Its input range must be checked with actual direct-path power, not only a cascade plot.</small></article>
+</div>
+</section>
+
+<section id="test1">
+<h2>4. Test 1: Can a modeled HDTV signal survive the receive chain?</h2>
+<div class="decision-banner" aria-label="Test 1 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">The historical Hudson cascade reports 47.80 dB total gain and ends near −7 dBm; its plot marks −15 dBm as a radio maximum/recommended line.</span><span class="why-matters"><strong>Why it matters:</strong> the same gain that helps a weak assumed signal can consume digitizer headroom.</span><strong>Conclusion:</strong> the cascade exposed a headroom question; it did not certify a safe field setting. <span class="cite">FIG-01B-01</span></p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Use a channel-specific cascade and treat N320 gain and reference attenuation as settings to verify, not defaults copied from a simulation.</p></div>
+<div class="unknown"><h3>Still unknown</h3><p>Actual receiver input power, gain state, overload behavior, and signal quality at the installed antenna.</p></div>
+</div>
+<div class="visual-grid">
+<figure class="figure">
+<img src="01B_ReceiveChainDesign_assets/hudson_rf_budget_cascade.png" alt="Original historical Hudson RF budget figure with gain distribution, noise figure accumulation, signal level through cascade, and component summary.">
+<figcaption><strong>Figure 1 — Original Hudson cascade.</strong> This is the original MATLAB RF-budget output for the 551 MHz historical case. It asks whether the assumed weak signal can pass cable, mismatch, filtering, LNA, and radio gain without losing the signal or exceeding the modelled radio line. The visible end level near −7 dBm made input headroom a design concern. It led to the need for configurable gain/attenuation; it does not measure a real antenna, prove a safe N320 setting, or qualify a receiver path. <span class="cite">FIG-01B-01 · SRC-01B-01 slide 8 · SRC-01B-02</span></figcaption>
+</figure>
+<article class="test" style="margin:0">
+<div class="test-header"><span class="number">1</span><h3>Turn predicted signal cases into a cascade</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Can the historical candidate frequencies and assumed power levels pass through the proposed receive chain with enough margin?</p></div>
+<div class="test-item"><h4>Result</h4><p>The original cascades make every modelled loss and gain visible. They also show that the resulting radio input needs a real headroom check, rather than a blanket “more gain is better” conclusion.</p></div>
+<div class="test-item"><h4>Why it matters</h4><p>A passive receiver needs a stable reference/direct path and weak surveillance content at the same time. Cable loss, LNA gain, and radio gain couple those two needs.</p></div>
+<div class="test-item"><h4>Engineering decision</h4><p>Carry the actual candidate frequency, bandwidth, and predicted-level cases into the cascade. Adjust or attenuate based on measured input—not only the chart.</p></div>
+<div class="test-item"><h4>Evidence</h4><p>Original Hudson and Newton cascade plots plus the comparative plot. The code lists the elements and their assumed gains, losses, NF, and OIP3 values. <span class="cite">SRC-01B-01/02/03/04</span></p></div>
+<div class="test-item"><h4>Method</h4><p>MATLAB <code>rfbudget</code> cascades combine modelled elements with 6 MHz bandwidth, available input power, and candidate operating frequency.</p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>The later Newton code explicitly reuses a Hudson target-power placeholder. Output charts are conditional model results, not measured receive-power, noise, or clipping evidence.</p></div>
+</div>
+</article>
+</div>
+</section>
+
+<section id="test2">
+<h2>5. Test 2: What hardware was required to preserve weak echoes?</h2>
+<div class="decision-banner" aria-label="Test 2 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">The later model uses 12 dBi antenna gain, 75 ft RG-6, 0.4 dB modelled mismatch loss, filtering, 20 dB LANA gain, and 30 dB N320 gain.</span><span class="why-matters"><strong>Why it matters:</strong> loss before the LNA permanently reduces weak-signal margin; gain after it can create an input-headroom problem.</span><strong>Conclusion:</strong> antenna, cable, filter, LNA, and radio were selected as one cascade. <span class="cite">SRC-01B-02/03/04</span></p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Budget pre-LNA loss explicitly; use directional gain and low-noise amplification; make the 75-to-50 ohm transition and N320 attenuation deliberate design items.</p></div>
+<div class="unknown"><h3>Still unknown</h3><p>Actual cable, connectors, filter insertion loss, antenna orientation, impedance match, and installed gain configuration.</p></div>
+</div>
+<div class="visual-grid">
+<figure class="figure">
+<img src="01B_ReceiveChainDesign_assets/newton_rf_budget_cascade.png" alt="Original historical Newton RF budget figure with gain distribution, noise figure accumulation, signal level through cascade, and component summary.">
+<figcaption><strong>Figure 2 — Original Newton cascade.</strong> The 599 MHz counterpart shows the same component order under a different candidate frequency and loss assumptions. It answers which parts change with frequency: cable loss, estimated LNA NF, and off-center filter treatment. The result led to a separate filter/headroom check for each candidate case. The code labels its −67.37 dBm target input as a Hudson placeholder, so this is not a Newton-specific sensitivity validation. <span class="cite">FIG-01B-02 · SRC-01B-01 slide 9 · SRC-01B-03</span></figcaption>
+</figure>
+<div>
+<div class="note"><strong>The filter discrepancy is evidence, not a nuisance to hide.</strong> The Newton script models the Mini-Circuits ZABP-587-S+ as 12 MHz off center and assigns 1.5 dB insertion loss. The supplied +25°C, 50-ohm S-parameter file instead reports S21 of −0.7335926 dB at 599 MHz (and −0.7928666 dB at 551 MHz). The model did not consume that S-parameter data. The decision was therefore “measure or model the real part,” not “choose whichever loss makes the cascade look better.” <span class="cite">SRC-01B-03 · SRC-01B-05</span></div>
+<div class="cards">
+<article class="card"><h3>Why a filter?</h3><p>To reject unwanted energy before gain. The historical model used both high-pass and band-pass elements; their actual response must be measured in the proposed configuration.</p></article>
+<article class="card"><h3>Why an LNA?</h3><p>To restore margin after long-cable and filter losses. Its stated 20 dB gain is a model input, not a field gain measurement.</p></article>
+<article class="card"><h3>Why separate reference control?</h3><p>A strong broadcast path can be too large for the same gain plan used to preserve weaker content. The Newton analysis recommends a 20–30 dB variable reference attenuator.</p></article>
+</div>
+</div>
+</div>
+</section>
+
+<section id="architecture">
+<h2>Designed architecture: from model to planned hardware</h2>
+<p>The cascade specifies why the RF stages are needed. The mounting diagram shows how the team intended to put those stages into a collection system: antennas and RF cable outside, filters/amplification and an N320 in the electronics enclosure, then data collection, storage, and connectivity support.</p>
+<figure class="figure architecture">
+<img src="01B_ReceiveChainDesign_assets/parking_lot_designed_architecture.png" alt="Original Mounting Diagram Parking Lot slide showing flat-panel and rotating Yagi antennas, RF cable, filter, wideband amplifier, placeholder IF amplifier, N320, data collection PC, storage, WiFi extender, and enclosure locations.">
+<figcaption><strong>Figure 3 — Original parking-lot designed architecture.</strong> This source slide is a planned collection layout, not a budget plot. It shows the flat-panel and rotating Yagi antennas, RF cable, filter, wideband amplifier, placeholder IF amplifier, N320, data-collection PC, storage, WiFi extender, and two enclosure locations. It answers what design the RF work led to: a physically distributed two-antenna receiver with RF conditioning before digitization and a collection workstation. The design embodied the decision to treat antenna placement, cable run, filtering, amplification, digitization, and data handling as one system. It does not show a transmitter, ADS-B, GPS, final channel roles, as-built connector sequence, gain settings, or a qualified collection. <span class="cite">FIG-01B-07 · SRC-01B-12, slide 4</span></figcaption>
+</figure>
+<div class="decision"><strong>Model → architecture consequence:</strong> the RF budget did not merely produce gain numbers. It resulted in a planned hardware layout that placed the antenna/cable losses, RF conditioning, N320, storage, and data-collection workstation in a single collection design. The design still had to be built and measured.</div>
+</section>
+
+<section>
+<h2>Installed hardware context</h2>
+<div class="visual-grid">
+<figure class="figure">
+<img src="01B_ReceiveChainDesign_assets/dual_path_receiver_enclosure.jpg" alt="Photograph of a physical receiver enclosure with labels for RF0 surveillance and RF1 reference.">
+<figcaption><strong>Figure 4 — Physical receiver context, not an as-built cascade record.</strong> This photograph shows a dual-path receiver enclosure with RF0 Surveillance and RF1 Reference labels. It answers whether a physical dual-channel receiver existed to receive the design work. It records the implementation handoff from historical model to hardware/collection work. It does not identify every component or cable, prove roles, gains, lock, input power, or Reference Path adequacy. <span class="cite">FIG-01B-04 · SRC-01B-07</span></figcaption>
+</figure>
+<div class="cards" style="grid-template-columns:1fr">
+<article class="card"><h3>Designed</h3><p>Figure 3 is the planned system layout: components, enclosures, cable paths, computing, and storage.</p></article>
+<article class="card"><h3>Installed context</h3><p>Figure 4 shows a physical enclosure with role labels. It does not prove the design was implemented exactly as modeled.</p></article>
+<article class="card"><h3>Still required</h3><p>Report 02 owns the evidence that the path is built correctly, roles are verified, locks are stable, and the reference is adequate.</p></article>
+</div>
+</div>
+<article class="test">
+<div class="test-header"><span class="number">2</span><h3>Protect weak signals without ignoring strong-path headroom</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Which receive components and interfaces were needed to retain a weak assumed echo while controlling the stronger broadcast path?</p></div>
+<div class="test-item"><h4>Result</h4><p>The later model combines a 12 dBi Yagi, long 75-ohm cable, modeled mismatch, filtering, 20 dB LANA gain, and N320 gain. It identifies passive loss before the LNA and headroom after it as coupled constraints.</p></div>
+<div class="test-item"><h4>Why it matters</h4><p>Every cable, mismatch, or filter loss before the LNA reduces weak-signal margin. Every later gain increase can push the N320 toward an unsafe or non-optimal input condition.</p></div>
+<div class="test-item"><h4>Engineering decision</h4><p>Model and then measure the complete front end: antenna, cable, impedance transition, filter, LNA, and radio. Give the reference path a separately checked attenuation plan.</p></div>
+<div class="test-item"><h4>Evidence</h4><p>The original cascades, comparative analysis, vendor filter S2P data, parts-list context, mounting design, and receiver photograph show the reasoning and its physical handoff. <span class="cite">SRC-01B-01/02/03/04/05/06/07/12</span></p></div>
+<div class="test-item"><h4>Method</h4><p>Compare 551 MHz and 599 MHz assumptions element by element, then cross-check the simplified filter model against supplied machine-readable S-parameter data.</p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>The sources do not prove the installed component sequence, antenna orientation, cable type/length, connector treatment, actual filter loss, or the chain’s measured noise and headroom.</p></div>
+</div>
+</article>
+</section>
+
+<section id="test3">
+<h2>6. Test 3: What did expert review change?</h2>
+<div class="decision-banner" aria-label="Test 3 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">The recorded review calls for antenna inclusion, transmission-line cable modeling, a deliberate 50-ohm strategy or transformer, filter S-parameters, noise/MDS calculations, and a rough receive-power estimate that could vary by about ±10 dB with orientation.</span><span class="why-matters"><strong>Why it matters:</strong> these are precisely the assumptions that can hide weak-signal loss or ADC overload in a desktop cascade.</span><strong>Conclusion:</strong> the review turned implicit assumptions into a measurement and model-closure checklist. <span class="cite">SRC-01B-01 slides 11–12</span></p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Do not treat impedance, cable, filter, noise, or direct-path power as invisible details. Measure or model them before relying on the cascade for hardware choices.</p></div>
+<div class="unknown"><h3>Still unknown</h3><p>No recovered evidence proves that every review request was implemented or that the complete installed chain passed end-to-end qualification.</p></div>
+</div>
+<article class="test">
+<div class="test-header"><span class="number">3</span><h3>Use expert review as a design-control list</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Which missing assumptions could change the hardware conclusion enough to require a design revision or measurement?</p></div>
+<div class="test-item"><h4>Result</h4><p>The review highlighted the interface between idealized element models and the real chain: antenna direction, cable transmission-line behavior, impedance, filter S-parameters, noise power, MDS, and rough rooftop receive level.</p></div>
+<div class="test-item"><h4>Why it matters</h4><p>Each item changes the actual signal or noise presented to the LNA and N320. A good looking cascade is not meaningful if its antenna, cable, or filter inputs are wrong.</p></div>
+<div class="test-item"><h4>Engineering decision</h4><p>Keep the review requirements visible in RF-design follow-up: deliberately choose the impedance approach, integrate vendor data, calculate noise/MDS, and verify actual levels and headroom.</p></div>
+<div class="test-item"><h4>Evidence</h4><p>The RF-budget deck preserves Tim Reeves’ review text. The supplied S2P data and the unlabelled return-loss screenshot give independent context for why match and filter behavior must be measured. <span class="cite">SRC-01B-01/05/08</span></p></div>
+<div class="test-item"><h4>Method</h4><p>Read the review against the actual code and supplier file. Where they disagree or an element remains simplified, retain the discrepancy rather than converting it into a pass.</p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>The available return-loss screenshot is not labelled with the test article or chain configuration. It supports “some bench work occurred,” not a claim about the installed Reference or Surveillance path.</p></div>
+</div>
+</article>
+</section>
+
+<section id="comparison">
+<h2>7. Design comparison and resulting decisions</h2>
+<div class="table-wrap">
+<table>
+<caption>Executive decision summary — what the historical RF analysis changed</caption>
+<thead><tr><th>Question</th><th>Result</th><th>Decision</th><th>Uncertainty</th></tr></thead>
+<tbody>
+<tr><td>What signal cases should the hardware accommodate?</td><td>551 MHz Hudson and 599 MHz Newton, both 6 MHz, with historical direct-path inputs from Report 01A. <span class="cite">SRC-01B-10</span></td><td>Build candidate-specific cascades rather than choose generic television hardware.</td><td>Current transmitter configuration and measured input power are not verified here.</td></tr>
+<tr><td>How can weak assumed echoes survive?</td><td>The model allocates directional gain and low-noise gain while carrying cable, mismatch, and filter loss explicitly. <span class="cite">SRC-01B-02/03/04</span></td><td>Put passive losses and impedance treatment into the design; use an LNA before radio gain becomes the only sensitivity lever.</td><td>Exact as-built component order and loss are unknown.</td></tr>
+<tr><td>Will the same filter treatment fit both frequencies?</td><td>The Newton model assumes 1.5 dB off-center loss; supplied S2P data reports −0.7335926 dB S21 at 599 MHz. <span class="cite">SRC-01B-03/05</span></td><td>Measure actual filter insertion loss or select an appropriate alternative; do not call the model assumption verified.</td><td>Neither source documents a VNA-derived installed filter result.</td></tr>
+<tr><td>How should the radio be protected?</td><td>Historical signal plots end near −7 dBm while showing a −15 dBm radio line; Newton code recommends 20–30 dB variable reference attenuation. <span class="cite">SRC-01B-01/03/04</span></td><td>Configure reference and surveillance gain/headroom separately and verify at the radio input.</td><td>No installed attenuator or overload measurement is documented.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>What changed because of this analysis?</h3>
+<div class="table-wrap">
+<table>
+<caption>Decision record — result to action, without turning the model into qualification</caption>
+<thead><tr><th>Engineering Question</th><th>Evidence Result</th><th>Decision Made</th><th>Still Unknown</th></tr></thead>
+<tbody>
+<tr><td>Weak signal preservation</td><td>Weak paths require explicit gain budgeting; cable, mismatch, and filter loss occur before low-noise gain. <span class="cite">SRC-01B-02/03/04 · FIG-01B-01/02</span></td><td>Include an LNA and account for passive losses in the RF budget.</td><td>Installed weak-signal margin.</td></tr>
+<tr><td>Impedance strategy</td><td>75-ohm cable/antenna assumptions and a 50-ohm N320 interface interact; the model used a 0.4 dB transition and review required a deliberate architecture. <span class="cite">SRC-01B-04 · SRC-01B-01 slides 11–12</span></td><td>Treat the transition as a deliberate design element, not an invisible adapter.</td><td>Installed mismatch behavior.</td></tr>
+<tr><td>Filter behavior</td><td>The 599 MHz model loss differs from supplied vendor S-parameter data. <span class="cite">SRC-01B-03 · SRC-01B-05</span></td><td>Measure actual filter response before treating the modelled insertion loss as final.</td><td>Installed insertion loss.</td></tr>
+<tr><td>Radio headroom</td><td>Historical cascades approach their plotted radio threshold and the Newton code recommends separate reference attenuation. <span class="cite">SRC-01B-01/03/04 · FIG-01B-01/02</span></td><td>Treat attenuation and gain separately for reference and surveillance paths.</td><td>Actual receive power and overload margin.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="decision"><strong>Explicit decision record:</strong> the evidence supports a historical RF-design direction, not an installed-chain approval. The model led to explicit weak-signal gain budgeting, deliberate impedance treatment, filter-response measurement, and separately checked radio headroom. It does not support a claim that the field receiver met those requirements.</div>
+</section>
+
+<section id="figures">
+<h2>8. Original RF-budget figures</h2>
+<div class="warning"><strong>Read the historical charts as design evidence, not a current performance verdict.</strong> The comparative figure contains historical “detection” and “localization” labels. This report preserves the original figure because it documents what was compared, but it does not carry those labels forward as claims. The Newton case also has an explicitly acknowledged target-power placeholder.</div>
+<div class="visual-grid">
+<figure class="figure">
+<img src="01B_ReceiveChainDesign_assets/rf_budget_comparison.png" alt="Original historical comparative RF budget chart for Hudson Channel 27 and Newton Channel 35.">
+<figcaption><strong>Figure 5 — Original comparative RF-budget analysis.</strong> This original six-panel figure compares the two historical cascades: system noise figure, total gain, calculated pre/post-processing SNR, and component loss. It asks whether the same conceptual hardware stack responds similarly across the two candidate bands. The material result is that the team compared component-level differences—including higher assumed Newton cable and filter loss—rather than only transmitter power. That result led to the request for actual filter and headroom checks. It does not prove live detection, localization, or installed hardware compatibility. <span class="cite">FIG-01B-03 · SRC-01B-01 slide 10 · SRC-01B-04</span></figcaption>
+</figure>
+<figure class="figure">
+<img src="01B_ReceiveChainDesign_assets/bench_return_loss_599mhz.png" alt="Bench return-loss and Smith-chart screenshot with a marker near 601.589 MHz.">
+<figcaption><strong>Figure 6 — Bench match context near 599 MHz.</strong> This preserved screenshot shows a return-loss/Smith-chart measurement marker at 601.589 MHz, with displayed VSWR 1.207 and return loss −20.575 dB. It answers only whether some impedance bench work was recorded near the Newton case. The result reinforces the review’s requirement to measure matching. The screenshot is not labelled with a test article, path, calibration, or date, so it does not prove the installed antenna, cable, filter, Reference Path, or Surveillance Path was qualified. <span class="cite">FIG-01B-05 · SRC-01B-08</span></figcaption>
+</figure>
+</div>
+</section>
+
+<section id="boundaries">
+<h2>9. What the analysis did not prove</h2>
+<div class="boundary"><strong>Keep the evidence in its lane.</strong> Historical direct-path and weak-target values were design inputs. Cascade gain/noise outputs were model outputs. Supplier S-parameters were component evidence. The mounting diagram was planned architecture. A hardware photograph and a bench screenshot were physical context. None of these alone establishes the installed RF path, current channel, lock state, clipping margin, reference quality, collection suitability, aircraft detection, tracking, or localization.</div>
+<div class="cards">
+<article class="card"><h3>Not a final BOM</h3><p>A parts list, a model, and a mounting diagram do not prove purchase, installation, orientation, connector sequence, or calibration.</p></article>
+<article class="card"><h3>Not an RF acceptance test</h3><p>The available evidence does not measure end-to-end gain, noise figure, headroom, or overload in the installed configuration.</p></article>
+<article class="card"><h3>Not a detector claim</h3><p>Historical SNR and post-processing labels do not establish field Pd/Pfa, detection, tracking, or localization.</p></article>
+</div>
+</section>
+
+<section id="handoff">
+<h2>10. How this connects to hardware and collection</h2>
+<p>Report 01B ends where the design turns physical. The next report, <a href="02_HardwareAndCollection_V4.html">02_HardwareAndCollection_V4.html</a>, owns the actual receiver, antennas, site installation, capture roles, and evidence needed to qualify a collection. The historical RF budget supplies questions that report must answer with measurement:</p>
+<div class="cards">
+<article class="card"><h3>Is the path built as modeled?</h3><p>Confirm component sequence, cable/connector configuration, impedance treatment, antenna direction, and filter selection.</p></article>
+<article class="card"><h3>Is the radio safe?</h3><p>Measure reference and surveillance input levels, gain state, attenuation, overflow/drop behavior, and headroom.</p></article>
+<article class="card"><h3>Is the reference usable?</h3><p>Verify physical roles, lock/integrity, and actual Reference Path adequacy. This is separate from a line-of-sight or RF-budget calculation.</p></article>
+</div>
+</section>
+
+<section id="code">
+<h2>11. Code and evidence navigation</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Purpose</th><th>Original entry or source</th><th>Inputs / output</th><th>Execution in this report</th></tr></thead>
+<tbody>
+<tr><td>Early RF Budget Analyzer system model</td><td class="codepath"><a href="../LinkBudget/LinkBudgetProgress.pptx">LinkBudget/LinkBudgetProgress.pptx</a>, slide 30 <span class="cite">SRC-01B-11</span></td><td>Early filter/amplifier/demodulator/IF stage model → visual stage and power-characteristic review.</td><td>Source slide exported read-only; model not re-run.</td></tr>
+<tr><td>Hudson direct-sampling cascade</td><td class="codepath"><a href="../RFBudget/RFBudget_Ch27_Corrected%201.m">RFBudget/RFBudget_Ch27_Corrected 1.m</a> <span class="cite">SRC-01B-02</span></td><td>551 MHz, 6 MHz, cable/filter/LNA/N320 assumptions → stage budget and figures.</td><td>Inspected; not re-run.</td></tr>
+<tr><td>Newton direct-sampling cascade</td><td class="codepath"><a href="../RFBudget/RFBudget_Newton.m">RFBudget/RFBudget_Newton.m</a> <span class="cite">SRC-01B-03</span></td><td>599 MHz case, off-center filter and target-power-placeholder warning → stage budget.</td><td>Inspected; not re-run.</td></tr>
+<tr><td>Candidate comparison</td><td class="codepath"><a href="../RFBudget/RFBudget_Comparative_Analysis.m">RFBudget/RFBudget_Comparative_Analysis.m</a> <span class="cite">SRC-01B-04</span></td><td>Two historical cascades → NF, gain, loss, headroom, and review recommendations.</td><td>Inspected; not re-run.</td></tr>
+<tr><td>Original design review</td><td class="codepath"><a href="../RFBudget/FlightTest_RFBudgetAnalysis.pptx">RFBudget/FlightTest_RFBudgetAnalysis.pptx</a> <span class="cite">SRC-01B-01</span></td><td>Original cascade and review slides 8–12.</td><td>Inspected; original figure assets copied without modification.</td></tr>
+<tr><td>Designed parking-lot architecture</td><td class="codepath"><a href="../MountingDiagramParkingLot.pptx">MountingDiagramParkingLot.pptx</a>, slide 4 <span class="cite">SRC-01B-12</span></td><td>Planned antennas/enclosures/RF chain/N320/PC/storage layout → physical architecture review.</td><td>Source slide exported read-only; no architecture was redrawn.</td></tr>
+<tr><td>Filter component data</td><td class="codepath"><a href="../RFBudget/ZABP-587-S%2B_Plus25degC.s2p">RFBudget/ZABP-587-S+_Plus25degC.s2p</a> <span class="cite">SRC-01B-05</span></td><td>50-ohm, +25°C S-parameter table → insertion-loss cross-check.</td><td>Inspected; not used by the historical script.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="glossary">
+<h2>12. Glossary</h2>
+<div class="cards">
+<article class="card"><h3>Direct path</h3><p>The strong broadcast signal that arrives directly from the transmitter. It can help form a reference but can also consume radio headroom.</p></article>
+<article class="card"><h3>Noise figure (NF)</h3><p>How much a chain degrades signal-to-noise ratio. Passive losses before an LNA are especially costly.</p></article>
+<article class="card"><h3>OIP3 / SFDR</h3><p>Historical model quantities used to reason about distortion and usable dynamic range. They still require actual input-level verification.</p></article>
+<article class="card"><h3>75 ohm / 50 ohm</h3><p>Common characteristic impedances. TV cable is often 75 ohm; the N320 input is 50 ohm, so the transition must be deliberate.</p></article>
+<article class="card"><h3>S-parameters</h3><p>Vendor or measured RF data describing how a component transmits and reflects energy across frequency.</p></article>
+<article class="card"><h3>Reference Path</h3><p>The later processing reference signal. A hardware budget or line-of-sight calculation does not, by itself, qualify it.</p></article>
+</div>
+</section>
+
+<footer>Report 01B belongs between illuminator/geometry selection (01A) and hardware/collection qualification (02). V2 makes the source-recorded progression explicit: historical signal assumptions → RF Budget model → planned architecture → physical receiver context → separate qualification.</footer>
+</body>
+</html>

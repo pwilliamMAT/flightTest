@@ -1,0 +1,7 @@
+prompt filename,purpose,accepted output produced,recommended future use
+build_01A.prompt,Build the Illuminator Selection engineering explainer,01A_IlluminatorSelection_V4.html,Not present in the authoritative archive; recover or recreate under review before treating it as an accepted prompt
+build_01B.prompt,Build the Receive-Chain Design engineering explainer,01B_ReceiveChainDesign_V2.html,Not present in the authoritative archive; recover or recreate under review before treating it as an accepted prompt
+build_02A.prompt,Build the Synthetic Echo Generation engineering explainer,02A_SyntheticEchoGeneration_V1.html,Not present in the authoritative archive; recover or recreate under review before treating it as an accepted prompt
+build_end_to_end_story.prompt,Build the end-to-end human story,FlightTest_EndToEnd_HumanStory_V2.html,Not present in the authoritative archive; recover or recreate under review before treating it as an accepted prompt
+family_gap_review.prompt,Review report-family gaps and ownership,report_family_gap_review.md,Not present in the authoritative archive; recover or recreate under review before treating it as an accepted prompt
+build_storyboard.prompt,Build the manager-slide storyboard,manager_slide_storyboard.csv,Not present in the authoritative archive; recover or recreate under review before treating it as an accepted prompt

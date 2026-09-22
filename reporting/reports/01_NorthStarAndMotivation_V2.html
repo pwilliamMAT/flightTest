@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passive HDTV Aircraft Localization — North Star and Motivation — V2</title>
+<style>
+:root{--ink:#162638;--muted:#587080;--paper:#f6f8fa;--card:#fff;--line:#d9e2e8;--blue:#0072bd;--navy:#153a5b;--teal:#008c95;--amber:#c97900;--red:#b42318;--green:#287d3c;--violet:#6c4ab6}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Segoe UI",Arial,sans-serif;line-height:1.55}.page{max-width:1180px;margin:auto;padding:28px 28px 64px}.hero{background:linear-gradient(125deg,#102d45,#006b82);color:white;border-radius:16px;padding:38px 42px;box-shadow:0 7px 24px #17364c33}.eyebrow{font-weight:700;letter-spacing:.09em;text-transform:uppercase;font-size:.76rem;color:#a9e5ea}.hero h1{font-size:2.35rem;line-height:1.12;margin:.28rem 0 .65rem}.hero p{max-width:850px;margin:.2rem 0}.status-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}.tag{border-radius:999px;padding:3px 10px;font-size:.77rem;font-weight:700;white-space:nowrap;display:inline-block}.implemented{color:#125a2a;background:#ddf4e4}.investigated{color:#5d3d9c;background:#eee7ff}.demonstrated{color:#075b79;background:#d9f2fb}.supported{color:#764900;background:#fff0cb}.inprogress{color:#664100;background:#fff0cc}.blocked{color:#8b1f17;background:#ffdfdc}.hero .tag{background:#ffffff20;color:white;border:1px solid #ffffff55}.notice{border-left:5px solid var(--amber);background:#fff7e7;padding:15px 18px;margin:24px 0;border-radius:6px}.toc{margin:22px 0;background:#eaf1f5;border-radius:10px;padding:16px 20px}.toc a{color:var(--navy);text-decoration:none;font-weight:600;margin-right:16px;white-space:nowrap}.toc a:hover{text-decoration:underline}section{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:22px 0;padding:26px 29px;box-shadow:0 2px 7px #132b3b08}h2{font-size:1.5rem;color:var(--navy);margin:0 0 8px}h3{font-size:1.08rem;color:#164d68;margin:22px 0 7px}h4{margin:0 0 5px;color:var(--navy)}p{margin:8px 0}.eli5{background:#eef8fb;border-left:5px solid var(--teal);padding:14px 17px;border-radius:6px}.source{font-size:.9rem;color:var(--muted);margin-top:13px}.source a,.evidence-link{color:#005f91;overflow-wrap:anywhere}.grid{display:grid;gap:16px}.cols2{grid-template-columns:repeat(2,minmax(0,1fr))}.cols3{grid-template-columns:repeat(3,minmax(0,1fr))}.card{border:1px solid var(--line);border-radius:9px;padding:16px;background:#fff}.metric{font-size:1.75rem;font-weight:750;line-height:1.15;color:var(--blue)}.metric-label{font-size:.88rem;color:var(--muted)}figure{margin:20px 0;padding:16px;border:1px solid var(--line);border-radius:10px;background:#fbfdfe}figure svg{width:100%;height:auto;display:block}figcaption{font-size:.91rem;color:#405866;margin:11px 4px 1px}.figure-label{font-weight:800;color:var(--navy)}table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.93rem}th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--line)}th{background:#edf3f6;color:#25495c}code{background:#edf2f5;padding:1px 4px;border-radius:4px}ul{padding-left:23px}.callout{background:#f0f6ff;border:1px solid #cfe1f8;border-radius:8px;padding:14px 16px}.rule{border-top:1px solid var(--line);margin:20px 0}.small{font-size:.9rem;color:var(--muted)}.nav-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.nav-panel a{display:block;border:1px solid var(--line);padding:12px;border-radius:8px;text-decoration:none;color:var(--navy);font-weight:650}.nav-panel a:hover{background:#f1f8fb}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:760px){.page{padding:16px}.hero{padding:25px}.hero h1{font-size:1.8rem}.cols2,.cols3,.nav-panel{grid-template-columns:1fr}section{padding:21px 18px}}
+/* Report-family alignment: retain this report's content-specific layout while
+   using the approved pipeline/status visual language. */
+:root{--ink:#172033;--muted:#526176;--paper:#fff;--card:#f8fafc;--line:#cbd5e1;--blue:#0f4c81;--navy:#102a43;--teal:#075caa;--amber:#9a5b00;--red:#a61b1b;--green:#166534;--violet:#6d28d9}
+body{max-width:1240px;margin:2rem auto;padding:0 1rem 3rem;background:#fff;font:16px/1.52 "Segoe UI",Arial,sans-serif}
+.page{max-width:none;margin:0;padding:0}
+.hero{background:#fff;color:var(--ink);border-radius:0;padding:0;box-shadow:none}
+.eyebrow{color:var(--muted);font-size:.9rem;font-weight:400;letter-spacing:0;text-transform:none}
+.hero h1{font-size:2.15rem;line-height:1.22;color:#102a43;margin-bottom:.25rem}
+.hero p{max-width:1060px;color:var(--muted)}
+.status-row{margin:1rem 0 1.3rem}
+.hero .tag{background:var(--blue2,#eaf3fb);color:#075caa;border:0}
+.toc{position:sticky;top:0;z-index:2;margin:1rem 0 1.4rem;padding:.75rem 1rem;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:0;box-shadow:0 2px 7px #182b4915}
+.toc a{color:#075caa;font-weight:400}
+section{background:#fff;border:0;border-radius:0;margin:2.8rem 0 0;padding:.35rem 0 0;box-shadow:none}
+h2{margin:0 0 .75rem;padding-top:.35rem;border-top:2px solid #e2e8f0;font-size:1.55rem;color:#102a43}
+h3{color:#102a43}
+.notice{border-radius:0;border-left-color:var(--amber);background:#fff7e6}
+.eli5{border-radius:0;background:#eaf3fb;border-left-color:var(--blue)}
+.card{border-radius:0;background:var(--card)}
+figure{border-radius:0;background:#fff}
+.nav-panel a{border-radius:0}
+@media(max-width:760px){.page{padding:0}.hero{padding:0}.hero h1{font-size:1.7rem}section{padding:.35rem 0 0}}
+/* V2 executive scan and evidence traceability. */
+.executive-summary{border-top:5px solid var(--blue);background:linear-gradient(145deg,#f6fbff,#fff);padding:1.2rem 1.35rem}.summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.65rem;margin:1rem 0 .35rem}.summary-grid>div{border:1px solid var(--line);border-top:4px solid var(--blue);background:#fff;padding:.72rem}.summary-grid strong{display:block;color:var(--navy);font-size:.92rem;margin-bottom:.22rem}.summary-grid p{margin:0;font-size:.87rem;line-height:1.36}.matrix-wrap{overflow-x:auto;margin:1rem 0}.evidence-matrix{min-width:850px;font-size:.89rem}.evidence-matrix th{background:var(--navy);color:#fff}.evidence-id{display:inline-block;margin:0 .1rem;padding:.06rem .34rem;border:1px solid #c7dced;border-radius:3px;background:#eaf3fb;color:#075caa;font:700 .82em Consolas,"Courier New",monospace;white-space:nowrap}.family-map{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:1rem 0}.family-map div{border:1px solid var(--line);padding:.65rem .72rem;background:#fff;font-size:.9rem}.family-map strong{display:block;color:var(--navy);margin-bottom:.18rem}.recommendation{border-left:6px solid var(--blue);background:#f0f6ff;padding:1rem 1.1rem;margin:1rem 0}.recommendation h3{margin:.05rem 0 .45rem}@media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.family-map{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.summary-grid,.family-map{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="hero">
+    <div class="eyebrow">Evidence report 01 · standalone manager brief</div>
+    <h1>Passive HDTV Aircraft Localization<br>North Star and Motivation</h1>
+    <p>Why the project exists, what a credible passive-bistatic capability could enable, and why disciplined measurement evidence has value before tracking or localization is validated.</p>
+    <div class="status-row">
+      <span class="tag">Implemented</span><span>early workflow components</span>
+      <span class="tag">Demonstrated</span><span>bounded evidence</span>
+      <span class="tag">In Progress</span><span>G4-R bounded map-rate remediation</span>
+      <span class="tag">Blocked</span><span>formal tracking and localization</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Report sections">
+    <a href="#purpose">Purpose</a><a href="#executive-summary">Executive summary</a><a href="#evidence-strength">Evidence matrix</a><a href="#why">Why it matters</a><a href="#eli5">ELI5</a><a href="#technical">Technical explanation</a><a href="#figures">Figures</a><a href="#work">Work</a><a href="#credibility">Credibility</a><a href="#diagnostics">Diagnostics</a><a href="#boundaries">Boundaries</a><a href="#meaning">Meaning</a><a href="#management">Management</a><a href="#navigation">Evidence navigation</a><a href="#glossary">Glossary</a><a href="#sources">Sources</a>
+  </nav>
+
+  <div class="notice"><strong>Reading boundary.</strong> This is a motivation and North Star report. It cites the current pipeline state only to establish the evidence boundary. Hardware deployment belongs to Report 02; pipeline mechanics belong to Report 03; G4-R recovery details belong to Report 04. The embedded diagrams are conceptual engineering figures, not measurements or performance plots.</div>
+
+  <section id="purpose">
+    <h2>1. Purpose and current status</h2>
+    <p>This project exists to build a trustworthy passive-bistatic capability that can eventually support aircraft detection and tracking in field data, characterize where a single broadcast link can provide candidate Measurement opportunities, and establish honest evidence for any later multi-measurement aircraft-localization capability.</p>
+    <div class="grid cols3">
+      <article class="card"><span class="tag implemented">Implemented</span><div class="metric">G1–G3</div><div class="metric-label">early ingest, RF-health, and synchronization work has bounded evidence</div></article>
+      <article class="card"><span class="tag inprogress">In Progress</span><div class="metric">G4-R</div><div class="metric-label">bounded map-rate remediation; formal downstream gates remain unavailable</div></article>
+      <article class="card"><span class="tag blocked">Blocked</span><div class="metric">G5–G10</div><div class="metric-label">formal mitigation selection, detection, tracking, and localization progression</div></article>
+    </div>
+    <p><strong>Quantitative evidence:</strong> <span class="evidence-id">NS-001</span> the planning reference session contains <strong>15 × 1-second</strong> dual-channel captures at <strong>6.144 MHz</strong>; <span class="evidence-id">NS-004</span> the program architecture has <strong>10 ordered gates (G1–G10)</strong>. These are collection and process facts, not aircraft-performance measures.</p>
+    <p><strong>Engineering interpretation:</strong> a passive sensing system is only as credible as its measurement chain. The gates intentionally put data integrity, collection suitability, coherence, and map validity before detector, tracker, or localization claims.</p>
+    <p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/NorthStar.md">S01 North Star</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/ProjectPlan.md">S03 gate roadmap and reference-session facts</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S04 current state</a>.</p>
+  </section>
+
+  <section id="executive-summary" class="executive-summary">
+    <h2>Executive Summary</h2>
+    <p class="eli5"><strong>Bottom line (ELI5):</strong> This report explains why the project is pursuing passive HDTV aircraft localization and why the program already has value as an evidence-first measurement effort. It demonstrates a defined long-term use case, a real dual-channel reference collection, and a gated path that prevents premature claims. It does <em>not</em> demonstrate live-aircraft radar detection, operational Pd/Pfa, validated tracking, or validated localization.</p>
+    <div class="summary-grid">
+      <div><strong>Topic</strong><p>Passive HDTV is the signal-of-opportunity context for a future aircraft-measurement, tracking, and localization program. <span class="evidence-id">NS-002</span></p></div>
+      <div><strong>Demonstrated evidence</strong><p>A named 15 × 1-second, 6.144 MHz dual-channel reference collection and G1–G3 evidence chain exist. <span class="evidence-id">NS-001</span></p></div>
+      <div><strong>What is not shown</strong><p>No figure or source here establishes a live-aircraft detection, operational Pd/Pfa, tracking result, or localization result. <span class="evidence-id">NS-008</span></p></div>
+      <div><strong>Why it matters</strong><p>The project makes a difficult sensing question measurable before investment is shifted to downstream claims. <span class="evidence-id">NS-004</span></p></div>
+      <div><strong>Next action</strong><p>Continue evidence-first measurement funding: close the bounded map-rate question, then advance only through the declared validation gates. <span class="evidence-id">NS-004</span> <span class="evidence-id">NS-007</span></p></div>
+    </div>
+  </section>
+
+  <section id="evidence-strength">
+    <h2>Evidence Strength Matrix</h2>
+    <div class="matrix-wrap">
+      <table class="evidence-matrix">
+        <thead><tr><th>Evidence</th><th>Status</th><th>Manager anchor</th><th>What it supports</th><th>Claim boundary</th></tr></thead>
+        <tbody>
+          <tr><td><span class="evidence-id">NS-001</span> Reference collection and early chain</td><td><span class="tag demonstrated">Demonstrated</span></td><td>15 × 1-second dual-channel captures at 6.144 MHz</td><td>Reproducible Measurement-development work can begin from a named collection.</td><td>Not a detection sample count or aircraft-performance result.</td></tr>
+          <tr><td><span class="evidence-id">NS-002</span> Passive HDTV feasibility context</td><td><span class="tag investigated">Investigated</span></td><td>6 MHz channel; 596.3 MHz and 548 MHz modeled cases</td><td>Application and geometry framing for the North Star.</td><td>Placeholder ERP and modeled SNR are not field evidence.</td></tr>
+          <tr><td><span class="evidence-id">NS-004</span> Gated evidence architecture</td><td><span class="tag implemented">Implemented</span></td><td>10 ordered gates, G1–G10</td><td>Measurement evidence is intentionally required before tracking or localization.</td><td>A roadmap does not validate a later capability.</td></tr>
+          <tr><td><span class="evidence-id">NS-007</span> Map-rate remediation</td><td><span class="tag inprogress">In Progress</span></td><td>G4-R bounded remediation</td><td>The program is actively protecting the Passive Map contract.</td><td>Does not close G4-R or enable downstream gates.</td></tr>
+          <tr><td><span class="evidence-id">NS-008</span> Downstream capability</td><td><span class="tag blocked">Blocked</span></td><td>G5–G10 formal progression</td><td>The boundary is explicit and reviewable.</td><td>No validated detection, tracking, or localization performance exists.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="why">
+    <h2>2. Why the topic matters</h2>
+    <p>Passive radar turns a broadcast that already exists into a sensing opportunity. HDTV is the signal of opportunity: rather than transmit a dedicated radar waveform, the <strong>Reference Path</strong> is the receiver/channel intended to capture the broadcast reference, while the <strong>Surveillance Path</strong> is the receiver/channel intended to contain broadcast plus scene propagation. Their comparison tests delayed, Doppler-shifted reflection hypotheses.</p>
+    <div class="grid cols2">
+      <article class="card">
+        <h3>Why passive HDTV?</h3>
+        <p><strong>Evidence:</strong> the source project identifies passive aircraft localization using HDTV as its named application and includes link-budget / bistatic-radar analysis materials.</p>
+        <p><strong>Interpretation:</strong> the engineering question is whether a real broadcast can provide a sufficiently repeatable reference and a useful reflected candidate-Measurement opportunity. That is a measurement-development question, not a promise of an operational radar product.</p>
+      </article>
+      <article class="card">
+        <h3>Why aircraft localization?</h3>
+        <p><strong>Evidence:</strong> the North Star explicitly calls for honest evidence supporting a <em>later multi-measurement</em> aircraft-localization capability.</p>
+        <p><strong>Interpretation:</strong> one bistatic link can contribute a constrained measurement. Localization becomes plausible only when independently supported measurements, timing/geometry knowledge, and validation are available.</p>
+      </article>
+    </div>
+    <p><strong>Quantitative planning context:</strong> <span class="evidence-id">NS-002</span> the link-budget source models a <strong>6 MHz</strong> HDTV channel and two candidate carrier frequencies (<strong>596.3 MHz</strong> and <strong>548 MHz</strong>). Its stated <strong>500 kW</strong> ERP inputs are placeholders pending actual values. <strong>Engineering interpretation:</strong> these numbers help frame feasibility and geometry studies, but placeholder inputs and modeled SNR are not field detection, tracking, or localization evidence.</p>
+    <div class="callout"><strong>Why MathWorks should care <span class="evidence-id">NS-004</span>:</strong> the project is an applied systems demonstration of MATLAB-centered RF ingestion, signal processing, Measurement contracts, tracking-toolchain readiness, and evidence-led verification. The durable value is not merely an integration claim; it is a traceable workflow showing which native analysis stages have evidence, which questions remain diagnostic, and which future claims are gated.</div>
+    <p class="source">Context sources: <a href="file:///C:/Users/pwilliam/OneDrive%20-%20MathWorks/Documents/SFTT/Customers/FlightTest/PassiveAircraftLocalizationUsingHDTVasSignalofOpp.pptx">S06 passive-HDTV project presentation</a> (motivation and preparation context); <a href="file:///C:/Users/pwilliam/OneDrive%20-%20MathWorks/Documents/SFTT/Customers/FlightTest/LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx">S07 link-budget / geometry analysis</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/NorthStar.md">S01 North Star</a>.</p>
+  </section>
+
+  <section id="eli5">
+    <h2>3. Bottom line (ELI5)</h2>
+    <p class="eli5"><strong>Bottom line (ELI5):</strong> A TV tower is like a flashlight that is already on. One receiver path watches the flashlight directly; another watches for a tiny glint from an aircraft. If the direct and reflected signals can be compared honestly, the delay and frequency change of the glint can become a candidate output. The project is building proof that such outputs are trustworthy before calling one a Measurement or using it to claim aircraft detection, tracking, or localization.</p>
+    <p><strong>Quantitative evidence:</strong> <span class="evidence-id">NS-004</span> the current architecture separates <strong>10</strong> questions into G1–G10 instead of treating the 15-capture reference collection as a single “works / does not work” experiment.</p>
+    <p><strong>Engineering interpretation:</strong> that separation protects later value. A future tracker should receive a stable Measurement contract, not a hopeful peak in an unverified Passive Map.</p>
+  </section>
+
+  <section id="technical">
+    <h2>4. Technical explanation</h2>
+    <h3>4.1 What a single passive bistatic link measures</h3>
+    <p>The <strong>Direct Path</strong> is the physical transmitter-to-receiver broadcast signal. The <strong>Reference Path</strong> is the receiver/channel intended to capture that broadcast reference. The <strong>Surveillance Path</strong> is the receiver/channel intended to contain the same broadcast plus scene propagation. A <strong>Passive Map</strong> is the passive cross-ambiguity map that compares these paths across delay and Doppler hypotheses. A delayed, Doppler-shifted aircraft reflection is expected to appear at a physically meaningful location only if upstream acquisition, channel roles, and synchronization are credible.</p>
+    <p><strong>Quantitative evidence:</strong> there are <strong>two receive paths</strong>, and the candidate reflection has at least <strong>two map coordinates</strong>: delay (often expressed as excess path / range-related delay) and Doppler (relative frequency shift). The current planning reference has <strong>two recorded RF channels</strong>.</p>
+    <p><strong>Engineering interpretation:</strong> a single link does not directly produce a complete aircraft state. It can contribute a geometrically constrained measurement. The exact usable region depends on transmitter/receiver/aircraft geometry, signal quality, interference, integration rules, and the tested map contract.</p>
+
+    <h3>4.2 Why Measurement, tracking, and localization are an ordered chain</h3>
+    <table>
+      <thead><tr><th>Question</th><th>Needed evidence</th><th>Why it comes before the next question</th></tr></thead>
+      <tbody>
+        <tr><td>Is the collection suitable?</td><td>G1 ingest, G2 RF health, and G3 synchronization evidence</td><td>An unreliable Reference Path or incoherent pair cannot support a trustworthy Passive Map.</td></tr>
+        <tr><td>Is the Passive Map a validatable product?</td><td>G4 passive baseline and G4-R bounded map-rate remediation</td><td>Mitigation and detection should not compensate for a map-representation defect.</td></tr>
+        <tr><td>Can validated Measurements feed tracking?</td><td>Formal G5–G8 product and detector evidence, then G9 readiness</td><td>A tracker amplifies the consequences of inconsistent timestamps, false alarms, and changing Measurement definitions.</td></tr>
+        <tr><td>Can multiple validated Measurements support localization?</td><td>Validated Measurements, independent geometry, association, uncertainty, and later localization validation</td><td>Localization is a downstream system claim; it cannot be inferred from infrastructure, a Passive Map, or a diagnostic study.</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Quantitative evidence:</strong> the roadmap assigns this sequence to <strong>G1–G10</strong>; G8 is the first planned validated-detection milestone, G9 is tracker readiness, and G10 evaluates fixed-input tracks against truth.</p>
+    <p><strong>Engineering interpretation:</strong> the program is deliberately not shortcutting from “a signal was recorded” to “an aircraft can be located.” Each additional claim consumes a more stringent evidence contract.</p>
+    <p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md#gate-and-investigation-terminology">S02 gate terminology</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/ProjectPlan.md">S03 gate sequence and milestone definitions</a>.</p>
+  </section>
+
+  <section id="figures">
+    <h2>5. Figures and visual evidence</h2>
+    <p class="small">Physical-evidence note: no photographs are repeated here because they would duplicate the hardware-and-collection report. The project presentation contains physical/system-layout context; the figures below are embedded conceptual engineering evidence, explicitly not field-performance evidence.</p>
+
+    <figure>
+      <svg viewBox="0 0 1080 420" role="img" aria-labelledby="g1t g1d">
+        <title id="g1t">Conceptual passive bistatic geometry</title><desc id="g1d">A transmitter, receiver, and aircraft with a Direct Path and an aircraft-reflected Surveillance Path.</desc>
+        <defs><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#0072bd"/></marker><marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#c97900"/></marker></defs>
+        <rect width="1080" height="420" rx="12" fill="#f6fafc"/><path d="M70 345 H1010" stroke="#b9d0d8" stroke-width="4"/><path d="M92 345 l40 -48 h30 l40 48z" fill="#153a5b"/><rect x="128" y="177" width="10" height="120" fill="#153a5b"/><path d="M133 177 l-32 70 M133 177 l34 70" stroke="#153a5b" stroke-width="6"/><text x="53" y="385" fill="#153a5b" font-size="20" font-weight="700">HDTV transmitter</text>
+        <path d="M925 345 l35 -45 h30 l35 45z" fill="#008c95"/><rect x="954" y="237" width="10" height="63" fill="#008c95"/><path d="M959 237 l-38 24 M959 237 l38 24" stroke="#008c95" stroke-width="5"/><text x="899" y="385" fill="#00636a" font-size="20" font-weight="700">Receiver</text>
+        <path d="M328 147 l25 -18 l45 5 l18 15 l-26 8 l-17 20 l-9 -18 l-30 -2z" fill="#c97900"/><text x="303" y="112" fill="#8a5400" font-size="20" font-weight="700">Aircraft</text>
+        <path d="M165 278 L910 278" stroke="#0072bd" stroke-width="5" stroke-dasharray="11 8" marker-end="url(#arr)"/><text x="420" y="267" fill="#005982" font-size="19" font-weight="700">Direct Path (physical Tx→Rx signal)</text>
+        <path d="M165 260 Q280 185 342 163" fill="none" stroke="#c97900" stroke-width="5" marker-end="url(#arr2)"/><path d="M410 163 Q650 175 918 260" fill="none" stroke="#c97900" stroke-width="5" marker-end="url(#arr2)"/><text x="530" y="185" fill="#8a5400" font-size="19" font-weight="700">Surveillance Path: scene propagation</text>
+        <rect x="386" y="303" width="315" height="73" rx="8" fill="#e8f4f9" stroke="#9bc6d7"/><text x="405" y="331" fill="#153a5b" font-size="18" font-weight="700">Excess path = Tx→aircraft + aircraft→Rx − Tx→Rx</text><text x="405" y="357" fill="#405866" font-size="17">A Passive Map tests delay and Doppler hypotheses.</text>
+      </svg>
+      <figcaption><span class="figure-label">Figure 1 — Conceptual bistatic geometry.</span> <span class="evidence-id">NS-003</span> Quantitative structure: two receive paths and two candidate map coordinates (delay and Doppler). Engineering interpretation: the Direct Path is physical propagation; the Reference Path provides the broadcast comparison waveform; the Surveillance Path can contain a delayed and Doppler-shifted reflection. This is a geometry explanation, not a map from field data. [Investigated]</figcaption>
+    </figure>
+
+    <figure>
+      <svg viewBox="0 0 1080 300" role="img" aria-labelledby="g2t g2d">
+        <title id="g2t">Evidence to value chain</title><desc id="g2d">Five stages from collection suitability to later localization with 10 gates beneath.</desc>
+        <defs><marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#587080"/></marker></defs><rect width="1080" height="300" rx="12" fill="#f6fafc"/>
+        <g font-family="Segoe UI,Arial,sans-serif"><g fill="#e5f3f5" stroke="#008c95" stroke-width="2"><rect x="30" y="55" width="176" height="96" rx="9"/><rect x="236" y="55" width="176" height="96" rx="9"/><rect x="442" y="55" width="176" height="96" rx="9"/><rect x="648" y="55" width="176" height="96" rx="9"/><rect x="854" y="55" width="196" height="96" rx="9"/></g>
+        <g fill="#153a5b" font-size="18" font-weight="700" text-anchor="middle"><text x="118" y="87">Collection</text><text x="118" y="111">suitability</text><text x="324" y="87">Passive map</text><text x="324" y="111">measurement</text><text x="530" y="87">Detector</text><text x="530" y="111">product</text><text x="736" y="87">Track-ready</text><text x="736" y="111">measurements</text><text x="952" y="87">Later multi-</text><text x="952" y="111">measurement localization</text></g>
+        <g stroke="#587080" stroke-width="3" marker-end="url(#arr3)"><path d="M206 103 H229"/><path d="M412 103 H435"/><path d="M618 103 H641"/><path d="M824 103 H847"/></g>
+        <g font-size="16" text-anchor="middle"><text x="118" y="179" fill="#075b79">G1–G3</text><text x="324" y="179" fill="#664100">G4-R</text><text x="530" y="179" fill="#8b1f17">G5–G8</text><text x="736" y="179" fill="#8b1f17">G9–G10</text><text x="952" y="179" fill="#8b1f17">Future after validated inputs</text></g>
+        <g font-size="15" fill="#405866" text-anchor="middle"><text x="118" y="207">file contract · RF · coherence</text><text x="324" y="207">axes · repeatability · map rate</text><text x="530" y="207">frozen input · truth-separated validation</text><text x="736" y="207">continuity · timestamp · schema</text><text x="952" y="207">independent geometry · association · uncertainty</text></g>
+        <rect x="218" y="235" width="644" height="37" rx="7" fill="#fff0cb" stroke="#e3bb64"/><text x="540" y="259" font-size="17" font-weight="700" text-anchor="middle" fill="#664100">Current evidence boundary: G4-R is In Progress; formal downstream progression is Blocked.</text></g>
+      </svg>
+      <figcaption><span class="figure-label">Figure 2 — Evidence-to-value chain.</span> <span class="evidence-id">NS-004</span> Quantitative structure: 10 ordered gates, with G1–G3 preceding G4-R and G5–G10. Engineering interpretation: collection suitability and Passive Map validity are prerequisites; neither hardware presence nor diagnostic outputs are substitutes for validated detector, tracking, or localization evidence. [Implemented]</figcaption>
+    </figure>
+
+    <figure>
+      <svg viewBox="0 0 1080 315" role="img" aria-labelledby="g3t g3d">
+        <title id="g3t">Program progression and value before tracking</title><desc id="g3d">A timeline showing feasibility and preparation, gated restart, current remediation, and future validation.</desc>
+        <rect width="1080" height="315" rx="12" fill="#f6fafc"/><path d="M89 161 H1004" stroke="#8baab8" stroke-width="5"/>
+        <g font-family="Segoe UI,Arial,sans-serif"><g><circle cx="120" cy="161" r="21" fill="#0072bd"/><rect x="40" y="35" width="225" height="93" rx="9" fill="#e4f3f9" stroke="#92c8df"/><text x="58" y="66" fill="#153a5b" font-size="19" font-weight="700">Feasibility and preparation</text><text x="58" y="92" fill="#405866" font-size="16">HDTV application framing</text><text x="58" y="114" fill="#405866" font-size="16">link-budget / geometry analysis</text></g>
+        <g><circle cx="390" cy="161" r="21" fill="#008c95"/><rect x="292" y="190" width="205" height="91" rx="9" fill="#e7f6f5" stroke="#9bdbd8"/><text x="309" y="220" fill="#00636a" font-size="19" font-weight="700">Gated restart</text><text x="309" y="246" fill="#405866" font-size="16">15 × 1 s · 6.144 MHz</text><text x="309" y="268" fill="#405866" font-size="16">dual-channel reference session</text></g>
+        <g><circle cx="657" cy="161" r="21" fill="#c97900"/><rect x="544" y="35" width="229" height="93" rx="9" fill="#fff3d8" stroke="#e9c06c"/><text x="562" y="66" fill="#664100" font-size="19" font-weight="700">Current evidence work</text><text x="562" y="92" fill="#405866" font-size="16">G4-R bounded map-rate</text><text x="562" y="114" fill="#405866" font-size="16">remediation is In Progress</text></g>
+        <g><circle cx="928" cy="161" r="21" fill="#b42318"/><rect x="818" y="190" width="229" height="91" rx="9" fill="#fff0ef" stroke="#ebb5b0"/><text x="836" y="220" fill="#8b1f17" font-size="19" font-weight="700">Later validation path</text><text x="836" y="246" fill="#405866" font-size="16">detection → tracking →</text><text x="836" y="268" fill="#405866" font-size="16">later localization evidence</text></g>
+        <text x="540" y="306" text-anchor="middle" fill="#405866" font-size="16">The roadmap is an evidence sequence, not a forecast of operational performance.</text></g>
+      </svg>
+      <figcaption><span class="figure-label">Figure 3 — Program progression.</span> <span class="evidence-id">NS-001</span> <span class="evidence-id">NS-004</span> Quantitative evidence: the reference collection is 15 one-second captures at 6.144 MHz and the roadmap is G1–G10. Engineering interpretation: useful program value already exists in feasibility framing, collection characterization, and gated analysis; the later tracking/localization path remains conditional on completing the required evidence. [In Progress]</figcaption>
+    </figure>
+
+    <figure>
+      <svg viewBox="0 0 1080 345" role="img" aria-labelledby="g4t g4d">
+        <title id="g4t">Why multiple measurements matter for localization</title><desc id="g4d">One bistatic link creates a constraint curve; later independently supported measurements can intersect to constrain location.</desc>
+        <rect width="1080" height="345" rx="12" fill="#f6fafc"/><line x1="535" y1="28" x2="535" y2="317" stroke="#cad7dc" stroke-width="2"/>
+        <text x="268" y="43" font-size="20" font-weight="700" fill="#153a5b" text-anchor="middle">One supported link: a constraint, not a location</text><text x="810" y="43" font-size="20" font-weight="700" fill="#153a5b" text-anchor="middle">Later independent measurements: additional constraints</text>
+        <g transform="translate(30 65)"><circle cx="70" cy="220" r="12" fill="#153a5b"/><circle cx="390" cy="220" r="12" fill="#008c95"/><path d="M70 220 Q230 35 390 220" fill="none" stroke="#c97900" stroke-width="5"/><path d="M70 220 Q230 100 390 220" fill="none" stroke="#c97900" stroke-width="2" stroke-dasharray="7 7"/><text x="44" y="252" fill="#153a5b" font-size="16">Tx</text><text x="377" y="252" fill="#00636a" font-size="16">Rx</text><text x="232" y="92" text-anchor="middle" fill="#8a5400" font-size="17" font-weight="700">constant excess-path family</text><text x="230" y="287" text-anchor="middle" fill="#405866" font-size="16">Delay/Doppler narrows a hypothesis space.</text></g>
+        <g transform="translate(570 65)"><circle cx="70" cy="220" r="12" fill="#153a5b"/><circle cx="390" cy="220" r="12" fill="#008c95"/><path d="M70 220 Q230 35 390 220" fill="none" stroke="#c97900" stroke-width="5"/><path d="M50 166 Q230 280 408 134" fill="none" stroke="#6c4ab6" stroke-width="5"/><circle cx="232" cy="149" r="12" fill="#287d3c"/><text x="44" y="252" fill="#153a5b" font-size="16">Link A</text><text x="370" y="252" fill="#00636a" font-size="16">Link B</text><text x="244" y="134" fill="#287d3c" font-size="16" font-weight="700">candidate intersection</text><text x="230" y="287" text-anchor="middle" fill="#405866" font-size="16">Requires independent geometry and validation.</text></g>
+      </svg>
+      <figcaption><span class="figure-label">Figure 4 — Why measurement diversity matters.</span> <span class="evidence-id">NS-005</span> Quantitative structure: one link supplies a constrained family; a second independent measurement adds another constraint. Engineering interpretation: this illustrates the long-term localization rationale only. It is not a localization result, and it does not establish the number, quality, or geometry of measurements needed for a future implementation. [Investigated]</figcaption>
+    </figure>
+    <p class="source">Figure sources and boundaries: S01–S04 for architecture and status; S06–S07 for passive-HDTV / link-budget motivation. See the <a href="01_NorthStarAndMotivation_figure_inventory.csv">figure inventory</a> for source-to-figure traceability.</p>
+  </section>
+
+  <section id="work">
+    <h2>6. Demonstrated work</h2>
+    <p class="eli5"><strong>Bottom line (ELI5):</strong> The work has demonstrated that the team can preserve a real dual-channel collection as a disciplined engineering question set. It has not demonstrated an operational aircraft-sensing outcome.</p>
+    <div class="grid cols3">
+      <article class="card"><span class="tag demonstrated">Demonstrated</span><h3>Reference collection contract <span class="evidence-id">NS-001</span></h3><p><strong>Evidence:</strong> 15 one-second dual-channel files at 6.144 MHz are named as the planning reference session.</p><p><strong>Interpretation:</strong> this provides a reproducible starting point for measurement work; it is not a detection sample count.</p></article>
+      <article class="card"><span class="tag implemented">Implemented</span><h3>Early evidence chain <span class="evidence-id">NS-004</span></h3><p><strong>Evidence:</strong> G1–G3 have bounded ingest, RF-health, and synchronization work.</p><p><strong>Interpretation:</strong> these components make later Measurement claims testable rather than assumed.</p></article>
+      <article class="card"><span class="tag investigated">Investigated</span><h3>Opportunity geometry <span class="evidence-id">NS-006</span></h3><p><strong>Evidence:</strong> the project separates sampled ADS-B opportunity and one-link Passive Map support from localization-capable coverage.</p><p><strong>Interpretation:</strong> geometry can guide a collection and analysis question without becoming a performance claim.</p></article>
+    </div>
+    <p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md#reference-dataset">S02 reference dataset</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S04 verified current state</a>.</p>
+  </section>
+
+  <section id="credibility">
+    <h2>6.1 Why the North Star is Credible</h2>
+    <p class="eli5"><strong>Bottom line (ELI5):</strong> The North Star is credible because it is connected to real assets and bounded evidence, not because a downstream capability has been claimed. Each link below has an owner report and a defined boundary.</p>
+    <table>
+      <thead><tr><th>Connection</th><th>Evidence and report ownership</th><th>Current interpretation</th></tr></thead>
+      <tbody>
+        <tr><td>Vision</td><td><span class="evidence-id">NS-002</span> This report defines passive HDTV as the signal-of-opportunity context and later multi-measurement localization as the North Star.</td><td><span class="tag investigated">Investigated</span> A credible application framing, not a performance claim.</td></tr>
+        <tr><td>Hardware</td><td>Report 02 V3 documents physical collection infrastructure, replayable packages, and collection-readiness boundaries.</td><td><span class="tag implemented">Implemented</span> The project has real collection assets; hardware alone is not a Measurement result.</td></tr>
+        <tr><td>Pipeline</td><td><span class="evidence-id">NS-004</span> Report 03 defines the G1–G10 evidence sequence from ingest through later tracking/truth evaluation.</td><td><span class="tag implemented">Implemented</span> The program has a controlled route from recordings to future validated Measurements.</td></tr>
+        <tr><td>G4-R evidence</td><td><span class="evidence-id">NS-007</span> Report 04 owns the bounded Passive Map map-rate recovery evidence and the retained R5A failure.</td><td><span class="tag inprogress">In Progress</span> The project can identify and preserve a measurement-chain problem without promoting it into success.</td></tr>
+        <tr><td>Future Measurement → Tracking → Localization</td><td><span class="evidence-id">NS-005</span> A validated Measurement must precede tracking; validated tracking/independent measurements and geometry must precede localization.</td><td><span class="tag blocked">Blocked</span> These are downstream uses, not current project outcomes.</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Engineering interpretation:</strong> <span class="evidence-id">NS-001</span> <span class="evidence-id">NS-004</span> the durable value already created is an inspectable collection-to-Measurement program with explicit boundaries. Reports 02, 03, and 04 supply the detailed evidence; this report deliberately does not repeat their hardware, pipeline, or recovery analysis.</p>
+  </section>
+
+  <section id="diagnostics">
+    <h2>7. Supported diagnostic findings</h2>
+    <p><span class="tag supported">Supported Diagnostic</span> <span class="evidence-id">NS-006</span> The project’s opportunity investigation reported that the current G6-D CUT support represented <strong>42.559%</strong> of its equal-episode sampled opportunity. This is a bounded geometry/eligibility observation, not probability of detection, false-alarm performance, tracking coverage, or localization coverage.</p>
+    <p><strong>Engineering interpretation:</strong> even before tracking, the ability to quantify where a particular delay–Doppler search region intersects sampled opportunity is valuable. It makes “where could this link plausibly contribute a measurement?” a testable question instead of a visual guess. It does not answer “how well does the system detect aircraft?”</p>
+    <p><span class="evidence-id">NS-007</span> The active project state also records a bounded native-rate 16-tap NLMS cancellation-order candidate that passed specific map-rate controls and a 15 km map-preservation guard. This report cites that only as evidence that the Measurement chain is being characterized; it neither selects a mitigation product nor advances any tracking or localization claim.</p>
+    <p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S04 current state</a>; context: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-012--use-the-phase-a-core-rectangle-as-an-exploratory-ads-b-eligibility-hypothesis">S05 D-012 ADS-B eligibility boundary</a>.</p>
+  </section>
+
+  <section id="boundaries">
+    <h2>8. Boundaries and non-claims</h2>
+    <table>
+      <thead><tr><th>Evidence in this report</th><th>What it supports</th><th>What it does not support</th></tr></thead>
+      <tbody>
+        <tr><td>15-capture, dual-channel, 6.144 MHz reference-session facts</td><td>Collection and reproducibility context</td><td>Live-aircraft radar detection, operational Pd, operational Pfa, tracking, or localization performance</td></tr>
+        <tr><td>G1–G3 components and gate architecture</td><td>Evidence-led analysis workflow and upstream Measurement discipline</td><td>A validated Passive Map, detector, tracker, or localization product</td></tr>
+        <tr><td>G4-R bounded remediation status and diagnostics</td><td>Why downstream claims remain controlled</td><td>That G4-R is complete, that formal G5/G6/G8 is enabled, or that Direct Path mitigation is operationally selected</td></tr>
+        <tr><td>ADS-B information</td><td>Post-hoc/contextual geometry, timing, and evaluation support</td><td>Detector input, map-generation input, thresholding input, NMS input, or detection-generation input</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Current boundary:</strong> G4-R bounded map-rate remediation is <span class="tag inprogress">In Progress</span>. Formal G5, G6, G8, tracker readiness, tracking, and customer-facing performance claims are <span class="tag blocked">Blocked</span>. G4-R’s historical R5A criteria failure is a reason to preserve this boundary, not a reason to abandon the North Star.</p>
+    <p class="source">Authority: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S04 current state</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-003--ads-b-truth-remains-post-hoc">S05 D-003 ADS-B post-hoc rule</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/ProjectPlan.md">S03 milestone sequence</a>.</p>
+  </section>
+
+  <section id="meaning">
+    <h2>9. Meaning and interpretation</h2>
+    <p>The project remains valuable before tracking for three connected reasons.</p>
+    <ol>
+      <li><strong>It turns a proposed system into measurable engineering questions.</strong> Reference Path quality, Surveillance Path coherence, Passive Map axes, and geometry are independently examinable.</li>
+      <li><strong>It keeps future system claims honest.</strong> The G1–G10 sequence prevents an attractive plot, synthetic injection, or infrastructure result from becoming an unsupported claim of field detection or localization.</li>
+      <li><strong>It creates a reusable Measurement foundation.</strong> A valid Passive Map and stable Measurement contract are assets for later detector, tracking, and multi-measurement localization work, even though those downstream outcomes are not yet validated.</li>
+    </ol>
+    <p><strong>Quantitative evidence:</strong> the program has 10 explicit gates and the present reference data has 15 bounded one-second captures; this is enough to support traceable development and diagnosis, not enough to claim continuous tracking or localization.</p>
+    <p><strong>Engineering interpretation:</strong> <span class="evidence-id">NS-001</span> <span class="evidence-id">NS-004</span> the value is a defensible path from broadcast energy to Measurement evidence. That is exactly the foundation required before a manager should invest in claims, demonstrations, or extensions around tracking and localization.</p>
+  </section>
+
+  <section id="management">
+    <h2>10. Management Recommendation</h2>
+    <p class="eli5"><strong>Bottom line (ELI5):</strong> Keep the North Star, but fund it as a Measurement-evidence program first. The immediate outcome to manage is a trusted Passive Map and Measurement chain—not a premature tracking or localization demonstration.</p>
+    <div class="recommendation">
+      <h3>Recommended action</h3>
+      <p>Continue funding the evidence-first measurement program: preserve <span class="evidence-id">NS-001</span> collection/replay evidence, complete the bounded <span class="evidence-id">NS-007</span> G4-R review, and require the <span class="evidence-id">NS-004</span> gate sequence before authorizing downstream tracking or localization work. This funds a credible path without promising unsupported performance.</p>
+    </div>
+    <div class="grid cols2">
+      <article class="card"><h3>Value to preserve now</h3><p>Maintain the evidence gates, collection-suitability distinction, and ADS-B post-hoc boundary. These controls prevent infrastructure and diagnostic results from being mistaken for operational performance.</p></article>
+      <article class="card"><h3>Decision implication</h3><p>Authorize downstream tracking or localization work only when the prerequisite Measurement, detector, timing/geometry, and validation contracts are supported. Treat G4-R closure as an enabling evidence objective, not as a presentation milestone.</p></article>
+    </div>
+    <p><strong>Quantitative evidence:</strong> <span class="evidence-id">NS-004</span> the project roadmap places detection at G8, tracker readiness at G9, and track/truth validation at G10. The ordered distance from current G4-R work to those gates is intentional.</p>
+    <p><strong>Engineering interpretation:</strong> management can reasonably support the long-term localization vision while requiring each transition to earn its claim. This reduces technical and reputational risk and makes later results more credible.</p>
+  </section>
+
+  <section id="navigation">
+    <h2>11. Local evidence navigation</h2>
+    <p>Open the local evidence directly from the installed workspace. These links do not require network access.</p>
+    <h3>Report Family Map</h3>
+    <div class="family-map">
+      <div><strong>01 — Why are we doing this?</strong>This report: North Star, motivation, and credibility boundary.</div>
+      <div><strong>02 — What did we build?</strong><a href="02_HardwareAndCollection_V3.html">Hardware and collection infrastructure</a>.</div>
+      <div><strong>03 — How does it work?</strong><a href="03_AnalysisPipelineAndGateRebuild.html">Pipeline and gate rebuild</a>.</div>
+      <div><strong>04 — Why did mitigation and map-rate recovery happen?</strong><a href="04_MitigationAndMapRateRecovery_V2.html">Recovery journey and bounded conclusions</a>.</div>
+      <div><strong>05 — What does the strongest evidence say?</strong>Reserved for the strongest-evidence atlas; no local link is provided when that report is absent.</div>
+      <div><strong>06 — What should happen next?</strong><a href="06_StatusAndFutureWork_V2.html">Status, dependencies, and management actions</a>.</div>
+    </div>
+    <p><strong>Intentional scope boundary:</strong> Report 01 does <em>not</em> deep-dive hardware, pipeline mechanics, mitigation/map-rate recovery, or the strongest-evidence atlas. Use Reports 02–06 for those owned topics.</p>
+    <div class="nav-panel">
+      <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/NorthStar.md">S01 — North Star</a>
+      <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md">S02 — Restart README and gate terminology</a>
+      <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/ProjectPlan.md">S03 — Gate roadmap and reference session</a>
+      <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S04 — Authoritative current state</a>
+      <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md">S05 — Decision log and ADS-B boundary</a>
+      <a href="file:///C:/Users/pwilliam/OneDrive%20-%20MathWorks/Documents/SFTT/Customers/FlightTest/PassiveAircraftLocalizationUsingHDTVasSignalofOpp.pptx">S06 — Passive HDTV project source</a>
+      <a href="file:///C:/Users/pwilliam/OneDrive%20-%20MathWorks/Documents/SFTT/Customers/FlightTest/LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx">S07 — Link-budget / geometry material</a>
+      <a href="03_AnalysisPipelineAndGateRebuild.html">S08 — Report-family style and pipeline context</a>
+    </div>
+    <p>Companions: <a href="01_NorthStarAndMotivation.md">Markdown companion</a> · <a href="01_NorthStarAndMotivation_outline.yaml">approved outline</a> · <a href="01_NorthStarAndMotivation_figure_inventory.csv">figure inventory</a> · <a href="01_NorthStarAndMotivation_source_inventory.csv">source inventory</a>.</p>
+  </section>
+
+  <section id="glossary">
+    <h2>12. Glossary</h2>
+    <table>
+      <thead><tr><th>Term</th><th>Meaning in this report</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Passive bistatic</strong></td><td>Sensing that uses a non-cooperative transmitter, with receiver-side comparison of the Reference Path and Surveillance Path.</td></tr>
+        <tr><td><strong>Signal of opportunity</strong></td><td>A broadcast already present in the environment; here, HDTV is the proposed source waveform.</td></tr>
+        <tr><td><strong>Direct Path</strong></td><td>The physical transmitter-to-receiver broadcast signal.</td></tr>
+        <tr><td><strong>Reference Path</strong></td><td>The receiver/channel intended to capture the broadcast reference.</td></tr>
+        <tr><td><strong>Surveillance Path</strong></td><td>The receiver/channel intended to contain broadcast plus scene propagation.</td></tr>
+        <tr><td><strong>Passive Map</strong></td><td>The passive cross-ambiguity delay–Doppler comparison surface used to examine candidate reflected-signal hypotheses.</td></tr>
+        <tr><td><strong>Measurement</strong></td><td>A validated output governed by a declared Measurement contract; Tracking and Localization are downstream uses, not current report outcomes.</td></tr>
+        <tr><td><strong>Bistatic geometry</strong></td><td>The transmitter–aircraft–receiver relationship that links a reflection to excess path and Doppler.</td></tr>
+        <tr><td><strong>Collection suitability</strong></td><td>Whether a recording is adequately characterized for the specific analysis question; it is not a performance result.</td></tr>
+        <tr><td><strong>G1–G10</strong></td><td>The ordered gates from ingest through tracking/truth validation. Gate labels identify evidence questions, not maturity badges.</td></tr>
+        <tr><td><strong>G4-R bounded map-rate remediation</strong></td><td>The active G4 revalidation effort addressing whether native-rate and reduced-rate maps represent equivalent physics under a bounded contract.</td></tr>
+        <tr><td><strong>ADS-B</strong></td><td>Aircraft broadcast data used here only as post-hoc/contextual truth support, never as detector input.</td></tr>
+      </tbody>
+    </table>
+    <p class="source">Terminology authority: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md#gate-and-investigation-terminology">S02</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/G4RMapRateValidityPlan.md">G4-R plan</a>; <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-003--ads-b-truth-remains-post-hoc">S05 D-003</a>.</p>
+  </section>
+
+  <section id="sources">
+    <h2>13. Source inventory</h2>
+    <p>The table is a concise reader inventory. The complete file-level description and use limits are in <a href="01_NorthStarAndMotivation_source_inventory.csv">01_NorthStarAndMotivation_source_inventory.csv</a>.</p>
+    <table>
+      <thead><tr><th>ID</th><th>Source</th><th>Used for</th><th>Boundary</th></tr></thead>
+      <tbody>
+        <tr><td>S01</td><td>NorthStar.md</td><td>Program objective and later multi-measurement localization vision</td><td>Vision, not a performance result</td></tr>
+        <tr><td>S02</td><td>README.md</td><td>Gate names, project goal, reference collection context</td><td>Repository description is not validation evidence</td></tr>
+        <tr><td>S03</td><td>ProjectPlan.md</td><td>G1–G10 sequence, 15 × 1 s, 6.144 MHz, dual-channel facts</td><td>Roadmap is not a performance forecast</td></tr>
+        <tr><td>S04</td><td>PROJECT_STATE.md</td><td>Current G4-R status, downstream boundary, diagnostic context</td><td>Does not close G4-R or authorize tracking/localization</td></tr>
+        <tr><td>S05</td><td>DECISIONS.md</td><td>ADS-B post-hoc restriction and opportunity-study boundary</td><td>ADS-B is never detector input</td></tr>
+        <tr><td>S06–S07</td><td>Passive-HDTV project source and link-budget material</td><td>Application motivation and geometry feasibility context</td><td>No numerical performance result is imported into this report</td></tr>
+        <tr><td>S08</td><td>03_AnalysisPipelineAndGateRebuild.html</td><td>Document-family terminology, evidence language, and navigation pattern</td><td>Not a substitute for the authoritative project state</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+</body>
+</html>

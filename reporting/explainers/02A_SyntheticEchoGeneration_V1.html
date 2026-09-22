@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>02A — Synthetic echo generation</title>
+<style>
+:root{--ink:#142033;--muted:#526176;--line:#cbd5e1;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--panel:#f8fafc;--gray:#475569}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{max-width:1280px;margin:0 auto;padding:28px 20px 52px;color:var(--ink);font:16px/1.52 Arial,sans-serif;background:#fff}h1,h2,h3{line-height:1.15;color:#102a43}h1{font-size:2.35rem;margin:.2rem 0 .45rem}h2{font-size:1.55rem;margin:2.3rem 0 .7rem;padding-top:.2rem;border-top:2px solid #dbe6ef}h3{font-size:1.08rem;margin:.1rem 0 .45rem}.sub{color:var(--muted);margin:.1rem 0 1.25rem}.takeaway,.boundary,.warning{border:1px solid var(--line);padding:1rem 1.15rem;margin:1rem 0;background:var(--blue2);border-left:6px solid var(--blue)}.boundary{background:var(--amber2);border-left-color:var(--amber)}.warning{background:var(--red2);border-left-color:var(--red)}.tag,.cite{display:inline-block;padding:.13rem .48rem;border-radius:99px;font-size:.78rem;font-weight:700;white-space:nowrap}.history{background:var(--amber2);color:var(--amber)}.current{background:var(--green2);color:var(--green)}.neutral{background:#eef2f7;color:var(--gray)}.cite{background:#edf4fa;color:var(--blue);font-weight:600}.nav{display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 1.4rem}.nav a{color:var(--blue);font-size:.9rem;text-decoration:none;border:1px solid #bdd1e3;padding:.32rem .55rem;border-radius:99px}.nav a:hover{text-decoration:underline;background:var(--blue2)}.executive{display:grid;grid-template-columns:1.18fr .82fr;gap:16px;margin:18px 0}.executive-main{padding:1rem 1.1rem;border:1px solid var(--line);background:#fbfdff}.executive-main h2{border:0;margin:0 0 .65rem;padding:0}.answer-list{display:grid;grid-template-columns:155px 1fr;gap:.45rem .8rem;margin:0}.answer-list dt{font-weight:700;color:var(--blue)}.answer-list dd{margin:0}.facts{border:1px solid var(--line);background:var(--panel);padding:.9rem 1rem}.facts h2{border:0;margin:0 0 .6rem;padding:0;font-size:1.2rem}.fact{padding:.58rem 0;border-top:1px solid #dbe6ef}.fact:first-of-type{border-top:0}.fact strong{display:block}.fact small{display:block;color:var(--muted);margin-top:.15rem}.flow{padding:14px;border:1px solid var(--line);background:#fbfdff;margin:18px 0}.flow svg{display:block;width:100%;height:auto}.figure{border:1px solid var(--line);background:#fff;margin:0}.figure img{display:block;width:100%;height:auto}.figure figcaption{padding:.78rem .9rem;color:var(--muted);font-size:.92rem}.figure figcaption strong{color:var(--ink)}.visual-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0}.split{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin:18px 0}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}.card{border:1px solid var(--line);padding:.9rem;background:#fff}.card h3{font-size:1rem;margin:.05rem 0 .35rem}.card p{margin:.35rem 0}.test{border:1px solid var(--line);margin:18px 0;background:#fff}.test-header{display:flex;align-items:center;gap:.7rem;padding:.85rem 1rem;background:var(--blue2);border-bottom:1px solid var(--line)}.test-header .number{display:grid;place-items:center;flex:0 0 1.9rem;height:1.9rem;border-radius:50%;background:var(--blue);color:#fff;font-weight:700}.test-header h3{margin:0;font-size:1.22rem}.test-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}.test-item{padding:.85rem 1rem;border-top:1px solid #e2e8f0}.test-item:nth-child(odd){border-right:1px solid #e2e8f0}.test-item h4{color:var(--blue);margin:0 0 .3rem;font-size:.94rem;text-transform:uppercase;letter-spacing:.035em}.test-item p{margin:0}.table-wrap{overflow-x:auto;border:1px solid var(--line);margin:16px 0}table{width:100%;border-collapse:collapse;font-size:.91rem}caption{text-align:left;font-weight:700;padding:.7rem .85rem;background:var(--panel);color:#102a43}th,td{padding:.65rem .72rem;text-align:left;vertical-align:top;border-bottom:1px solid #dbe6ef}th{background:#eef5fb;color:#173b5c;font-size:.84rem}tr:last-child td{border-bottom:0}.note{padding:.82rem .92rem;border-left:5px solid var(--amber);background:var(--amber2)}.note strong{display:block}.decision{border-left:5px solid var(--green);background:var(--green2);padding:.82rem .95rem}.decision strong{display:block;color:var(--green)}.source{font-size:.91rem;color:var(--muted);overflow-wrap:anywhere}.source code,.codepath{font:inherit;background:#f1f5f9;padding:.08rem .2rem;overflow-wrap:anywhere}.source a,.codepath a{color:var(--blue)}.decision-banner{display:grid;grid-template-columns:1.42fr 1fr .9fr;border:1px solid var(--line);border-left:6px solid var(--blue);margin:0 0 22px;background:#fbfdff}.decision-banner>div{padding:.85rem .95rem;border-left:1px solid #dbe6ef}.decision-banner>div:first-child{border-left:0}.decision-banner h3{font-size:.9rem;margin:0 0 .3rem;color:var(--blue);text-transform:uppercase;letter-spacing:.035em}.decision-banner p{margin:0}.decision-banner .result{background:#f4f9fd}.decision-banner .decision-cell{background:var(--green2)}.decision-banner .decision-cell h3{color:var(--green)}.decision-banner .unknown{background:var(--amber2)}.decision-banner .unknown h3{color:var(--amber)}.metric{display:block;margin:.32rem 0;font-weight:700;color:#102a43}.why-matters{display:block;margin:.35rem 0;color:var(--muted)}.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}.step{border:1px solid var(--line);padding:.85rem;background:#fff;min-height:145px}.step .n{display:inline-grid;place-items:center;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;margin-bottom:.35rem}.step strong{display:block;color:#102a43}.step small{display:block;color:var(--muted);margin-top:.28rem}.before-after{display:grid;grid-template-columns:1fr 50px 1fr;gap:14px;align-items:center;margin:16px 0}.channel-card{border:1px solid var(--line);padding:1rem;background:#fff}.channel-card h3{color:var(--blue)}.channel{margin:.55rem 0;padding:.56rem .65rem;border:1px solid #dbe6ef;background:#f8fafc}.channel.changed{background:#ecfdf3;border-color:#86d3a8}.arrow{font-size:2rem;color:var(--blue);text-align:center}.package-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:16px 0}.package-item{padding:.72rem;border:1px solid var(--line);background:#fff}.package-item strong{display:block;color:var(--blue);margin-bottom:.25rem}.package-item small{color:var(--muted)}footer{margin-top:32px;padding-top:14px;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}@media(max-width:860px){.executive,.split,.visual-grid{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.test-grid{grid-template-columns:1fr}.test-item:nth-child(odd){border-right:0}.decision-banner{grid-template-columns:1fr}.decision-banner>div{border-left:0;border-top:1px solid #dbe6ef}.decision-banner>div:first-child{border-top:0}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.before-after{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}.package-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){body{padding:20px 14px 40px}h1{font-size:1.8rem}.answer-list{grid-template-columns:1fr;gap:.1rem}.answer-list dd{margin-bottom:.48rem}.steps,.package-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<p style="font-size:.86rem;color:#0f4c81;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:0">Report 02A · controlled synthetic experiment</p>
+<h1>How known aircraft-like echoes are created inside real HDTV recordings</h1>
+<p class="sub">A human-readable account of declared truth, delay/Doppler placement, surveillance-only injection, traceable session packaging, and the limits of a synthetic recovery experiment.</p>
+</header>
+
+<section class="takeaway">
+<strong>Executive answer:</strong> Looking only for real aircraft leaves a basic question unanswered: where and when should the target have appeared in the map? This experiment starts with a real HDTV recording, declares a trajectory before processing, calculates the echo delay and Doppler, adds that echo only to the surveillance channel, and preserves the original reference and a paired control. It can prove that a declared synthetic case is traceable through a controlled experiment. It cannot prove live-aircraft detection, operational false-alarm performance, hardware suitability, tracking, or localization.
+</section>
+
+<nav class="nav" aria-label="Report sections">
+<a href="#why">Why truth</a><a href="#chain">Decision chain</a><a href="#steps">Echo steps</a><a href="#test1">Test 1</a><a href="#test2">Test 2</a><a href="#test3">Test 3</a><a href="#before-after">Before / after</a><a href="#boundaries">Boundaries</a><a href="#handoff">Pipeline handoff</a><a href="#code">Code &amp; evidence</a><a href="#glossary">Glossary</a>
+</nav>
+
+<section class="executive">
+<div class="executive-main">
+<h2>1. Executive answer</h2>
+<dl class="answer-list">
+<dt>Why not just look for real aircraft?</dt><dd>A real scene does not provide a known target path, echo strength, time, or expected map cell. A missing candidate can therefore mean many things.</dd>
+<dt>What uncertainty does truth remove?</dt><dd>It removes uncertainty about the intended target geometry. The same declared truth produces the injected echo, the session metadata, and the post-hoc evaluation target—without steering detector generation.</dd>
+<dt>What can this prove?</dt><dd>That a known, declared synthetic case can be placed in real HDTV background and packaged for a controlled, truth-blind downstream experiment.</dd>
+<dt>What can it never prove?</dt><dd>It cannot establish a measured aircraft echo, live-aircraft detection, operational Pd/Pfa, false-alarm rate, a qualified Reference Path, collection suitability, tracking, or localization.</dd>
+<dt>Strongest placement evidence</dt><dd><a href="#test2">Accepted geographic and delay-Doppler placement maps</a> <span class="cite">SRC-02A-08 · FIG-02A-02/03</span></dd>
+<dt>Top-level generator</dt><dd><a href="#code">generateRealBackgroundSyntheticSuite.m</a> <span class="cite">SRC-02A-07</span></dd>
+</dl>
+</div>
+
+<aside class="facts" aria-label="Key synthetic design facts">
+<h2>Key synthetic-design facts</h2>
+<div class="fact"><strong>Real-background suite</strong>Historical package uses a 6.144 MHz sample rate and 599 MHz center frequency. <span class="cite">SRC-02A-07</span><small>Historical generator/package configuration, not an immutable project-wide setting.</small></div>
+<div class="fact"><strong>What changes</strong>For real-background injection, the original surveillance channel receives the declared echo; the reference channel stays preserved. <span class="cite">SRC-02A-05/07</span></div>
+<div class="fact"><strong>Geometry translation</strong>Excess path becomes delay; excess-path rate becomes Doppler. <span class="cite">SRC-02A-03/05</span><small>Placement math, not a measured scattering model.</small></div>
+<div class="fact"><strong>15 km atlas anchor</strong>Expected −76.456 µs and 540.5 Hz; selected CUT −65.104 µs and 540 Hz. <span class="cite">SRC-02A-08</span><small>Current accepted placement/evaluation context; outcome belongs to Report 05.</small></div>
+<div class="fact"><strong>Historical support boundary</strong>[−1200, −150] µs × ±750 Hz. <span class="cite">SRC-02A-08</span><small>Support policy, not a physical limit on a synthetic target.</small></div>
+<div class="fact"><strong>Package evidence</strong>Dual-channel .bb files, truth JSON, manifests, configuration, channel roles, target metadata, and readback fields. <span class="cite">SRC-02A-07</span></div>
+</aside>
+</section>
+
+<section id="why">
+<h2>2. Why synthetic truth exists</h2>
+<div class="cards">
+<article class="card"><h3>Real recordings are valuable</h3><p>They contain the actual HDTV background, clutter, interference, and channel relationship that a clean simulation misses.</p></article>
+<article class="card"><h3>Real aircraft are ambiguous</h3><p>A live aircraft usually does not bring a known echo gain, known scattering behavior, a declared map cell, or a stable paired control scene.</p></article>
+<article class="card"><h3>Synthetic truth controls one question</h3><p>It asks: given this declared path and this unchanged background, does the downstream experiment put any retained candidate near the declared location?</p></article>
+</div>
+<div class="boundary"><strong>A controlled target is not a fake field trial.</strong> It intentionally removes ambiguity about target placement, then leaves the real recording in the background. That is why it is useful for a narrow, inspectable experiment—and why it cannot answer every field-performance question.</div>
+</section>
+
+<section id="chain">
+<h2>3. Engineering decision chain</h2>
+<p>Each step produces an artifact that the next step needs. The chain is deliberately designed so the known answer travels with the package but does not steer map formation or detection.</p>
+<div class="flow" aria-label="Synthetic echo decision chain">
+<svg viewBox="0 0 1160 300" role="img" aria-label="Workflow from real HDTV recording and declared trajectory, through geometry, target echo construction, dual-channel package, truth-blind processing, and post-hoc association.">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#0f4c81"/></marker></defs>
+<g font-family="Arial" font-size="14" fill="#102a43" text-anchor="middle">
+<rect x="18" y="60" width="165" height="88" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="100" y="91" font-weight="700">Real HDTV recording</text><text x="100" y="115">CH1 surveillance background</text><text x="100" y="135">CH2 reference preserved</text>
+<rect x="18" y="186" width="165" height="84" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="100" y="218" font-weight="700">Declared target truth</text><text x="100" y="242">waypoints or ADS-B path</text>
+<rect x="286" y="125" width="174" height="88" rx="8" fill="#eaf3fb" stroke="#0f4c81"/><text x="373" y="156" font-weight="700">Bistatic geometry</text><text x="373" y="180">excess path → delay</text><text x="373" y="200">range rate → Doppler</text>
+<rect x="564" y="125" width="184" height="88" rx="8" fill="#fff7e6" stroke="#9a5b00"/><text x="656" y="156" font-weight="700">Construct target echo</text><text x="656" y="180">fractional delay · phase</text><text x="656" y="200">declared gain</text>
+<rect x="852" y="125" width="208" height="88" rx="8" fill="#ecfdf3" stroke="#166534"/><text x="956" y="156" font-weight="700">Write controlled package</text><text x="956" y="180">injected CH1 · preserved CH2</text><text x="956" y="200">truth + manifest + readback</text>
+</g>
+<g stroke="#0f4c81" stroke-width="3" marker-end="url(#arrow)"><line x1="183" y1="104" x2="282" y2="151"/><line x1="183" y1="228" x2="282" y2="188"/><line x1="460" y1="169" x2="560" y2="169"/><line x1="748" y1="169" x2="848" y2="169"/><line x1="956" y1="213" x2="956" y2="253"/></g>
+<rect x="812" y="255" width="296" height="32" rx="6" fill="#f8fafc" stroke="#0f4c81"/><text x="960" y="276" text-anchor="middle" font-family="Arial" font-size="14" fill="#102a43">map / CFAR / NMS first → truth association afterward</text>
+</svg>
+</div>
+</section>
+
+<section id="steps">
+<h2>4. Step-by-step echo generation</h2>
+<div class="steps">
+<article class="step"><span class="n">1</span><strong>Choose a real background</strong><small>Load the recorded dual-channel session. Its clutter and direct-path context remain part of the experiment.</small></article>
+<article class="step"><span class="n">2</span><strong>Declare the target</strong><small>Generate synthetic waypoints or normalize capture-backed ADS-B into one truth bundle before replay.</small></article>
+<article class="step"><span class="n">3</span><strong>Calculate the geometry</strong><small>Use transmitter-to-target and target-to-receiver paths. Excess range determines delay; range rate determines Doppler.</small></article>
+<article class="step"><span class="n">4</span><strong>Build the echo</strong><small>Apply wideband propagation, fractional delay, Doppler phase rotation, RMS normalization, and declared gain.</small></article>
+<article class="step"><span class="n">5</span><strong>Keep channels coherent</strong><small>For real background, inject only CH1 surveillance and preserve CH2 reference. The paired control changes neither.</small></article>
+<article class="step"><span class="n">6</span><strong>Write reviewable files</strong><small>Write the dual-channel data, truth JSON, manifest, configuration, roles, and validation/readback information.</small></article>
+<article class="step"><span class="n">7</span><strong>Process truth-blind</strong><small>The map, CFAR, and NMS run without using the target answer. Truth is used only after candidates exist.</small></article>
+<article class="step"><span class="n">8</span><strong>Associate afterward</strong><small>Compare retained candidates to declared windows and support eligibility without retroactively changing the detector.</small></article>
+</div>
+</section>
+
+<section id="test1">
+<h2>5. Test 1: Can we create a known target?</h2>
+<div class="decision-banner" aria-label="Test 1 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">One truth bundle, generated from declared waypoints or capture-backed ADS-B, supplies target position, motion, and metadata before the synthetic session is written.</span><span class="why-matters"><strong>Why it matters:</strong> the expected target is declared before a map is formed, rather than inferred from a bright feature afterward.</span><strong>Conclusion:</strong> truth becomes a traceable input to synthesis and later post-hoc evaluation. <span class="cite">SRC-02A-03</span></p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Use the same declared truth for synthesis, package traceability, and post-hoc association—but never as a steering input to map, CFAR, or NMS generation.</p></div>
+<div class="unknown"><h3>Still unknown</h3><p>Declared geometry is not a measured aircraft echo, calibrated RCS, or field trajectory observation.</p></div>
+</div>
+<div class="visual-grid">
+<figure class="figure">
+<img src="02A_SyntheticEchoGeneration_assets/declared_truth_3d.png" alt="Historical 3D globe view showing multiple synthetic truth trajectories.">
+<figcaption><strong>Figure 1 — Historical declared-truth view.</strong> This original generator-development image shows multiple trajectories that were declared before signal generation. It answers where synthetic targets can come from: a controlled waypoint or ADS-B-derived truth source rather than an analyst’s post hoc guess. It influenced the choice to create one normalized truth bundle for synthesis and package traceability. It is historical seed-backed development evidence, not a recovered aircraft track, accepted recovery result, or localization output. <span class="cite">FIG-02A-01 · SRC-02A-01/02/03</span></figcaption>
+</figure>
+<article class="test" style="margin:0">
+<div class="test-header"><span class="number">1</span><h3>Declare the target before building the signal</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Can the experiment define target motion before any downstream signal-processing outcome is known?</p></div>
+<div class="test-item"><h4>Result</h4><p>The generator creates a truth bundle from synthetic waypoints or capture-backed ADS-B, including motion and output records for later package use.</p></div>
+<div class="test-item"><h4>Why it matters</h4><p>A known intended target removes the ambiguity of deciding after the fact whether a map feature “looks like” an aircraft.</p></div>
+<div class="test-item"><h4>Engineering decision</h4><p>Declare and save truth first; reuse it for echo synthesis and only later for post-hoc association.</p></div>
+<div class="test-item"><h4>Evidence</h4><p>Truth-generation code, the seed-backed walkthrough, trajectory visual, and package truth JSON/manifest contract. <span class="cite">SRC-02A-01/02/03/07</span></p></div>
+<div class="test-item"><h4>Method</h4><p>Normalize the truth source into target position, velocity, timing, and metadata records that can feed geometry and file-writing helpers.</p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>The trajectory describes the synthetic target placed into the experiment. It does not calibrate aircraft scattering, receive power, or a live-aircraft path.</p></div>
+</div>
+</article>
+</div>
+</section>
+
+<section id="test2">
+<h2>6. Test 2: Can we place it where expected?</h2>
+<div class="decision-banner" aria-label="Test 2 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">The code turns excess path into delay and excess-path rate into Doppler. For the current 15 km atlas anchor, the expected location is −76.456 µs and 540.5 Hz; the selected CUT is −65.104 µs and 540 Hz.</span><span class="why-matters"><strong>Why it matters:</strong> placement becomes an inspectable geometric question rather than a search for arbitrary bright pixels.</span><strong>Conclusion:</strong> the study can declare an expected delay-Doppler neighborhood before detector outcomes are assessed. <span class="cite">SRC-02A-05/08/10</span></p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Check geometry and detector-support eligibility before interpreting any recovery outcome; preserve the paired control so the background remains comparable.</p></div>
+<div class="unknown"><h3>Still unknown</h3><p>Expected placement does not guarantee support, recovery, calibrated aircraft scattering, or realistic field multipath.</p></div>
+</div>
+<div class="visual-grid">
+<figure class="figure">
+<img src="02A_SyntheticEchoGeneration_assets/target_placement_map.png" alt="Accepted map of transmitter, receiver, and generated synthetic target trajectories.">
+<figcaption><strong>Figure 2 — Current controlled target placement.</strong> This accepted atlas map locates the transmitter, receiver, and declared synthetic target trajectories. It answers where targets were deliberately placed relative to the experiment geometry. The result that matters is a visible, fixed placement set that can be converted to map coordinates. It influenced which geometric cases were sent into the controlled evaluation. It is not a radar track, a field observation, or a localization result. <span class="cite">FIG-02A-02 · SRC-02A-08</span></figcaption>
+</figure>
+<figure class="figure">
+<img src="02A_SyntheticEchoGeneration_assets/delay_doppler_placement.png" alt="Accepted delay Doppler map of expected target circles, historical support, grid-derived override, and CFAR footprint.">
+<figcaption><strong>Figure 3 — Geometry becomes map placement and support context.</strong> This accepted atlas visual converts declared target geometry into expected delay/Doppler locations, then overlays historical support, the grid-derived 15 km override, and an example CFAR footprint. It asks whether an expected target is even eligible for the historical detector/search policy. It influenced the decision to distinguish support exclusion from a detector miss. It does not show a target was recovered, and it does not authorize a production support change. <span class="cite">FIG-02A-03 · SRC-02A-08</span></figcaption>
+</figure>
+</div>
+<article class="test">
+<div class="test-header"><span class="number">2</span><h3>Construct an echo at a declared delay and Doppler</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>Can target motion be turned into a repeatable radio echo at a known map location?</p></div>
+<div class="test-item"><h4>Result</h4><p>The implementation derives excess path and rate, applies wideband propagation and fractional delay, rotates phase for Doppler, RMS-normalizes the echo, and adds declared gain.</p></div>
+<div class="test-item"><h4>Why it matters</h4><p>The known target can be evaluated against a declared delay-Doppler window, not a visual impression of a map.</p></div>
+<div class="test-item"><h4>Engineering decision</h4><p>Validate target geometry and support eligibility before interpreting downstream candidates or absences.</p></div>
+<div class="test-item"><h4>Evidence</h4><p>Real-background synthesis helper, current placement maps, and the historical generator validation dashboard. <span class="cite">SRC-02A-05/08 · FIG-02A-02/03/04</span></p></div>
+<div class="test-item"><h4>Method</h4><p>Use R<sub>tx</sub> + R<sub>rx</sub> − L for excess range and its rate for Doppler; use <code>phased.WidebandFreeSpace</code> and FIR fractional delay in the real-background flow. <span class="cite">SRC-02A-05/10</span></p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>Generator placement validation is not a detector result. It does not model every field reflection, calibrated RCS, aircraft aspect change, or measured direct-path-to-target ratio.</p></div>
+</div>
+</article>
+<figure class="figure" style="max-width:830px;margin:18px auto">
+<img src="02A_SyntheticEchoGeneration_assets/seed_validation_rdm.png" alt="Historical synthetic IQ validation dashboard with range Doppler maps, spectrum comparison, and lag check.">
+<figcaption><strong>Figure 4 — Historical generator placement checks.</strong> This original seed-backed development dashboard checks range-Doppler placement, a raw spot check, spectrum consistency, and delay/lag readback. It answers whether generator outputs could be inspected against their declared truth. It influenced the practice of validating package readback and expected geometry before downstream replay. It is not the current real-background recovery experiment, and it does not prove detector performance. <span class="cite">FIG-02A-04 · SRC-02A-02</span></figcaption>
+</figure>
+</section>
+
+<section id="test3">
+<h2>7. Test 3: What uncertainty does synthetic truth remove?</h2>
+<div class="decision-banner" aria-label="Test 3 outcome">
+<div class="result"><h3>Result</h3><p><span class="metric">The real-background suite copies the real dual-channel recording, adds the echo only to CH1 surveillance for injected cases, preserves CH2 reference, and supplies an unmodified paired control.</span><span class="why-matters"><strong>Why it matters:</strong> an injected/control difference can be attributed to the declared change rather than a different background recording.</span><strong>Conclusion:</strong> the experiment narrows the question to controlled target placement and downstream response. <span class="cite">SRC-02A-05/07</span></p></div>
+<div class="decision-cell"><h3>Engineering decision</h3><p>Use real-background paired cases, preserve manifest/truth provenance, and reserve live-aircraft or collection claims for independent field evidence.</p></div>
+<div class="unknown"><h3>Still unknown</h3><p>Synthetic truth cannot establish operational Pd/Pfa, map-wide false alarms, a qualified receiver/reference path, tracking, or localization.</p></div>
+</div>
+<article class="test">
+<div class="test-header"><span class="number">3</span><h3>Hold the recording constant; change only the declared echo</h3></div>
+<div class="test-grid">
+<div class="test-item"><h4>Question</h4><p>What ambiguity disappears when an injected case is paired with the same real recording before injection?</p></div>
+<div class="test-item"><h4>Result</h4><p>The injected and control packages share the background. The injected case changes CH1 with the declared target echo; CH2 reference remains preserved.</p></div>
+<div class="test-item"><h4>Why it matters</h4><p>The experiment can isolate an injection/replay question from scene-to-scene variation and preserve a clear record of what changed.</p></div>
+<div class="test-item"><h4>Engineering decision</h4><p>Write paired data plus manifests, truth JSON, role metadata, and readback fields so a reviewer can reconstruct the controlled condition.</p></div>
+<div class="test-item"><h4>Evidence</h4><p>Real-background suite generator, its design note, package manifests, and truth-blind downstream entry points. <span class="cite">SRC-02A-05/07/09</span></p></div>
+<div class="test-item"><h4>Method</h4><p>Copy recorded channels, inject the calculated echo only in surveillance, retain an untouched control, write the package, then run the detector without truth-driven changes.</p></div>
+<div class="test-item"><h4>Remaining uncertainty</h4><p>The controlled package cannot replace measured aircraft echo, field antenna/RF validation, operational false-alarm assessment, tracking, or localization evidence.</p></div>
+</div>
+</article>
+</section>
+
+<section id="before-after">
+<h2>8. Before versus after injection</h2>
+<p>The source-faithful project figures recovered for this task do not include a raw waveform or range-Doppler image labelled “before injection” beside the matching “after injection.” The visual below is therefore a <strong>source-derived channel contract</strong>, not a reconstructed plot. It shows exactly what the real-background generator is designed to change.</p>
+<figure class="figure">
+<div class="before-after" aria-label="Before and after injection channel contract">
+<article class="channel-card">
+<span class="tag neutral">Before injection / paired control</span>
+<h3>The original recorded pair</h3>
+<div class="channel"><strong>CH1 — Surveillance</strong><br>Recorded HDTV background; no synthetic target echo added.</div>
+<div class="channel"><strong>CH2 — Reference</strong><br>Original recorded reference channel; preserved.</div>
+<p class="muted">This is the background control for the matching injected case.</p>
+</article>
+<div class="arrow" aria-hidden="true">→</div>
+<article class="channel-card">
+<span class="tag current">After injection / controlled case</span>
+<h3>The same recorded pair, with one declared change</h3>
+<div class="channel changed"><strong>CH1 — Surveillance</strong><br>Same recorded background <strong>+ declared delayed, Doppler-shifted, gain-scaled synthetic echo</strong>.</div>
+<div class="channel"><strong>CH2 — Reference</strong><br>Original recorded reference channel; preserved.</div>
+<p class="muted">Truth, configuration, and package manifest identify the added echo and its intended geometry.</p>
+</article>
+</div>
+<figcaption><strong>Figure 5 — Paired control versus controlled injection.</strong> This source-derived channel-contract figure shows the before/after distinction required by the real-background generator: the paired control preserves both recorded channels, while the injected case adds only the declared echo to surveillance CH1 and preserves reference CH2. It answers what changed in the experiment and why a paired control is useful. It influenced the decision to retain real background rather than substitute a clean synthetic scene. It is an explanatory representation of the source-defined channel contract—not a reconstructed waveform, a map, or a detector outcome. <span class="cite">FIG-02A-05 · SRC-02A-05/07</span></figcaption>
+</figure>
+<div class="note"><strong>What this comparison does and does not say.</strong> It explains why the control is meaningful: the background is not replaced by a clean synthetic world. It does not show a raw before/after detector map, does not imply a map-wide false-alarm result, and does not turn no association in a target-specific control window into “zero false alarms.” <span class="cite">SRC-02A-05/07/09</span></div>
+
+<h3>What makes the session reviewable?</h3>
+<div class="package-grid" aria-label="Synthetic session package contents">
+<article class="package-item"><strong>Dual-channel .bb</strong><small>Injected CH1 and preserved CH2 are written together for replay.</small></article>
+<article class="package-item"><strong>Truth JSON</strong><small>Declared target geometry, motion, timing, and metadata.</small></article>
+<article class="package-item"><strong>Manifest</strong><small>Files, configuration, channel roles, gain policy, and source context.</small></article>
+<article class="package-item"><strong>Validation/readback</strong><small>Evidence that generated files and expected placement can be inspected.</small></article>
+<article class="package-item"><strong>Paired control</strong><small>The same real background without the declared surveillance echo.</small></article>
+</div>
+<p class="source">This package visual is an explanatory representation of the source-defined file contract in <code>generateRealBackgroundSyntheticSuite.m</code> and its design note. It is not an original exported generator figure. <span class="cite">SRC-02A-07</span></p>
+</section>
+
+<section id="boundaries">
+<h2>9. What this method does not prove</h2>
+<div class="warning"><strong>Do not promote controlled recovery into a live-aircraft claim.</strong> Synthetic truth is powerful because it controls target placement. It does not create a measured aircraft echo or close the separate hardware, field collection, detector, or operational-performance questions.</div>
+<div class="cards">
+<article class="card"><h3>Not a calibrated aircraft model</h3><p>The recovered sources do not provide a calibrated aircraft RCS, direct-path-to-target receive-power ratio, or complete field-multipath model.</p></article>
+<article class="card"><h3>Not a receiver qualification</h3><p>Injection happens in recorded data. It does not verify antenna roles, direct-path/reference quality, lock, drops, gain/headroom, or capture integrity.</p></article>
+<article class="card"><h3>Not operational performance</h3><p>A retained candidate near declared truth is not operational Pd/Pfa, a map-wide false-alarm rate, product selection, tracking, or localization.</p></article>
+</div>
+</section>
+
+<section id="handoff">
+<h2>10. How this connects to the pipeline</h2>
+<p>Report 02A supplies a reviewable synthetic package. Report <a href="03_AnalysisPipelineAndGateRebuild.html">03_AnalysisPipelineAndGateRebuild.html</a> owns the truth-blind pipeline rule: truth must not steer map formation, CFAR, NMS, or retained-candidate generation. Report <a href="05_StrongestEvidence_G4RRecoveryStudy.html">05_StrongestEvidence_G4RRecoveryStudy.html</a> owns the accepted G4-R interpretation.</p>
+<div class="cards">
+<article class="card"><h3>This report provides</h3><p>Known target truth, a real-background injection method, controlled pairs, and the package needed to replay a declared experiment.</p></article>
+<article class="card"><h3>The pipeline provides</h3><p>Independent map formation, detector configuration, support handling, and retained candidates before the truth association step.</p></article>
+<article class="card"><h3>Report 05 provides</h3><p>The exact bounded result: 8/8 associated injected targets under native-first frozen NLMS; 0/8 under no mitigation; no associated candidate in the corresponding 16 target-specific control windows. That result is linked here, not reinterpreted here.</p></article>
+</div>
+</section>
+
+<section id="code">
+<h2>11. Code and evidence navigation</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Purpose</th><th>Original entry or source</th><th>Inputs / outputs</th><th>Execution in this report</th></tr></thead>
+<tbody>
+<tr><td>Seed-backed walkthrough</td><td class="codepath"><a href="file:///C:/Users/pwilliam/agenticProjects/flightTest_SynthDataBranch/SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m">SyntheticHDTVSimulation/seedBackedSyntheticHDTVSessionWalkthrough.m</a> <span class="cite">SRC-02A-02</span></td><td>Seed waveform and declared truth → synthetic dual-channel session and validation context.</td><td>Inspected; not run.</td></tr>
+<tr><td>Truth construction</td><td class="codepath"><a href="file:///C:/Users/pwilliam/agenticProjects/flightTest_SynthDataBranch/SyntheticHDTVSimulation/helperSyntheticGenerateTruth.m">helperSyntheticGenerateTruth.m</a> <span class="cite">SRC-02A-03</span></td><td>Waypoints or capture ADS-B → normalized truth bundle and target metadata.</td><td>Inspected; not run.</td></tr>
+<tr><td>Seed-backed channels</td><td class="codepath"><a href="file:///C:/Users/pwilliam/agenticProjects/flightTest_SynthDataBranch/SyntheticHDTVSimulation/helperSyntheticSynthesizeSeedBackedChannels.m">helperSyntheticSynthesizeSeedBackedChannels.m</a> <span class="cite">SRC-02A-04</span></td><td>Seed/reference/direct path/target echo → CH1 and CH2 construction.</td><td>Inspected; not run.</td></tr>
+<tr><td>Real-background injection</td><td class="codepath"><a href="file:///C:/Users/pwilliam/agenticProjects/flightTest_SynthDataBranch/SyntheticHDTVSimulation/helperSyntheticSynthesizeRealBackgroundTargetEchoes.m">helperSyntheticSynthesizeRealBackgroundTargetEchoes.m</a> <span class="cite">SRC-02A-05</span></td><td>Preserved recording + geometry + gain → surveillance-only fractional-delay echo injection.</td><td>Inspected; not run.</td></tr>
+<tr><td>Native target-echo propagation</td><td class="codepath"><a href="file:///C:/Users/pwilliam/agenticProjects/flightTest_SynthDataBranch/SyntheticHDTVSimulation/helperSyntheticSynthesizeToolboxTargetEchoes.m">helperSyntheticSynthesizeToolboxTargetEchoes.m</a> <span class="cite">SRC-02A-10</span></td><td>Measurement-space truth + seed → wideband propagation, FIR fractional delay, RMS normalization, and declared gain.</td><td>Inspected; not run.</td></tr>
+<tr><td>Echo-only conditioning</td><td class="codepath"><a href="file:///C:/Users/pwilliam/agenticProjects/flightTest_SynthDataBranch/SyntheticHDTVSimulation/helperSyntheticBuildConditionedEchoSeed.m">helperSyntheticBuildConditionedEchoSeed.m</a> <span class="cite">SRC-02A-06</span></td><td>Seed waveform → optional target-echo-only pilot-line conditioning and RMS match.</td><td>Inspected; not run.</td></tr>
+<tr><td>Package generation</td><td class="codepath"><a href="file:///C:/Users/pwilliam/agenticProjects/flightTest_SynthDataBranch/SyntheticHDTVSimulation/generateRealBackgroundSyntheticSuite.m">generateRealBackgroundSyntheticSuite.m</a> <span class="cite">SRC-02A-07</span></td><td>Captured pair + declared conditions → paired files, truth, manifests, and validation/readback artifacts.</td><td>Inspected; not run.</td></tr>
+<tr><td>Seed-backed package generation</td><td class="codepath"><a href="file:///C:/Users/pwilliam/agenticProjects/flightTest_SynthDataBranch/SyntheticHDTVSimulation/generateSyntheticHDTVSession.m">generateSyntheticHDTVSession.m</a> <span class="cite">SRC-02A-11</span></td><td>Scenario, truth, and seed fixture → packaged seed-backed session, traceability truth, manifest, and optional archive.</td><td>Inspected; not run; separate mode from real-background injection.</td></tr>
+<tr><td>Truth-blind replay and association</td><td class="codepath">BistaticDataAnalysis/runDetectorReplaySweep.m; runDetectionTruthDiagnostics.m; assessTruthVsDetections.m <span class="cite">SRC-02A-09</span></td><td>Package → maps/candidates first; truth association afterward.</td><td>Referenced for boundary; not run.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="glossary">
+<h2>12. Glossary</h2>
+<div class="cards">
+<article class="card"><h3>Truth</h3><p>The declared target position, motion, timing, and expected geometry used to create and later evaluate a controlled synthetic case.</p></article>
+<article class="card"><h3>Excess path</h3><p>Transmitter-to-target plus target-to-receiver distance, minus the direct transmitter-to-receiver distance. It determines expected bistatic delay.</p></article>
+<article class="card"><h3>Doppler</h3><p>The frequency change caused by changing path length. In this experiment, excess-path rate determines the declared bistatic Doppler.</p></article>
+<article class="card"><h3>Fractional delay</h3><p>A delay that is not limited to a whole number of samples, allowing an echo to be placed more precisely in time.</p></article>
+<article class="card"><h3>Paired control</h3><p>The same real recording with no declared synthetic echo added. It is a target-specific comparison, not a map-wide false-alarm experiment.</p></article>
+<article class="card"><h3>Truth-blind processing</h3><p>Map and detector steps run without using target truth. Truth is used only after candidates are retained, for evaluation.</p></article>
+</div>
+</section>
+
+<footer>Report 02A belongs between hardware/collection (02) and the analysis pipeline/gate rebuild (03). It explains a controlled synthetic experiment; the accepted recovery interpretation remains owned by Report 05.</footer>
+</body>
+</html>

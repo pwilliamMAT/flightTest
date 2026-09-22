@@ -1,0 +1,8 @@
+filename,purpose,status,keep in repo?,reason
+PassiveHDTVAircraftLocalization_ManagerReview_Final_Polished.pptx,Polished final manager-review deck,Accepted Reference,No,Keep as an external accepted reference so generated presentation binaries do not become routine source-controlled content
+PassiveHDTVAircraftLocalization_ManagerReview_Final.pptx,Pre-polish final manager-review deck,Historical Reference,No,Retain in ManagerReport for comparison with the polished accepted reference
+PassiveHDTVAircraftLocalization_ManagerReview_Pilot_V2.pptx,Second pilot manager-review deck,Historical Reference,No,Retain only as prior-review context
+PassiveHDTVAircraftLocalization_ManagerReview_Pilot.pptx,Initial pilot manager-review deck,Archive Only,No,Older presentation iteration with no active refresh role
+PassiveHDTVAircraftLocalization_ManagerReviewV2.pptx,Earlier manager-review version 2 deck,Archive Only,No,Historical iteration superseded by later manager-review decks
+PassiveHDTVAircraftLocalization_ManagerReviewV2(2).pptx,Second saved copy of earlier manager-review version 2 deck,Archive Only,No,Potential duplicate or divergent historical copy that should remain external pending a hash and content review
+PassiveHDTVAircraftLocalization_ProjectReviewV3.pptx,Earlier project-review deck,Historical Reference,No,Retain as project history but do not make it a reporting-source dependency

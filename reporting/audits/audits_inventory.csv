@@ -1,0 +1,12 @@
+filename,source location,purpose,accepted status
+01A_IlluminatorSelection_V4_audit.md,TechnicalSummaryFamily/companions/01A_IlluminatorSelection_V4_audit.md,Latest acceptance audit for the Illuminator Selection explainer,Accepted companion to 01A V4
+01B_ReceiveChainDesign_V2_audit.md,TechnicalSummaryFamily/companions/01B_ReceiveChainDesign_V2_audit.md,Latest acceptance audit for the Receive-Chain Design explainer,Accepted companion to 01B V2
+02A_audit.md,TechnicalSummaryFamily/companions/02A_audit.md,Acceptance audit for the Synthetic Echo Generation explainer,Accepted companion to 02A V1
+FlightTest_EndToEnd_HumanStory_V2_Audit.md,FlightTest_EndToEnd_HumanStory_V2_Audit.md,Acceptance audit for the end-to-end human story,Accepted companion to Human Story V2
+cross_explainer_review.md,cross_explainer_review.md,Cross-explainer continuity and ownership review,Accepted current review
+cross_report_audit.md,TechnicalSummaryFamily/companions/cross_report_audit.md,Cross-report evidence and continuity audit,Accepted family companion
+final_polish_audit.md,TechnicalSummaryFamily/companions/final_polish_audit.md,Final report-family polish audit,Accepted family companion
+report_family_upgrade_audit.md,TechnicalSummaryFamily/companions/report_family_upgrade_audit.md,Report-family upgrade review,Accepted family companion
+report_family_gap_review.md,TechnicalSummaryFamily/metadata/report_family_gap_review.md,Canonical report-family gap review,Accepted canonical metadata
+report_family_gap_review_audit.md,TechnicalSummaryFamily/metadata/report_family_gap_review_audit.md,Audit supporting the canonical gap review,Accepted canonical metadata
+report_family_story_spine.html,TechnicalSummaryFamily/metadata/report_family_story_spine.html,Canonical engineering-story spine,Accepted canonical metadata
