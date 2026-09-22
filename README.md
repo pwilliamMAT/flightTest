@@ -6,7 +6,7 @@ This repository contains a complete passive bistatic radar system and multi-sens
 
 ## Reporting and Current Project Status
 
-To find the latest status of this work or get up to speed on the overall project, start with the [FlightTest reporting index](reporting/reporting_README.md). It links the accepted nine-report technical family, current evidence and gaps, the end-to-end story, and the manager-storyboard references.
+To find the latest status of this work or get up to speed on the overall project, start with the [FlightTest reporting site](https://pwilliammat.github.io/flightTest/). It opens the accepted nine-report technical family in a browser, with the report links opening in new tabs. The version-controlled [reporting index](reporting/reporting_README.md) retains the source guide, evidence and gap records, end-to-end story, and manager-storyboard references.
 
 ### System Goals
 
