@@ -268,7 +268,12 @@ for f_idx = 1 : numel(filenames)
     fclose(fid);
     if cleanup_tmp
         delete(actual_file);
-        try, rmdir(fileparts(actual_file), 's'); catch, end
+        try
+            rmdir(fileparts(actual_file), 's');
+        catch cleanupError
+            warning('loadADSBTruth:temporaryCleanupFailed', ...
+                'Could not remove temporary folder: %s', cleanupError.message);
+        end
     end
 
     if vb
@@ -326,10 +331,12 @@ end
 %   MSG,1 rows   → callsign; use the last (most recent) value
 %
 % Interpolation rationale: MSG,3 and MSG,4 are broadcast on separate 1090ES
-% squitter bursts, so their timestamps differ by up to ~0.5 s.  Linear
-% interpolation of MSG,4 velocity fields (speed, track, vrate) onto the
-% MSG,3 time grid fuses the two message streams into a single synchronised
-% track without duplicating timestamps.
+% squitter bursts, so their timestamps differ by up to ~0.5 s.  Horizontal
+% velocity is converted to Cartesian east/north components before linear
+% interpolation.  This avoids treating the circular course angle as a
+% linear quantity (for example, interpolating 359 degrees to 1 degree
+% through 180 degrees).  Vertical rate remains an independently
+% interpolated channel.
 
 adsb_tracks = struct( ...
     'hex',       unique_hex(:)', ...     % [1×N_aircraft] cell array → char fields
@@ -408,8 +415,13 @@ for k = 1 : N_aircraft
         if numel(t_vel) >= 2
             in_span = t_pos >= t_vel(1) & t_pos <= t_vel(end);
             if any(in_span)
-                spd_mps(in_span)  = interp1(t_vel, spd_kt  * kt2mps,  t_pos(in_span), 'linear');
-                trk_deg(in_span)  = interp1(t_vel, trk_d,              t_pos(in_span), 'linear');
+                raw_spd_mps = spd_kt * kt2mps;
+                east_mps = raw_spd_mps .* sind(trk_d);
+                north_mps = raw_spd_mps .* cosd(trk_d);
+                east_interp = interp1(t_vel, east_mps, t_pos(in_span), 'linear');
+                north_interp = interp1(t_vel, north_mps, t_pos(in_span), 'linear');
+                spd_mps(in_span) = hypot(east_interp, north_interp);
+                trk_deg(in_span) = mod(atan2d(east_interp, north_interp), 360);
                 vrt_mps(in_span)  = interp1(t_vel, vrt_fpm * fpm2mps, t_pos(in_span), 'linear');
             end
         end
@@ -445,11 +457,13 @@ if vb
         for k = 1 : numel(adsb_tracks)
             t_start_dt = datetime(adsb_tracks(k).t_utc(1),   'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
             t_end_dt   = datetime(adsb_tracks(k).t_utc(end), 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+            t_start_text = string(t_start_dt, 'yyyy-MM-dd HH:mm:ss');
+            t_end_text = string(t_end_dt, 'yyyy-MM-dd HH:mm:ss');
             fprintf('  %-8s  %-10s  %6d  %20s  %20s\n', ...
                 adsb_tracks(k).hex, adsb_tracks(k).callsign, ...
                 numel(adsb_tracks(k).t_utc), ...
-                datestr(t_start_dt, 'yyyy-mm-dd HH:MM:SS'), ...
-                datestr(t_end_dt,   'yyyy-mm-dd HH:MM:SS'));
+                t_start_text, ...
+                t_end_text);
         end
         fprintf('\n');
     end

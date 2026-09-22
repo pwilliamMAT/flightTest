@@ -13,7 +13,261 @@ This repository contains a complete passive bistatic radar system and multi-sens
 
 ### ADS-B Prediction Review
 
-Stage 4E adds the standalone `adsbForTracking/stage4ERecursiveFilterEvaluationLiveScript.m` review. It compares position-updated CV, CA, and CT `trackingEKF` estimators, a native CV/CA/CT `trackingIMM`, and a `trackingUKF` driven by the frozen Stage 4C warm network. `trackingFilterTuner` uses validation events only, and the resulting parameters are frozen before synthetic and held-out ADS-B testing. The verified full run covers 48 synthetic sequences and 40 ADS-B events under four update profiles; all 17 integrity checks pass. Native IMM has the lowest headline posterior position RMSE (81.436 m on degraded canonical truth and 11.616 m on the ADS-B baseline proxy), while frozen-warm UKF reaches 399.620 m and 239.390 m and is not promoted. Run All loads the saved full result by default; enable recomputation or optional `trackingGlobeViewer` paths with the controls at the top of the Live Script.
+#### Current status
+
+Stage 4H-A5 showed that the corrected data contains 24,266 turn-like pairs and
+1,259 sustained turns, while the legacy quality policy rejected motion as if
+it were corruption. The fixed v2 policy uses endpoint consistency, preserves
+204 validation and 230 test baseline turn events, and passes all integrity,
+diversity, and clean-information gates without changing data, splits, Q/R, or
+neural weights.
+
+The 2026-09-08 verification repair archived the original 11 outputs as
+non-authoritative evidence, recomputed v1 exactly against immutable A4,
+expanded checkpoint and forbidden-call coverage to transitive dependencies,
+fixed event attribution and test-use metadata, and regenerated the canonical
+result. All 22 A5 implementation checks and all nine A3 decision gates pass;
+102 tests pass, Code Analyzer is clean across 42 files, and an
+exact-configuration resume revalidates all hashes.
+
+The decision is `authorize_one_clean_data_neural_residual_experiment`; A5 did
+not perform that experiment. Because the existing validation and development
+test sets have been inspected, any future promotion still requires fresh
+untouched ADS-B. Complete evidence is under
+`adsbForTracking/artifacts/stage4HTurnDiversityAudit/`.
+
+Historical Stage 4H-A and A2 results are preserved below. Stage 4H-A used `trackingKF`; A2 standardized subsequent work on `trackingEKF`.
+
+Stage 4H-A is the completed causal-posterior information gate after Stage 4G authorized a bounded history-residual investigation. It replays all raw ADS-B events through a linear 3-D constant-velocity `trackingKF`, exposes the live six-state posterior and full covariance, and tests a 62-feature residual information ladder before any neural training.
+
+The full feature set improves posterior-CV validation RMSE by 7.498%, from 51.8604 m to 47.9719 m, with an aircraft-bootstrap difference of `-3.8886 m [-6.6078, -1.8533]`. That headline comparison is insufficient: complete context is only 0.633% better than state plus interval with a confidence interval crossing zero, and development-test performance reverses to a 7.603% degradation. The fixed-Q/R posterior is also much worse than report-aligned CV—51.860 versus 19.876 m on validation and 76.572 versus 19.419 m on test. The decision is `stop_before_neural_training`: calibrate the classical posterior and freeze an outlier/gap policy before reconsidering a small residual model.
+
+#### How the project reached this result
+
+1. Stage 3 established one-step ADS-B prediction and a native `constvel` physics baseline alongside the first frozen neural predictor.
+2. Stage 4B-Post expanded and audited the ADS-B dataset. Stage 4C trained scratch and warm-start neural candidates on an aircraft-disjoint split; neither displaced the native constant-velocity baseline.
+3. Stage 4D froze the warm network and characterized one-step behavior under synthetic motions, held-out ADS-B intervals, and missing reports. It did not test accumulated recursive error.
+4. Stage 4E placed the native motion models and frozen neural transition inside complete recursive filters with identical initialization, timestamps, position corrections, dropout schedules, and scoring rows. This isolated filter behavior from input differences.
+5. Stage 4F removed the remaining comparison ambiguity: direct rollouts use the same observed start and interval sequence, while matched UKFs differ only in their transition function. The IMM remains historical context rather than the decision baseline.
+6. Stage 4G decomposed one-step error into the `constvel` truth residual and frozen neural correction, fit only one validation scalar, and tested whether omitted causal history contains useful information.
+7. Stage 4H-A reconstructed a causal Kalman posterior from asynchronous position and velocity reports, then tested whether posterior covariance and short history add stable residual-prediction information.
+8. Stage 4H-A2 standardized the replay on `trackingEKF`, selected Q/R on training aircraft only, froze the winning setting, and reran the same information gate.
+9. Stage 4H-A3 traced every frozen pair to raw reports, applied fixed quality profiles, and stopped the project at a material course-wrap synchronization defect.
+10. Stage 4H-A4 repaired Cartesian velocity ingestion and rebuilt the derived dataset, leaving only the clean-core turn-diversity blocker.
+11. Stage 4H-A5 separated integrity from maneuver motion, restored held-out turn support, repaired all verification defects, and authorized one bounded clean-data residual experiment.
+
+No neural training occurs in Stage 4H-A through A5. The ridge models are low-capacity information probes selected by aircraft-grouped cross-validation on training aircraft only; they are not candidate deployed networks.
+
+#### Stage 4H-A2 result
+
+| Quantity | Result |
+|---|---:|
+| Training aircraft / matched pairs | 120 / 29,477 |
+| Selected `trackingEKF` change | Vertical-rate measurement std: 0.5 to 1.0 m/s |
+| Training aircraft-mean position RMSE | 62.6386 to 59.1015 m (5.647% better) |
+| Training pair-weighted position RMSE | 51.6204 to 46.8721 m (9.198% better) |
+| Training position P95 | 79.2998 to 58.7015 m (25.975% better) |
+| Validation calibrated CV / full-feature RMSE | 47.2753 / 45.1384 m |
+| Validation full-feature improvement | 4.520% |
+| Validation paired RMSE difference, 95% CI | `-2.1369 [-4.0324, -0.7219] m` |
+| Development-test calibrated CV / full-feature RMSE | 55.9625 / 54.4645 m |
+| Development-test full-feature improvement | 2.677% |
+| Decision | `stop_before_neural_training` |
+
+Primary A2 evidence is under `adsbForTracking/artifacts/stage4HEKFNoiseCalibration/` and `adsbForTracking/artifacts/stage4HEKFCalibratedInformationGate/`. The selected values improve ADS-B next-report prediction; they are not yet a statistical covariance-calibration result. A causal channel-health and gap/reset policy remains separate follow-on work because fixed Q/R cannot resolve contradictory altitude and vertical-rate reports.
+
+#### Stage 4H-A result
+
+| Quantity | Result |
+|---|---:|
+| Matched causal pairs | 457,903 / 457,903 |
+| Validation posterior CV / full-feature RMSE | 51.8604 / 47.9719 m |
+| Validation full-feature improvement | 7.498% |
+| Validation paired RMSE difference, 95% CI | `-3.8886 [-6.6078, -1.8533] m` |
+| Full versus state-plus-interval difference, 95% CI | `-0.3057 [-1.2341, 0.5793] m` |
+| Development-test posterior CV / full-feature RMSE | 76.5719 / 82.3936 m |
+| Development-test full-feature improvement | -7.603% |
+| Validation report-aligned / posterior CV RMSE | 19.876 / 51.860 m |
+| Test report-aligned / posterior CV RMSE | 19.419 / 76.572 m |
+
+Run the question-driven review from MATLAB:
+
+```matlab
+cd adsbForTracking
+open("stage4HCausalPosteriorInformationGateLiveScript.m")
+```
+
+Use **Run All**. It loads the saved full result by default, reports causal alignment, posterior fidelity, the validation-only information ladder, incremental context tests, and the no-training decision. Primary evidence is under `adsbForTracking/artifacts/stage4HCausalInformationGate/`.
+
+#### Stage 4G result
+
+The validation-only alpha and frozen test results are:
+
+| Quantity | Result |
+|---|---:|
+| Validation alpha, 95% aircraft-bootstrap CI | `0.1014 [0.0503, 0.1551]` |
+| Test native `constvel` position RMSE | 23.3028 m |
+| Test raw frozen NN position RMSE | 27.4691 m |
+| Test frozen-alpha blend position RMSE | 23.2230 m |
+| Test blend improvement over `constvel` | 0.342% |
+| Test blend-minus-CV RMSE, 95% CI | `[-0.134, -0.024] m` |
+| Required practical improvement | 5% |
+
+The raw correction helps only 21.1% of test pairs and harms 78.9%. Causal history has stable magnitude information: previous velocity-change magnitude correlates with test CV position-residual magnitude at 0.263 `[0.146, 0.365]`, and previous absolute wrapped-heading change correlates at 0.233 `[0.108, 0.344]`. Signed continuation is not a safe baseline: test signed-heading correlation is -0.266 `[-0.413, -0.013]`, and the velocity-vector projection slope is -0.223 `[-0.377, 0.033]`.
+
+Run the question-driven review from MATLAB:
+
+```matlab
+cd adsbForTracking
+open("stage4GResidualLearnabilityAuditLiveScript.m")
+```
+
+Use **Run All**. It loads the saved full result by default and keeps detailed tables in the workspace and CSV artifacts rather than displaying them inline. The primary saved evidence is under `adsbForTracking/artifacts/stage4GResidualLearnabilityAudit/`.
+
+#### Stage 4F result
+
+The direct event-weighted position RMSE results are:
+
+| Horizon (report intervals) | Native `constvel` | Frozen warm NN | Paired warm-minus-CV event RMSE, 95% CI |
+|---:|---:|---:|---:|
+| 1 | 64.651 m | 69.760 m | 10.668 m `[9.689, 11.647]` |
+| 2 | 92.173 m | 101.320 m | 18.163 m `[16.540, 19.787]` |
+| 5 | 251.220 m | 259.210 m | 32.017 m `[28.949, 35.084]` |
+| 10 | 345.320 m | 371.310 m | 54.189 m `[47.486, 60.893]` |
+
+Positive paired differences favor `constvel`; every confidence interval is above zero. The pair-weighted horizon-1 values reproduce Stage 4D within `1e-6 m`: 23.303 m for `constvel` and 27.469 m for the warm network.
+
+The matched-UKF event-weighted position RMSE results are:
+
+| Shared process-noise scale | Synthetic CV / warm | ADS-B proxy CV / warm |
+|---:|---:|---:|
+| 0.25 | 349.52 / 594.38 m | 40.522 / 162.89 m |
+| 1 | 278.68 / 600.55 m | 29.187 / 237.37 m |
+| 4 | 248.63 / 1100.70 m | 23.572 / 408.20 m |
+
+The ranking never reverses. At the reference scale of 1, only about 0.005% of ADS-B recursive center-state and sigma-point feature rows exceed a train-observed feature range, so ordinary ADS-B support mismatch does not explain the failure. The independent synthetic benchmark is deliberately broader: about 58.5% of its recursive inputs exceed at least one train-observed range.
+
+#### Run and inspect Stage 4F
+
+From MATLAB:
+
+```matlab
+cd adsbForTracking
+open("stage4FFrozenWarmAdequacyAuditLiveScript.m")
+```
+
+Use **Run All**. The notebook loads the saved full result by default and answers six explicit questions with labeled figures and short printed summaries; detailed tables remain in the workspace and CSV artifacts rather than being displayed inline.
+
+The controls at the top of the notebook are:
+
+- `regenerateStage4FResults = false`: load the saved full audit; set to `true` only to rerun evaluation.
+- `stage4FBenchmarkMode = "full"`: choose `"smoke"` for a shorter recomputation.
+- `stage4FRandomSeed = 123`: reproduce synthetic trajectories and dropout.
+- `stage4FOpenLoopHorizons = [1, 2, 5, 10]`: choose direct rollout horizons.
+- `stage4FProcessNoiseScales = [0.25, 1, 4]`: choose shared, non-optimized covariance scales.
+- `generateStage4FPlots = true`: generate the question-specific figures.
+
+Primary files and saved evidence:
+
+- `adsbForTracking/stage4FFrozenWarmAdequacyAuditLiveScript.m`: manual review and Run All entry point
+- `adsbForTracking/runStage4FFrozenWarmAdequacyAudit.m`: reproducible computation entry point
+- `adsbForTracking/artifacts/stage4FFrozenWarmAdequacyAudit/stage4FFrozenWarmAdequacyAuditResults.mat`: complete saved result
+- `adsbForTracking/artifacts/stage4FFrozenWarmAdequacyAudit/stage4F_frozen_warm_adequacy_summary.png`: compact visual summary
+- `adsbForTracking/artifacts/stage4FFrozenWarmAdequacyAudit/*.csv`: detailed metrics, confidence intervals, support audit, and verification
+
+#### How the IMM was configured
+
+`adsbForTracking/helperInitializeStage4EFilter.m` creates three native `trackingEKF` components and combines them with `trackingIMM`:
+
+| IMM component | Native motion and measurement functions | Initial process-noise diagonal |
+|---|---|---:|
+| CV | `constvel`, `constveljac`, `cvmeas`, `cvmeasjac` | `[4, 4, 0.64]` |
+| CA | `constacc`, `constaccjac`, `cameas`, `cameasjac` | `[0.25, 0.25, 0.04]` |
+| CT | `constturn`, `constturnjac`, `ctmeas`, `ctmeasjac` | `[4, 4, 7.6154e-5, 0.64]` |
+
+The IMM uses `switchimm` for model-state conversion and equal initial model probabilities. Its initial transition matrix is:
+
+```text
+       to CV   to CA   to CT
+CV     0.950   0.025   0.025
+CA     0.025   0.950   0.025
+CT     0.025   0.025   0.950
+```
+
+#### How the filters were tuned
+
+`adsbForTracking/helperTuneStage4EFilters.m` uses `trackingFilterTuner` with `fmincon` and the SQP algorithm. Tuning uses three validation events with at most 120 pairs per event. The custom objective in `adsbForTracking/helperStage4ETuningCost.m` is normalized six-state RMSE over `[x, vx, y, vy, z, vz]`, with normalization scales `[100 m, 10 m/s, 100 m, 10 m/s, 150 m, 5 m/s]`.
+
+Only diagonal process-noise entries and IMM transition probabilities are tuned. Initial covariance, measurement noise, IMM initial model probabilities, UKF sigma-point parameters, motion equations, and neural weights remain fixed. The tuning artifact is frozen before test scoring.
+
+The tuned IMM transition matrix is:
+
+```text
+       to CV   to CA   to CT
+CV    0.8774  0.0533  0.0693
+CA    0.0546  0.9444  0.0010
+CT    0.0359  0.0099  0.9542
+```
+
+Its tuned process-noise diagonals are:
+
+| IMM component | Tuned process-noise diagonal |
+|---|---:|
+| CV | `[4.0087, 4.0112, 0.6383]` |
+| CA | `[0.2500, 0.2500, 0.0400]` |
+| CT | `[3.9985, 4.0000, 7.6779e-5, 0.6388]` |
+
+The frozen validation costs, where lower is better, are:
+
+| Estimator | Normalized validation cost |
+|---|---:|
+| Native IMM | 0.086906 |
+| CV EKF | 0.093268 |
+| CT EKF | 0.093485 |
+| CA EKF | 0.097311 |
+| Frozen-warm UKF | 0.284210 |
+
+#### What the tuned IMM achieved
+
+The native IMM has the lowest headline posterior position RMSE on degraded canonical truth and on the ADS-B baseline proxy:
+
+| Evaluation condition | IMM position RMSE |
+|---|---:|
+| Synthetic canonical, degraded observations | 81.436 m |
+| Held-out ADS-B baseline proxy | 11.616 m |
+| Held-out ADS-B, 10% random dropout | 13.427 m |
+| Held-out ADS-B, 25% random dropout | 15.605 m |
+| Held-out ADS-B, burst outage | 167.190 m |
+
+The long burst outage is the important warning: the IMM performs well when corrections remain available, but error grows substantially during extended open-loop coasting. The frozen-warm UKF records 399.620 m on degraded canonical truth and 239.390 m on the ADS-B baseline proxy, so it is not promoted.
+
+#### Run and inspect Stage 4E
+
+From MATLAB:
+
+```matlab
+cd adsbForTracking
+open("stage4ERecursiveFilterEvaluationLiveScript.m")
+```
+
+Use **Run All**. By default the notebook loads the saved full result and displays the initial IMM configuration, initial-versus-tuned parameters, validation costs, headline results, integrity checks, summary plots, and optional globe paths. It does not retune.
+
+The controls at the top of the notebook are:
+
+- `regenerateStage4EResults = false`: load the frozen result; set to `true` to rerun scoring.
+- `retuneStage4EFilters = false`: reuse frozen tuning; set to `true` only when intentionally replacing it.
+- `generateStage4EPlots = true`: generate the summary figure.
+- `enableStage4EInteractiveGlobe = true`: open representative `trackingGlobeViewer` paths.
+
+Primary files and saved evidence:
+
+- `adsbForTracking/stage4ERecursiveFilterEvaluationLiveScript.m`: educational review and Run All entry point
+- `adsbForTracking/helperInitializeStage4EFilter.m`: initial CV/CA/CT, IMM, and warm-UKF configuration
+- `adsbForTracking/helperTuneStage4EFilters.m`: validation-only tuning workflow
+- `adsbForTracking/helperStage4ETuningCost.m`: normalized six-state objective
+- `adsbForTracking/runStage4ERecursiveFilterEvaluation.m`: complete benchmark
+- `adsbForTracking/artifacts/stage4ERecursiveFilterEvaluation/stage4EFilterTuning.mat`: frozen tuned parameters and validation costs
+- `adsbForTracking/artifacts/stage4ERecursiveFilterEvaluation/stage4ERecursiveFilterEvaluationResults.mat`: full scored result
 
 Stage 4D provides the preceding one-step characterization in `adsbForTracking/stage4DFrozenWarmCharacterizationLiveScript.m`. It freezes `expanded_warm_mean_v1`, generates 21 canonical cases plus 100 ten-minute in-distribution and 50 ten-minute out-of-distribution `kinematicTrajectory` truths, reconstructs held-out ADS-B events under baseline and dropout conditions, and compares only warm, `constvel`, `constacc`, and `constturn`. Run All loads the saved full result by default; set `regenerateStage4DResults = true` and choose `stage4DBenchmarkMode = "smoke"` or `"full"` to recompute. With `enableStage4DInteractiveGlobe = true`, Run All also opens native `trackingGlobeViewer` collections for all seven canonical motions and one selectable held-out ADS-B dropout event. Use `stage4DCanonicalGlobeProfile`, `stage4DRealGlobeProfile`, and `stage4DRealGlobeEventRank` to change those views.
 
@@ -1294,4 +1548,4 @@ Proprietary - MathWorks Internal Research
 
 ---
 
-*Last Updated: August 18, 2026*
+*Last Updated: September 8, 2026*

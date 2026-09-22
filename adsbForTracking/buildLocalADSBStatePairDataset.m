@@ -50,13 +50,16 @@ validateattributes(maxDtSeconds, {'numeric'}, {'scalar', 'real', 'finite', 'posi
 stateOrder = ["x", "vx", "y", "vy", "z", "vz"];
 
 if isfolder(parserFolder)
-    addpath(parserFolder);
+    addpath(parserFolder, "-begin");
 end
 
 if exist("loadADSBTruth", "file") ~= 2
     error("Stage2B:MissingParser", ...
         "loadADSBTruth.m was not found. Set ParserFolder to the BistaticDataAnalysis folder.");
 end
+
+canonicalParserPath = string(which("loadADSBTruth"));
+parserSHA256 = helperComputeFileSHA256(canonicalParserPath);
 
 if isempty(sourceFiles)
     sourceFiles = helperDiscoverLocalADSBTruthFiles(searchRoot);
@@ -228,6 +231,9 @@ buildSummary.outputPath = outputPath;
 buildSummary.reportPath = reportPath;
 buildSummary.defaultReceiverOriginLLA = defaultReceiverOriginLLA;
 buildSummary.maxDtSeconds = maxDtSeconds;
+buildSummary.canonicalParserPath = canonicalParserPath;
+buildSummary.parserSHA256 = parserSHA256;
+buildSummary.velocityInterpolationRevision = "cartesian_velocity_v1";
 
 dataset = struct();
 dataset.previousState = previousState;

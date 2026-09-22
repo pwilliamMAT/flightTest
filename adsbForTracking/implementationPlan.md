@@ -17,6 +17,11 @@
 - (completed) Stage 4C-Review: Unified review dashboard. `stageReviewLiveScript.m` is the Run All entry point for frozen split/motion counts, a test-only native-versus-neural RMSE dashboard, a separate neural validation-versus-test dashboard, and three configurable class-specific `trackingGlobeViewer` trajectory collections.
 - (completed) Stage 4D: Standalone frozen-warm characterization. `stage4DFrozenWarmCharacterizationLiveScript.m` audits the unchanged warm artifact, runs deterministic synthetic and held-out ADS-B dropout benchmarks, and keeps same-information warm-versus-`constvel` conclusions separate from predecessor-assisted `constacc`/`constturn` results.
 - (completed) Stage 4E: Recursive filter evaluation. Validation-only `trackingFilterTuner` parameters are frozen before matched recursive CV/CA/CT EKF, native IMM, and frozen-warm UKF testing on synthetic truth and held-out ADS-B scoring proxies.
+- (completed) Stage 4F: Frozen warm-model adequacy audit. The no-training comparison rejects the current frozen model: it loses to `constvel` at every direct horizon and inside matched UKFs at every shared process-noise scale.
+- (completed) Stage 4G: Residual-learnability audit. A validation-only scalar correction recovers only 0.342% test position RMSE, far below the 5% gate. Causal history magnitudes remain informative, authorizing one separately frozen, small zero-safe history-residual experiment without retaining the current memoryless correction.
+- (completed) Stage 4H-A: Causal posterior information gate. A linear `trackingKF` reconstructs live posterior state/covariance from asynchronous raw ADS-B events, but covariance and complete short-history context add no stable information beyond posterior state and interval. The full model improves validation by 7.498% yet degrades the development test by 7.603%; no neural training is authorized.
+- (completed) Stage 4H-A2: Training-only `trackingEKF` Q/R calibration and frozen gate rerun. Doubling only vertical-rate measurement standard deviation to 1.0 m/s improves the 120-aircraft training position metrics while preserving velocity. Held-out posterior fidelity improves materially, but complete context gains only 4.520% on validation and still adds no stable information beyond state and interval, so neural training remains unauthorized.
+- (completed) Stage 4H-A3: ADS-B supervision integrity gate. All 457,903 frozen pairs receive raw-report lineage and fixed quality profiles. The audit finds 424 material horizontal-velocity synchronization errors, including a 330.248 m/s course-wrap failure, and the default clean core has no sustained-turn events. Repair ingestion and rebuild derived artifacts before any neural training.
 
 ## Summary
 
@@ -32,6 +37,11 @@
 - Stage 4B adds the testing-machine ADS-B interval capture coordinator under `adsbForTracking/piCaptureCampaign/`; it schedules ADS-B-only truth captures by SSHing to the Pi, then fetches and packages ADS-B-only holdout sessions with `session_manifest.json` receiver-origin metadata for Stage 3C/4A review.
 - Stage 4B-Post integrated the completed three-day campaign without erasing the smaller Stage 3C baseline. The named legacy, incremental, and expanded variants use the same parser, state-pair rules, maneuver thresholds, frozen Stage 3A MLP, and native `constvel` baseline. Expanded-3Day passes the event-, contributor-, campaign-day-, joint-regime-, and split-level local retraining gate, while broad generalization remains unsupported.
 - Stage 4E completed the recursive diagnostic that Stage 4D deferred. It does not promote the learned model: the native CV/CA/CT IMM is the strongest tested recursive estimator, while the frozen-warm UKF is less accurate and substantially slower on both independent synthetic truth and held-out ADS-B scoring proxies.
+- Stage 4F completed the checkpoint before any further training. It removes the separately tuned filter-class confound by comparing the frozen neural transition with native `constvel` directly and inside otherwise identical UKFs. No neural weights or filter parameters were optimized, and the current frozen model was rejected.
+- Stage 4G shows why more of the same memoryless training is not justified. The frozen correction is weakly aligned and must be reduced to alpha 0.1014; the frozen blend improves test position RMSE by only 0.342%, despite a paired aircraft-clustered interval below zero. Previous velocity-change and wrapped-heading magnitudes consistently predict residual magnitude, but signed continuation is not reliable. The next allowable modeling step is therefore a separately approved, small zero-safe history residual model, followed by a fresh aircraft-disjoint holdout before any native-baseline claim.
+- Stage 4H-A tests that authorization with causal Kalman posterior information before neural training. The complete 62-feature ridge diagnostic clears the primary validation comparison against CV from the posterior, but its incremental context comparison is inconclusive and performance reverses on development-test aircraft. The current fixed Q/R posterior is also substantially worse than CV from the report-aligned state, so calibrating the classical posterior and defining an outlier/gap policy are prerequisites to any Stage 4H-B neural prototype.
+- Stage 4H-A2 establishes the requested win on existing ADS-B data without changing the event, feature, split, or scoring pipeline. A training-only near-baseline sensitivity search freezes `trackingEKF` vertical-rate measurement standard deviation at 1.0 m/s. The calibrated posterior improves historical posterior-CV RMSE by 8.841% on validation and 26.915% on development test, and removes the prior test reversal of the full diagnostic. The neural gate still fails because the validation improvement over calibrated CV is 4.520%, below the predeclared 5%, and complete context is not reliably better than state plus interval.
+- Stage 4H-A3 audits the frozen supervision rather than training again. It traces every synchronized endpoint to raw ADS-B records, applies strict/default/permissive annotations without changing values, and reruns frozen sensitivity and information tests. The clean validation ladder passes numerically, but a material course-wrap synchronization defect and loss of clean-core turn diversity require a separate ingestion repair and rebuild first.
 
 ## (completed) Stage 1: Literature And Resource Review
 
@@ -1398,6 +1408,575 @@ Primary files:
 - `helperOpenStage4EGlobe.m`
 - `tests/Stage4ERecursiveFilterEvaluationTest.m`
 - `artifacts/stage4ERecursiveFilterEvaluation/stage4ERecursiveFilterEvaluationResults.mat`
+
+## (completed) Stage 4F: Frozen Warm-Model Adequacy Audit
+
+Stage 4F answers the narrow question that remained after Stage 4E: does the
+existing frozen neural transition add value over native constant velocity
+when the comparison itself is matched?
+
+Implemented scope:
+
+- No training, feature redesign, `trackingFilterTuner`, `fmincon`, or IMM
+  retuning.
+- Direct open-loop warm-versus-`constvel` rollouts at 1, 2, 5, and 10
+  observed report intervals over all eligible aircraft-disjoint test events.
+- Native `trackingUKF` comparisons in which initialization, covariance,
+  process noise, `cvmeas`, measurement noise, sigma-point parameters,
+  timestamps, corrections, dropout, and scoring rows are identical. Only
+  the transition function differs.
+- Shared process-noise covariance multipliers `[0.25, 1, 4]`, applied to
+  both matched filters without optimization.
+- Frozen-training-support checks for recursive center states and the actual
+  sigma points passed to the neural transition.
+- Event-weighted RMSE, paired event-level 95% confidence intervals, a
+  question-driven plain-text Live Script, and detailed saved artifacts.
+
+Outcome:
+
+- Direct event-weighted position RMSE was worse for the warm model at every
+  horizon: 69.760 versus 64.651 m at one interval, 101.320 versus 92.173 m
+  at two, 259.210 versus 251.220 m at five, and 371.310 versus 345.320 m at
+  ten.
+- Every paired warm-minus-CV confidence interval was strictly above zero.
+- In matched UKFs at the reference process-noise scale, warm versus CV was
+  600.55 versus 278.68 m on independent synthetic truth and 237.37 versus
+  29.187 m on the held-out ADS-B scoring proxy.
+- CV won in both headline domains at all three shared process-noise scales;
+  there was no rank reversal.
+- At the reference scale, about 0.005% of ADS-B recursive center and sigma
+  feature rows exceeded a train-observed range, compared with about 58.5%
+  on the deliberately broader synthetic benchmark.
+- Decision: `reject_frozen_model`. The failure cannot be attributed to the
+  Stage 4E IMM or to separately tuned filter classes, and ordinary held-out
+  ADS-B feature-range extrapolation is not a sufficient explanation.
+
+Verification:
+
+- All 17 full-run integrity checks passed. The horizon-1 pair-weighted
+  result reproduces Stage 4D within `1e-6 m`.
+- The finalized Stage 4F suite passed 10 of 10 tests; Stage 4D and Stage 4E
+  regression suites passed 13 of 13 and 11 of 11 tests, respectively.
+- MATLAB Code Analyzer reported no findings in the Stage 4F implementation,
+  test, or Live Script.
+- The full four-worker run completed in 1,031.6 seconds without modifying
+  any frozen input artifact.
+
+Primary files:
+
+- `Stage4FPlan.md`
+- `stage4FFrozenWarmAdequacyAuditLiveScript.m`
+- `runStage4FFrozenWarmAdequacyAudit.m`
+- `helperEvaluateStage4FDirectRollouts.m`
+- `helperEvaluateStage4FMatchedUKF.m`
+- `helperPlotStage4FWarmAdequacy.m`
+- `tests/Stage4FFrozenWarmAdequacyAuditTest.m`
+- `artifacts/stage4FFrozenWarmAdequacyAudit/stage4FFrozenWarmAdequacyAuditResults.mat`
+
+## (completed) Stage 4G: Residual-Learnability Audit
+
+Stage 4G tests the formulation exposed by Stage 4F without training another
+network. It asks whether the frozen neural prediction contains a useful
+correction to native `constvel` and whether omitted causal history carries
+predictive information.
+
+Implemented scope:
+
+- Recomputed native `constvel` and frozen warm predictions on all 86,420
+  validation pairs and 93,524 test pairs from 395 aircraft per split.
+- Defined `truthResidual = nextState - constvelPrediction` and
+  `nnCorrection = neuralPrediction - constvelPrediction`.
+- Fit one origin-constrained scalar alpha by validation position SSE only,
+  then froze it for test scoring.
+- Resampled complete ICAO aircraft for all alpha, paired RMSE, and history
+  confidence intervals.
+- Measured correction direction, magnitude, state bias, and help/harm
+  frequency overall and by maneuver, interval, validation-defined residual
+  magnitude, and aircraft.
+- Built target-free causal history from the immediately preceding adjacent
+  state in the same session/ICAO and tested previous velocity and wrapped
+  heading changes against the next CV residual.
+- Performed no neural training, filter tuning, IMM evaluation, or UKF
+  evaluation.
+
+Outcome:
+
+- Validation selected `alpha = 0.1014`, with a complete-aircraft 95%
+  bootstrap interval `[0.0503, 0.1551]`. The raw neural correction therefore
+  requires roughly 90% shrinkage.
+- On test aircraft, native `constvel` position RMSE was 23.3028 m, the raw
+  warm network was 27.4691 m, and the frozen-alpha blend was 23.2230 m.
+- The blend improved test RMSE by only 0.342%. Its paired blend-minus-CV
+  interval was `[-0.134, -0.024] m`: directionally detectable, but far below
+  the required 5% practical gate.
+- The raw neural correction helped only 21.1% of test pairs and harmed
+  78.9%; the alpha blend helped 47.1% and harmed 52.9%.
+- Previous velocity-change magnitude correlated with test CV position
+  residual magnitude at 0.263 `[0.146, 0.365]`; previous absolute wrapped
+  heading change correlated at 0.233 `[0.108, 0.344]`.
+- Directional continuation was not dependable: the test signed-heading
+  correlation was -0.266 `[-0.413, -0.013]`, and the velocity-vector
+  projection slope was -0.223 `[-0.377, 0.033]`.
+- Decision:
+  `reject_frozen_correction_authorize_history_residual`. Do not enlarge or
+  retrain the same memoryless design. A separately frozen, small zero-safe
+  history-residual experiment is authorized because history predicts
+  residual magnitude, but it must learn when and how to correct rather than
+  naively continue the prior change.
+
+Verification:
+
+- All 17 full-run integrity checks passed.
+- The Stage 4G test suite passed 10 of 10 tests.
+- MATLAB Code Analyzer reported no findings in the runner, three helpers,
+  test, or question-driven plain-text Live Script.
+- The frozen dataset, split manifest, and warm neural artifact retained
+  their expected SHA-256 values before and after execution.
+
+Primary files:
+
+- `stage4GResidualLearnabilityAuditLiveScript.m`
+- `runStage4GResidualLearnabilityAudit.m`
+- `helperEvaluateStage4GResidualSignal.m`
+- `helperBuildStage4GCausalHistory.m`
+- `helperPlotStage4GResidualLearnability.m`
+- `tests/Stage4GResidualLearnabilityAuditTest.m`
+- `artifacts/stage4GResidualLearnabilityAudit/stage4GResidualLearnabilityAuditResults.mat`
+
+## (completed) Stage 4H-A: Causal Posterior Information Gate
+
+Stage 4H-A tests whether live posterior covariance and short causal history
+provide enough stable information to justify one new residual neural
+transition. It performs no neural training.
+
+Implemented scope:
+
+- Applied the frozen global-ICAO manifest: 277,959/86,420/93,524
+  train/validation/test pairs from 1,188/395/395 disjoint aircraft.
+- Replayed 154 raw ADS-B sources through a native linear `trackingKF` with
+  the six-state `[x,vx,y,vy,z,vz]` 3-D constant-velocity model.
+- Converted MSG,3 position with `lla2enu(...,"ellipsoid")`.
+- Converted MSG,4 speed/course/vertical-rate reports with `aer2enu`, mapped
+  their covariance into Cartesian ENU with an analytic Jacobian, and used
+  switched linear position/velocity measurement matrices.
+- Matched all posterior rows to exact pair-anchor timestamps and
+  interpolated only future velocity labels in Cartesian ENU.
+- Packed six posterior-state values, 21 full-covariance Cholesky values,
+  prediction interval, three zero-safe causal history slots, and
+  measurement-recency context into the frozen 62-feature diagnostic.
+- Selected ridge penalties by aircraft-grouped cross-validation on
+  training aircraft only. Validation determined the gate, the existing
+  test split remained descriptive, and complete aircraft were bootstrapped.
+
+Outcome:
+
+- All 457,903 pairs matched an exact causal posterior; maximum anchor lag
+  was zero.
+- Posterior CV validation RMSE was 51.8604 m. The full 62-feature model
+  reached 47.9719 m, a 7.498% improvement with paired aircraft-bootstrap
+  difference `-3.8886 m [-6.6078, -1.8533]`.
+- Validation velocity RMSE improved by 0.295%, satisfying noninferiority.
+- The full model was only 0.633% better than state plus interval, with
+  interval `[-1.2341, 0.5793] m`; covariance after history/recency was also
+  inconclusive at `[-0.6914, 0.3081] m`.
+- On development-test aircraft, full-feature RMSE was 82.3936 m versus
+  76.5719 m for posterior CV, a 7.603% degradation with interval
+  `[-6.5849, 29.8605] m`.
+- CV from the report-aligned state was much lower than CV from the current
+  posterior: 19.876 versus 51.860 m on validation and 19.419 versus
+  76.572 m on test. One test aircraft had about 997 m posterior anchor
+  position RMSE, almost entirely vertical. This is evidence that the fixed
+  process/measurement-noise assumptions and data-quality policy require
+  attention before learned dynamics.
+- Decision: `stop_before_neural_training`. The predeclared incremental
+  context gate failed, despite the headline validation comparison passing.
+
+Verification:
+
+- All 15 full-run integrity checks passed.
+- All 29 Stage 4H tests passed.
+- MATLAB Code Analyzer reported no findings in the Stage 4H implementation,
+  tests, or plain-text Live Script.
+- The question-driven Live Script completed headlessly from the saved full
+  artifact, and the summary figure was inspected after applying explicit
+  theme-independent colors.
+- Frozen dataset and split hashes remained
+  `9B757A85A58DA6663F79524E6B287B06420DB0BF3480A7AA661E96792212EBDD`
+  and
+  `74CA2A3BC5E583C6C03E06395CA5D50C772F13C67B73148CA9FEB459322900DB`.
+
+Primary files:
+
+- `stage4HCausalPosteriorInformationGateLiveScript.m`
+- `runStage4HCausalInformationGate.m`
+- `helperApplyStage4HICAOSplit.m`
+- `helperLoadStage4HADSBEvents.m`
+- `helperReplayStage4HCausalPosterior.m`
+- `helperBuildStage4HPosteriorFeatures.m`
+- `helperBuildStage4HInformationDataset.m`
+- `helperFitStage4HInformationLadder.m`
+- `helperAuditStage4HPosteriorFidelity.m`
+- `helperPlotStage4HCausalInformationGate.m`
+- `tests/Stage4H*.m`
+- `artifacts/stage4HCausalInformationGate/`
+
+Next bounded investigation:
+
+- Do not train Stage 4H-B yet.
+- Calibrate or sensitivity-test the classical filter Q/R assumptions using
+  training aircraft only, and predeclare an outlier/gap-reset policy without
+  using validation or test results for tuning.
+- Re-run the same information gate after those classical prerequisites are
+  frozen. Authorize one small residual model only if complete causal context
+  adds stable validation information beyond state and interval.
+
+## (completed) Stage 4H-A2: EKF Noise Calibration and Frozen Gate Rerun
+
+Stage 4H-A2 continues forward from the saved Stage 4H-A result. It does not
+rebuild the dataset, alter the global ICAO split, change the 62-feature
+contract, or train a neural network.
+
+Implemented scope:
+
+- Standardized the replay on `trackingEKF` with native `constvel`,
+  `constveljac`, `cvmeas`, and `cvmeasjac`.
+- Retained the small Cartesian-velocity adapter needed for asynchronous
+  ADS-B speed/course/vertical-rate corrections.
+- Cached immutable parsed events so each Q/R candidate replays identical
+  observations without repeated gzip parsing.
+- Scored Q/R candidates on 120 training aircraft and 29,477 matched pairs.
+  Validation and test rows were not used by the executable selection.
+- Required pair-weighted position RMSE and position P95 to be no worse than
+  baseline, with velocity degradation limited to 1%.
+- Froze `vertical_rate_x2`, which changes only reported vertical-rate
+  measurement standard deviation from 0.5 to 1.0 m/s. Process acceleration
+  remains `[2, 2, 0.8] m/s^2`; position measurement standard deviation
+  remains `[30, 30, 45] m`; speed/course uncertainty remains
+  `[1 m/s, 1 degree]`.
+- Re-ran the unchanged Stage 4H information ladder over all 457,903 pairs.
+
+Outcome:
+
+- On the 120-aircraft training calibration set, aircraft-mean position RMSE
+  improves from 62.6386 to 59.1015 m (5.647%), pair-weighted position RMSE
+  improves from 51.6204 to 46.8721 m (9.198%), and position P95 improves
+  from 79.2998 to 58.7015 m (25.975%).
+- Training velocity RMSE changes from 4.9204 to 4.9196 m/s, a slight
+  improvement rather than a tradeoff.
+- Relative to historical Stage 4H-A, posterior-CV RMSE falls from 51.8604
+  to 47.2753 m on validation (8.841%) and from 76.5719 to 55.9625 m on
+  development test (26.915%).
+- The full 62-feature probe reaches 45.1384 m on validation and 54.4645 m
+  on development test. Its advantage over calibrated posterior CV is
+  4.520% on validation and 2.677% on development test.
+- The validation aircraft-bootstrap difference is
+  `-2.1369 m [-4.0324, -0.7219]`; velocity improves by 0.269%.
+- The primary 5% validation threshold is missed, and full context is only
+  0.133% better than state plus interval with interval
+  `[-0.9341, 0.7318] m`. Covariance, history, and complete context do not
+  satisfy the predeclared incremental-information gate.
+- Decision: `stop_before_neural_training`.
+
+Interpretation and boundary:
+
+- This is a demonstrated classical-filter win on the available ADS-B data.
+  It is not a covariance-calibration claim because selection optimizes
+  next-report position/velocity fidelity rather than innovation consistency
+  or covariance coverage.
+- Historical validation/test diagnostics helped motivate investigation of
+  vertical behavior, although candidate scoring itself was training-only.
+  The current holdouts therefore support descriptive confirmation, not a
+  new pristine final scientific claim.
+- Contradictory ADS-B channels remain a separate deployment issue. One
+  development-test aircraft climbs in reported altitude while every
+  vertical-rate report indicates descent; fixed global Q/R cannot solve
+  that case. A causal innovation/channel-health and gap/reset policy must
+  be frozen from training data or assessed on newly collected ADS-B before
+  another final holdout claim.
+
+Verification:
+
+- All 21 full-run integrity checks passed.
+- All 37 tests across the seven Stage 4H test files passed.
+- MATLAB Code Analyzer reported zero findings across 23 Stage 4H files.
+- The calibration and full-gate figures were generated and inspected.
+- Primary artifacts are
+  `artifacts/stage4HEKFNoiseCalibration/` and
+  `artifacts/stage4HEKFCalibratedInformationGate/`.
+
+Next bounded investigation:
+
+- Keep Stage 4H-B neural training paused.
+- Define a deployment-causal position/velocity innovation policy, stale-gap
+  behavior, and reacquisition reset rule from training aircraft only.
+- Use newly collected ADS-B as the preferred untouched confirmation set if
+  that policy is implemented.
+
+## (completed) Stage 4H-A3: ADS-B Supervision Integrity Gate
+
+Stage 4H-A3 audits the frozen Expanded-3Day supervision before any further
+neural experiment. It does not alter raw values or labels, tune Q/R, train a
+network, smooth trajectories, or silently remove questionable samples.
+
+Implemented scope:
+
+- Extended `helperLoadStage4HADSBEvents` with an optional raw-record table
+  while preserving its established two-output API.
+- Preserved source order, duplicate status, selected-event IDs, and the
+  preceding/following raw velocity reports used by every synchronized state.
+- Reconstructed velocity in Cartesian ENU before interpolation and audited
+  the frozen `loadADSBTruth` output without changing that external parser.
+- Built an immutable 457,903-row manifest with split, aircraft, session,
+  source, timestamps, four component tiers, reason bits, raw lineage, and
+  strict/default/permissive classifications.
+- Applied the fixed 2/5/10-second interpolation brackets, 3/5/8 scaled-MAD
+  training-only thresholds, contradiction persistence rule, and duplicate
+  rules. Questionable numeric values remain available as the field-challenge
+  subset.
+- Compared native `constvel` and both frozen Stage 4C networks by quality
+  subset, replayed the frozen A2 `trackingEKF` with full versus
+  high-confidence inputs, and reran the unchanged information ladder on the
+  default high-confidence core.
+
+Outcome:
+
+- Default quality is 174,546 high-confidence rows (38.119%), 282,774
+  uncertain rows (61.754%), and 583 hard-inconsistent rows (0.127%).
+  Strict and permissive high-confidence counts are 131,685 and 196,787.
+- The raw audit covers 949,373 candidate records: 941,193 valid and 8,180
+  invalid. It finds one identical-duplicate group, no conflicting-duplicate
+  groups, 6,683 vertical contradiction candidates, and 159 persistent
+  contradiction rows.
+- Position and vertical-rate synchronization agree to numerical precision,
+  but 424 rows exceed the 5 m/s horizontal-velocity discrepancy threshold.
+  The maximum is 330.247694 m/s at dataset row 122,881. Raw courses cross
+  from 1 degree to 359 degrees while the frozen parser interpolates the angle
+  directly; Cartesian interpolation avoids that false reversal.
+- On default high-confidence validation rows, `constvel` remains best at
+  8.2415 m position RMSE versus 14.4484 m for the frozen scratch MLP and
+  14.0234 m for the frozen warm MLP. Strict/default/permissive profiles
+  preserve both improvement direction and model ranking.
+- The clean-core information ladder itself passes its validation gate:
+  complete context improves calibrated posterior CV from 26.1983 to
+  20.6133 m (21.318%), with aircraft-bootstrap difference
+  `-5.5850 m [-7.0924, -4.0079]`, 2.041% velocity improvement, and a
+  significant 2.976% gain over state plus interval.
+- Development test remains descriptive and is unstable for the full probe:
+  76.097 m versus 34.972 m for posterior CV.
+- The clean core contains no sustained-turn event in train, validation, or
+  test, so it fails the requirement for at least five held-out critical
+  events even though acceleration, climb, descent, and sparse-gap coverage
+  remains.
+- Final decision:
+  `repair_ingestion_and_rebuild_derived_artifacts`. The parser/synchronization
+  and diversity gates fail; no clean-data neural experiment is authorized.
+
+Verification:
+
+- All 13 implementation checks passed; seven of nine decision-gate checks
+  passed, with only ingestion integrity and clean-core diversity failing.
+- All 50 tests across the eight Stage 4H test files and all 14 relevant
+  Stage 4B-Post/Stage 3C dataset-parser regressions passed.
+- MATLAB Code Analyzer reported zero findings across 30 Stage 4H files.
+- The question-driven Live Script ran successfully, the dashboard was
+  generated and inspected, all input hashes remained unchanged, and the
+  saved result contains all 457,903 manifest rows.
+- Primary evidence is under
+  `artifacts/stage4HADSBIntegrityGate/`.
+
+Next bounded action:
+
+- Keep Stage 4H-B neural training paused.
+- Repair `loadADSBTruth` velocity synchronization in a separately approved
+  change by converting speed/course/vertical rate to Cartesian ENU before
+  interpolation, then rebuild every descendant artifact and rerun A3.
+- After the rebuild, verify whether the fixed quality rules still remove all
+  sustained-turn events; revise the audit or collect targeted data if the
+  clean core still fails diversity.
+
+## (completed) Stage 4H-A4: ADS-B Cartesian-Velocity Ingestion Repair
+
+Stage 4H-A4 repairs the confirmed course-wrap defect, rebuilds Expanded-3Day
+in isolation, and reruns the unchanged A3 gate before any neural training.
+Course is circular, so the parser now converts each MSG,4 report to east and
+north velocity, interpolates those Cartesian components independently, then
+reconstructs speed and course.
+
+Implemented scope:
+
+- Preserved timestamp sorting, duplicate-timestamp last-wins behavior,
+  endpoint handling, no extrapolation, vertical-rate interpolation, MSG,3
+  fallback, missing channels, one-report behavior, units, and the public
+  `loadADSBTruth` contract.
+- Added field-compatibility tests against the immutable 21-aircraft,
+  1,780-fix capture plus synthetic coverage for ordinary headings, both wrap
+  directions, unequal speeds, endpoints, duplicates, missing channels,
+  zero/one velocity reports, units, and timestamp ordering.
+- Recorded canonical parser path, parser SHA-256, and
+  `cartesian_velocity_v1` in rebuilt dataset provenance without changing the
+  dataset schema.
+- Added path-injectable A3 execution and Live Script review, corrected-dataset
+  provenance validation with legacy compatibility, and a hash-guarded,
+  resumable A4 runner.
+- Rebuilt and wrote evidence only under
+  `artifacts/stage4HADSBIngestionRepair/`. No network training or A2 Q/R
+  selection was called.
+
+Outcome:
+
+- The corrected dataset retains exactly 457,903 rows. Metadata keys/order and
+  values, timestamps, `dt`, covariance, positions, altitude, vertical rate,
+  finite masks, source membership, and the aircraft-disjoint frozen split are
+  unchanged.
+- Cartesian synchronization changes 721,240 horizontal-velocity scalars
+  across 408,767 rows; the maximum scalar change is 323.775723 m/s.
+  Corrected velocity agrees with A3's independent `aer2enu` reconstruction to
+  `1.9119e-13 m/s`.
+- Corrected A3 reports zero material parser/synchronization defects. Default
+  quality becomes 174,538 high-confidence, 283,206 uncertain, and 159
+  hard-inconsistent rows.
+- The clean validation information gate passes: complete context improves
+  calibrated posterior CV by 21.317%, the aircraft-bootstrap upper bound is
+  `-4.0056 m`, velocity improves 2.035%, and complete context beats state plus
+  interval.
+- Clean-core diversity still fails because the minimum held-out critical-event
+  count is zero. The controlled decision is `collect_or_revise_audit`; neural
+  training remains unauthorized.
+
+Verification:
+
+- All 81 required parser, truth-pipeline, Stage 2B, Stage 3B, Stage 3C,
+  Stage 4B-Post, and Stage 4H tests passed.
+- All 15 A4 checks and all 13 corrected-A3 implementation checks passed;
+  eight of nine corrected-A3 decision gates passed.
+- MATLAB Code Analyzer reported zero findings across 37 changed and Stage 4H
+  files. The injected Live Script ran and the corrected dashboard was
+  inspected successfully.
+- The 159 raw-source hashes and historical dataset hash
+  `9B757A85A58DA6663F79524E6B287B06420DB0BF3480A7AA661E96792212EBDD`
+  remained unchanged. Parser SHA-256 is
+  `6FEFE6F296920BB4791C3D0F2D0F5C687023B058B717B9848C75128FF35298AE`.
+- Primary evidence is under
+  `artifacts/stage4HADSBIngestionRepair/`, with the corrected A3 dashboard in
+  `a3Full/stage4HADSBIntegrityGateDashboard.png`.
+
+Next bounded action:
+
+- Keep neural training paused.
+- Use one contained follow-on audit to determine whether sustained turns are
+  absent from the source data or excluded by a specific clean-core rule.
+  Change no thresholds until that diagnosis distinguishes collection need
+  from audit revision.
+
+## (completed) Stage 4H-A5: Turn-Diversity Audit Repair
+
+Stage 4H-A5 separates ADS-B integrity from aircraft motion and reruns A3 once
+with a maneuver-compatible policy. The legacy `motion_residual_v1` policy
+remains the default for reproducibility; the new
+`integrity_motion_separation_v2` policy uses trapezoidal endpoint velocity and
+vertical-rate consistency while retaining velocity changes as motion/challenge
+annotations.
+
+Verification repair completed 2026-09-08:
+
+- Archived the original 11-file A5 output set under
+  `artifacts/stage4HTurnDiversityAudit/archive/20260903_preRepair/` with a
+  verified relative-path, byte-size, and SHA-256 manifest. Those files are
+  historical evidence, not the canonical result.
+- Replaced the hand-maintained checkpoint file list with deterministic,
+  repository-local transitive dependency discovery using
+  `matlab.codetools.requiredFilesAndProducts`. Production entry points,
+  dynamically invoked tests, the truth-pipeline script, and the Live Script
+  seed checkpoint version 2.
+- Removed the A5 `OutputFolder` override. Only the canonical output folder,
+  its known outputs, and the hash-verified pre-repair archive are permitted.
+- Recomputed the complete v1 quality manifest directly and compared all 38
+  immutable A4 columns, thresholds, profiles, reason definitions, and bits
+  1-25 exactly. Bits 26-31 remain clear.
+- Corrected event attribution to inspect every constituent pair regardless of
+  survival. Fragmented events receive the highest-precedence cause,
+  v2-recovered events receive `legacy_motion_residual`, and only wholly clean
+  events receive `retained`.
+- Added `finalGateTable`, which combines all A5 implementation checks and all
+  nine A3 decision gates in the result, dashboard, Live Script, and
+  verification CSV.
+- Corrected decision metadata to
+  `testUsedForDecision=true` and
+  `testUsedForPolicyOrThresholdSelection=false`, with test limited to the
+  predeclared diversity gate.
+- Expanded the forbidden-call scan to every transitive production dependency
+  and added `fitrnet` plus the other neural-training and Q/R-selection entry
+  points.
+
+Native Function Audit:
+
+| Proposed Workflow | Native MATLAB Function | A5 Adaptation |
+| :--- | :--- | :--- |
+| Discover transitive MATLAB dependencies | `matlab.codetools.requiredFilesAndProducts` | Seed production entry points, dynamic tests, truth pipeline, and Live Script; retain and hash repository-local files in deterministic order. |
+| Execute class-based regressions | `matlab.unittest.TestSuite`, `testsuite`, `run` | Reuse the existing A4 and Stage 4H suites and exclude only the explicitly out-of-scope Stage 2B neural smoke-training method. |
+| Analyze MATLAB source | `checkcode` | Require zero findings across Stage 4H implementation and test files. |
+| Validate archived artifacts | `readtable`, `dir`, SHA-256 helper | Verify relative paths, sizes, hashes, and exact inventory before permitting the archive beside canonical A5 outputs. |
+
+Implemented scope:
+
+- Added selectable v1/v2 quality policies without changing the dataset schema,
+  raw or corrected values, lineage, frozen ICAO split, models, or calibrated
+  `trackingEKF` configuration.
+- Preserved reason-mask bits 1-25 and added bits 26-31 for
+  strict/default/permissive horizontal and vertical endpoint-consistency
+  failures.
+- Fit endpoint-consistency thresholds on training aircraft only, within the
+  existing interval bins, using the fixed 3/5/8 scaled-MAD multipliers.
+- Added deterministic pair- and event-level attribution with precedence:
+  hard integrity, missing lineage, stale bracket, contradiction, endpoint
+  inconsistency, legacy motion residual, then retained.
+- Added a resumable, configuration- and transitive-hash-guarded A5 runner, an
+  injected plain-text Live Script, focused tests, metrics and combined-gate
+  verification CSV, and one four-panel dashboard. All canonical generated
+  evidence is isolated under `artifacts/stage4HTurnDiversityAudit/`.
+
+Outcome:
+
+- Reproduced 24,266 turn-like pairs and 1,259 unfiltered sustained-turn
+  events: 746 train, 248 validation, and 265 test.
+- The legacy default policy rejected 24,263 turn-like pairs. Of those, 22,208
+  pass v2 base integrity and carry a legacy motion-residual rejection, a
+  91.530% motion-confounded recovery rate.
+- The v2 default profile contains 403,177 high-confidence, 54,567 uncertain,
+  and 159 hard-inconsistent rows. It preserves 619/204/230 baseline
+  sustained-turn events in train/validation/test; its retained-event counts
+  are 671/213/249 because retained segments can fragment baseline events.
+- Full v2 A3 passes every integrity, diversity, sensitivity, and information
+  gate. Complete context improves validation position RMSE by 18.460%, the
+  aircraft-bootstrap upper bound is `-3.3978 m`, and validation velocity
+  improves by 1.092%.
+- The controlled decision is
+  `authorize_one_clean_data_neural_residual_experiment`. A5 performs no
+  experiment, neural training, dataset rebuild, data deletion, or Q/R
+  selection.
+
+Verification:
+
+- All 22 repaired A5 implementation checks, all 13 full-A3 implementation
+  checks, and all nine A3 decision gates passed; `finalGateTable` is 31/31.
+- All 102 required parser, truth-pipeline, Stage 2B, Stage 3B, Stage 3C,
+  Stage 4B-Post, and Stage 4H tests passed.
+- MATLAB Code Analyzer reported zero findings across 42 files. The injected
+  Live Script and combined-gate dashboard inspection passed.
+- All 167 immutable A4/core/raw-source hashes passed. The checkpoint covers 74
+  repository-local transitive dependencies, and the static scan found none of
+  nine forbidden symbols across 28 transitive production files.
+- The frozen split remained aircraft-disjoint, all output hashes passed, a
+  deliberately non-exact resume was rejected, and an exact-configuration
+  completed-run resume returned the same decision without rerunning phases.
+
+Next bounded action:
+
+- Design and run exactly one clean-data neural residual experiment under the
+  newly authorized v2 policy. Because validation and development-test data
+  have already been inspected, treat that experiment as bounded development
+  evidence; any promotion claim requires fresh untouched ADS-B.
+- Preserve uncertain and hard-inconsistent rows as field-challenge data.
 
 ## Assumptions
 
