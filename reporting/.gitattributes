@@ -1,0 +1,3 @@
+# Preserve accepted report HTML byte-for-byte; do not apply platform line-ending conversion.
+reports/*.html -text
+explainers/*.html -text

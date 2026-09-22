@@ -10,13 +10,13 @@
 
 | Destination | Accepted files copied |
 | --- | --- |
-| `reports/` | `01_NorthStarAndMotivation_V2.html`, `02_HardwareAndCollection_V4.html`, `03_AnalysisPipelineAndGateRebuild.html`, `04_MitigationAndMapRateRecovery_V2.html`, `05_StrongestEvidence_G4RRecoveryStudy.html`, `06_StatusAndFutureWork_V2.html` |
-| `explainers/` | `01A_IlluminatorSelection_V4.html`, `01B_ReceiveChainDesign_V2.html`, `02A_SyntheticEchoGeneration_V1.html`, `FlightTest_EndToEnd_HumanStory_V2.html` |
+| `reports/` | `01_NorthStarAndMotivation_V2.html`, `01A_IlluminatorSelection_V4.html`, `01B_ReceiveChainDesign_V2.html`, `02_HardwareAndCollection_V4.html`, `02A_SyntheticEchoGeneration_V1.html`, `03_AnalysisPipelineAndGateRebuild.html`, `04_MitigationAndMapRateRecovery_V2.html`, `05_StrongestEvidence_G4RRecoveryStudy.html`, `06_StatusAndFutureWork_V2.html` |
+| `explainers/` | `FlightTest_EndToEnd_HumanStory_V2.html` |
 | `audits/` | `01A_IlluminatorSelection_V4_audit.md`, `01B_ReceiveChainDesign_V2_audit.md`, `02A_audit.md`, `FlightTest_EndToEnd_HumanStory_V2_Audit.md`, `cross_explainer_review.md`, `cross_report_audit.md`, `final_polish_audit.md`, `report_family_upgrade_audit.md`, `report_family_gap_review.md`, `report_family_gap_review_audit.md`, `report_family_story_spine.html` |
 | `storyboards/` | `manager_slide_storyboard.csv`, `manager_slide_storyboard_review.html`, `storyboard_audit.md` |
 | `metadata/` | `family_manifest.json`, `family_evidence_catalog.csv`, `family_handoff_catalog.csv`, `family_visual_catalog.csv`, `family_code_navigation.csv`, `family_known_gaps.md` |
 | `scripts/` | `buildTechnicalSummaryFamily.m`, `verifyTechnicalSummaryFamily.m` |
-| Supporting accepted visual evidence | `explainers/01A_IlluminatorSelection_assets/`, `explainers/01B_ReceiveChainDesign_assets/`, `explainers/02A_SyntheticEchoGeneration_assets/`, and `HardwarePhotos/` |
+| Supporting accepted visual evidence | `reports/01A_IlluminatorSelection_assets/`, `reports/01B_ReceiveChainDesign_assets/`, `reports/02A_SyntheticEchoGeneration_assets/`, and `HardwarePhotos/` |
 
 The asset directories are retained so that copied HTML continues to use its original relative evidence paths where possible. They were copied without changing the HTML.
 

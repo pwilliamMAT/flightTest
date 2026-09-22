@@ -4,6 +4,10 @@
 
 This repository contains a complete passive bistatic radar system and multi-sensor data collection platform for aircraft detection, localization, and tracking validation. The system is designed to generate shareable datasets for verifying MATLAB Radar and Sensor Fusion and Tracking Toolbox functions.
 
+## Reporting and Current Project Status
+
+To find the latest status of this work or get up to speed on the overall project, start with the [FlightTest reporting index](reporting/reporting_README.md). It links the accepted nine-report technical family, current evidence and gaps, the end-to-end story, and the manager-storyboard references.
+
 ### System Goals
 
 1. **Passive Bistatic Radar:** Detect and localize aircraft using TV broadcast signals (ATSC) as illuminators of opportunity
