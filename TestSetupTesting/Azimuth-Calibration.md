@@ -52,6 +52,18 @@ The fixed 0.1 s frame size is intentional.  `comm.BasebandFileWriter` requires
 the same input matrix size on every write call, so the capture is written as a
 sequence of equal-duration frames.
 
+Pluto TX gain is not set by the launcher. By default `sdrtx` transmits at
+-10 dB. To set it explicitly (range -89.75 to 0 dB), call the MATLAB function
+with `'PlutoTxGain_dB'`, for example:
+
+```matlab
+scan = runPlutoAzimuthEnvironmentalScan('NumAzimuthSteps', 1, 'AutoConfirm', true, ...
+    'PlutoTxGain_dB', 0);
+```
+
+The applied gain is printed by `helperPlutoToneStartTx` and saved as
+`scan.settings.pluto_tx_gain_db` (NaN means the default was used).
+
 ## Remote-debug run
 
 When nobody is physically at the antenna, use `auto` mode.  MATLAB will step
