@@ -1,5 +1,26 @@
 # README Change Log
 
+## 2026-09-23 — Table of Contents
+
+### Sections Added
+
+- Table of Contents
+
+### Links Added
+
+- README section anchors for onboarding, project overview, reporting, capture,
+  repository structure, quick start, performance, software, workflow,
+  techniques, references, contributing, and license.
+
+### Rationale
+
+The top-level contents list provides direct navigation to the existing README
+sections without changing any operational documentation.
+
+### Files Referenced
+
+- `README.md`
+
 ## 2026-09-23 — Onboarding Gateway
 
 ### Sections Added

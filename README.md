@@ -1,5 +1,21 @@
 # Flight Test Data Collection & Passive Bistatic Radar System
 
+## Table of Contents
+
+- [NEW HERE](#new-here)
+- [Project Overview](#project-overview)
+- [Reporting and Current Project Status](#reporting-and-current-project-status)
+- [Coordinated Capture Syntax](#coordinated-capture-syntax)
+- [Repository Structure](#repository-structure)
+- [Quick Start Guide](#quick-start-guide)
+- [System Performance](#system-performance)
+- [Software Requirements](#software-requirements)
+- [Workflow Overview](#workflow-overview)
+- [Key Techniques Implemented](#key-techniques-implemented)
+- [References](#references)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## NEW HERE
 
 For managers, engineers, and developers: use these routes before entering the
@@ -36,9 +52,9 @@ data, source material, and related reports by engineering topic.
 
 ### Source Materials
 
-See [Source Materials](reporting/docs/SOURCE_MATERIALS.md) to locate large
-source decks, engineering spreadsheets, collection packages, and atlas
-artifacts without storing them directly in Git.
+See [Source Materials](reporting/docs/SOURCE_MATERIALS.md) to find shared
+project presentations, engineering data, collection packages, and atlas
+artifacts.
 
 ### Repository Relationship
 
