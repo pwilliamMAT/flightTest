@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pluto Comb Presence</title>
+<meta name="description" content="Diagnostic: is the Pluto calibration comb present in the N320 captures, and why not.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --raised: #ffffff;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --surv: #2a78d6; --ref: #eb6834; --band: rgba(137,135,129,0.14);
+  --critical: #d03b3b; --good: #0ca30c; --good-text: #006300; --accent-wash: rgba(42,120,214,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --raised: #222221;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --surv: #3987e5; --ref: #d95926; --band: rgba(195,194,183,0.12);
+    --good-text: #0ca30c; --accent-wash: rgba(57,135,229,0.12);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --raised: #222221;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --surv: #3987e5; --ref: #d95926; --band: rgba(195,194,183,0.12);
+  --good-text: #0ca30c; --accent-wash: rgba(57,135,229,0.12);
+}
+body { background: var(--page); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.ink2 { color: var(--ink-2); } .muted { color: var(--muted); }
+.tab[aria-selected="true"] { background: var(--raised); color: var(--ink); box-shadow: 0 0 0 1px var(--border); }
+.tab { color: var(--ink-2); }
+.swatch { display:inline-block; width:10px; height:10px; border-radius:3px; vertical-align:middle; }
+table { font-variant-numeric: tabular-nums; }
+th { color: var(--ink-2); font-weight: 600; text-align: left; }
+td, th { border-bottom: 1px solid var(--grid); padding: 6px 10px; white-space: nowrap; }
+.num { text-align: right; }
+input[type=search] { background: var(--raised); border: 1px solid var(--border); color: var(--ink); }
+.status { display:inline-flex; align-items:center; gap:6px; font-weight:600; }
+.chart-box { position: relative; height: 300px; }
+code { font-size: 0.85em; background: var(--accent-wash); padding: 0 4px; border-radius: 4px; }
+.hidden-row { display: none; }
+dt { font-weight: 600; }
+dd { color: var(--ink-2); margin: 2px 0 12px 0; }
+.geo-line { stroke: var(--ink-2); stroke-width: 2; }
+.geo-dash { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.geo-label { fill: var(--ink); font: 13px system-ui, sans-serif; }
+.geo-sub { fill: var(--ink-2); font: 12px system-ui, sans-serif; }
+.geo-site { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.geo-cand { fill: var(--surv); stroke: var(--surface); stroke-width: 2; }
+</style>
+</head>
+<body class="min-h-screen">
+<div class="max-w-7xl mx-auto px-4 py-6 sm:px-6">
+
+<header class="mb-6">
+  <p class="text-sm muted">flightTest · diagnostic report · Pluto azimuth calibration · evidence from 2026-07-28 to 2026-09-23</p>
+  <h1 class="text-2xl sm:text-3xl font-semibold mt-1">Pluto calibration comb: is it reaching the N320?</h1>
+  <p class="ink2 mt-2 max-w-3xl">The Pluto transmits the comb correctly, but <strong>it hasn't been detected in any N320 capture</strong>: 82 archived captures and 4 new ones, including maximum TX gain and a quieter out-of-band placement. Its level at the N320 is below −78 dBFS per tone. Before any phase-slope or Barker-code calibration work, the injector has to be moved or cabled.</p>
+  <div class="mt-3 status" style="color:var(--critical)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="2"/></svg>
+    Comb not detected at the N320 · 86 captures · 0 detections
+  </div>
+  <div class="mt-1 status" style="color:var(--good-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 8.5l2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    Pluto transmitter verified by self-loopback · +35 dB
+  </div>
+</header>
+
+<section id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></section>
+
+<nav class="inline-flex flex-wrap gap-1 p-1 rounded-xl mb-4" style="background:var(--surface);border:1px solid var(--border)" role="tablist">
+  <button class="tab px-4 py-2 rounded-lg text-sm font-medium" role="tab" aria-selected="true" data-tab="text">Analysis</button>
+  <button class="tab px-4 py-2 rounded-lg text-sm font-medium" role="tab" aria-selected="false" data-tab="charts">Charts</button>
+  <button class="tab px-4 py-2 rounded-lg text-sm font-medium" role="tab" aria-selected="false" data-tab="site">Site geometry</button>
+</nav>
+
+<!-- ============ ANALYSIS TAB ============ -->
+<section id="tab-text" role="tabpanel">
+  <div class="card p-5 mb-4">
+    <h2 class="text-lg font-semibold mb-3">Report summary</h2>
+    <dl id="summary" class="grid grid-cols-1 lg:grid-cols-2 gap-x-8"></dl>
+  </div>
+
+  <div class="card p-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
+    <label for="q" class="text-sm font-medium">Search findings and tables</label>
+    <input id="q" type="search" placeholder="e.g. loopback, out-of-band, 10.4, glass, az_pulse_2.0" class="flex-1 rounded-lg px-3 py-2 text-sm outline-none">
+    <span id="qcount" class="text-sm muted"></span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-5">
+      <h2 class="text-lg font-semibold mb-3">Findings</h2>
+      <ol id="findings" class="space-y-4"></ol>
+    </div>
+    <div class="space-y-4">
+      <div class="card p-5">
+        <h2 class="text-lg font-semibold mb-3">Recommended next steps</h2>
+        <ol id="nextsteps" class="space-y-3"></ol>
+      </div>
+      <div class="card p-5">
+        <h2 class="text-lg font-semibold mb-3">Method</h2>
+        <ul id="method" class="space-y-2 text-sm ink2"></ul>
+      </div>
+      <div class="card p-5">
+        <h2 class="text-lg font-semibold mb-3">Code navigation</h2>
+        <ul id="codenav" class="space-y-2 text-sm ink2"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-5 mt-4">
+    <h2 class="text-lg font-semibold">New N320 runs (2026-09-23): gain and band</h2>
+    <p class="text-sm ink2 mb-3">One bearing, 4 s capture, 1 s Pluto pulse at 0.5 s. In-band tones at ±150–650 kHz; out-of-band at ±3.0–3.5 MHz. REF is now a second Yagi, the same as SURV.</p>
+    <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-new"></table></div>
+  </div>
+
+  <div class="card p-5 mt-4">
+    <h2 class="text-lg font-semibold">Pluto self-loopback (TX dipole → Pluto RX pigtail, 599 MHz)</h2>
+    <p class="text-sm ink2 mb-3">Checks that the Pluto transmits the comb, independent of the N320. Pluto RX manual gain 20 dB; 8 receive frames flushed after every change.</p>
+    <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-loop"></table></div>
+  </div>
+
+  <div class="card p-5 mt-4">
+    <h2 class="text-lg font-semibold">Archived azimuth scans: comb vs. ambient, 100 Hz bins (per scan)</h2>
+    <p class="text-sm ink2 mb-3">Pulse-window spectrum divided by the ambient-window spectrum from the same capture, averaged over the planned tone bins. Anything below about 2 dB is noise.</p>
+    <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-scan"></table></div>
+  </div>
+
+  <div class="card p-5 mt-4">
+    <h2 class="text-lg font-semibold">Archived azimuth scans: 1 Hz comb search, pulse window vs. equal-length ambient window</h2>
+    <p class="text-sm ink2 mb-3">Best z-score over ±60 kHz of common comb offset. A real comb would score far above the ambient (no-Pluto) window, and at the <em>same</em> offset on SURV and REF.</p>
+    <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-fine"></table></div>
+  </div>
+
+  <div class="card p-5 mt-4">
+    <h2 class="text-lg font-semibold">Archived multitone smoke runs (11-tone, 100 kHz): line height above ±10 kHz neighbours</h2>
+    <p class="text-sm ink2 mb-3">These are the runs recorded as detections in <code>NEXT_SESSION_HANDOFF.md</code>. The comb is scored excluding the DC tone.</p>
+    <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-multi"></table></div>
+  </div>
+</section>
+
+<!-- ============ CHARTS TAB ============ -->
+<section id="tab-charts" role="tabpanel" class="hidden">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <figure class="card p-5">
+      <figcaption><h3 class="font-semibold">Pluto self-loopback: the transmitter works</h3>
+      <p class="text-sm ink2">Comb height above its ±10 kHz neighbours on the Pluto's own receiver. It appears only when TX is on, and drops by 20 dB when TX gain drops by 20 dB.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-loop"></canvas></div>
+    </figure>
+    <figure class="card p-5">
+      <figcaption><h3 class="font-semibold">New N320 runs: comb excess, pulse vs. ambient</h3>
+      <p class="text-sm ink2">Median per-tone (pulse − ambient) power at the planned bins. All four configurations sit at 0 dB, including TX 0 dB and the out-of-band floor.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-new"></canvas></div>
+    </figure>
+    <figure class="card p-5">
+      <figcaption><h3 class="font-semibold">Detection sensitivity: synthetic comb in a real capture</h3>
+      <p class="text-sm ink2">A known comb added to real captures (offset +7.3 kHz). In-band (solid) it's found down to about −65 dBFS per tone; out-of-band (dashed) down to about −75. The dotted line is the noise-only maximum z.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-inj"></canvas></div>
+    </figure>
+    <figure class="card p-5">
+      <figcaption><h3 class="font-semibold">Pulse window vs. ambient window, 24 archived captures</h3>
+      <p class="text-sm ink2">Best comb z in the pulse window (y) against an equal-length no-Pluto window (x). A real comb would sit well above the diagonal. The points scatter along it.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-scatter"></canvas></div>
+    </figure>
+    <figure class="card p-5">
+      <figcaption><h3 class="font-semibold">Received power vs. time, az_pulse_2.0 step 1</h3>
+      <p class="text-sm ink2">Shaded band = the scheduled Pluto pulse (0.5–2.5 s). No step at either edge; SURV fades smoothly for the whole capture.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-power"></canvas></div>
+    </figure>
+    <figure class="card p-5">
+      <figcaption><h3 class="font-semibold">Ambient spectrum, same capture (50 kHz averages)</h3>
+      <p class="text-sm ink2">A live 6 MHz ATSC channel fills the band. Grey ticks = the 12 in-band comb tones. The pilot is at −2690.5 kHz. The ±3.0–3.5 MHz edges, where the out-of-band tones went, sit about 10 dB lower.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-spec"></canvas></div>
+    </figure>
+    <figure class="card p-5">
+      <figcaption><h3 class="font-semibold">Comb search, pulse window, az_pulse_2.0 step 1 (1 Hz bins)</h3>
+      <p class="text-sm ink2">z-score of the comb match vs. common frequency offset (max per 250 Hz). No peak stands out; the dashed line is the typical noise-only maximum.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-z"></canvas></div>
+    </figure>
+    <figure class="card p-5">
+      <figcaption><h3 class="font-semibold">Line height above neighbours, 22 multitone smoke runs (median)</h3>
+      <p class="text-sm ink2">The ATSC pilot and receiver DC are real lines, and the method sees them. The comb tones sit at 0 dB.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-lines"></canvas></div>
+    </figure>
+    <figure class="card p-5 lg:col-span-2">
+      <figcaption><h3 class="font-semibold">Logged "integrated margin" vs. the noise-only value 10·log₁₀(N)</h3>
+      <p class="text-sm ink2">The metric sums per-tone peak/floor ratios, so N noise-only tones score 10·log₁₀(N). Every logged value sits on the line, within about 0.3 dB, or below it.</p></figcaption>
+      <div class="legend text-sm ink2 my-2"></div>
+      <div class="chart-box"><canvas id="c-int"></canvas></div>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ SITE TAB ============ -->
+<section id="tab-site" role="tabpanel" class="hidden">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+    <figure class="card p-5 lg:col-span-3">
+      <figcaption><h3 class="font-semibold">Parking-lot layout (from the operator's description, to scale)</h3>
+      <p class="text-sm ink2">Right triangle with the right angle at the REF antenna. The Pluto and the collection PC are in the glass-enclosed stairwell. Antenna pointing isn't drawn because it isn't recorded relative to this layout. The receiver-to-ATSC-tower bearing is about 83° true (roughly east).</p></figcaption>
+      <svg id="geo" viewBox="0 0 640 440" class="w-full h-auto mt-3" role="img" aria-label="Right-triangle site layout: stairwell, REF antenna and SURV antenna, with a candidate injector position at the midpoint of the REF–SURV leg">
+        <line class="geo-line" x1="80" y1="60" x2="80" y2="370"/>
+        <line class="geo-line" x1="80" y1="370" x2="514" y2="370"/>
+        <line class="geo-dash" x1="80" y1="60" x2="514" y2="370"/>
+        <path d="M80 350 h20 v20" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+        <text class="geo-sub" x="92" y="220">65 ft (19.8 m)</text>
+        <text class="geo-sub" x="250" y="395">91 ft (27.7 m)</text>
+        <text class="geo-sub" x="315" y="200" transform="rotate(35.5 315 200)">112 ft (34.1 m)</text>
+        <circle class="geo-site" cx="80" cy="60" r="9"/>
+        <text class="geo-label" x="96" y="50">Stairwell (glass)</text>
+        <text class="geo-sub" x="96" y="68">Pluto TX dipole · RX pigtail · collection PC</text>
+        <circle class="geo-site" cx="80" cy="370" r="9"/>
+        <text class="geo-label" x="30" y="420">REF Yagi</text>
+        <circle class="geo-site" cx="514" cy="370" r="9"/>
+        <text class="geo-label" x="480" y="420">SURV Yagi</text>
+        <rect class="geo-cand" x="288" y="361" width="18" height="18" rx="3" transform="rotate(45 297 370)"/>
+        <text class="geo-label" x="250" y="330">Candidate injector</text>
+        <text class="geo-sub" x="232" y="346">(long-leg midpoint, 45.5 ft to each)</text>
+      </svg>
+    </figure>
+    <div class="card p-5 lg:col-span-2">
+      <h3 class="font-semibold">Free-space path loss at 599 MHz</h3>
+      <p class="text-sm ink2 mb-3">FSPL = 20·log₁₀(d<sub>m</sub>) + 20·log₁₀(599) − 27.55. Antenna patterns, glass and multipath are <em>not</em> included.</p>
+      <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-fspl"></table></div>
+      <h3 class="font-semibold mt-5">What moving the injector buys</h3>
+      <ul class="text-sm ink2 mt-2 space-y-2">
+        <li>• <strong>Distance alone gives only 3–8 dB.</strong> Going from the stairwell to the long-leg midpoint shortens the REF path by 3.1 dB and the SURV path by 7.9 dB.</li>
+        <li>• <strong>At least ~20 dB more is needed.</strong> The comb is below −78 dBFS per tone at the N320 even at TX 0 dB. To stand ≥10 dB above the −68 to −70 dBFS out-of-band floor (per 100 Hz), it needs to reach about −58 dBFS.</li>
+        <li>• <strong>The rest has to come from glass and antenna pattern (estimated, not measured).</strong> Coated or low-E glass can cost 10–30+ dB at UHF, and a Yagi's side or back lobes are typically 10–25 dB below boresight. A position <em>outside</em> the stairwell and <em>in front of</em> both Yagis addresses both.</li>
+        <li>• <strong>Watch the placement between the antennas.</strong> On the REF–SURV line the injector is broadside to both Yagis if they point roughly perpendicular to that leg, and end-on to them if the leg runs along their pointing direction. Placing it 10–20 ft in front of the midpoint, toward where both Yagis point, keeps it in both main lobes.</li>
+        <li>• <strong>The REF is now a Yagi, not an omni.</strong> The azimuth scan assumes a stable reference. With a directional REF, the calibration comb's REF level also depends on the injector bearing.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer class="text-xs muted mt-8">Diagnostic evidence, not part of the accepted nine-report family. Generated from the MATLAB diagnostics in <code>TestSetupTesting/</code> (see Code navigation). All data is embedded in this file.</footer>
+</div>
+
+<script>
+const D = {"powerTime":{"t":[0.05,0.15,0.25,0.35,0.45,0.55,0.65,0.75,0.85,0.95,1.05,1.15,1.25,1.35,1.45,1.55,1.65,1.75,1.85,1.95,2.05,2.15,2.25,2.35,2.45,2.55,2.65,2.75,2.85,2.95,3.05,3.15,3.25,3.35,3.45,3.55,3.65,3.75,3.85,3.95,4.05,4.15,4.25,4.35,4.45,4.55,4.65,4.75,4.85,4.95],"surv":[-10.2022,-10.3313,-10.417,-10.5424,-10.6265,-10.7556,-10.8232,-10.8857,-10.9199,-10.9754,-11.056,-11.0519,-11.0898,-11.1714,-11.196,-11.2302,-11.2437,-11.2796,-11.3322,-11.3827,-11.377,-11.447,-11.4919,-11.4659,-11.4325,-11.4969,-11.5283,-11.5557,-11.5568,-11.5901,-11.5628,-11.583,-11.5472,-11.5538,-11.5622,-11.5326,-11.5849,-11.5952,-11.6176,-11.6288,-11.6462,-11.6592,-11.7142,-11.6968,-11.7027,-11.7,-11.7308,-11.6982,-11.7318,-11.7097],"ref":[-14.6642,-14.6879,-14.6058,-14.4695,-14.283,-14.3832,-14.5867,-14.6211,-14.5869,-14.5318,-14.5299,-14.5541,-14.574,-14.6875,-14.6647,-14.618,-14.6703,-14.711,-14.717,-14.7891,-14.7038,-14.6142,-14.543,-14.5549,-14.5991,-14.655,-14.6939,-14.7849,-14.856,-14.886,-14.9124,-14.8846,-14.8792,-14.9173,-14.9243,-14.8297,-14.8385,-14.7812,-14.7502,-14.9789,-14.9813,-14.8815,-14.8205,-14.7902,-14.7673,-14.8545,-14.9232,-14.8154,-14.7962,-14.7198]},"spectrum":{"f_khz":[-3975,-3925,-3875,-3825,-3775,-3725,-3675,-3625,-3575,-3525,-3475,-3425,-3375,-3325,-3275,-3225,-3175,-3125,-3075,-3025,-2975,-2925,-2875,-2825,-2775,-2725,-2675,-2625,-2575,-2525,-2475,-2425,-2375,-2325,-2275,-2225,-2175,-2125,-2075,-2025,-1975,-1925,-1875,-1825,-1775,-1725,-1675,-1625,-1575,-1525,-1475,-1425,-1375,-1325,-1275,-1225,-1175,-1125,-1075,-1025,-975,-925,-875,-825,-775,-725,-675,-625,-575,-525,-475,-425,-375,-325,-275,-225,-175,-125,-75,-25,25,75,125,175,225,275,325,375,425,475,525,575,625,675,725,775,825,875,925,975,1025,1075,1125,1175,1225,1275,1325,1375,1425,1475,1525,1575,1625,1675,1725,1775,1825,1875,1925,1975,2025,2075,2125,2175,2225,2275,2325,2375,2425,2475,2525,2575,2625,2675,2725,2775,2825,2875,2925,2975,3025,3075,3125,3175,3225,3275,3325,3375,3425,3475,3525,3575,3625,3675,3725,3775,3825,3875,3925,3975],"surv":[-71.1059,-70.7639,-70.3896,-69.9345,-69.4928,-69.066,-68.7041,-68.3165,-68.1037,-67.917,-67.7819,-67.665,-67.637,-67.5616,-67.5217,-67.4595,-67.4074,-67.4172,-67.2641,-67.2721,-67.138,-66.5438,-65.7785,-64.7399,-63.6261,-62.5125,-50.7059,-60.4852,-59.6828,-58.8981,-58.3188,-57.9518,-57.8809,-58.0058,-58.1288,-58.3616,-58.5107,-58.6472,-58.8261,-59.1047,-59.4708,-60.0549,-60.6184,-61.1038,-61.5826,-61.8111,-61.6639,-61.3583,-60.7346,-60.2883,-59.9502,-59.6654,-59.6112,-59.551,-59.5108,-59.4553,-59.3342,-59.3223,-59.3393,-59.5329,-59.6368,-59.9668,-60.3363,-60.6965,-61.1806,-61.5005,-61.771,-62.1233,-62.2288,-62.0586,-61.5944,-60.8963,-60.2915,-59.7204,-59.0828,-58.6987,-58.2899,-57.9213,-57.8424,-54.8483,-50.169,-57.5596,-57.3613,-57.2404,-57.1935,-57.3142,-57.4595,-57.6078,-57.6082,-57.6423,-57.6456,-57.74,-58.0147,-58.2137,-58.5239,-58.8144,-59.1449,-59.5302,-60.0703,-60.7006,-61.2497,-61.8883,-62.5124,-63.1215,-63.8185,-64.2686,-64.5281,-64.483,-64.1435,-63.5188,-62.7709,-61.964,-61.178,-60.4598,-59.7712,-59.3148,-58.9015,-58.5534,-58.2583,-58.0531,-58.0247,-58.0161,-58.0456,-58.3489,-58.7618,-59.3096,-60.0225,-60.8813,-61.7248,-62.4744,-63.2811,-64.1922,-65.1067,-65.6712,-66.4827,-66.6707,-66.7896,-66.9439,-67.1231,-67.3054,-67.4058,-67.4033,-67.5234,-67.6099,-67.6604,-67.7474,-67.6242,-67.9548,-68.0799,-68.245,-68.4536,-68.7022,-69.0221,-69.3901,-69.7943,-70.2381,-70.6625,-70.9738,-71.173,-71.1944],"ref":[-69.9801,-69.3333,-68.5383,-67.8849,-67.3354,-66.7855,-66.4242,-66.1367,-66.0115,-65.8648,-65.9494,-66.097,-66.4144,-66.6093,-66.8001,-67.0242,-66.9878,-67.2462,-67.2564,-67.2779,-67.2205,-67.0268,-66.867,-66.5991,-66.3452,-66.1949,-59.7982,-65.438,-64.7922,-64.0282,-63.3339,-63.0596,-63.1037,-62.9803,-63.0608,-63.0569,-63.0406,-63.0353,-62.775,-62.5839,-62.5476,-62.653,-62.6817,-62.7456,-62.8409,-63.0476,-63.125,-63.3305,-63.6183,-63.914,-64.1269,-64.1301,-64.3066,-64.5084,-64.3907,-64.1785,-64.0082,-64.0678,-64.2411,-64.0618,-63.8614,-63.6833,-63.3317,-62.8943,-62.4683,-62.3374,-62.1474,-61.728,-61.8211,-61.9862,-61.8293,-61.7592,-61.6093,-61.8064,-62.0052,-62.0098,-62.1611,-62.0312,-62.3408,-58.052,-52.6665,-62.8782,-63.0588,-63.2116,-63.2893,-63.2919,-63.5373,-63.5831,-63.7121,-63.7281,-63.8832,-63.9071,-63.8812,-63.8805,-63.9622,-63.7903,-63.7856,-63.8186,-63.9051,-64.0412,-64.1171,-64.1712,-64.1649,-64.2016,-64.4619,-64.867,-65.025,-65.0838,-64.79,-64.3764,-63.8931,-63.5306,-63.284,-62.8722,-62.5304,-62.2631,-62.1523,-62.0676,-61.9079,-61.7076,-61.8008,-61.953,-62.3701,-62.6431,-63.0842,-63.6568,-64.1224,-64.641,-65.1421,-65.6391,-66.1844,-66.5401,-66.8238,-65.4186,-66.9601,-67.0592,-67.1251,-67.2176,-67.348,-67.5198,-67.5511,-67.5711,-67.6819,-67.6966,-67.7954,-67.803,-67.7654,-67.9067,-67.9628,-68.0852,-68.2301,-68.4619,-68.7168,-69.0833,-69.4817,-69.9005,-70.331,-70.6341,-70.7017,-70.4161]},"zCurve":{"off_khz":[-59.875,-59.625,-59.375,-59.125,-58.875,-58.625,-58.375,-58.125,-57.875,-57.625,-57.375,-57.125,-56.875,-56.625,-56.375,-56.125,-55.875,-55.625,-55.375,-55.125,-54.875,-54.625,-54.375,-54.125,-53.875,-53.625,-53.375,-53.125,-52.875,-52.625,-52.375,-52.125,-51.875,-51.625,-51.375,-51.125,-50.875,-50.625,-50.375,-50.125,-49.875,-49.625,-49.375,-49.125,-48.875,-48.625,-48.375,-48.125,-47.875,-47.625,-47.375,-47.125,-46.875,-46.625,-46.375,-46.125,-45.875,-45.625,-45.375,-45.125,-44.875,-44.625,-44.375,-44.125,-43.875,-43.625,-43.375,-43.125,-42.875,-42.625,-42.375,-42.125,-41.875,-41.625,-41.375,-41.125,-40.875,-40.625,-40.375,-40.125,-39.875,-39.625,-39.375,-39.125,-38.875,-38.625,-38.375,-38.125,-37.875,-37.625,-37.375,-37.125,-36.875,-36.625,-36.375,-36.125,-35.875,-35.625,-35.375,-35.125,-34.875,-34.625,-34.375,-34.125,-33.875,-33.625,-33.375,-33.125,-32.875,-32.625,-32.375,-32.125,-31.875,-31.625,-31.375,-31.125,-30.875,-30.625,-30.375,-30.125,-29.875,-29.625,-29.375,-29.125,-28.875,-28.625,-28.375,-28.125,-27.875,-27.625,-27.375,-27.125,-26.875,-26.625,-26.375,-26.125,-25.875,-25.625,-25.375,-25.125,-24.875,-24.625,-24.375,-24.125,-23.875,-23.625,-23.375,-23.125,-22.875,-22.625,-22.375,-22.125,-21.875,-21.625,-21.375,-21.125,-20.875,-20.625,-20.375,-20.125,-19.875,-19.625,-19.375,-19.125,-18.875,-18.625,-18.375,-18.125,-17.875,-17.625,-17.375,-17.125,-16.875,-16.625,-16.375,-16.125,-15.875,-15.625,-15.375,-15.125,-14.875,-14.625,-14.375,-14.125,-13.875,-13.625,-13.375,-13.125,-12.875,-12.625,-12.375,-12.125,-11.875,-11.625,-11.375,-11.125,-10.875,-10.625,-10.375,-10.125,-9.875,-9.625,-9.375,-9.125,-8.875,-8.625,-8.375,-8.125,-7.875,-7.625,-7.375,-7.125,-6.875,-6.625,-6.375,-6.125,-5.875,-5.625,-5.375,-5.125,-4.875,-4.625,-4.375,-4.125,-3.875,-3.625,-3.375,-3.125,-2.875,-2.625,-2.375,-2.125,-1.875,-1.625,-1.375,-1.125,-0.875,-0.625,-0.375,-0.125,0.125,0.375,0.625,0.875,1.125,1.375,1.625,1.875,2.125,2.375,2.625,2.875,3.125,3.375,3.625,3.875,4.125,4.375,4.625,4.875,5.125,5.375,5.625,5.875,6.125,6.375,6.625,6.875,7.125,7.375,7.625,7.875,8.125,8.375,8.625,8.875,9.125,9.375,9.625,9.875,10.125,10.375,10.625,10.875,11.125,11.375,11.625,11.875,12.125,12.375,12.625,12.875,13.125,13.375,13.625,13.875,14.125,14.375,14.625,14.875,15.125,15.375,15.625,15.875,16.125,16.375,16.625,16.875,17.125,17.375,17.625,17.875,18.125,18.375,18.625,18.875,19.125,19.375,19.625,19.875,20.125,20.375,20.625,20.875,21.125,21.375,21.625,21.875,22.125,22.375,22.625,22.875,23.125,23.375,23.625,23.875,24.125,24.375,24.625,24.875,25.125,25.375,25.625,25.875,26.125,26.375,26.625,26.875,27.125,27.375,27.625,27.875,28.125,28.375,28.625,28.875,29.125,29.375,29.625,29.875,30.125,30.375,30.625,30.875,31.125,31.375,31.625,31.875,32.125,32.375,32.625,32.875,33.125,33.375,33.625,33.875,34.125,34.375,34.625,34.875,35.125,35.375,35.625,35.875,36.125,36.375,36.625,36.875,37.125,37.375,37.625,37.875,38.125,38.375,38.625,38.875,39.125,39.375,39.625,39.875,40.125,40.375,40.625,40.875,41.125,41.375,41.625,41.875,42.125,42.375,42.625,42.875,43.125,43.375,43.625,43.875,44.125,44.375,44.625,44.875,45.125,45.375,45.625,45.875,46.125,46.375,46.625,46.875,47.125,47.375,47.625,47.875,48.125,48.375,48.625,48.875,49.125,49.375,49.625,49.875,50.125,50.375,50.625,50.875,51.125,51.375,51.625,51.875,52.125,52.375,52.625,52.875,53.125,53.375,53.625,53.875,54.125,54.375,54.625,54.875,55.125,55.375,55.625,55.875,56.125,56.375,56.625,56.875,57.125,57.375,57.625,57.875,58.125,58.375,58.625,58.875,59.125,59.375,59.625,59.875],"surv":[1.5826,1.1109,2.0386,1.841,0.9502,2.5099,2.8718,0.4207,1.9205,1.632,1.8584,3.2867,2.8297,0.8012,2.9119,2.164,3.7764,1.21,3.439,2.368,2.9665,1.2512,1.7192,1.7168,0.7946,0.6109,1.3302,0.9056,0.5567,1.802,3.442,0.9525,1.4146,0.782,1.1597,0.9717,2.2659,2.0758,2.0208,1.5762,1.3846,1.2226,1.7763,1.0482,2.9562,1.6704,2.7278,1.1541,1.5344,1.3974,3.6969,2.1894,1.8333,1.622,2.1567,1.5731,1.9167,1.2588,2.4225,1.3278,3.3603,1.4682,0.5663,2.8273,3.1941,2.0366,2.0085,2.4913,4.7642,1.686,1.8262,3.9232,3.91,1.7058,1.6185,0.7064,2.0053,1.335,0.471,1.8013,2.0413,3.3943,3.218,0.6313,0.897,1.2976,0.135,1.8794,1.8794,1.7977,1.4316,0.5117,0.898,1.4825,2.2288,3.6094,3.5367,1.5888,1.2377,1.7453,2.4143,1.8968,2.0661,-0.0038,2.0114,2.7531,1.3158,0.6386,1.1912,3.7572,3.7103,3.5145,1.2989,1.1794,2.6061,2.6955,1.703,1.9949,1.4076,3.2809,3.4007,0.724,1.4396,3.1276,1.4829,2.4183,0.7824,1.394,2.3927,1.184,1.6471,1.5076,1.0059,3.2998,1.8969,0.6981,1.8365,1.0205,1.053,1.3299,2.3971,1.2074,1.6739,1.213,1.4915,1.6211,1.839,4.7254,1.1137,2.1877,2.1017,2.1017,1.5174,3.1751,1.1946,1.3741,1.4923,2.5555,1.6489,2.1332,1.0417,3.4798,1.2024,2.7739,1.6039,2.1597,1.5694,3.7841,1.8714,2.1225,1.5641,3.4057,1.9921,0.7805,2.2729,3.041,2.5324,1.7791,1.5781,1.0303,1.9566,1.0252,1.3701,1.3423,1.5754,2.2406,1.8053,1.6032,1.6935,1.6986,1.4249,3.2904,1.1847,1.8477,1.6841,1.8453,0.7053,1.1914,0.8271,3.1429,2.1511,1.5045,1.4463,2.0027,0.8874,2.6016,0.1831,0.8525,1.0428,2.7948,1.7789,0.0119,2.238,3.9878,0.6192,1.4028,1.4859,1.9873,2.2523,1.4962,1.6564,1.8031,0.8863,2.1826,2.2656,1.2335,1.5828,4.1457,1.534,0.8714,1.6566,1.5847,1.9415,1.6461,1.0925,1.1659,1.1704,2.7191,0.706,1.8925,0.7071,1.6335,1.6495,3.7294,1.5983,2.1765,2.5588,0.728,1.3721,1.0338,1.8632,3.2781,1.3489,2.931,2.0563,1.8828,1.5522,2.407,2.8317,2.6624,1.5104,1.5329,2.3728,1.3918,0.9872,3.2468,1.2189,3.1744,2.1473,3.0048,1.6264,3.7006,2.1563,2.7813,1.9283,2.38,1.1746,2.0477,2.7949,3.3156,2.6273,2.2283,1.306,2.1403,1.2806,2.3123,1.7874,1.9643,2.2268,1.3105,2.2138,1.6055,1.245,0.3753,3.004,2.5864,1.8703,2.1557,0.654,1.3643,1.4976,0.8302,2.391,2.3057,1.024,1.234,1.8964,3.0201,2.3379,2.135,2.5632,2.5471,3.0822,1.4441,1.8222,1.8834,3.2738,0.8465,2.721,0.3995,1.4976,0.9927,2.5314,1.0501,1.9201,1.3649,3.6544,1.1523,1.1058,0.4939,3.0758,0.9408,0.8854,1.5423,1.6923,2.258,1.3676,2.3957,1.831,1.7944,4.8903,1.3913,1.6395,1.905,2.61,0.8227,3.8297,1.0819,1.0048,1.8329,1.48,0.977,0.9802,2.368,2.4497,2.9183,3.6384,2.8523,1.3691,0.9802,1.687,0.851,1.5304,1.8074,3.0456,1.4288,1.7648,1.7455,3.3607,1.4528,1.2853,2.0802,0.9341,0.3042,3.1085,1.4362,2.4261,1.1284,3.0461,2.3047,1.1158,1.9161,1.6817,1.2789,3.14,1.8035,1.8995,1.8028,0.8852,0.2686,0.5281,1.8607,3.3433,0.4131,0.8094,0.7592,1.1198,1.9292,4.0753,2.372,0.8559,1.171,0.087,1.3644,0.7909,2.4347,3.6331,0.8904,2.0687,1.3256,1.9753,2.373,4.1617,1.1352,2.3316,1.9737,3.9866,1.0273,2.7838,2.5556,3.1509,0.5425,1.0895,1.9645,0.9662,1.2608,2.9417,0.955,0.1388,2.0911,3.5397,1.4048,1.7295,1.3742,2.8622,1.3837,2.0519,2.4013,1.8895,1.5926,1.7397,1.4164,1.841,1.1485,3.5806,1.9995,2.0471,1.7986,1.4466,2.1199,3.5566,1.8349,2.1282,1.283,1.3796,1.7076,1.6529,1.7023,2.945,1.8074,2.9814,2.1458,1.5504,2.4418,2.5416,2.432,1.1963,2.6289,4.5289,2.2396,1.6529,4.1318,4.3,2.0035,1.0874,1.3141,0.8608,1.807,1.4456,0.9551],"ref":[2.4181,0.7945,3.1088,1.5457,1.1839,1.0553,1.3802,1.4639,4.291,1.7297,2.0792,1.7195,2.5107,2.1166,1.045,1.7113,2.5704,1.944,1.0707,2.0597,2.3717,1.0391,2.0785,0.4637,1.7687,2.3977,2.3977,1.4029,1.0155,1.2922,3.203,1.6536,1.2197,0.9483,1.1457,1.3997,2.8437,0.7502,0.99,1.2685,0.9432,0.8456,1.4015,1.2334,1.835,1.001,1.4162,1.2128,1.7325,0.975,2.607,1.6376,1.024,2.2181,2.4734,2.5734,1.3797,2.271,2.6797,2.1896,2.415,1.2701,0.7554,1.514,2.2393,0.9912,1.0863,1.8053,1.8109,0.8915,1.8122,2.104,3.1458,0.8325,0.957,1.143,1.4884,2.7874,0.9554,1.4292,1.422,1.8286,2.2684,1.8286,1.0404,0.4614,1.0495,2.0218,2.1409,1.2661,2.7816,1.5062,2.0575,2.0479,2.9939,2.996,1.9599,3.0055,1.1307,1.5057,0.9544,1.4493,0.1989,1.0934,1.4747,2.9095,1.3444,2.0443,1.2873,1.6786,2.5065,2.3039,1.8296,2.0351,2.5534,3.0504,3.1487,1.4113,1.5466,2.4548,0.8676,2.0545,1.5077,3.4496,2.1555,2.1823,1.1465,1.3697,1.7239,0.8112,1.8312,2.1519,2.0962,2.5801,1.3707,1.5038,2.5903,0.7978,1.0085,3.3784,2.955,0.8879,1.4619,1.6197,1.0255,2.5362,2.5362,1.9912,1.1469,1.4964,0.9082,1.3997,1.6726,3.7615,1.9389,1.696,1.004,1.9635,1.0972,2.1047,1.3396,1.9443,1.9035,1.2931,2.1077,0.4722,3.002,4.8185,1.3542,1.3909,2.2774,2.8915,1.4247,1.1755,1.5999,1.8341,1.5118,2.7466,1.7253,0.862,1.6326,0.9553,1.2519,1.4351,1.3229,2.3543,0.6961,2.8018,2.5051,1.4631,1.6594,1.2672,2.3146,2.115,1.5599,1.6126,1.2831,-0.2503,2.0106,0.6359,1.5608,1.8709,2.5805,1.7279,1.4254,2.4024,1.9335,2.7709,1.8701,3.6878,2.5306,0.4399,1.4407,2.5901,1.4215,2.1243,1.6411,1.4054,1.1287,2.1412,1.8045,1.2067,0.7241,2.9481,1.7306,0.9039,1.2606,1.4497,1.414,1.4021,0.6114,1.6904,0.9969,1.0604,0.5683,1.2805,0.9373,1.7563,2.2458,0.9124,1.3215,2.1286,1.197,3.0606,1.2354,0.927,2.4068,1.5055,1.9959,1.8356,1.6243,2.2202,2.1943,0.6597,1.0131,1.2738,0.4122,1.8365,1.8641,2.595,0.5291,1.9646,1.3376,0.9055,3.0427,3.228,2.3337,2.065,0.9983,0.5436,2.0285,1.9827,1.2087,1.9553,1.7114,1.8643,1.1268,1.3298,1.7498,2.9632,1.324,1.857,1.416,0.7419,2.035,1.796,0.7399,1.4711,1.4551,1.6504,1.6054,1.5449,1.4963,0.9789,1.9286,1.1682,1.4995,1.8626,0.7036,1.8078,1.8731,3.4404,2.423,2.7038,1.829,2.1001,1.8037,1.7422,1.7309,1.962,2.202,1.8081,1.4886,2.3139,1.4857,0.6468,2.4625,2.5169,3.8702,2.7156,1.5888,1.7279,2.2111,1.7614,1.4352,1.9779,2.0018,2.1038,2.638,3.3726,1.611,0.9789,3.6307,2.525,0.954,0.6742,0.8594,1.7678,0.9921,0.9431,2.2016,1.8464,1.8994,1.5957,0.8534,2.4522,1.8689,2.0127,1.6077,2.2749,1.6422,1.368,1.1508,1.184,1.0736,1.1946,3.3064,1.0316,1.6948,1.1192,2.3304,1.2543,1.1809,1.3597,2.5423,2.7638,1.4573,0.2181,1.8773,0.9764,2.2549,2.3391,1.0339,0.853,2.5087,1.8384,1.4202,1.1905,2.5699,2.8596,2.6063,2.9186,1.9764,1.2573,2.6228,1.9556,1.6244,1.4432,1.1897,2.0603,0.6145,1.554,1.762,1.1759,0.8927,1.1834,1.6294,1.1534,2.7257,1.961,2.1043,0.7046,2.8053,1.6487,1.6266,1.4122,1.4059,1.8075,3.9504,1.51,1.9961,1.4361,2.0779,2.0568,1.0466,1.5492,2.5484,2.114,0.9918,1.5258,1.7209,0.8792,2.0815,0.1638,2.1747,2.5574,3.9901,1.6493,0.5406,0.8199,3.0088,1.9575,0.9307,1.6529,1.6242,1.2344,2.7901,1.0574,1.4815,1.6923,0.6217,1.3116,1.718,1.0909,1.3692,1.289,1.0021,1.5775,2.0002,0.9888,2.9995,1.5772,1.2489,1.0853,1.627,1.9304,1.6691,2.2697,2.0039,2.0763,2.8855,0.8206,0.9792,2.2023,1.8762,1.1449,1.1157,2.5141,2.2593,1.0602,1.5342,2.1444,3.8462,1.0521,1.3972,1.7368,1.8477,2.3707,2.394,1.4001]},"inject":{"level":[-60,-65,-70,-75,-80],"surv":[21.4046,11.2153,5.8076,5.8139,5.8149],"ref":[29.9147,16.9503,7.9352,4.8311,4.831]},"noiseZ":[5.8149,4.8342],"azimuthCoarse":[{"Scan":"az_pulse_0.2_debug","Step":1,"Bearing_deg":0,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.2819,"RefPower_dBFS":-14.7347,"SurvPulseMinusAmbient_dB":0.5289,"RefPulseMinusAmbient_dB":-0.0355,"SurvCombScoreAt0_dB":0.6495,"RefCombScoreAt0_dB":-0.4551,"SurvBestOffset_Hz":17200,"SurvBestScore_dB":1.7292,"RefBestOffset_Hz":17900,"RefBestScore_dB":1.299},{"Scan":"az_pulse_0.2_debug","Step":2,"Bearing_deg":45,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5238,"RefPower_dBFS":-14.9397,"SurvPulseMinusAmbient_dB":0.5196,"RefPulseMinusAmbient_dB":0.2859,"SurvCombScoreAt0_dB":0.8004,"RefCombScoreAt0_dB":-0.1396,"SurvBestOffset_Hz":-35900,"SurvBestScore_dB":1.6265,"RefBestOffset_Hz":-21100,"RefBestScore_dB":1.6539},{"Scan":"az_pulse_0.2_debug","Step":3,"Bearing_deg":90,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4409,"RefPower_dBFS":-14.6127,"SurvPulseMinusAmbient_dB":0.4042,"RefPulseMinusAmbient_dB":0.343,"SurvCombScoreAt0_dB":-0.2661,"RefCombScoreAt0_dB":0.3078,"SurvBestOffset_Hz":14200,"SurvBestScore_dB":1.6951,"RefBestOffset_Hz":-14600,"RefBestScore_dB":1.4941},{"Scan":"az_pulse_0.2_debug","Step":4,"Bearing_deg":135,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5066,"RefPower_dBFS":-14.4545,"SurvPulseMinusAmbient_dB":0.4532,"RefPulseMinusAmbient_dB":0.3572,"SurvCombScoreAt0_dB":0.4063,"RefCombScoreAt0_dB":0.4062,"SurvBestOffset_Hz":58700,"SurvBestScore_dB":1.514,"RefBestOffset_Hz":41300,"RefBestScore_dB":1.4803},{"Scan":"az_pulse_0.2_debug","Step":5,"Bearing_deg":180,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5094,"RefPower_dBFS":-14.6475,"SurvPulseMinusAmbient_dB":0.356,"RefPulseMinusAmbient_dB":0.1805,"SurvCombScoreAt0_dB":-0.4928,"RefCombScoreAt0_dB":-1.0505,"SurvBestOffset_Hz":23700,"SurvBestScore_dB":1.395,"RefBestOffset_Hz":31100,"RefBestScore_dB":1.0458},{"Scan":"az_pulse_0.2_debug","Step":6,"Bearing_deg":225,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4824,"RefPower_dBFS":-14.4348,"SurvPulseMinusAmbient_dB":0.5419,"RefPulseMinusAmbient_dB":0.0365,"SurvCombScoreAt0_dB":1.1309,"RefCombScoreAt0_dB":-0.6222,"SurvBestOffset_Hz":26600,"SurvBestScore_dB":1.6208,"RefBestOffset_Hz":-45900,"RefBestScore_dB":0.4701},{"Scan":"az_pulse_0.2_debug","Step":7,"Bearing_deg":270,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4877,"RefPower_dBFS":-14.7844,"SurvPulseMinusAmbient_dB":0.4035,"RefPulseMinusAmbient_dB":0.1613,"SurvCombScoreAt0_dB":0.5964,"RefCombScoreAt0_dB":-0.2701,"SurvBestOffset_Hz":44000,"SurvBestScore_dB":1.8722,"RefBestOffset_Hz":31600,"RefBestScore_dB":0.7947},{"Scan":"az_pulse_0.2_debug","Step":8,"Bearing_deg":315,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4371,"RefPower_dBFS":-14.6932,"SurvPulseMinusAmbient_dB":0.4189,"RefPulseMinusAmbient_dB":0.0141,"SurvCombScoreAt0_dB":-0.2765,"RefCombScoreAt0_dB":0.2019,"SurvBestOffset_Hz":-24800,"SurvBestScore_dB":1.6003,"RefBestOffset_Hz":-9100,"RefBestScore_dB":0.6466},{"Scan":"az_pulse_0.5_debug","Step":1,"Bearing_deg":0,"PulseStart_s":0.5,"PulseDur_s":0.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.3195,"RefPower_dBFS":-14.6329,"SurvPulseMinusAmbient_dB":0.5094,"RefPulseMinusAmbient_dB":-0.155,"SurvCombScoreAt0_dB":0.5313,"RefCombScoreAt0_dB":-0.4238,"SurvBestOffset_Hz":45400,"SurvBestScore_dB":1.4357,"RefBestOffset_Hz":-42200,"RefBestScore_dB":0.2861},{"Scan":"az_pulse_0.5_debug","Step":2,"Bearing_deg":45,"PulseStart_s":0.5,"PulseDur_s":0.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4143,"RefPower_dBFS":-14.6376,"SurvPulseMinusAmbient_dB":0.4483,"RefPulseMinusAmbient_dB":-0.0555,"SurvCombScoreAt0_dB":0.5728,"RefCombScoreAt0_dB":-0.7865,"SurvBestOffset_Hz":24600,"SurvBestScore_dB":1.3989,"RefBestOffset_Hz":-600,"RefBestScore_dB":0.084},{"Scan":"az_pulse_0.5_debug","Step":3,"Bearing_deg":90,"PulseStart_s":0.5,"PulseDur_s":0.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4579,"RefPower_dBFS":-14.2683,"SurvPulseMinusAmbient_dB":0.5204,"RefPulseMinusAmbient_dB":-0.2755,"SurvCombScoreAt0_dB":0.6735,"RefCombScoreAt0_dB":-0.1744,"SurvBestOffset_Hz":-31100,"SurvBestScore_dB":1.412,"RefBestOffset_Hz":-30400,"RefBestScore_dB":0.3653},{"Scan":"az_pulse_0.5_debug","Step":4,"Bearing_deg":135,"PulseStart_s":0.5,"PulseDur_s":0.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5312,"RefPower_dBFS":-14.4514,"SurvPulseMinusAmbient_dB":0.5138,"RefPulseMinusAmbient_dB":-0.5189,"SurvCombScoreAt0_dB":0.8682,"RefCombScoreAt0_dB":-1.5709,"SurvBestOffset_Hz":6500,"SurvBestScore_dB":1.2616,"RefBestOffset_Hz":-45100,"RefBestScore_dB":-1.1047},{"Scan":"az_pulse_0.5_debug","Step":5,"Bearing_deg":180,"PulseStart_s":0.5,"PulseDur_s":0.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4435,"RefPower_dBFS":-14.6698,"SurvPulseMinusAmbient_dB":0.4435,"RefPulseMinusAmbient_dB":0.0607,"SurvCombScoreAt0_dB":0.6854,"RefCombScoreAt0_dB":-0.2354,"SurvBestOffset_Hz":35700,"SurvBestScore_dB":1.1934,"RefBestOffset_Hz":-33500,"RefBestScore_dB":0.6885},{"Scan":"az_pulse_0.5_debug","Step":6,"Bearing_deg":225,"PulseStart_s":0.5,"PulseDur_s":0.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4123,"RefPower_dBFS":-14.5364,"SurvPulseMinusAmbient_dB":0.4997,"RefPulseMinusAmbient_dB":0.3932,"SurvCombScoreAt0_dB":0.4418,"RefCombScoreAt0_dB":0.6865,"SurvBestOffset_Hz":-37900,"SurvBestScore_dB":1.1764,"RefBestOffset_Hz":21800,"RefBestScore_dB":1.2573},{"Scan":"az_pulse_0.5_debug","Step":7,"Bearing_deg":270,"PulseStart_s":0.5,"PulseDur_s":0.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4624,"RefPower_dBFS":-14.7321,"SurvPulseMinusAmbient_dB":0.5261,"RefPulseMinusAmbient_dB":-0.0428,"SurvCombScoreAt0_dB":0.7149,"RefCombScoreAt0_dB":-0.0792,"SurvBestOffset_Hz":59800,"SurvBestScore_dB":1.5257,"RefBestOffset_Hz":-57000,"RefBestScore_dB":0.48},{"Scan":"az_pulse_0.5_debug","Step":8,"Bearing_deg":315,"PulseStart_s":0.5,"PulseDur_s":0.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.4993,"RefPower_dBFS":-14.8567,"SurvPulseMinusAmbient_dB":0.4811,"RefPulseMinusAmbient_dB":0.0283,"SurvCombScoreAt0_dB":1.0574,"RefCombScoreAt0_dB":0.0759,"SurvBestOffset_Hz":45700,"SurvBestScore_dB":1.3395,"RefBestOffset_Hz":-14400,"RefBestScore_dB":0.7965},{"Scan":"az_pulse_1.0_debug","Step":1,"Bearing_deg":0,"PulseStart_s":0.5,"PulseDur_s":1,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.2977,"RefPower_dBFS":-14.7616,"SurvPulseMinusAmbient_dB":0.4566,"RefPulseMinusAmbient_dB":0.3006,"SurvCombScoreAt0_dB":0.5121,"RefCombScoreAt0_dB":0.5872,"SurvBestOffset_Hz":-37400,"SurvBestScore_dB":1.0379,"RefBestOffset_Hz":26500,"RefBestScore_dB":1.2922},{"Scan":"az_pulse_1.0_debug","Step":2,"Bearing_deg":45,"PulseStart_s":0.5,"PulseDur_s":1,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.8686,"RefPower_dBFS":-14.6287,"SurvPulseMinusAmbient_dB":0.6475,"RefPulseMinusAmbient_dB":0.0529,"SurvCombScoreAt0_dB":0.767,"RefCombScoreAt0_dB":0.295,"SurvBestOffset_Hz":29200,"SurvBestScore_dB":1.1504,"RefBestOffset_Hz":13100,"RefBestScore_dB":0.722},{"Scan":"az_pulse_1.0_debug","Step":3,"Bearing_deg":90,"PulseStart_s":0.5,"PulseDur_s":1,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-12.0515,"RefPower_dBFS":-14.3423,"SurvPulseMinusAmbient_dB":0.8419,"RefPulseMinusAmbient_dB":0.2395,"SurvCombScoreAt0_dB":0.7516,"RefCombScoreAt0_dB":0.6626,"SurvBestOffset_Hz":60000,"SurvBestScore_dB":1.1315,"RefBestOffset_Hz":46700,"RefBestScore_dB":0.7919},{"Scan":"az_pulse_1.0_debug","Step":4,"Bearing_deg":135,"PulseStart_s":0.5,"PulseDur_s":1,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5446,"RefPower_dBFS":-14.3476,"SurvPulseMinusAmbient_dB":0.3535,"RefPulseMinusAmbient_dB":0.0628,"SurvCombScoreAt0_dB":0.3299,"RefCombScoreAt0_dB":-0.4208,"SurvBestOffset_Hz":22600,"SurvBestScore_dB":0.9601,"RefBestOffset_Hz":-38300,"RefBestScore_dB":0.5147},{"Scan":"az_pulse_1.0_debug","Step":5,"Bearing_deg":180,"PulseStart_s":0.5,"PulseDur_s":1,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.534,"RefPower_dBFS":-14.3446,"SurvPulseMinusAmbient_dB":0.2675,"RefPulseMinusAmbient_dB":0.215,"SurvCombScoreAt0_dB":0.2486,"RefCombScoreAt0_dB":0.0148,"SurvBestOffset_Hz":-40900,"SurvBestScore_dB":0.7025,"RefBestOffset_Hz":9100,"RefBestScore_dB":0.6073},{"Scan":"az_pulse_1.0_debug","Step":6,"Bearing_deg":225,"PulseStart_s":0.5,"PulseDur_s":1,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5505,"RefPower_dBFS":-14.5687,"SurvPulseMinusAmbient_dB":0.373,"RefPulseMinusAmbient_dB":0.3263,"SurvCombScoreAt0_dB":0.5089,"RefCombScoreAt0_dB":0.428,"SurvBestOffset_Hz":-17500,"SurvBestScore_dB":0.9201,"RefBestOffset_Hz":-58700,"RefBestScore_dB":1.0736},{"Scan":"az_pulse_1.0_debug","Step":7,"Bearing_deg":270,"PulseStart_s":0.5,"PulseDur_s":1,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.2626,"RefPower_dBFS":-14.5367,"SurvPulseMinusAmbient_dB":0.4908,"RefPulseMinusAmbient_dB":-0.0792,"SurvCombScoreAt0_dB":0.6088,"RefCombScoreAt0_dB":0.1492,"SurvBestOffset_Hz":9000,"SurvBestScore_dB":1.195,"RefBestOffset_Hz":57000,"RefBestScore_dB":0.4453},{"Scan":"az_pulse_1.0_debug","Step":8,"Bearing_deg":315,"PulseStart_s":0.5,"PulseDur_s":1,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.3771,"RefPower_dBFS":-14.815,"SurvPulseMinusAmbient_dB":0.3792,"RefPulseMinusAmbient_dB":0.0634,"SurvCombScoreAt0_dB":0.607,"RefCombScoreAt0_dB":-0.0289,"SurvBestOffset_Hz":-2100,"SurvBestScore_dB":0.9094,"RefBestOffset_Hz":-28900,"RefBestScore_dB":0.3935},{"Scan":"az_pulse_1.5_debug","Step":1,"Bearing_deg":0,"PulseStart_s":0.5,"PulseDur_s":1.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.2021,"RefPower_dBFS":-14.7901,"SurvPulseMinusAmbient_dB":0.4355,"RefPulseMinusAmbient_dB":0.1553,"SurvCombScoreAt0_dB":0.6298,"RefCombScoreAt0_dB":0.5199,"SurvBestOffset_Hz":-2700,"SurvBestScore_dB":1.0847,"RefBestOffset_Hz":-12200,"RefBestScore_dB":0.8784},{"Scan":"az_pulse_1.5_debug","Step":2,"Bearing_deg":45,"PulseStart_s":0.5,"PulseDur_s":1.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5101,"RefPower_dBFS":-14.9205,"SurvPulseMinusAmbient_dB":0.3876,"RefPulseMinusAmbient_dB":-0.013,"SurvCombScoreAt0_dB":0.3881,"RefCombScoreAt0_dB":0.1736,"SurvBestOffset_Hz":-35300,"SurvBestScore_dB":0.8359,"RefBestOffset_Hz":12100,"RefBestScore_dB":0.5824},{"Scan":"az_pulse_1.5_debug","Step":3,"Bearing_deg":90,"PulseStart_s":0.5,"PulseDur_s":1.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5407,"RefPower_dBFS":-14.7315,"SurvPulseMinusAmbient_dB":0.2734,"RefPulseMinusAmbient_dB":0.5511,"SurvCombScoreAt0_dB":0.2031,"RefCombScoreAt0_dB":0.6732,"SurvBestOffset_Hz":-39000,"SurvBestScore_dB":0.764,"RefBestOffset_Hz":-55300,"RefBestScore_dB":1.1612},{"Scan":"az_pulse_1.5_debug","Step":4,"Bearing_deg":135,"PulseStart_s":0.5,"PulseDur_s":1.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5645,"RefPower_dBFS":-14.4151,"SurvPulseMinusAmbient_dB":0.2312,"RefPulseMinusAmbient_dB":0.3333,"SurvCombScoreAt0_dB":0.053,"RefCombScoreAt0_dB":0.5391,"SurvBestOffset_Hz":-5600,"SurvBestScore_dB":0.7589,"RefBestOffset_Hz":29900,"RefBestScore_dB":1.1049},{"Scan":"az_pulse_1.5_debug","Step":5,"Bearing_deg":180,"PulseStart_s":0.5,"PulseDur_s":1.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.5063,"RefPower_dBFS":-14.4361,"SurvPulseMinusAmbient_dB":0.2705,"RefPulseMinusAmbient_dB":0.1737,"SurvCombScoreAt0_dB":0.4608,"RefCombScoreAt0_dB":0.6046,"SurvBestOffset_Hz":53100,"SurvBestScore_dB":0.8056,"RefBestOffset_Hz":-5100,"RefBestScore_dB":0.9227},{"Scan":"az_pulse_1.5_debug","Step":6,"Bearing_deg":225,"PulseStart_s":0.5,"PulseDur_s":1.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.3252,"RefPower_dBFS":-14.6614,"SurvPulseMinusAmbient_dB":0.3263,"RefPulseMinusAmbient_dB":0.3133,"SurvCombScoreAt0_dB":0.3209,"RefCombScoreAt0_dB":0.2855,"SurvBestOffset_Hz":-25100,"SurvBestScore_dB":0.8618,"RefBestOffset_Hz":15500,"RefBestScore_dB":0.9041},{"Scan":"az_pulse_1.5_debug","Step":7,"Bearing_deg":270,"PulseStart_s":0.5,"PulseDur_s":1.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.3742,"RefPower_dBFS":-14.7431,"SurvPulseMinusAmbient_dB":0.3089,"RefPulseMinusAmbient_dB":0.1274,"SurvCombScoreAt0_dB":0.5951,"RefCombScoreAt0_dB":0.0953,"SurvBestOffset_Hz":-13000,"SurvBestScore_dB":0.8445,"RefBestOffset_Hz":-31200,"RefBestScore_dB":0.4996},{"Scan":"az_pulse_1.5_debug","Step":8,"Bearing_deg":315,"PulseStart_s":0.5,"PulseDur_s":1.5,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.9399,"RefPower_dBFS":-14.2633,"SurvPulseMinusAmbient_dB":0.5957,"RefPulseMinusAmbient_dB":0.3407,"SurvCombScoreAt0_dB":0.7483,"RefCombScoreAt0_dB":0.7631,"SurvBestOffset_Hz":800,"SurvBestScore_dB":1.1013,"RefBestOffset_Hz":12300,"RefBestScore_dB":1.0723},{"Scan":"az_pulse_2.0_debug","Step":1,"Bearing_deg":0,"PulseStart_s":0.5,"PulseDur_s":2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.3243,"RefPower_dBFS":-14.7175,"SurvPulseMinusAmbient_dB":0.2483,"RefPulseMinusAmbient_dB":0.1802,"SurvCombScoreAt0_dB":0.4606,"RefCombScoreAt0_dB":0.3547,"SurvBestOffset_Hz":-32200,"SurvBestScore_dB":0.6705,"RefBestOffset_Hz":-8100,"RefBestScore_dB":0.8503},{"Scan":"az_pulse_2.0_debug","Step":2,"Bearing_deg":45,"PulseStart_s":0.5,"PulseDur_s":2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.6194,"RefPower_dBFS":-14.455,"SurvPulseMinusAmbient_dB":0.5778,"RefPulseMinusAmbient_dB":-0.0445,"SurvCombScoreAt0_dB":0.5446,"RefCombScoreAt0_dB":-0.0216,"SurvBestOffset_Hz":-5900,"SurvBestScore_dB":1.0145,"RefBestOffset_Hz":-2400,"RefBestScore_dB":0.4208},{"Scan":"az_pulse_2.0_debug","Step":3,"Bearing_deg":90,"PulseStart_s":0.5,"PulseDur_s":2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.8884,"RefPower_dBFS":-14.167,"SurvPulseMinusAmbient_dB":0.5693,"RefPulseMinusAmbient_dB":0.4708,"SurvCombScoreAt0_dB":0.4262,"RefCombScoreAt0_dB":0.8502,"SurvBestOffset_Hz":-28500,"SurvBestScore_dB":0.932,"RefBestOffset_Hz":-35900,"RefBestScore_dB":1.3372},{"Scan":"az_pulse_2.0_debug","Step":4,"Bearing_deg":135,"PulseStart_s":0.5,"PulseDur_s":2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.6341,"RefPower_dBFS":-13.9974,"SurvPulseMinusAmbient_dB":0.5655,"RefPulseMinusAmbient_dB":0.3422,"SurvCombScoreAt0_dB":0.4466,"RefCombScoreAt0_dB":0.3752,"SurvBestOffset_Hz":34100,"SurvBestScore_dB":0.8951,"RefBestOffset_Hz":9000,"RefBestScore_dB":0.9067},{"Scan":"az_pulse_2.0_debug","Step":5,"Bearing_deg":180,"PulseStart_s":0.5,"PulseDur_s":2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-12.0174,"RefPower_dBFS":-14.229,"SurvPulseMinusAmbient_dB":0.2596,"RefPulseMinusAmbient_dB":0.4649,"SurvCombScoreAt0_dB":0.3707,"RefCombScoreAt0_dB":0.8422,"SurvBestOffset_Hz":10500,"SurvBestScore_dB":0.6842,"RefBestOffset_Hz":57800,"RefBestScore_dB":1.202},{"Scan":"az_pulse_2.0_debug","Step":6,"Bearing_deg":225,"PulseStart_s":0.5,"PulseDur_s":2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-12.0853,"RefPower_dBFS":-14.1793,"SurvPulseMinusAmbient_dB":0.1868,"RefPulseMinusAmbient_dB":0.1708,"SurvCombScoreAt0_dB":0.3068,"RefCombScoreAt0_dB":0.3483,"SurvBestOffset_Hz":9300,"SurvBestScore_dB":0.6767,"RefBestOffset_Hz":47700,"RefBestScore_dB":0.6724},{"Scan":"az_pulse_2.0_debug","Step":7,"Bearing_deg":270,"PulseStart_s":0.5,"PulseDur_s":2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.9928,"RefPower_dBFS":-14.2894,"SurvPulseMinusAmbient_dB":0.2018,"RefPulseMinusAmbient_dB":0.216,"SurvCombScoreAt0_dB":0.0523,"RefCombScoreAt0_dB":0.4769,"SurvBestOffset_Hz":-12700,"SurvBestScore_dB":0.5532,"RefBestOffset_Hz":4100,"RefBestScore_dB":0.8373},{"Scan":"az_pulse_2.0_debug","Step":8,"Bearing_deg":315,"PulseStart_s":0.5,"PulseDur_s":2,"CaptureDur_s":5,"NumTones":12,"SurvPower_dBFS":-11.8649,"RefPower_dBFS":-14.7281,"SurvPulseMinusAmbient_dB":0.3007,"RefPulseMinusAmbient_dB":0.1669,"SurvCombScoreAt0_dB":0.1717,"RefCombScoreAt0_dB":0.0613,"SurvBestOffset_Hz":-37600,"SurvBestScore_dB":0.7158,"RefBestOffset_Hz":-40900,"RefBestScore_dB":0.7676},{"Scan":"az_remote_debug_12tone","Step":1,"Bearing_deg":0,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-10.2059,"RefPower_dBFS":-13.6499,"SurvPulseMinusAmbient_dB":-0.0338,"RefPulseMinusAmbient_dB":0.0618,"SurvCombScoreAt0_dB":-0.5009,"RefCombScoreAt0_dB":-0.7176,"SurvBestOffset_Hz":18400,"SurvBestScore_dB":0.9241,"RefBestOffset_Hz":-31100,"RefBestScore_dB":1.0508},{"Scan":"az_remote_debug_12tone","Step":2,"Bearing_deg":90,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-10.2562,"RefPower_dBFS":-13.648,"SurvPulseMinusAmbient_dB":-0.0364,"RefPulseMinusAmbient_dB":0.1756,"SurvCombScoreAt0_dB":-0.9826,"RefCombScoreAt0_dB":-0.291,"SurvBestOffset_Hz":-41100,"SurvBestScore_dB":0.9033,"RefBestOffset_Hz":15400,"RefBestScore_dB":1.3028},{"Scan":"az_remote_debug_12tone","Step":3,"Bearing_deg":180,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-10.2033,"RefPower_dBFS":-13.3222,"SurvPulseMinusAmbient_dB":-0.1008,"RefPulseMinusAmbient_dB":0.2923,"SurvCombScoreAt0_dB":-0.725,"RefCombScoreAt0_dB":0.21,"SurvBestOffset_Hz":42700,"SurvBestScore_dB":0.9325,"RefBestOffset_Hz":35300,"RefBestScore_dB":1.6173},{"Scan":"az_remote_debug_12tone","Step":4,"Bearing_deg":270,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-10.3224,"RefPower_dBFS":-13.8442,"SurvPulseMinusAmbient_dB":0.1992,"RefPulseMinusAmbient_dB":-0.0586,"SurvCombScoreAt0_dB":-0.2589,"RefCombScoreAt0_dB":0.0127,"SurvBestOffset_Hz":20100,"SurvBestScore_dB":1.6366,"RefBestOffset_Hz":-54200,"RefBestScore_dB":0.8639},{"Scan":"az_scan_08steps_04secs_62181525","Step":1,"Bearing_deg":0,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-10.933,"RefPower_dBFS":-15.4372,"SurvPulseMinusAmbient_dB":0.6359,"RefPulseMinusAmbient_dB":0.394,"SurvCombScoreAt0_dB":-0.2019,"RefCombScoreAt0_dB":-0.1601,"SurvBestOffset_Hz":-10100,"SurvBestScore_dB":2.0046,"RefBestOffset_Hz":-44800,"RefBestScore_dB":1.3748},{"Scan":"az_scan_08steps_04secs_62181525","Step":2,"Bearing_deg":45,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-11.9001,"RefPower_dBFS":-14.1662,"SurvPulseMinusAmbient_dB":0.0986,"RefPulseMinusAmbient_dB":-0.1867,"SurvCombScoreAt0_dB":-0.5786,"RefCombScoreAt0_dB":-0.9382,"SurvBestOffset_Hz":200,"SurvBestScore_dB":1.0736,"RefBestOffset_Hz":-28300,"RefBestScore_dB":1.1887},{"Scan":"az_scan_08steps_04secs_62181525","Step":3,"Bearing_deg":90,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-11.381,"RefPower_dBFS":-14.7618,"SurvPulseMinusAmbient_dB":0.3488,"RefPulseMinusAmbient_dB":0.1449,"SurvCombScoreAt0_dB":0.2117,"RefCombScoreAt0_dB":-0.3068,"SurvBestOffset_Hz":44100,"SurvBestScore_dB":1.3407,"RefBestOffset_Hz":18100,"RefBestScore_dB":0.9024},{"Scan":"az_scan_08steps_04secs_62181525","Step":4,"Bearing_deg":135,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-11.3734,"RefPower_dBFS":-15.1066,"SurvPulseMinusAmbient_dB":0.2986,"RefPulseMinusAmbient_dB":-0.2229,"SurvCombScoreAt0_dB":0.0372,"RefCombScoreAt0_dB":-0.745,"SurvBestOffset_Hz":-48400,"SurvBestScore_dB":1.4448,"RefBestOffset_Hz":-15600,"RefBestScore_dB":0.6389},{"Scan":"az_scan_08steps_04secs_62181525","Step":5,"Bearing_deg":180,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-11.3515,"RefPower_dBFS":-15.0648,"SurvPulseMinusAmbient_dB":0.3587,"RefPulseMinusAmbient_dB":-0.3424,"SurvCombScoreAt0_dB":0.426,"RefCombScoreAt0_dB":-0.9194,"SurvBestOffset_Hz":-48000,"SurvBestScore_dB":1.5071,"RefBestOffset_Hz":-49800,"RefBestScore_dB":0.6393},{"Scan":"az_scan_08steps_04secs_62181525","Step":6,"Bearing_deg":225,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-11.4948,"RefPower_dBFS":-15.4606,"SurvPulseMinusAmbient_dB":0.2177,"RefPulseMinusAmbient_dB":-0.1989,"SurvCombScoreAt0_dB":-0.1811,"RefCombScoreAt0_dB":-0.4212,"SurvBestOffset_Hz":45100,"SurvBestScore_dB":1.2175,"RefBestOffset_Hz":40700,"RefBestScore_dB":0.8119},{"Scan":"az_scan_08steps_04secs_62181525","Step":7,"Bearing_deg":270,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-11.3521,"RefPower_dBFS":-15.0751,"SurvPulseMinusAmbient_dB":0.1841,"RefPulseMinusAmbient_dB":0.2066,"SurvCombScoreAt0_dB":-0.0729,"RefCombScoreAt0_dB":0.3356,"SurvBestOffset_Hz":-39300,"SurvBestScore_dB":1.2931,"RefBestOffset_Hz":13100,"RefBestScore_dB":1.5978},{"Scan":"az_scan_08steps_04secs_62181525","Step":8,"Bearing_deg":315,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-11.3402,"RefPower_dBFS":-15.3217,"SurvPulseMinusAmbient_dB":0.2451,"RefPulseMinusAmbient_dB":0.0574,"SurvCombScoreAt0_dB":-0.2353,"RefCombScoreAt0_dB":0.3223,"SurvBestOffset_Hz":55600,"SurvBestScore_dB":1.3983,"RefBestOffset_Hz":34900,"RefBestScore_dB":1.2017},{"Scan":"az_scan_08steps_04secs_62181629","Step":1,"Bearing_deg":0,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-9.1604,"RefPower_dBFS":-14.5706,"SurvPulseMinusAmbient_dB":0.1239,"RefPulseMinusAmbient_dB":0.5068,"SurvCombScoreAt0_dB":-0.1623,"RefCombScoreAt0_dB":0.8235,"SurvBestOffset_Hz":-4000,"SurvBestScore_dB":1.1389,"RefBestOffset_Hz":-50500,"RefBestScore_dB":1.8089},{"Scan":"az_scan_08steps_04secs_62181629","Step":2,"Bearing_deg":45,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-11.519,"RefPower_dBFS":-14.6007,"SurvPulseMinusAmbient_dB":-0.2695,"RefPulseMinusAmbient_dB":0.6908,"SurvCombScoreAt0_dB":-0.8698,"RefCombScoreAt0_dB":0.279,"SurvBestOffset_Hz":53500,"SurvBestScore_dB":0.6623,"RefBestOffset_Hz":-16500,"RefBestScore_dB":1.4469},{"Scan":"az_scan_08steps_04secs_62181629","Step":3,"Bearing_deg":90,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-8.3067,"RefPower_dBFS":-14.1464,"SurvPulseMinusAmbient_dB":0.1426,"RefPulseMinusAmbient_dB":0.1985,"SurvCombScoreAt0_dB":-0.5638,"RefCombScoreAt0_dB":-0.4048,"SurvBestOffset_Hz":20400,"SurvBestScore_dB":1.1975,"RefBestOffset_Hz":-40000,"RefBestScore_dB":1.2127},{"Scan":"az_scan_08steps_04secs_62181629","Step":4,"Bearing_deg":135,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-7.6287,"RefPower_dBFS":-14.4623,"SurvPulseMinusAmbient_dB":-0.6994,"RefPulseMinusAmbient_dB":-0.2988,"SurvCombScoreAt0_dB":-1.0862,"RefCombScoreAt0_dB":-0.333,"SurvBestOffset_Hz":-10500,"SurvBestScore_dB":0.7111,"RefBestOffset_Hz":-2000,"RefBestScore_dB":1.2626},{"Scan":"az_scan_08steps_04secs_62181629","Step":5,"Bearing_deg":180,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-13.0288,"RefPower_dBFS":-14.8619,"SurvPulseMinusAmbient_dB":-0.1747,"RefPulseMinusAmbient_dB":0.0247,"SurvCombScoreAt0_dB":-0.4043,"RefCombScoreAt0_dB":-0.3345,"SurvBestOffset_Hz":-49500,"SurvBestScore_dB":0.3637,"RefBestOffset_Hz":3700,"RefBestScore_dB":0.8201},{"Scan":"az_scan_08steps_04secs_62181629","Step":6,"Bearing_deg":225,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-16.8638,"RefPower_dBFS":-14.7118,"SurvPulseMinusAmbient_dB":0.148,"RefPulseMinusAmbient_dB":0.0626,"SurvCombScoreAt0_dB":0.1889,"RefCombScoreAt0_dB":0.2169,"SurvBestOffset_Hz":-5900,"SurvBestScore_dB":1.2141,"RefBestOffset_Hz":25300,"RefBestScore_dB":0.7344},{"Scan":"az_scan_08steps_04secs_62181629","Step":7,"Bearing_deg":270,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-10.6096,"RefPower_dBFS":-14.6313,"SurvPulseMinusAmbient_dB":0.9418,"RefPulseMinusAmbient_dB":0.4208,"SurvCombScoreAt0_dB":0.3949,"RefCombScoreAt0_dB":0.0362,"SurvBestOffset_Hz":-23200,"SurvBestScore_dB":1.9954,"RefBestOffset_Hz":32900,"RefBestScore_dB":1.4223},{"Scan":"az_scan_08steps_04secs_62181629","Step":8,"Bearing_deg":315,"PulseStart_s":0.5,"PulseDur_s":0.2,"CaptureDur_s":4,"NumTones":12,"SurvPower_dBFS":-12.9,"RefPower_dBFS":-14.5099,"SurvPulseMinusAmbient_dB":-0.1283,"RefPulseMinusAmbient_dB":-0.0943,"SurvCombScoreAt0_dB":0.2607,"RefCombScoreAt0_dB":-0.6496,"SurvBestOffset_Hz":-5400,"SurvBestScore_dB":1.0365,"RefBestOffset_Hz":-17800,"RefBestScore_dB":1.1591}],"azimuthByScan":[{"Scan":"az_pulse_0.2_debug","GroupCount":8,"mean_SurvPulseMinusAmbient_dB":0.4533,"max_SurvPulseMinusAmbient_dB":0.5419,"mean_RefPulseMinusAmbient_dB":0.1679,"max_RefPulseMinusAmbient_dB":0.3572,"mean_SurvCombScoreAt0_dB":0.3185,"max_SurvCombScoreAt0_dB":1.1309,"mean_RefCombScoreAt0_dB":-0.2027,"max_RefCombScoreAt0_dB":0.4062,"mean_SurvBestScore_dB":1.6316,"max_SurvBestScore_dB":1.8722,"mean_RefBestScore_dB":1.1106,"max_RefBestScore_dB":1.6539},{"Scan":"az_pulse_0.5_debug","GroupCount":8,"mean_SurvPulseMinusAmbient_dB":0.4928,"max_SurvPulseMinusAmbient_dB":0.5261,"mean_RefPulseMinusAmbient_dB":-0.0707,"max_RefPulseMinusAmbient_dB":0.3932,"mean_SurvCombScoreAt0_dB":0.6932,"max_SurvCombScoreAt0_dB":1.0574,"mean_RefCombScoreAt0_dB":-0.3135,"max_RefCombScoreAt0_dB":0.6865,"mean_SurvBestScore_dB":1.3429,"max_SurvBestScore_dB":1.5257,"mean_RefBestScore_dB":0.3566,"max_RefBestScore_dB":1.2573},{"Scan":"az_pulse_1.0_debug","GroupCount":8,"mean_SurvPulseMinusAmbient_dB":0.4763,"max_SurvPulseMinusAmbient_dB":0.8419,"mean_RefPulseMinusAmbient_dB":0.1477,"max_RefPulseMinusAmbient_dB":0.3263,"mean_SurvCombScoreAt0_dB":0.5417,"max_SurvCombScoreAt0_dB":0.767,"mean_RefCombScoreAt0_dB":0.2109,"max_RefCombScoreAt0_dB":0.6626,"mean_SurvBestScore_dB":1.0009,"max_SurvBestScore_dB":1.195,"mean_RefBestScore_dB":0.7301,"max_RefBestScore_dB":1.2922},{"Scan":"az_pulse_1.5_debug","GroupCount":8,"mean_SurvPulseMinusAmbient_dB":0.3536,"max_SurvPulseMinusAmbient_dB":0.5957,"mean_RefPulseMinusAmbient_dB":0.2477,"max_RefPulseMinusAmbient_dB":0.5511,"mean_SurvCombScoreAt0_dB":0.4249,"max_SurvCombScoreAt0_dB":0.7483,"mean_RefCombScoreAt0_dB":0.4568,"max_RefCombScoreAt0_dB":0.7631,"mean_SurvBestScore_dB":0.8821,"max_SurvBestScore_dB":1.1013,"mean_RefBestScore_dB":0.8907,"max_RefBestScore_dB":1.1612},{"Scan":"az_pulse_2.0_debug","GroupCount":8,"mean_SurvPulseMinusAmbient_dB":0.3637,"max_SurvPulseMinusAmbient_dB":0.5778,"mean_RefPulseMinusAmbient_dB":0.2459,"max_RefPulseMinusAmbient_dB":0.4708,"mean_SurvCombScoreAt0_dB":0.3474,"max_SurvCombScoreAt0_dB":0.5446,"mean_RefCombScoreAt0_dB":0.4109,"max_RefCombScoreAt0_dB":0.8502,"mean_SurvBestScore_dB":0.7678,"max_SurvBestScore_dB":1.0145,"mean_RefBestScore_dB":0.8743,"max_RefBestScore_dB":1.3372},{"Scan":"az_remote_debug_12tone","GroupCount":4,"mean_SurvPulseMinusAmbient_dB":0.0071,"max_SurvPulseMinusAmbient_dB":0.1992,"mean_RefPulseMinusAmbient_dB":0.1178,"max_RefPulseMinusAmbient_dB":0.2923,"mean_SurvCombScoreAt0_dB":-0.6169,"max_SurvCombScoreAt0_dB":-0.2589,"mean_RefCombScoreAt0_dB":-0.1965,"max_RefCombScoreAt0_dB":0.21,"mean_SurvBestScore_dB":1.0991,"max_SurvBestScore_dB":1.6366,"mean_RefBestScore_dB":1.2087,"max_RefBestScore_dB":1.6173},{"Scan":"az_scan_08steps_04secs_62181525","GroupCount":8,"mean_SurvPulseMinusAmbient_dB":0.2984,"max_SurvPulseMinusAmbient_dB":0.6359,"mean_RefPulseMinusAmbient_dB":-0.0185,"max_RefPulseMinusAmbient_dB":0.394,"mean_SurvCombScoreAt0_dB":-0.0743,"max_SurvCombScoreAt0_dB":0.426,"mean_RefCombScoreAt0_dB":-0.3541,"max_RefCombScoreAt0_dB":0.3356,"mean_SurvBestScore_dB":1.41,"max_SurvBestScore_dB":2.0046,"mean_RefBestScore_dB":1.0445,"max_RefBestScore_dB":1.5978},{"Scan":"az_scan_08steps_04secs_62181629","GroupCount":8,"mean_SurvPulseMinusAmbient_dB":0.0105,"max_SurvPulseMinusAmbient_dB":0.9418,"mean_RefPulseMinusAmbient_dB":0.1889,"max_RefPulseMinusAmbient_dB":0.6908,"mean_SurvCombScoreAt0_dB":-0.2802,"max_SurvCombScoreAt0_dB":0.3949,"mean_RefCombScoreAt0_dB":-0.0458,"max_RefCombScoreAt0_dB":0.8235,"mean_SurvBestScore_dB":1.04,"max_SurvBestScore_dB":1.9954,"mean_RefBestScore_dB":1.2334,"max_RefBestScore_dB":1.8089}],"multitoneLine":[{"Run":"pluto_outer11_100khz_001","Blocks":100,"SurvScoreAt0_dB":-0.2287,"RefScoreAt0_dB":-0.1371,"SurvMaxTone_dB":0.2005,"RefMaxTone_dB":0.2046,"SurvBestOffScore_dB":0.5457,"RefBestOffScore_dB":0.482,"SurvDC_dB":19.3321,"RefDC_dB":16.9205,"SurvPilot_dB":35.9681,"RefPilot_dB":34.9292},{"Run":"pluto_outer11_100khz_002","Blocks":100,"SurvScoreAt0_dB":0.2315,"RefScoreAt0_dB":0.0685,"SurvMaxTone_dB":0.8852,"RefMaxTone_dB":0.5543,"SurvBestOffScore_dB":0.5728,"RefBestOffScore_dB":0.5025,"SurvDC_dB":20.2468,"RefDC_dB":17.9415,"SurvPilot_dB":35.9136,"RefPilot_dB":34.8091},{"Run":"pluto_outer11_100khz_003","Blocks":100,"SurvScoreAt0_dB":0.0632,"RefScoreAt0_dB":-0.0043,"SurvMaxTone_dB":1.0608,"RefMaxTone_dB":1.0011,"SurvBestOffScore_dB":0.6005,"RefBestOffScore_dB":0.647,"SurvDC_dB":17.8406,"RefDC_dB":35.6685,"SurvPilot_dB":36.003,"RefPilot_dB":33.3712},{"Run":"pluto_outer11_100khz_004","Blocks":100,"SurvScoreAt0_dB":0.0378,"RefScoreAt0_dB":-0.056,"SurvMaxTone_dB":0.4751,"RefMaxTone_dB":0.3596,"SurvBestOffScore_dB":0.6155,"RefBestOffScore_dB":0.5066,"SurvDC_dB":20.0259,"RefDC_dB":15.3565,"SurvPilot_dB":36.0896,"RefPilot_dB":34.8957},{"Run":"pluto_outer11_100khz_005","Blocks":100,"SurvScoreAt0_dB":-0.1056,"RefScoreAt0_dB":-0.0872,"SurvMaxTone_dB":0.4238,"RefMaxTone_dB":0.6513,"SurvBestOffScore_dB":0.5572,"RefBestOffScore_dB":0.4807,"SurvDC_dB":22.2196,"RefDC_dB":12.6104,"SurvPilot_dB":36.3652,"RefPilot_dB":34.2179},{"Run":"pluto_outer11_100khz_006","Blocks":100,"SurvScoreAt0_dB":-0.1579,"RefScoreAt0_dB":-0.1,"SurvMaxTone_dB":0.2613,"RefMaxTone_dB":0.4535,"SurvBestOffScore_dB":0.6317,"RefBestOffScore_dB":0.5334,"SurvDC_dB":22.1257,"RefDC_dB":35.8584,"SurvPilot_dB":36.0669,"RefPilot_dB":31.186},{"Run":"pluto_outer11_100khz_007","Blocks":100,"SurvScoreAt0_dB":0.1402,"RefScoreAt0_dB":0.117,"SurvMaxTone_dB":0.6611,"RefMaxTone_dB":0.8647,"SurvBestOffScore_dB":0.6213,"RefBestOffScore_dB":0.5077,"SurvDC_dB":21.802,"RefDC_dB":37.662,"SurvPilot_dB":36.1461,"RefPilot_dB":32.5318},{"Run":"pluto_outer11_100khz_008","Blocks":100,"SurvScoreAt0_dB":-0.04,"RefScoreAt0_dB":0.0804,"SurvMaxTone_dB":0.5003,"RefMaxTone_dB":0.3879,"SurvBestOffScore_dB":0.5528,"RefBestOffScore_dB":0.6109,"SurvDC_dB":21.1653,"RefDC_dB":16.7146,"SurvPilot_dB":36.1653,"RefPilot_dB":34.9052},{"Run":"pluto_outer11_100khz_009","Blocks":100,"SurvScoreAt0_dB":0.0013,"RefScoreAt0_dB":-0.0758,"SurvMaxTone_dB":0.7073,"RefMaxTone_dB":0.5417,"SurvBestOffScore_dB":0.5423,"RefBestOffScore_dB":0.5083,"SurvDC_dB":21.7978,"RefDC_dB":35.8055,"SurvPilot_dB":36.1468,"RefPilot_dB":32.326},{"Run":"pluto_outer11_100khz_010","Blocks":100,"SurvScoreAt0_dB":-0.3855,"RefScoreAt0_dB":-0.3233,"SurvMaxTone_dB":0.2356,"RefMaxTone_dB":0.6074,"SurvBestOffScore_dB":0.5666,"RefBestOffScore_dB":0.5013,"SurvDC_dB":21.4993,"RefDC_dB":28.7555,"SurvPilot_dB":35.9825,"RefPilot_dB":34.1181},{"Run":"pluto_outer11_100khz_011","Blocks":100,"SurvScoreAt0_dB":-0.0076,"RefScoreAt0_dB":0.0575,"SurvMaxTone_dB":0.7577,"RefMaxTone_dB":0.4201,"SurvBestOffScore_dB":0.6051,"RefBestOffScore_dB":0.5203,"SurvDC_dB":21.8231,"RefDC_dB":37.371,"SurvPilot_dB":36.3403,"RefPilot_dB":32.3945},{"Run":"pluto_outer11_100khz_recal_001","Blocks":100,"SurvScoreAt0_dB":0.1888,"RefScoreAt0_dB":0.0808,"SurvMaxTone_dB":0.6568,"RefMaxTone_dB":0.4406,"SurvBestOffScore_dB":0.5767,"RefBestOffScore_dB":0.4961,"SurvDC_dB":22.8155,"RefDC_dB":19.4764,"SurvPilot_dB":35.5004,"RefPilot_dB":36.0348},{"Run":"pluto_outer11_100khz_recal_003","Blocks":100,"SurvScoreAt0_dB":0.2543,"RefScoreAt0_dB":0.0396,"SurvMaxTone_dB":0.5713,"RefMaxTone_dB":0.5813,"SurvBestOffScore_dB":0.597,"RefBestOffScore_dB":0.5674,"SurvDC_dB":22.1923,"RefDC_dB":14.6154,"SurvPilot_dB":35.6448,"RefPilot_dB":36.0413},{"Run":"pluto_outer11_100khz_recal_004","Blocks":100,"SurvScoreAt0_dB":0.0177,"RefScoreAt0_dB":0.104,"SurvMaxTone_dB":0.7727,"RefMaxTone_dB":0.7365,"SurvBestOffScore_dB":0.6272,"RefBestOffScore_dB":0.5799,"SurvDC_dB":23.3792,"RefDC_dB":37.5905,"SurvPilot_dB":35.4154,"RefPilot_dB":34.6371},{"Run":"pluto_outer11_100khz_recal_005","Blocks":100,"SurvScoreAt0_dB":0.1017,"RefScoreAt0_dB":0.0281,"SurvMaxTone_dB":0.9002,"RefMaxTone_dB":0.4653,"SurvBestOffScore_dB":0.5901,"RefBestOffScore_dB":0.491,"SurvDC_dB":21.8543,"RefDC_dB":35.7859,"SurvPilot_dB":35.8433,"RefPilot_dB":35.1426},{"Run":"pluto_outer11_100khz_recal_006","Blocks":100,"SurvScoreAt0_dB":-0.2311,"RefScoreAt0_dB":-0.135,"SurvMaxTone_dB":0.2811,"RefMaxTone_dB":0.4343,"SurvBestOffScore_dB":0.7221,"RefBestOffScore_dB":0.6511,"SurvDC_dB":22.634,"RefDC_dB":30.7577,"SurvPilot_dB":35.8501,"RefPilot_dB":35.5618},{"Run":"pluto_outer11_100khz_recal_007","Blocks":100,"SurvScoreAt0_dB":-0.0798,"RefScoreAt0_dB":-0.2347,"SurvMaxTone_dB":0.3733,"RefMaxTone_dB":0.476,"SurvBestOffScore_dB":0.6278,"RefBestOffScore_dB":0.5959,"SurvDC_dB":20.8664,"RefDC_dB":18.3184,"SurvPilot_dB":35.8241,"RefPilot_dB":35.8478},{"Run":"pluto_outer11_100khz_recal_009","Blocks":100,"SurvScoreAt0_dB":-0.1576,"RefScoreAt0_dB":-0.1485,"SurvMaxTone_dB":0.3165,"RefMaxTone_dB":0.2835,"SurvBestOffScore_dB":0.6351,"RefBestOffScore_dB":0.4839,"SurvDC_dB":13.3046,"RefDC_dB":36.8693,"SurvPilot_dB":35.8522,"RefPilot_dB":34.1316},{"Run":"pluto_outer11_100khz_recal_010","Blocks":100,"SurvScoreAt0_dB":0.1203,"RefScoreAt0_dB":0.0509,"SurvMaxTone_dB":0.7842,"RefMaxTone_dB":0.7501,"SurvBestOffScore_dB":0.5633,"RefBestOffScore_dB":0.6319,"SurvDC_dB":20.3977,"RefDC_dB":19.0529,"SurvPilot_dB":35.7633,"RefPilot_dB":35.927},{"Run":"pluto_outer11_100khz_recal_011","Blocks":100,"SurvScoreAt0_dB":0.2658,"RefScoreAt0_dB":0.1752,"SurvMaxTone_dB":0.6453,"RefMaxTone_dB":1.0068,"SurvBestOffScore_dB":0.6775,"RefBestOffScore_dB":0.5522,"SurvDC_dB":22.1805,"RefDC_dB":36.3238,"SurvPilot_dB":35.7188,"RefPilot_dB":35.0705},{"Run":"pluto_outer11_100khz_recal_012","Blocks":100,"SurvScoreAt0_dB":-0.2085,"RefScoreAt0_dB":-0.0197,"SurvMaxTone_dB":0.3648,"RefMaxTone_dB":0.8484,"SurvBestOffScore_dB":0.6512,"RefBestOffScore_dB":0.5334,"SurvDC_dB":16.6834,"RefDC_dB":36.1684,"SurvPilot_dB":35.4803,"RefPilot_dB":34.928},{"Run":"pluto_outer11_100khz_recal_014","Blocks":100,"SurvScoreAt0_dB":-0.1326,"RefScoreAt0_dB":-0.1162,"SurvMaxTone_dB":0.5171,"RefMaxTone_dB":0.7724,"SurvBestOffScore_dB":0.6285,"RefBestOffScore_dB":0.552,"SurvDC_dB":26.3992,"RefDC_dB":14.9258,"SurvPilot_dB":34.7734,"RefPilot_dB":35.2532}],"azimuthFine":[{"Scan":"az_pulse_1.0_debug","Step":1,"Window_s":0.9,"BinHz":1.1111,"SurvZAt0":0.0837,"RefZAt0":0.8215,"SurvBestZ_pulse":4.8983,"RefBestZ_pulse":3.8089,"SurvBestOff_Hz":51083,"RefBestOff_Hz":-38571,"SurvBestZ_ambient":4.8458,"RefBestZ_ambient":4.4336},{"Scan":"az_pulse_1.0_debug","Step":2,"Window_s":0.9,"BinHz":1.1111,"SurvZAt0":0.7175,"RefZAt0":-1.1874,"SurvBestZ_pulse":5.0964,"RefBestZ_pulse":4.1917,"SurvBestOff_Hz":48548,"RefBestOff_Hz":20699,"SurvBestZ_ambient":4.5148,"RefBestZ_ambient":4.9057},{"Scan":"az_pulse_1.0_debug","Step":3,"Window_s":0.9,"BinHz":1.1111,"SurvZAt0":0.9024,"RefZAt0":0.7253,"SurvBestZ_pulse":5.237,"RefBestZ_pulse":4.3832,"SurvBestOff_Hz":-46482,"RefBestOff_Hz":6735,"SurvBestZ_ambient":4.366,"RefBestZ_ambient":5.726},{"Scan":"az_pulse_1.0_debug","Step":4,"Window_s":0.9,"BinHz":1.1111,"SurvZAt0":0.462,"RefZAt0":-0.7923,"SurvBestZ_pulse":4.9693,"RefBestZ_pulse":5.2745,"SurvBestOff_Hz":-33507,"RefBestOff_Hz":-47452,"SurvBestZ_ambient":5.1252,"RefBestZ_ambient":4.8499},{"Scan":"az_pulse_1.0_debug","Step":5,"Window_s":0.9,"BinHz":1.1111,"SurvZAt0":-1.2928,"RefZAt0":-0.448,"SurvBestZ_pulse":4.9277,"RefBestZ_pulse":4.6825,"SurvBestOff_Hz":-30072,"RefBestOff_Hz":45550,"SurvBestZ_ambient":4.4505,"RefBestZ_ambient":4.3787},{"Scan":"az_pulse_1.0_debug","Step":6,"Window_s":0.9,"BinHz":1.1111,"SurvZAt0":-0.7016,"RefZAt0":-0.7549,"SurvBestZ_pulse":4.2207,"RefBestZ_pulse":4.4764,"SurvBestOff_Hz":57007,"RefBestOff_Hz":-6468,"SurvBestZ_ambient":4.4165,"RefBestZ_ambient":3.7571},{"Scan":"az_pulse_1.0_debug","Step":7,"Window_s":0.9,"BinHz":1.1111,"SurvZAt0":0.1469,"RefZAt0":-0.7772,"SurvBestZ_pulse":4.4449,"RefBestZ_pulse":4.7459,"SurvBestOff_Hz":-48918,"RefBestOff_Hz":-30028,"SurvBestZ_ambient":4.4319,"RefBestZ_ambient":4.1888},{"Scan":"az_pulse_1.0_debug","Step":8,"Window_s":0.9,"BinHz":1.1111,"SurvZAt0":0.894,"RefZAt0":-0.2549,"SurvBestZ_pulse":4.2331,"RefBestZ_pulse":5.2546,"SurvBestOff_Hz":39578,"RefBestOff_Hz":-16114,"SurvBestZ_ambient":4.2323,"RefBestZ_ambient":4.1995},{"Scan":"az_pulse_1.5_debug","Step":1,"Window_s":1.4,"BinHz":0.7143,"SurvZAt0":-1.072,"RefZAt0":-1.2179,"SurvBestZ_pulse":5.0899,"RefBestZ_pulse":4.8343,"SurvBestOff_Hz":-42999,"RefBestOff_Hz":7767,"SurvBestZ_ambient":5.4382,"RefBestZ_ambient":4.8115},{"Scan":"az_pulse_1.5_debug","Step":2,"Window_s":1.4,"BinHz":0.7143,"SurvZAt0":1.1838,"RefZAt0":0.4507,"SurvBestZ_pulse":4.462,"RefBestZ_pulse":4.6125,"SurvBestOff_Hz":-34512,"RefBestOff_Hz":28639,"SurvBestZ_ambient":4.459,"RefBestZ_ambient":5.3497},{"Scan":"az_pulse_1.5_debug","Step":3,"Window_s":1.4,"BinHz":0.7143,"SurvZAt0":0.2865,"RefZAt0":1.3968,"SurvBestZ_pulse":6.142,"RefBestZ_pulse":5.702,"SurvBestOff_Hz":-45457,"RefBestOff_Hz":54555,"SurvBestZ_ambient":4.6612,"RefBestZ_ambient":4.3057},{"Scan":"az_pulse_1.5_debug","Step":4,"Window_s":1.4,"BinHz":0.7143,"SurvZAt0":2.1322,"RefZAt0":-0.2544,"SurvBestZ_pulse":4.8078,"RefBestZ_pulse":4.1425,"SurvBestOff_Hz":-36032,"RefBestOff_Hz":-36035,"SurvBestZ_ambient":5.2614,"RefBestZ_ambient":5.1267},{"Scan":"az_pulse_1.5_debug","Step":5,"Window_s":1.4,"BinHz":0.7143,"SurvZAt0":1.0093,"RefZAt0":-1.033,"SurvBestZ_pulse":5.3032,"RefBestZ_pulse":4.7639,"SurvBestOff_Hz":-59382,"RefBestOff_Hz":32672,"SurvBestZ_ambient":4.6808,"RefBestZ_ambient":3.9494},{"Scan":"az_pulse_1.5_debug","Step":6,"Window_s":1.4,"BinHz":0.7143,"SurvZAt0":-0.4863,"RefZAt0":1.1349,"SurvBestZ_pulse":4.5834,"RefBestZ_pulse":4.2,"SurvBestOff_Hz":-30018,"RefBestOff_Hz":29139,"SurvBestZ_ambient":4.9187,"RefBestZ_ambient":4.092},{"Scan":"az_pulse_1.5_debug","Step":7,"Window_s":1.4,"BinHz":0.7143,"SurvZAt0":-0.4814,"RefZAt0":0.5566,"SurvBestZ_pulse":4.5212,"RefBestZ_pulse":4.7196,"SurvBestOff_Hz":2777,"RefBestOff_Hz":33647,"SurvBestZ_ambient":4.571,"RefBestZ_ambient":4.2335},{"Scan":"az_pulse_1.5_debug","Step":8,"Window_s":1.4,"BinHz":0.7143,"SurvZAt0":1.2096,"RefZAt0":0.9355,"SurvBestZ_pulse":4.9562,"RefBestZ_pulse":4.5021,"SurvBestOff_Hz":9764,"RefBestOff_Hz":43079,"SurvBestZ_ambient":5.067,"RefBestZ_ambient":5.3436},{"Scan":"az_pulse_2.0_debug","Step":1,"Window_s":1.9,"BinHz":0.5263,"SurvZAt0":-1.6873,"RefZAt0":0.5234,"SurvBestZ_pulse":4.8903,"RefBestZ_pulse":4.8185,"SurvBestOff_Hz":25203,"RefBestOff_Hz":-18128,"SurvBestZ_ambient":4.8361,"RefBestZ_ambient":4.8364},{"Scan":"az_pulse_2.0_debug","Step":2,"Window_s":1.9,"BinHz":0.5263,"SurvZAt0":-1.1892,"RefZAt0":0.299,"SurvBestZ_pulse":5.6562,"RefBestZ_pulse":4.4538,"SurvBestOff_Hz":-13638,"RefBestOff_Hz":-18130,"SurvBestZ_ambient":5.0172,"RefBestZ_ambient":4.1056},{"Scan":"az_pulse_2.0_debug","Step":3,"Window_s":1.9,"BinHz":0.5263,"SurvZAt0":-0.6843,"RefZAt0":-0.7225,"SurvBestZ_pulse":5.2285,"RefBestZ_pulse":4.5602,"SurvBestOff_Hz":-52401,"RefBestOff_Hz":43100,"SurvBestZ_ambient":5.1331,"RefBestZ_ambient":4.4538},{"Scan":"az_pulse_2.0_debug","Step":4,"Window_s":1.9,"BinHz":0.5263,"SurvZAt0":-0.4306,"RefZAt0":-0.3281,"SurvBestZ_pulse":4.9309,"RefBestZ_pulse":4.4727,"SurvBestOff_Hz":-45493,"RefBestOff_Hz":-2669,"SurvBestZ_ambient":4.7385,"RefBestZ_ambient":4.2244},{"Scan":"az_pulse_2.0_debug","Step":5,"Window_s":1.9,"BinHz":0.5263,"SurvZAt0":-0.2891,"RefZAt0":-1.0402,"SurvBestZ_pulse":4.9748,"RefBestZ_pulse":5.2907,"SurvBestOff_Hz":6263,"RefBestOff_Hz":-34494,"SurvBestZ_ambient":4.8816,"RefBestZ_ambient":5.1696},{"Scan":"az_pulse_2.0_debug","Step":6,"Window_s":1.9,"BinHz":0.5263,"SurvZAt0":0.7555,"RefZAt0":1.9455,"SurvBestZ_pulse":5.4429,"RefBestZ_pulse":4.4147,"SurvBestOff_Hz":51024,"RefBestOff_Hz":54525,"SurvBestZ_ambient":4.529,"RefBestZ_ambient":4.7428},{"Scan":"az_pulse_2.0_debug","Step":7,"Window_s":1.9,"BinHz":0.5263,"SurvZAt0":0.9261,"RefZAt0":0.0869,"SurvBestZ_pulse":5.717,"RefBestZ_pulse":5.3546,"SurvBestOff_Hz":22720,"RefBestOff_Hz":25209,"SurvBestZ_ambient":5.6739,"RefBestZ_ambient":4.1671},{"Scan":"az_pulse_2.0_debug","Step":8,"Window_s":1.9,"BinHz":0.5263,"SurvZAt0":1.4886,"RefZAt0":-0.3059,"SurvBestZ_pulse":5.2703,"RefBestZ_pulse":4.4291,"SurvBestOff_Hz":41570,"RefBestOff_Hz":33609,"SurvBestZ_ambient":5.7346,"RefBestZ_ambient":4.6082}],"pilot_khz":-2690.5,"tones_khz":[-650,-550,-450,-350,-250,-150,150,250,350,450,550,650],"new":{"configs":[{"id":"one_bearing_pluto_cal_check_4","label":"in-band, TX -10 dB","band":"in-band","txGain":-10,"combSurv":0.0732,"combRef":0.0265,"excMedSurv":0.1623,"excMedRef":0.0297,"excMaxSurv":1.0012,"excMaxRef":1.4112,"floorSurv":-57.2089,"floorRef":-65.2509,"zPulseSurv":4.6031,"zPulseRef":4.4888,"zAmbSurv":4.4109,"zAmbRef":4.4923,"offSurv":-39520,"offRef":-59411,"zAt0Surv":-0.1244,"zAt0Ref":0.3272},{"id":"oob_comb_txgain_m10_r2","label":"out-of-band, TX -10 dB","band":"out-of-band","txGain":-10,"combSurv":0.0638,"combRef":0.0587,"excMedSurv":0.0474,"excMedRef":0.0546,"excMaxSurv":0.9539,"excMaxRef":1.2312,"floorSurv":-68.0995,"floorRef":-70.5323,"zPulseSurv":7.3225,"zPulseRef":8.4036,"zAmbSurv":5.9012,"zAmbRef":7.3682,"offSurv":9497,"offRef":-30551,"zAt0Surv":-1.2847,"zAt0Ref":0.0039},{"id":"inband_comb_txgain_0_r2","label":"in-band, TX 0 dB","band":"in-band","txGain":0,"combSurv":-0.0009,"combRef":0.1014,"excMedSurv":-0.0938,"excMedRef":0.0653,"excMaxSurv":0.926,"excMaxRef":1.4125,"floorSurv":-57.321,"floorRef":-65.5215,"zPulseSurv":5.2412,"zPulseRef":4.7839,"zAmbSurv":4.9809,"zAmbRef":4.4,"offSurv":21657,"offRef":19639,"zAt0Surv":1.1502,"zAt0Ref":0.5513},{"id":"oob_comb_txgain_0_r2","label":"out-of-band, TX 0 dB","band":"out-of-band","txGain":0,"combSurv":-0.092,"combRef":-0.2946,"excMedSurv":-0.1552,"excMedRef":-0.2849,"excMaxSurv":0.6733,"excMaxRef":0.559,"floorSurv":-68.0853,"floorRef":-70.3261,"zPulseSurv":7.3221,"zPulseRef":8.3492,"zAmbSurv":5.6363,"zAmbRef":8.1569,"offSurv":9480,"offRef":-30541,"zAt0Surv":1.239,"zAt0Ref":1.5221}],"loopback":[{"state":"TX off","comb_dB":-0.0488,"tone_dBFS":-92.8795},{"state":"TX on, gain -10 dB","comb_dB":35.0361,"tone_dBFS":-58.5568},{"state":"TX on, gain -30 dB","comb_dB":14.804,"tone_dBFS":-78.308},{"state":"TX off again","comb_dB":-0.1788,"tone_dBFS":-91.4822}],"oobInject":{"level":[-70,-75,-80,-85],"surv":[26.4,12.5,5.6,5.6],"ref":[30.5,16.6,8.2,8.2]}}};
+const N = D.new;
+
+// ---------- helpers ----------
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (v, d = 2) => (v === null || v === undefined || Number.isNaN(v)) ? '—' : Number(v).toFixed(d);
+const sgn = (v, d = 2) => { const s = fmt(v, d); return /^-0\.0*$/.test(s) ? s.slice(1) : (v >= 0 ? '+' : '') + s; };
+const arr = x => Array.isArray(x) ? x : [x];
+const median = a => { const s = [...a].sort((x, y) => x - y); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const maxOf = a => Math.max(...a), minOf = a => Math.min(...a);
+
+// ---------- derived numbers ----------
+const az = arr(D.azimuthCoarse), fine = arr(D.azimuthFine), mt = arr(D.multitoneLine);
+const cfgs = arr(N.configs), loop = arr(N.loopback);
+const coarseMax = maxOf(az.flatMap(r => [r.SurvCombScoreAt0_dB, r.RefCombScoreAt0_dB]));
+const pulseZ = fine.flatMap(r => [r.SurvBestZ_pulse, r.RefBestZ_pulse]);
+const ambZ = fine.flatMap(r => [r.SurvBestZ_ambient, r.RefBestZ_ambient]);
+const pilotMed = median(mt.flatMap(r => [r.SurvPilot_dB, r.RefPilot_dB]));
+const combMaxTone = maxOf(mt.flatMap(r => [r.SurvMaxTone_dB, r.RefMaxTone_dB]));
+const noiseZ = maxOf(arr(D.noiseZ));
+const nCaptures = az.length + mt.length + cfgs.length;
+
+const cards = [
+  { k: 'Captures examined', v: String(nCaptures), s: `${az.length} archived azimuth + ${mt.length} archived multitone + ${cfgs.length} new (2026-09-23)` },
+  { k: 'Pluto self-loopback', v: `+${fmt(loop[1].comb_dB, 1)} dB`, s: `Comb above floor at TX −10 dB (${fmt(loop[1].tone_dBFS, 1)} dBFS per tone). 0 dB with TX off.` },
+  { k: 'Comb at the N320, upper bound', v: '< −78 dBFS', s: 'Per tone, out-of-band, TX 0 dB: not found, and the method finds −75 dBFS.' },
+  { k: 'Best comb score, all N320 data', v: `${fmt(Math.max(coarseMax, ...cfgs.flatMap(c => [c.combSurv, c.combRef])), 2)} dB`, s: 'Comb average, pulse vs. ambient at planned bins, 100 Hz. Noise level.' },
+  { k: 'Positive control: ATSC pilot', v: `+${fmt(pilotMed, 1)} dB`, s: `Median height above neighbours. Best comb tone in the same data: ${fmt(combMaxTone, 2)} dB.` },
+  { k: 'Integrated margin, noise only', v: '10.4 dB', s: '10·log₁₀(11) for 11 tones. Logged "detections" read 10.37–10.84 dB.' },
+];
+document.getElementById('cards').innerHTML = cards.map(c => `
+  <div class="card p-5">
+    <div class="text-sm ink2">${c.k}</div>
+    <div class="text-3xl font-semibold mt-1">${c.v}</div>
+    <div class="text-sm muted mt-2">${c.s}</div>
+  </div>`).join('');
+
+// ---------- summary (report-family checklist) ----------
+const summary = [
+  ['Question', 'Is the Pluto calibration comb present in the N320 captures, and if not, where is it lost?'],
+  ['Result', 'It is not present in any of 86 N320 captures. The Pluto itself transmits it correctly (self-loopback +35 dB, scales with gain). At the N320 it is below about −78 dBFS per tone even at maximum TX gain on the quieter out-of-band floor. The loss is in the path from the stairwell to the Yagis.'],
+  ['Engineering decision', 'Don\'t build phase-slope or Barker-code calibration on the current injector geometry. Move the injector out of the stairwell into the Yagis\' forward sector, or cable it into the receive chain through an attenuator, and re-verify presence with the noise-baselined checks before trusting any calibration metric.'],
+  ['Still unknown', 'Yagi pointing relative to the site layout; loss through the stairwell glass; the Pluto\'s absolute output power at 599 MHz; whether any part of the loss is in the N320 receive chain rather than over the air (a conducted test would settle it).'],
+  ['Evidence class', 'Measured, diagnostic. Archived captures (Dell collection PC, Jul–Aug 2026) and new captures (Lenovo collection PC, 2026-09-23), analysed offline. Detection floors come from synthetic injection into real captures. The path-loss figures are modelled estimates.'],
+  ['Claim boundary', 'This shows the comb is absent above the stated sensitivity; it does not qualify the antennas, receive chain or azimuth-scan method, and it makes no claim about aircraft detection. The glass and antenna-pattern losses are literature-range estimates, not measurements.'],
+];
+document.getElementById('summary').innerHTML = summary.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+
+// ---------- text content ----------
+const findings = [
+  { t: 'The comb isn\'t detected in any N320 capture, archived or new.', b: `Three independent checks: pulse-window vs. ambient spectrum at the planned bins (archived max ${fmt(coarseMax, 2)} dB); tone bin vs. ±10 kHz neighbours for the multitone runs (max ${fmt(combMaxTone, 2)} dB); and a 1 Hz coherent search over ±60 kHz of offset (pulse windows score the same as Pluto-off windows, at random offsets that disagree between SURV and REF). The four new runs repeat the result at TX −10 and 0 dB, in-band and out-of-band.` },
+  { t: 'The Pluto transmits the comb correctly.', b: `A self-loopback (TX dipole to the Pluto's own RX pigtail) shows all 12 tones exactly at their planned frequencies, +${fmt(loop[1].comb_dB, 1)} dB above the floor at TX −10 dB and +${fmt(loop[2].comb_dB, 1)} dB at TX −30 dB (a 20 dB drop for a 20 dB gain change), and 0 dB with TX off. Part of that path may be leakage inside the Pluto, but the transmit chain and waveform are confirmed.` },
+  { t: 'Raising TX gain and moving off the TV signal didn\'t help.', b: 'TX 0 dB (+10 dB over the default) and out-of-band tones at ±3.0–3.5 MHz (floor −68/−70 dBFS per 100 Hz, about 10 dB below in-band) still show no comb. A synthetic comb injected into the out-of-band capture is found at −75 dBFS per tone and lost around −80, so the real comb is below about −78 dBFS per tone at the N320.' },
+  { t: 'The method would have seen it: the controls are loud.', b: `The ATSC pilot stands +${fmt(pilotMed, 1)} dB above its neighbours and the receiver DC line +13 to +38 dB in the same captures. The z ≈ 7–8 hits in the out-of-band runs are background lines (+9.5 kHz on SURV, −30.5 kHz on REF) that are equally present with the Pluto off.` },
+  { t: 'The logged multitone "integrated margins" are the noise-only value.', b: 'helperPlutoMultitoneScoreCapture.m sums the linear per-tone peak/floor ratios, so N noise-only tones score 10·log₁₀(N): 5 → 7.0, 8 → 9.0, 9 → 9.5, 11 → 10.4 dB. The logged results (+7.0/+7.3, +7.8/+7.5, +9.5/+9.7, +10.4/+10.4, and 10.37–10.84 for repeat10) all sit within about 0.3 dB of that value, or below it.' },
+  { t: 'The 9–13 kHz REF/SURV "frequency delta" is peak-picking on noise.', b: 'ChannelFrequencyDelta_Hz comes from the strongest bin near each tone. With no tone present, each channel picks a different noise peak: random values from 1 to 28 kHz, averaging about 12 kHz. RefSurvPhaseSlopeRemoteAnalysis.md and the problem statement of barker_codes_spec.md both rest on this number. Step 4 of the phase-slope algorithm also cancels its own oscillator.' },
+  { t: 'The injector geometry explains a large loss.', b: 'The Pluto sits in a glass-enclosed stairwell 65 ft from REF and 112 ft from SURV. Free-space loss is 54–59 dB, and moving to the long-leg midpoint recovers only 3–8 dB of that. The missing 20+ dB most plausibly comes from the glass and from the Yagis seeing the stairwell off their main lobes. See the Site geometry tab.' },
+  { t: 'The capture failures on the new collection PC are network-link drops.', b: 'The Lenovo collection PC (installed 2026-09-08, replacing the Dell that recorded every archived capture) loses its link to Switch A intermittently: 72 drops in about 19 h, with "NIC Link is Down" in the kernel log, sometimes renegotiating at 100 Mb/s. Every failed capture lines up with a drop, and a mid-capture drop leaves the N320 needing a reboot. The N320-to-Switch-B link is stable. All four new captures ran in a quiet 20-minute window with no drops.' },
+];
+const steps = [
+  { t: 'Move the injector out of the stairwell, in front of both Yagis.', b: 'Use a USB extender to a spot 10–20 ft in front of the REF–SURV leg midpoint, toward where the Yagis point, then rerun the one-bearing check at TX −10 dB and look for the comb with plutoCombFineCheck against a Pluto-off window.' },
+  { t: 'Or run a conducted test.', b: 'Pluto TX through 40–60 dB of attenuation into an N320 input (or a coupler on the REF feed). That removes all geometry and glass uncertainty and verifies the receive chain end to end.' },
+  { t: 'Fix the collection-PC link before long scans.', b: 'Try the USB network card (or a direct cable to the N320) and confirm zero carrier changes in /sys/class/net/<if>/carrier_changes over a full scan.' },
+  { t: 'Fix the integrated-margin metric.', b: 'Use a mean (or Σpeak/Σfloor) so that noise-only reads 0 dB, and gate every PASS/WARN decision on a noise-only baseline (an ambient window or a shifted comb).' },
+  { t: 'Re-scope the phase-slope and Barker work.', b: 'Once a comb is visible, measure REF/SURV phase with per-channel mixing and block-averaging at the measured tone frequencies. Revisit the Barker chip-rate reasoning, which assumes a 9–13 kHz offset that isn\'t physical.' },
+];
+const method = [
+  'plutoBurstPresence: 10 ms Hann FFT blocks (100 Hz bins); pulse window = scheduled pulse ±50 ms guard; ambient = everything else; comb scored as the mean pulse/ambient ratio at the tone bins, searched over a common offset of ±60 kHz in 100 Hz steps.',
+  'plutoCombLineCheck: whole-capture average of 10 ms blocks; each bin normalised by the moving median of ±10 kHz; comb scored excluding |f| ≤ 1 kHz; the ATSC pilot at −2690.5 kHz reported as a positive control.',
+  'plutoCombFineCheck: one Hann-windowed FFT over the window (0.5–1.1 Hz bins); ±10 kHz median floor; comb scored as the mean over tones of the best bin within ±30 Hz; common offset searched over ±60 kHz in 1 Hz steps; score turned into a robust z (median/MAD across offsets). The optional synthetic injection adds a known comb (offset +7.3 kHz) to both channels.',
+  'plutoLoopbackCheck: Pluto sdrtx transmits the scan\'s comb (helperPlutoMultitoneBuildWaveform, RMS 0.2); Pluto sdrrx at the same frequency, manual gain 20 dB; 8 frames flushed after each change; TX off → −10 dB → −30 dB → off.',
+  'New N320 runs: runPlutoAzimuthEnvironmentalScan, 1 bearing, 4 s capture, 1 s pulse at 0.5 s, PlutoTxGain_dB −10 or 0, tones in-band (±150–650 kHz) or out-of-band (±3.0–3.5 MHz); N320 gain [30 50] dB, 8 MS/s, 599 MHz.',
+  'Channel convention: column 1 = SURV (RF0:RX2), column 2 = REF (RF1:RX2). Levels in dBFS relative to int16 full scale.',
+];
+const codenav = [
+  '<code>TestSetupTesting/plutoBurstPresence.m</code>, <code>plutoCombLineCheck.m</code>, <code>plutoCombFineCheck.m</code>: the presence checks used here.',
+  '<code>TestSetupTesting/plutoLoopbackCheck.m</code>: the Pluto self-loopback.',
+  '<code>TestSetupTesting/runPlutoAzimuthEnvironmentalScan.m</code>: the scan; <code>PlutoTxGain_dB</code> added 2026-09-23.',
+  '<code>TestSetupTesting/helperPlutoToneStartTx.m</code>: Pluto TX start; now accepts <code>TxGain_dB</code> and reports the applied gain.',
+  '<code>TestSetupTesting/helperPlutoMultitoneScoreCapture.m</code>, <code>localSummarizeChannel</code>: the summed integrated-margin metric (finding 5).',
+  '<code>TestSetupTesting/RefSurvPhaseSlopeRemoteAnalysis.md</code>, <code>TestSetupTesting/barker_codes_spec.md</code>: plans that assume the 9–13 kHz offset (finding 6).',
+];
+const esc = s => s.toLowerCase().replace(/<[^>]+>/g, '').replace(/"/g, '');
+const li = (x, i) => `<li class="searchable" data-text="${esc(x.t + ' ' + x.b)}"><div class="font-medium">${i + 1}. ${x.t}</div><div class="text-sm ink2 mt-1">${x.b}</div></li>`;
+document.getElementById('findings').innerHTML = findings.map(li).join('');
+document.getElementById('nextsteps').innerHTML = steps.map(li).join('');
+document.getElementById('method').innerHTML = method.map(m => `<li class="searchable" data-text="${esc(m)}">• ${m}</li>`).join('');
+document.getElementById('codenav').innerHTML = codenav.map(m => `<li class="searchable" data-text="${esc(m)}">• ${m}</li>`).join('');
+
+// ---------- tables ----------
+function table(id, cols, rows) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.n ? 'num' : ''}">${c.h}</th>`).join('')}</tr></thead>
+  <tbody>${rows.map(r => `<tr class="searchable" data-text="${cols.map(c => String(c.f(r))).join(' ').toLowerCase()}">${cols.map(c => `<td class="${c.n ? 'num' : ''}">${c.f(r)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+table('tbl-new', [
+  { h: 'Configuration', f: r => r.label }, { h: 'Scan ID', f: r => r.id },
+  { h: 'Comb pulse/ambient SURV / REF (dB)', n: 1, f: r => `${sgn(r.combSurv)} / ${sgn(r.combRef)}` },
+  { h: 'Max tone excess SURV / REF (dB)', n: 1, f: r => `${sgn(r.excMaxSurv)} / ${sgn(r.excMaxRef)}` },
+  { h: 'Floor at tones SURV / REF (dBFS/100 Hz)', n: 1, f: r => `${fmt(r.floorSurv, 1)} / ${fmt(r.floorRef, 1)}` },
+  { h: '1 Hz best z pulse / ambient, SURV', n: 1, f: r => `${fmt(r.zPulseSurv, 1)} / ${fmt(r.zAmbSurv, 1)}` },
+  { h: '1 Hz best z pulse / ambient, REF', n: 1, f: r => `${fmt(r.zPulseRef, 1)} / ${fmt(r.zAmbRef, 1)}` },
+  { h: 'Best offset SURV / REF (Hz)', n: 1, f: r => `${r.offSurv} / ${r.offRef}` },
+], cfgs);
+table('tbl-loop', [
+  { h: 'Pluto state', f: r => r.state },
+  { h: 'Comb above floor (dB)', n: 1, f: r => sgn(r.comb_dB, 1) },
+  { h: 'Median tone level (dBFS)', n: 1, f: r => fmt(r.tone_dBFS, 1) },
+], loop);
+table('tbl-scan', [
+  { h: 'Scan', f: r => r.Scan },
+  { h: 'Captures', n: 1, f: r => r.GroupCount },
+  { h: 'SURV comb @0, mean / max (dB)', n: 1, f: r => `${fmt(r.mean_SurvCombScoreAt0_dB)} / ${fmt(r.max_SurvCombScoreAt0_dB)}` },
+  { h: 'REF comb @0, mean / max (dB)', n: 1, f: r => `${fmt(r.mean_RefCombScoreAt0_dB)} / ${fmt(r.max_RefCombScoreAt0_dB)}` },
+  { h: 'Best over ±60 kHz, SURV / REF max (dB)', n: 1, f: r => `${fmt(r.max_SurvBestScore_dB)} / ${fmt(r.max_RefBestScore_dB)}` },
+  { h: 'Pulse − ambient power, SURV / REF (dB)', n: 1, f: r => `${fmt(r.mean_SurvPulseMinusAmbient_dB)} / ${fmt(r.mean_RefPulseMinusAmbient_dB)}` },
+], arr(D.azimuthByScan));
+table('tbl-fine', [
+  { h: 'Scan', f: r => r.Scan }, { h: 'Step', n: 1, f: r => r.Step },
+  { h: 'Window (s)', n: 1, f: r => fmt(r.Window_s, 1) }, { h: 'Bin (Hz)', n: 1, f: r => fmt(r.BinHz, 2) },
+  { h: 'SURV z pulse / ambient', n: 1, f: r => `${fmt(r.SurvBestZ_pulse, 1)} / ${fmt(r.SurvBestZ_ambient, 1)}` },
+  { h: 'REF z pulse / ambient', n: 1, f: r => `${fmt(r.RefBestZ_pulse, 1)} / ${fmt(r.RefBestZ_ambient, 1)}` },
+  { h: 'Best offset SURV / REF (Hz)', n: 1, f: r => `${r.SurvBestOff_Hz} / ${r.RefBestOff_Hz}` },
+  { h: 'z at planned offset SURV / REF', n: 1, f: r => `${fmt(r.SurvZAt0, 1)} / ${fmt(r.RefZAt0, 1)}` },
+], fine);
+table('tbl-multi', [
+  { h: 'Run', f: r => r.Run },
+  { h: 'Comb mean SURV / REF (dB)', n: 1, f: r => `${fmt(r.SurvScoreAt0_dB)} / ${fmt(r.RefScoreAt0_dB)}` },
+  { h: 'Best tone SURV / REF (dB)', n: 1, f: r => `${fmt(r.SurvMaxTone_dB)} / ${fmt(r.RefMaxTone_dB)}` },
+  { h: 'Best offset score SURV / REF (dB)', n: 1, f: r => `${fmt(r.SurvBestOffScore_dB)} / ${fmt(r.RefBestOffScore_dB)}` },
+  { h: 'ATSC pilot SURV / REF (dB)', n: 1, f: r => `${fmt(r.SurvPilot_dB, 1)} / ${fmt(r.RefPilot_dB, 1)}` },
+  { h: 'DC SURV / REF (dB)', n: 1, f: r => `${fmt(r.SurvDC_dB, 1)} / ${fmt(r.RefDC_dB, 1)}` },
+], mt);
+const fsplRows = [
+  { p: 'Stairwell → REF (now)', ft: 65 }, { p: 'Stairwell → SURV (now)', ft: Math.hypot(65, 91) },
+  { p: 'Long-leg midpoint → each', ft: 45.5 }, { p: 'Midpoint + 15 ft forward → each', ft: Math.hypot(45.5, 15) },
+].map(r => ({ ...r, m: r.ft * 0.3048, l: 20 * Math.log10(r.ft * 0.3048) + 20 * Math.log10(599) - 27.55 }));
+table('tbl-fspl', [
+  { h: 'Path', f: r => r.p }, { h: 'Distance', n: 1, f: r => `${fmt(r.ft, 1)} ft / ${fmt(r.m, 1)} m` },
+  { h: 'FSPL (dB)', n: 1, f: r => fmt(r.l, 1) },
+], fsplRows);
+
+// ---------- search ----------
+const q = document.getElementById('q'), qc = document.getElementById('qcount');
+q.addEventListener('input', () => {
+  const s = q.value.trim().toLowerCase(); let shown = 0, total = 0;
+  document.querySelectorAll('#tab-text .searchable').forEach(el => {
+    total++; const hit = !s || el.dataset.text.includes(s);
+    el.classList.toggle('hidden-row', !hit); if (hit) shown++;
+  });
+  qc.textContent = s ? `${shown} of ${total} items match` : '';
+});
+
+// ---------- tabs ----------
+let chartsBuilt = false;
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === name));
+  ['text', 'charts', 'site'].forEach(t => document.getElementById('tab-' + t).classList.toggle('hidden', t !== name));
+  if (name === 'charts' && !chartsBuilt) { buildCharts(); chartsBuilt = true; }
+}
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+// ---------- charts ----------
+let charts = [];
+const bandPlugin = { id: 'band', beforeDatasetsDraw(c, _a, o) {
+  if (!o || !o.ranges) return; const { ctx, chartArea: a, scales: { x } } = c; ctx.save(); ctx.fillStyle = css('--band');
+  o.ranges.forEach(([x0, x1]) => ctx.fillRect(x.getPixelForValue(x0), a.top, x.getPixelForValue(x1) - x.getPixelForValue(x0), a.bottom - a.top)); ctx.restore(); } };
+const vlinePlugin = { id: 'vlines', afterDatasetsDraw(c, _a, o) {
+  if (!o || !o.lines) return; const { ctx, chartArea: a, scales: { x } } = c; ctx.save();
+  o.lines.forEach(l => { const px = x.getPixelForValue(l.x); ctx.strokeStyle = l.color || css('--muted'); ctx.lineWidth = 1; ctx.setLineDash(l.dash || []);
+    ctx.beginPath(); ctx.moveTo(px, l.full ? a.top : a.bottom - 14); ctx.lineTo(px, a.bottom); ctx.stroke();
+    if (l.label) { ctx.setLineDash([]); ctx.fillStyle = css('--ink-2'); ctx.font = '12px system-ui'; ctx.fillText(l.label, px + 4, a.top + 12); } });
+  ctx.restore(); } };
+
+function legend(canvasId, items) {
+  const el = document.getElementById(canvasId).closest('figure').querySelector('.legend');
+  el.innerHTML = items.map(i => `<span class="mr-4 inline-block"><span class="swatch" style="background:${i.c}${i.dash ? ';height:2px;border-radius:0' : ''}"></span> ${i.t}</span>`).join('');
+}
+function baseOpts(xTitle, yTitle, extra = {}) {
+  const grid = css('--grid'), muted = css('--muted'), ink2 = css('--ink-2');
+  return Object.assign({
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { display: false },
+      tooltip: { backgroundColor: css('--raised'), titleColor: css('--ink'), bodyColor: ink2, borderColor: css('--border'), borderWidth: 1, padding: 10,
+        callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y, 2)}` } } },
+    scales: {
+      x: { type: 'linear', title: { display: !!xTitle, text: xTitle, color: ink2 }, grid: { color: grid }, border: { color: css('--axis') }, ticks: { color: muted } },
+      y: { title: { display: true, text: yTitle, color: ink2 }, grid: { color: grid }, border: { color: css('--axis') }, ticks: { color: muted } } } }, extra);
+}
+function catOpts(yTitle) {
+  const o = baseOpts('', yTitle);
+  o.scales.x = { type: 'category', grid: { display: false }, border: { color: css('--axis') }, ticks: { color: css('--ink-2') } };
+  return o;
+}
+const line = (label, xs, ys, color, more = {}) => Object.assign({ label, data: xs.map((x, i) => ({ x, y: ys[i] })), borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0 }, more);
+const bar = (label, data, color) => ({ label, data, backgroundColor: color, borderRadius: 4, borderSkipped: 'start', maxBarThickness: 36 });
+
+function buildCharts() {
+  charts.forEach(c => c.destroy()); charts = [];
+  const S = css('--surv'), R = css('--ref'), M = css('--muted');
+
+  // loopback (single series: Pluto RX)
+  legend('c-loop', [{ c: S, t: 'Pluto RX (self-loopback)' }]);
+  charts.push(new Chart(document.getElementById('c-loop'), { type: 'bar',
+    data: { labels: loop.map(r => r.state), datasets: [bar('Comb above floor (dB)', loop.map(r => r.comb_dB), S)] },
+    options: catOpts('Comb height above ±10 kHz floor (dB)') }));
+
+  // new configs
+  legend('c-new', [{ c: S, t: 'SURV' }, { c: R, t: 'REF' }]);
+  const nOpts = catOpts('Median tone excess, pulse − ambient (dB)');
+  nOpts.scales.y.suggestedMin = -2; nOpts.scales.y.suggestedMax = 2;
+  charts.push(new Chart(document.getElementById('c-new'), { type: 'bar',
+    data: { labels: cfgs.map(c => c.label), datasets: [bar('SURV', cfgs.map(c => c.excMedSurv), S), bar('REF', cfgs.map(c => c.excMedRef), R)] },
+    options: nOpts }));
+
+  // injection sensitivity: in-band (solid) and out-of-band (dashed)
+  const inj = D.inject, oi = N.oobInject;
+  legend('c-inj', [{ c: S, t: 'SURV' }, { c: R, t: 'REF' }, { c: M, t: 'solid = in-band · dashed = out-of-band', dash: 1 }]);
+  const injOpts = baseOpts('Injected level per tone (dBFS)', 'Best comb z-score'); injOpts.scales.x.reverse = true;
+  charts.push(new Chart(document.getElementById('c-inj'), { type: 'line',
+    data: { datasets: [
+      line('SURV in-band', inj.level, inj.surv, S, { pointRadius: 4 }), line('REF in-band', inj.level, inj.ref, R, { pointRadius: 4 }),
+      line('SURV out-of-band', oi.level, oi.surv, S, { pointRadius: 4, borderDash: [6, 4] }), line('REF out-of-band', oi.level, oi.ref, R, { pointRadius: 4, borderDash: [6, 4], pointStyle: 'rectRot' }),
+      line('Noise-only max', [-85, -60], [noiseZ, noiseZ], M, { borderDash: [2, 3], borderWidth: 1.5, pointHoverRadius: 0 })] },
+    options: injOpts }));
+
+  // scatter pulse vs ambient
+  legend('c-scatter', [{ c: S, t: 'SURV' }, { c: R, t: 'REF' }, { c: M, t: 'y = x (no difference)', dash: 1 }]);
+  const lo = 3.5, hi = 6.5;
+  const scOpts = baseOpts('Best z, ambient window (no Pluto)', 'Best z, pulse window');
+  scOpts.interaction = { mode: 'nearest', intersect: true };
+  scOpts.scales.x.min = lo; scOpts.scales.x.max = hi; scOpts.scales.y.min = lo; scOpts.scales.y.max = hi;
+  scOpts.plugins.tooltip.callbacks = { label: c => { const r = c.raw; return r.lab ? ` ${c.dataset.label} ${r.lab}: ambient ${fmt(r.x, 1)}, pulse ${fmt(r.y, 1)}` : ''; } };
+  const pts = k => fine.map(r => ({ x: r[k + 'BestZ_ambient'], y: r[k + 'BestZ_pulse'], lab: `${r.Scan} step ${r.Step}` }));
+  charts.push(new Chart(document.getElementById('c-scatter'), { type: 'scatter',
+    data: { datasets: [
+      { label: 'y = x', type: 'line', data: [{ x: lo, y: lo }, { x: hi, y: hi }], borderColor: M, borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0 },
+      { label: 'SURV', data: pts('Surv'), backgroundColor: S, borderColor: css('--surface'), borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 },
+      { label: 'REF', data: pts('Ref'), backgroundColor: R, borderColor: css('--surface'), borderWidth: 2, pointRadius: 5, pointHoverRadius: 7, pointStyle: 'rectRot' }] },
+    options: scOpts }));
+
+  // power vs time
+  const pt = D.powerTime;
+  legend('c-power', [{ c: S, t: 'SURV (directional)' }, { c: R, t: 'REF' }, { c: css('--band'), t: 'Scheduled Pluto pulse' }]);
+  const pw = new Chart(document.getElementById('c-power'), { type: 'line', plugins: [bandPlugin],
+    data: { datasets: [line('SURV', pt.t, pt.surv, S), line('REF', pt.t, pt.ref, R)] },
+    options: baseOpts('Time in capture (s)', 'Mean power (dBFS)') });
+  pw.options.plugins.band = { ranges: [[0.5, 2.5]] }; pw.update(); charts.push(pw);
+
+  // spectrum
+  const sp = D.spectrum;
+  legend('c-spec', [{ c: S, t: 'SURV' }, { c: R, t: 'REF' }, { c: M, t: 'In-band comb tones' }]);
+  const spc = new Chart(document.getElementById('c-spec'), { type: 'line', plugins: [vlinePlugin],
+    data: { datasets: [line('SURV', sp.f_khz, sp.surv, S), line('REF', sp.f_khz, sp.ref, R)] },
+    options: baseOpts('Baseband frequency (kHz)', 'Power per 100 Hz bin (dBFS)') });
+  spc.options.plugins.vlines = { lines: [...arr(D.tones_khz).map(t => ({ x: t })), { x: D.pilot_khz, full: true, dash: [4, 4], label: 'ATSC pilot' }] };
+  spc.update(); charts.push(spc);
+
+  // z curve
+  const zc = D.zCurve;
+  legend('c-z', [{ c: S, t: 'SURV' }, { c: R, t: 'REF' }, { c: M, t: 'Noise-only max (' + fmt(noiseZ, 1) + ')', dash: 1 }]);
+  charts.push(new Chart(document.getElementById('c-z'), { type: 'line',
+    data: { datasets: [line('SURV', zc.off_khz, zc.surv, S, { borderWidth: 1.5 }), line('REF', zc.off_khz, zc.ref, R, { borderWidth: 1.5 }),
+      line('Noise-only max', [-60, 60], [noiseZ, noiseZ], M, { borderDash: [6, 4], borderWidth: 1.5, pointHoverRadius: 0 })] },
+    options: baseOpts('Common comb offset (kHz)', 'Comb match (z-score)') }));
+
+  // line heights
+  const med = k => median(mt.map(r => r[k]));
+  legend('c-lines', [{ c: S, t: 'SURV' }, { c: R, t: 'REF' }]);
+  charts.push(new Chart(document.getElementById('c-lines'), { type: 'bar',
+    data: { labels: ['ATSC pilot', 'Receiver DC', 'Best comb tone', 'Comb mean'], datasets: [
+      bar('SURV', [med('SurvPilot_dB'), med('SurvDC_dB'), med('SurvMaxTone_dB'), med('SurvScoreAt0_dB')], S),
+      bar('REF', [med('RefPilot_dB'), med('RefDC_dB'), med('RefMaxTone_dB'), med('RefScoreAt0_dB')], R)] },
+    options: catOpts('Height above ±10 kHz neighbours (dB)') }));
+
+  // integrated margin
+  const nT = [5, 8, 9, 11];
+  legend('c-int', [{ c: M, t: 'Noise only: 10·log₁₀(N)', dash: 1 }, { c: S, t: 'Logged SURV' }, { c: R, t: 'Logged REF' }]);
+  const iOpts = baseOpts('Number of tones scored (N)', 'Integrated margin (dB)');
+  iOpts.interaction = { mode: 'nearest', intersect: false }; iOpts.scales.x.min = 4; iOpts.scales.x.max = 12;
+  charts.push(new Chart(document.getElementById('c-int'), { type: 'scatter',
+    data: { datasets: [
+      { label: 'Noise only', type: 'line', data: Array.from({ length: 8 }, (_, i) => ({ x: 4 + i, y: 10 * Math.log10(4 + i) })), borderColor: M, borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3 },
+      { label: 'Logged SURV', data: [7.3, 7.5, 9.7, 10.4].map((y, i) => ({ x: nT[i] - 0.08, y })), backgroundColor: S, borderColor: css('--surface'), borderWidth: 2, pointRadius: 6, pointHoverRadius: 8 },
+      { label: 'Logged REF', data: [7.0, 7.8, 9.5, 10.4].map((y, i) => ({ x: nT[i] + 0.08, y })), backgroundColor: R, borderColor: css('--surface'), borderWidth: 2, pointRadius: 6, pointHoverRadius: 8, pointStyle: 'rectRot' }] },
+    options: iOpts }));
+}
+
+const hashTab = location.hash.replace('#', '');
+if (['charts', 'site'].includes(hashTab)) showTab(hashTab);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (chartsBuilt) buildCharts(); });
+</script>
+</body>
+</html>
