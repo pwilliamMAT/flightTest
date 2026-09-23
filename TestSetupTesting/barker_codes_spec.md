@@ -1,8 +1,50 @@
 ## RF Calibration Comb: Barker-Coded Phase Lock-In Specification
 
+> **Status (2026-09-23): on hold. The premise below is not supported by the data.**
+> Evidence: [`reporting/diagnostics/PlutoCombPresence_Diagnostic_V1.html`](../reporting/diagnostics/PlutoCombPresence_Diagnostic_V1.html).
+> The original specification is kept unchanged from section 1 on. Inline notes mark the affected sections.
+
+## 0. Review of observations (2026-09-23)
+
+### 0.1 What the data show
+
+1. **The Pluto comb has not been detected in any N320 capture.** That covers 82 archived captures (Jul–Aug 2026) and 4 new ones (2026-09-23, Pluto TX gain −10 and 0 dB, tones in-band at ±150–650 kHz and out-of-band at ±3.0–3.5 MHz). Checks used: pulse-window vs. Pluto-off spectrum; tone bin vs. its ±10 kHz neighbours with the ATSC pilot as a positive control; and a 1 Hz coherent search over ±60 kHz of offset against a Pluto-off baseline. At the N320 the comb is below about −78 dBFS per tone. The method finds a synthetic comb at −75 dBFS (out-of-band) and −65 dBFS (in-band).
+2. **The Pluto itself transmits the comb correctly.** A self-loopback (TX dipole → Pluto RX) shows all 12 tones at their planned frequencies, +35 dB above the floor at TX −10 dB, falling by 20 dB when TX gain drops by 20 dB. The loss is in the stairwell-to-Yagi path: glass enclosure, 65 ft to REF and 112 ft to SURV, and very likely off the Yagis' main lobes.
+3. **The "9–13 kHz REF/SURV frequency offset" in §1 isn't physical.** `ChannelFrequencyDelta_Hz` is the difference between the strongest bins found near each planned tone in each channel. With no tone present, each channel picks a different noise peak, giving random values from 1 to 28 kHz that average about 12 kHz. Two channels of one N320 share a reference clock, and any Pluto frequency error is common to both, so a kHz-level REF/SURV difference isn't expected in the first place.
+4. **The "observed ~12–14 dB" coherent gain in §1 is also a noise artifact.** `helperPlutoMultitoneScoreCapture.m` sums the linear per-tone peak/floor ratios, so N noise-only tones score 10·log₁₀(N) dB (10.8 dB for 12, 10.4 dB for 11). Every logged multitone "integrated margin" sits within about 0.3 dB of that line, or below it.
+5. **The frequency drift rate df/dt (§5.1, §9) therefore can't be measured yet.** There is no tone to track.
+
+### 0.2 Technical issues in the current specification
+
+Independent of the premise, these need fixing before any implementation:
+
+- **Spectral overlap (§2.1).** Modulating each tone with an 11-chip code at 200 kchip/s spreads it to a ±200 kHz main lobe. The tones are 100 kHz apart, so neighbouring coded tones overlap almost completely and can't be separated by frequency.
+- **Correlation window (§4.1).** One code period is 11 chips × 40 samples/chip = 440 samples. Correlating a single 40-sample (one-chip) block against the 11-chip code doesn't measure the code. The correlation has to run over at least one full 440-sample period.
+- **Mixer frequency (§3.2).** The N320 samples are already at complex baseband around the tuned 599 MHz. Mix with the tone *offset* only: `x .* exp(-1j*2*pi*f_offset/fs*n)`, not 599 MHz + offset. Also low-pass filter or block-average each channel on its own *before* forming any REF/SURV product; otherwise the other 11 tones and the ATSC signal leak into every tone's estimate.
+- **Code orthogonality (§2.2).** There is no set of 12 mutually orthogonal 11-chip Barker variants. Cyclic shifts of a Barker code have off-peak correlation of magnitude 1/11, not zero. If per-tone codes are really needed, use a code family designed for that (e.g. Gold or Walsh-Hadamard) at a chip rate compatible with the tone spacing.
+- The checklist (§10) says "12-bit"; the specification uses 11-chip codes.
+
+### 0.3 Recommended direction: N320 as the calibration source
+
+The operator proposes using the N320's own transmitter as the pilot/calibration source, since it is already near the antennas, and keeping the Pluto only for environmental monitoring. That changes the problem this specification set out to solve:
+
+- **No transmitter-receiver frequency offset.** The N320 TX and both RX channels share one reference clock and LO chain, so the injected tones land exactly on their planned bins, with no Pluto crystal offset (±25 ppm is up to ±15 kHz at 599 MHz) and no slow-time residual between transmitter and receiver.
+- **REF/SURV relative phase becomes nearly static.** What remains is the fixed difference in cable, antenna and propagation path, plus slow thermal drift. A per-tone complex average over the pulse (after per-channel mixing and block-averaging) should then give the full coherent gain without adaptive phase tracking. Barker-based phase lock-in is probably unnecessary for the *phase* problem.
+- **Where a code still helps is delay.** For bistatic processing the useful calibration is the REF–SURV **delay** and phase difference (and direct-path multipath), not just the phase at a few tones. A wideband pseudo-noise or Barker sequence transmitted from the N320, at a chip rate chosen for delay resolution (e.g. 1–4 Mchip/s at 8 MS/s) and cross-correlated separately in REF and SURV, measures the inter-channel delay directly. This would replace the comb, not modulate each comb tone.
+- **Hardware notes.** The captures use the RX2 ports (`RF0:RX2`, `RF1:RX2`), so the TX/RX ports are free for an injection antenna or a coupled/attenuated feed. Simultaneous transmit and receive needs `basebandTransceiver` rather than `basebandReceiver`. Transmitting on the same board makes internal TX→RX leakage a possibility, so keep an on/off pulse structure and verify presence against a TX-off baseline (the `plutoCombFineCheck` / `plutoBurstPresence` pattern) before trusting any calibration number. Occupied-channel emissions still apply, as with the Pluto.
+- **The Pluto becomes an environmental monitor.** It is useful as an independent receiver of the local RF environment, but it is no longer part of the calibration chain.
+
+### 0.4 Before resuming this specification
+
+1. Get a calibration signal into both channels that passes a noise-baselined presence check: the N320 TX source, or a relocated or cabled Pluto.
+2. Measure the actual REF/SURV phase and frequency behaviour at the measured tone frequencies (per-channel mixing and block-averaging).
+3. Only if that shows phase variation faster than a per-pulse average can handle, revisit coded phase tracking. If so, fix the issues in §0.2 first.
+
 ---
 
 ## 1. Overview & Objectives
+
+> *Review note (2026-09-23): the problem statement and expected outcome below rest on noise-only metrics; see §0.1 items 3–4.*
 
 **Goal:** Recover missing ~7 dB of coherent integration gain by implementing per-tone phase lock-in using a dual-channel (SURV/REF) Barker-coded reference system.
 
@@ -28,6 +70,8 @@
 | **Barker chip rate** | 200 kHz [chip/sec] |
 | **Barker code period (Tc)** | 11 / 200 kHz = 55 µs |
 | **Barker code repetitions in 1 sec** | ~18,181 repetitions |
+
+> *Review note (2026-09-23): at 200 kchip/s each coded tone spreads to ±200 kHz, overlapping its 100 kHz-spaced neighbours; see §0.2.*
 
 ### 2.2 Barker Code Assignment
 
@@ -85,6 +129,8 @@ demod(x, f_c, fs) = x * exp(-j * 2π * f_c / fs * [0:N-1])
 
 ### 4.1 Barker Code Correlation (Per Tone)
 
+> *Review note (2026-09-23): one code period is 440 samples, not 40; see §0.2. The mixer in §3.2 should use the tone offset only.*
+
 For each tone **k**:
 
 **Input:** 
@@ -134,6 +180,8 @@ phase_error_k = unwrap(phase_error_raw_k)
 ### 5.1 Phase Error Smoothing (Low-Pass Filter)
 
 **Goal:** Remove measurement noise from Barker correlation while tracking slow oscillator drift.
+
+> *Review note (2026-09-23): df/dt can't be measured until a calibration tone is actually present at the N320; see §0.1 item 5.*
 
 **Frequency Drift Rate (TO BE FILLED IN):**
 ```
