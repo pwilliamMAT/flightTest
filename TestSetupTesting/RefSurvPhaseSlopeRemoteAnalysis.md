@@ -1,5 +1,15 @@
 # REF/SURV Phase-Slope Analysis on the Field Computer
 
+> **Review (2026-09-23): on hold. Do not implement as written.**
+> Evidence: [`reporting/diagnostics/PlutoCombPresence_Diagnostic_V1.html`](../reporting/diagnostics/PlutoCombPresence_Diagnostic_V1.html).
+>
+> 1. **There is no Pluto comb in the captures to measure.** None of 86 N320 captures (82 archived, 4 new at Pluto TX −10 and 0 dB, in-band and out-of-band) contains the comb above about −78 dBFS per tone, although a Pluto self-loopback shows it is transmitted. A phase-slope fit on these captures would fit noise.
+> 2. **The 9–13 kHz REF/SURV "tone-frequency delta" quoted under Purpose isn't physical.** It comes from a strongest-bin search near each planned tone. With no tone present, each channel picks a different noise peak, giving random 1–28 kHz values averaging about 12 kHz. Both N320 channels share one reference clock, and any Pluto frequency error is common to both.
+> 3. **Step 4 of the algorithm cancels its own oscillator.** Both channels are multiplied by the same `osc`, and step 5 then forms `refTone .* conj(survTone)`. That equals `ref .* conj(surv)`, so the per-tone mixing has no effect and every "tone" estimate is the broadband REF·SURV* product (dominated by the ATSC signal and the other 11 tones). Fix: mix each channel to the tone, then block-average (low-pass) **each channel separately**, `R_b = mean(refTone(block))`, `S_b = mean(survTone(block))`, and only then form `z_b = R_b .* conj(S_b)`. Mix at the *measured* tone frequency, not the planned one, if the source is not clock-locked to the N320.
+> 4. **Before running this diagnostic**, get a calibration signal into both channels that passes a noise-baselined presence check (`plutoCombFineCheck` / `plutoBurstPresence` against a source-off window). See also the review at the top of `barker_codes_spec.md`, which covers using the N320's own transmitter as the calibration source.
+>
+> The original handoff text below is unchanged.
+
 ## Purpose
 
 The large `.bb` baseband captures should stay on the field/collection computer.
