@@ -83,10 +83,9 @@ To find the latest status of this work or get up to speed on the overall project
 
 ### System Prechecks
 
-The `SystemPrechecks/` workflow evaluates transmitter geometry, terrain-aware
-link budgets, receiver-chain RF levels, and detectability assumptions before
-field collection. Run `SystemPrechecks/generateSystemPrecheckArtifacts.m` to
-regenerate the canonical tables, figures, and technical-story deck.
+The [System Prechecks workflow](SystemPrechecks/README.md) evaluates transmitter
+geometry, terrain-aware link budgets, receiver-chain RF levels, and detectability
+assumptions before field collection.
 
 ### Hardware Platform
 
