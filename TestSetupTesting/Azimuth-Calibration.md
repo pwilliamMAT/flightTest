@@ -216,6 +216,11 @@ The report also writes `ref_surv_correlation_vs_lag.png`, a bearing-versus-lag
 heatmap of `abs(xcorr(ref,surv,'coeff'))`, plus a summary trace of zero-lag
 correlation and strongest-path lag.
 
+For the next raw-IQ-only diagnostic, run the phase-slope workflow on the field
+computer rather than syncing the large `.bb` files back to OneDrive.  See
+[`RefSurvPhaseSlopeRemoteAnalysis.md`](RefSurvPhaseSlopeRemoteAnalysis.md) for
+step-by-step instructions and the suggested MATLAB helper specification.
+
 ## Copying reports without the large capture files
 
 The raw N320 baseband captures are intentionally tagged so they are easy to
