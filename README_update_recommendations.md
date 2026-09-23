@@ -1,74 +1,26 @@
-# Root README Update Recommendations
-
-No edit to `README.md` is included in this change.
-
-## Patch plan
-
-1. Add the concise `NEW HERE` section below immediately after the title and
-   before `Project Overview`.
-2. Keep the existing reporting paragraph temporarily, but replace it with a
-   shorter link list after readers have adopted the new navigation path.
-3. In a later, separately reviewed edit, move detailed capture syntax to
-   `TestSetupTesting/README.md` and detailed session-analysis instructions to
-   a dedicated `BistaticDataAnalysis/README.md` or a confirmed existing
-   subsystem entry page.
-4. Remove duplicated hardware metrics, system configuration values, and
-   report findings from the root only after their owning report/subsystem link
-   has been verified.
-5. Remove the two non-printing control characters before the
-   `TestSetupTesting/` and `ADSB_GPS/` headings while making that future edit.
-
-This staged approach improves orientation first and does not disturb active
-collection or replay procedures.
-
-## Proposed `NEW HERE` section
-
-```md
-## New here
-
-FlightTest provides passive-bistatic radar collection, session packaging,
-replay, and reporting infrastructure. Read the accepted reports as
-evidence-led engineering: installed infrastructure and controlled synthetic
-results do not by themselves establish live-aircraft or operational
-performance.
-
-Start with the role-based guide:
-
-- **Manager or new engineer:** [Start Here](reporting/docs/START_HERE.md) —
-  begin with `FlightTest_EndToEnd_HumanStory_V2`, then current status.
-- **Developer or technical contributor:** [Engineering Index](reporting/docs/ENGINEERING_INDEX.md) —
-  find reports, code entry points, data sources, and ownership by topic.
-- **Collection operator:** [TestSetupTesting README](TestSetupTesting/README.md) —
-  supported capture, package, and synchronization procedures.
-- **Session-analysis user:** [BistaticDataAnalysis](BistaticDataAnalysis/) —
-  use `runBistaticAnalysisSession.m` for a packaged session.
-- **External or large artifact:** [Source Materials](reporting/docs/SOURCE_MATERIALS.md).
-
-### Two connected repositories
-
-- **flightTest** owns collection hardware, capture packaging, operational
-  replay, and the accepted reporting family.
-- **PassiveBistaticRestart** owns passive-pipeline reconstruction, gate
-  validation, synthetic recovery studies, and external evidence artifacts.
-
-See the [repository ownership map](repository_ownership_map.md) before moving
-code, changing a capture-package contract, or treating a reconstruction
-artifact as an accepted FlightTest update.
-```
-
-## Why this is sufficient for the first patch
-
-The section lets a fresh clone answer the five onboarding questions without
-making the root README a second report catalog or a replacement operating
-manual:
-
-| Question | Answering link |
-| --- | --- |
-| What is this project? | The opening paragraph and [Start Here](reporting/docs/START_HERE.md) |
-| What should I read first? | Role-based Start Here link |
-| Where is the code? | Engineering Index and subsystem README links |
-| Where is the data? | Engineering Index and Source Materials |
-| Which repository owns which work? | Repository ownership map |
-
-The proposed section deliberately points to existing reports and code. It does
-not generate, restate, or replace report content.
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,12 @@
+ # Flight Test Data Collection & Passive Bistatic Radar System
+-
++## NEW HERE
++
++Start with the accepted evidence story, then use the focused routes below.
++
++- [End-to-end story](https://pwilliammat.github.io/flightTest/explainers/FlightTest_EndToEnd_HumanStory_V2.html) — the fastest overview of the engineering narrative and claim boundary.
++- Design decisions: [Report 01A](https://pwilliammat.github.io/flightTest/reports/01A_IlluminatorSelection_V4.html), [Report 01B](https://pwilliammat.github.io/flightTest/reports/01B_ReceiveChainDesign_V2.html), and [Report 02A](https://pwilliammat.github.io/flightTest/reports/02A_SyntheticEchoGeneration_V1.html).
++- [Repository ownership](reporting/docs/REPOSITORY_OWNERSHIP.md) — which repository owns collection, reconstruction, recovery, and accepted evidence.
++- [Engineering index](reporting/docs/ENGINEERING_INDEX.md) — reports, code entry points, data, and source material by topic.
++- [Source-material registry](reporting/docs/SOURCE_MATERIALS.md) — large and external artifacts, including the canonical project-storage landing location.
++
+ ## Project Overview
+@@ -7,5 +16,5 @@
+ ## Reporting and Current Project Status
+-
+-To find the latest status of this work or get up to speed on the overall project, start with the [FlightTest reporting site](https://pwilliammat.github.io/flightTest/). It opens the accepted nine-report technical family in a browser, with the report links opening in new tabs. The version-controlled [reporting index](reporting/reporting_README.md) retains the source guide, evidence and gap records, end-to-end story, and manager-storyboard references.
+-
++
++For accepted reporting and current status, use [Start Here](reporting/docs/START_HERE.md), then [Report 06](https://pwilliammat.github.io/flightTest/reports/06_StatusAndFutureWork_V2.html). The nine-report source guide remains [FlightTest Reporting](reporting/reporting_README.md).
++
+ ### System Goals

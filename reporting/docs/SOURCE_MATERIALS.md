@@ -1,37 +1,33 @@
 # FlightTest Source Materials
 
-This index records large or external artifacts that support the accepted
-reports. It is a locator, not a request to copy materials into Git.
+This is the authoritative registry for large or external artifacts that
+support accepted reports. It is a locator, not a request to copy binaries into
+Git.
 
-“Owner” below means repository or evidence-system ownership, not an assigned
-individual. The listed OneDrive paths were recovered from report metadata; no
-SharePoint web URL is currently recorded. Replace a local path with the
-approved SharePoint/OneDrive link when one becomes available.
+**Storage rule:** Git holds code, reports, explainers, and metadata.
+SharePoint/OneDrive or approved artifact storage holds large binaries and
+collection data.
 
-| Name | Purpose | Where it lives | Owner | Used by reports | Used by code |
-| --- | --- | --- | --- | --- | --- |
-| `LinkBudgetProgress.pptx` | Historical link-budget, illuminator-comparison, and RF Budget Analyzer source slides. | External OneDrive source: `C:\Users\pwilliam\OneDrive - MathWorks\Documents\SFTT\Customers\FlightTest\LinkBudget\LinkBudgetProgress.pptx` | FlightTest reporting/planning source | 01A, 01B | Original link-budget Live Script and RF-design workflow; report metadata points to the external source. |
-| `FlightTest_RFBudgetAnalysis.pptx` | Historical RF-budget analysis and receive-chain context. | External OneDrive source: `C:\Users\pwilliam\OneDrive - MathWorks\Documents\SFTT\Customers\FlightTest\RFBudget\FlightTest_RFBudgetAnalysis.pptx` | FlightTest reporting/planning source | 01B | External RF-budget analysis sources; local supporting data includes `SystemPrechecks/RFBudget/DTV_RFBudgetAnalysis.mat`. |
-| `MountingDiagramParkingLot.pptx` | Installed/desired receiver architecture and parking-lot mounting design. | External OneDrive source: `C:\Users\pwilliam\OneDrive - MathWorks\Documents\SFTT\Customers\FlightTest\MountingDiagramParkingLot.pptx` | FlightTest collection/reporting source | 01B, 02 | Collection and hardware-planning context; no runtime code dependency. |
-| G4-R close-target atlas bundle | Authoritative controlled synthetic recovery study, condition manifest, summary, maps, and thumbnails. | External sibling repo: `C:\Users\pwilliam\agenticProjects\PassiveBistaticRestart\artifacts\20260622T102123\G4_R_Close_Target_Atlas_Recovery\20260918T134014380Z\` | PassiveBistaticRestart | 02A, 05, 06 | `runG4RCloseTargetAtlasRecoveryStudy.m` and atlas helpers in PassiveBistaticRestart. |
-| G4-R map-rate / R5A bundles | Compact formal gate and recovery records, including retained R5A failure evidence. | External sibling repo under `PassiveBistaticRestart\artifacts\20260622T102123\G4_R_*` | PassiveBistaticRestart | 03, 04, 06 | `runG4RMapRateValidity.m`, `runG4RMapRateMatrix.m`, and recovery helpers. |
-| Capture archives and packaged sessions | Raw dual-channel IQ, ADS-B truth, logs, and manifests used for collection/replay. | Working collection paths include `captures\yagi-august-data\SurvYagiCaptures\`; an untracked local archive is `TestSetupTesting\SurvYagiCaptures.zip`. Long-term copies should be SharePoint/OneDrive artifacts, not Git blobs. | FlightTest collection | 02; referenced context for 03–06 | Capture scripts in `TestSetupTesting/`; operational replay in `BistaticDataAnalysis/`; gate studies consume compatible session packages in PassiveBistaticRestart. |
-| Hardware photos | Photographic evidence retained for the accepted hardware report. | Versioned report-local files: `reporting/HardwarePhotos/` | FlightTest reporting | 02 | No runtime code dependency. |
-| Manager-review presentation decks | Historical and accepted communication references; not routine report sources. | External `ManagerReport` archive; inventory in [`presentation_inventory.csv`](presentation_inventory.csv) | FlightTest reporting archive | Family-level communication reference | No runtime code dependency. |
+## Canonical project storage
 
-## Handling rules
+[FlightTest Datasets and Presentations](https://mathworks.sharepoint.com/:f:/r/sites/spc/signal/RadarToolbox/Shared%20Documents/Data/FlightTest%20Datasets%20and%20Presentations?d=wfe2816fad8cd4aa88a4cea5271af71bb&csf=1&web=1&e=HKMaVG)
+is the project landing destination for approved dataset and presentation
+uploads. This link does not confirm that any listed artifact has been
+uploaded; retain each artifact's individual Storage Location and Status below.
 
-- Prefer the approved SharePoint or OneDrive URL when sharing one of these
-  items. Do not commit a second binary copy to improve a Markdown link.
-- Keep raw IQ, complete map collections, generated decks, and other large
-  outputs out of ordinary source-control changes.
-- Link reports to a stable summary, manifest, or stored external artifact
-  rather than regenerating a report-local replacement.
-- If an artifact moves, update this table and the relevant metadata catalog;
-  do not silently rewrite accepted report content.
+| Artifact ID | Artifact Name | Purpose | Owner | Storage Location | Used By Reports | Used By Code | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SM-01 | `LinkBudgetProgress.pptx` | Historical link-budget, illuminator-comparison, and RF-budget source slides. | FlightTest | `C:\Users\pwilliam\OneDrive - MathWorks\Documents\SFTT\Customers\FlightTest\LinkBudget\LinkBudgetProgress.pptx` | 01A, 01B | No runtime dependency. | Verified local OneDrive source. |
+| SM-02 | `FlightTest_RFBudgetAnalysis.pptx` | Historical RF-budget analysis and receive-chain context. | FlightTest | `C:\Users\pwilliam\OneDrive - MathWorks\Documents\SFTT\Customers\FlightTest\RFBudget\FlightTest_RFBudgetAnalysis.pptx` | 01B | Supports `SystemPrechecks/RFBudget/DTV_RFBudgetAnalysis.mat`. | Verified local OneDrive source. |
+| SM-03 | `MountingDiagramParkingLot.pptx` | Receiver architecture and parking-lot mounting design. | FlightTest | `C:\Users\pwilliam\OneDrive - MathWorks\Documents\SFTT\Customers\FlightTest\MountingDiagramParkingLot.pptx` | 01B, 02 | No runtime dependency. | Verified local OneDrive source. |
+| SM-04 | G4-R close-target atlas bundle | Authoritative G4-R close-target atlas, condition manifest, maps, and thumbnails. | PassiveBistaticRestart | `C:\Users\pwilliam\agenticProjects\PassiveBistaticRestart\artifacts\20260622T102123\G4_R_Close_Target_Atlas_Recovery\20260918T134014380Z` | 02A, 05, 06 | `C:\Users\pwilliam\agenticProjects\PassiveBistaticRestart\runG4RCloseTargetAtlasRecoveryStudy.m` | Verified external artifact location. |
+| SM-05 | G4-R map-rate and R5A recovery bundles | Compact G4-R map-rate and retained R5A recovery records. | PassiveBistaticRestart | `C:\Users\pwilliam\agenticProjects\PassiveBistaticRestart\artifacts\20260622T102123` | 03, 04, 06 | `C:\Users\pwilliam\agenticProjects\PassiveBistaticRestart\runG4RMapRateValidity.m`; `C:\Users\pwilliam\agenticProjects\PassiveBistaticRestart\runG4RMapRateMatrix.m` | Verified external artifact location. |
+| SM-06 | Capture archives and packaged sessions | Raw dual-channel IQ, ADS-B truth, logs, and session manifests. | FlightTest | `PENDING_PROJECT_STORAGE` | 02; context for 03–06 | Collection scripts in `TestSetupTesting/`; operational replay in `BistaticDataAnalysis/`. | Pending project-storage location. |
+| SM-07 | Hardware photos | Photographic evidence for the accepted hardware report. | FlightTest | `reporting/HardwarePhotos/` | 02 | No runtime dependency. | Verified Git report-source location. |
+| SM-08 | Manager-review presentation decks | Historical and accepted manager-review presentation decks. | FlightTest | `PENDING_PROJECT_STORAGE` | Family-level communication reference | No runtime dependency. | Pending project-storage location. |
 
-## Related navigation
-
-- Accepted reports and current status: [`../reporting_README.md`](../reporting_README.md)
-- Code and data entry points: [Engineering Index](ENGINEERING_INDEX.md)
-- Two-repository boundary: [Repository ownership map](../../repository_ownership_map.md)
+If an artifact moves, update this registry and the relevant metadata catalog;
+do not silently rewrite accepted report content. See
+[Repository Ownership](REPOSITORY_OWNERSHIP.md) for the two-repository
+boundary and [Engineering Index](ENGINEERING_INDEX.md) for implementation
+entry points.
