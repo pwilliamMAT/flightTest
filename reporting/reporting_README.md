@@ -32,7 +32,7 @@ Read the accepted family in order. Each report owns one question, result, decisi
 - [Canonical gap review](audits/report_family_gap_review.md) and [known gaps](metadata/family_known_gaps.md) — current limitations and unresolved evidence.
 - [Manager-slide storyboard](https://pwilliammat.github.io/flightTest/storyboards/manager_slide_storyboard_review.html) — accepted presentation planning; no presentation binary is stored here.
 - [Accepted audit inventory](audits/audits_inventory.csv), [workflow summary](docs/workflow_summary.md), and [presentation inventory](docs/presentation_inventory.csv).
-- [Diagnostic reports](diagnostics/README.md): hardware and calibration troubleshooting evidence outside the accepted family, starting with the [Pluto calibration comb presence diagnostic](https://pwilliammat.github.io/flightTest/diagnostics/PlutoCombPresence_Diagnostic_V1.html).
+- [Diagnostic reports](diagnostics/README.md): hardware and calibration troubleshooting evidence outside the accepted family, starting with the [Pluto calibration signal presence diagnostic](https://pwilliammat.github.io/flightTest/diagnostics/PlutoCombPresence_Diagnostic_V1.html).
 - [How to update accepted reports](howToUpdateReports.md) — maintainer guidance for candidate review, acceptance, validation, and GitHub Pages publication.
 
 ## Repository structure and scope
