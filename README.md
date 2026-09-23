@@ -1,5 +1,55 @@
 # Flight Test Data Collection & Passive Bistatic Radar System
 
+## NEW HERE
+
+For managers, engineers, and developers: use these routes before entering the
+collection, replay, or analysis guides below.
+
+### Understand the Project
+
+Read the [end-to-end engineering story](reporting/explainers/FlightTest_EndToEnd_HumanStory_V2.html) for project goals, major decisions, strongest evidence, blockers, and next steps.
+
+### Understand the Major Engineering Decisions
+
+- [Illuminator Selection](reporting/reports/01A_IlluminatorSelection_V4.html)
+- [Receive-Chain Design](reporting/reports/01B_ReceiveChainDesign_V2.html)
+- [Synthetic Echo Generation](reporting/reports/02A_SyntheticEchoGeneration_V1.html)
+
+These reports explain why the key technical decisions were made.
+
+### Understand Current Evidence
+
+- [Strongest Evidence: G4-R Recovery Study](reporting/reports/05_StrongestEvidence_G4RRecoveryStudy.html)
+- [Current Status and Future Work](reporting/reports/06_StatusAndFutureWork_V2.html)
+
+Use these reports to distinguish what has and has not been demonstrated.
+
+### Repository Ownership
+
+See [Repository Ownership](reporting/docs/REPOSITORY_OWNERSHIP.md) to understand
+how FlightTest and PassiveBistaticRestart work together.
+
+### Engineering Navigation
+
+See the [Engineering Index](reporting/docs/ENGINEERING_INDEX.md) to find code,
+data, source material, and related reports by engineering topic.
+
+### Source Materials
+
+See [Source Materials](reporting/docs/SOURCE_MATERIALS.md) to locate large
+source decks, engineering spreadsheets, collection packages, and atlas
+artifacts without storing them directly in Git.
+
+### Repository Relationship
+
+**FlightTest** provides collection, infrastructure, replay, packaging,
+reporting, and project integration. **PassiveBistaticRestart** provides pipeline
+reconstruction, validation, synthetic studies, recovery investigations, and
+controlled evidence generation. They are separate repositories for one
+engineering program: FlightTest primarily produces and packages evidence, while
+PassiveBistaticRestart primarily evaluates and validates it. See
+[Repository Ownership](reporting/docs/REPOSITORY_OWNERSHIP.md) for details.
+
 ## Project Overview
 
 This repository contains a complete passive bistatic radar system and multi-sensor data collection platform for aircraft detection, localization, and tracking validation. The system is designed to generate shareable datasets for verifying MATLAB Radar and Sensor Fusion and Tracking Toolbox functions.
