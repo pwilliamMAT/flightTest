@@ -12,6 +12,10 @@ ADSB_GPS/rtl-sdr/
 __pycache__/
 *.pyc
 
+# Local AI/tooling state
+.agents/
+.codex/
+
 # Generated local capture products
 *.bb
 *.mat
