@@ -8,4 +8,4 @@ To promote a diagnostic into the published site, review it as a candidate per `.
 
 | Report | Question | Evidence dates |
 | --- | --- | --- |
-| [PlutoCombPresence_Diagnostic_V1.html](PlutoCombPresence_Diagnostic_V1.html) | Is the Pluto calibration signal reaching the N320, and where is it lost? Includes the single-carrier loop closure at 602.05 MHz. | 2026-07-28 to 2026-09-23 |
+| [PlutoCombPresence_Diagnostic_V1.html](PlutoCombPresence_Diagnostic_V1.html) | Is the Pluto calibration signal reaching the N320, and is the receive chain fit to measure it? Includes the single-carrier loop closure, the receive-chain overload at N320 gain [30 50], channel-boundary loop tests at [10 0] from 476 to 602 MHz, and a map and level table of every DTV emitter in the site's transmitter table. | 2026-07-28 to 2026-09-24 |
