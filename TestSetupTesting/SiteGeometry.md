@@ -12,34 +12,53 @@ Current layout of the passive-radar receive site and the Pluto calibration injec
 
 ## Antenna and injector layout
 
-The three positions form a right triangle with the right angle at the REF antenna:
+The three positions form a right triangle with the right angle at the REF antenna. Corrected on 2026-09-24: SURV is due **east** of REF (an earlier version of this file, and of the published diagnostic, had it west).
 
 | From | To | Direction | Distance |
 | --- | --- | --- | --- |
 | REF antenna | Stairwell (Pluto, collection PC) | Due north | 65 ft (19.8 m) |
-| REF antenna | SURV antenna | Due west | 91 ft (27.7 m) |
-| SURV antenna | Stairwell | North-east (about 54.5° true) | 112 ft (34.1 m) |
+| REF antenna | SURV antenna | Due east | 91 ft (27.7 m) |
+| SURV antenna | Stairwell | North-west (about 305.5° true) | 112 ft (34.1 m) |
 
 ```text
             N
             ^
-            |        Stairwell (Pluto, PC)
-            |               o
-            |             / |
-            |    112 ft /   | 65 ft
-            |         /     |
-   SURV Yagi o---------------o REF Yagi
-             <---- 91 ft --->
+            |   Stairwell (Pluto, PC)
+            |   o
+            |   | \
+            |   |   \ 112 ft
+            |   |     \
+            | 65 ft     \
+            |   |         \
+            |   o-----------o
+            |   REF Yagi    SURV Yagi
+            |   <-- 91 ft -->
 ```
+
+Each rotator's controller is in a weather enclosure about 6–8 ft from its antenna, powered from a 15 VAC wall supply; the rotator and the antenna's built-in LNA are powered up the coax. The rotator turns only while the controller's button is held, and each press alternates direction; there is no position feedback.
 
 ## Antenna pointing (2026-09-24)
 
 | Antenna | Pointing (true) | Notes |
 | --- | --- | --- |
 | REF Yagi (N320 RF1:RX2) | about 10° | The stairwell (0°) is about 10° off boresight; the eastern DTV towers (76–88°) are about 66–78° off. |
-| SURV Yagi (N320 RF0:RX2) | about 270° (west) | The stairwell (54.5°) is about 145° off boresight, on the back side; the eastern DTV towers are about 170° off. |
+| SURV Yagi (N320 RF0:RX2) | about 270° (west) | Looks along the REF–SURV leg toward the REF mast. The stairwell (305.5°) is about 35.5° off boresight; the eastern DTV towers are about 170° off, behind it. |
 
-The operator's description read "the REF antenna is pointed around 10 degrees True whereas the REF antenna is pointed West"; one of the two must be SURV. The assignment above (REF north, SURV west) is the one consistent with the 602.05 MHz loop test, where REF received the stairwell carrier 17 dB stronger than SURV. The DTV absolute-level check (`dtvAbsoluteLevelCheck.m`, `dtvFitPointing.m`) was meant as the independent check, but on 2026-09-24 it could not fit the pointing: nine of the ten towers with a clear pilot sit at 76–88°, and REF levels are distorted by overload. The levels don't confirm REF north and SURV west. One observation argues against SURV at 270°: channel 22 from Hudson (309°, 15 km) is strong on REF (61° off its assumed boresight) but weak on SURV (39° off). Either SURV points elsewhere or its path toward Hudson is obstructed.
+The operator's description read "the REF antenna is pointed around 10 degrees True whereas the REF antenna is pointed West"; one of the two must be SURV. The assignment above (REF north, SURV west) is the one consistent with the loop tests, where REF receives the stairwell carrier more strongly than SURV (REF also has a second LNA). The DTV absolute-level check (`dtvAbsoluteLevelCheck.m`, `dtvFitPointing.m`) was meant as the independent check, but on 2026-09-24 it could not fit the pointing: nine of the ten towers with a clear pilot sit at 76–88°, and REF levels are distorted by overload.
+
+Channel 22 from Hudson (309°, 15 km) is strong on REF but weak on SURV, although it is only 39° off SURV's boresight. From SURV the stairwell bears 305.5°, within about 3.5° of Hudson, so the stairwell structure most likely shadows Hudson for SURV. From REF the stairwell is at 0° and does not block it.
+
+## Injector placement options
+
+A 100 ft SMA cable lets the Pluto stay in the stairwell with its transmit antenna out on the deck. Positions in the table are relative to REF; "off" is the angle from each antenna's boresight. Free-space changes are relative to the stairwell position at 540 MHz; the pattern column uses the simple Yagi model in `dtvFitPointing.m` (12 dBi, 45° beamwidth, 20 dB front-to-back), which is only a rough guide.
+
+| Position | Cable run from stairwell | REF: distance, off | SURV: distance, off | Change vs. stairwell, before cable loss and glass |
+| --- | --- | --- | --- | --- |
+| Stairwell (now) | – | 65 ft, 10° | 112 ft, 35.5° (through glass) | – |
+| Midpoint of the REF–SURV leg | 79 ft | 45.5 ft, 80° | 45.5 ft, 0° | SURV about +15 dB; REF about −16 dB |
+| 15 ft north of the midpoint | 68 ft | 48 ft, 62° | 48 ft, 18° | SURV about +13 dB; REF about −17 dB |
+
+100 ft of cable costs roughly 3 dB (LMR-400), 6 dB (LMR-240), 10–11 dB (RG-58) or 20 dB or more (RG-174) at 540 MHz. Taking the injector out of the glass stairwell also removes an unknown glass loss. REF has plenty of margin to give up (+21 to +49 dB at gain 0 on 2026-09-24). Keep the injector antenna horizontally polarised like the Yagis.
 
 Both Yagis are 12 dBi class UHF TV antennas (Report 01B), horizontally polarised. Neither currently points at the main DTV towers, which are 9–11 km to the east (bearing 82–88° true).
 
