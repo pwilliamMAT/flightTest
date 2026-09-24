@@ -13,7 +13,22 @@ The N320 receive chain is not linear at RadioGain `[30 50]` ([SURV REF]), the de
 Open items:
 
 1. Hardware: remove the second LNA from REF (or pad it by about 20 dB) and consider a channel bandpass filter on each input, then re-run `plutoCwGainSweep` to choose the gain.
-2. Check whether the overload contributed to the detector not producing truth-matched detections: compare the range-Doppler floor of short captures at `[30 50]` and `[10 0]`. The capture default (`runLocalHDTVCapture.m`, `run_coordinated_hdtv_capture.sh`) is now `[10 0]`; the Pluto tone and commissioning chain still defaults to `[30 50]` because its baselines were commissioned at that gain.
+2. Done 2026-09-24 (below): the overload costs about 13.5 dB of range-Doppler dynamic range. Next, check whether that explains the missing truth-matched detections: re-run a full `runBistaticAnalysisSession` on a coordinated capture at `[10 0]` with aircraft in view. The capture default (`runLocalHDTVCapture.m`, `run_coordinated_hdtv_capture.sh`) is now `[10 0]`; the Pluto tone and commissioning chain still defaults to `[30 50]` because its baselines were commissioned at that gain.
+3. The zero-Doppler ridge left after ECA-C is 24–34 dB above the precheck floor at both gains (limit 15 dB), so `runDirectPathPrecheck` still returns WARN at `[10 0]`. Lowering the gain doesn't fix this.
+
+### Range-Doppler floor at `[10 0]` vs `[30 50]` (2026-09-24)
+
+Four 5 s receive-only captures at 599 MHz (LO offset 200 kHz, 6.144 MS/s), alternating `[10 0]`, `[30 50]`, `[10 0]`, `[30 50]` within 1 min. Each was scored with `runDirectPathPrecheck` (1 s slice, 0.5 ms CPI). Data, the results table and a floor-vs-range plot are in `captures/gainCompare_20260924/` (gitignored).
+
+| Gain | SURV / REF RMS (dBFS) | Samples > 90% full scale | Lag peak over median (dB) | Direct path to 10–50 km floor (dB) | ECA-C suppression (dB) |
+| --- | --- | --- | --- | --- | --- |
+| `[10 0]` | −12.4 / −13.9, −12.0 / −13.5 | 0 | 60.2, 58.8 | 73.6, 72.7 | 47.9, 52.3 |
+| `[30 50]` | −10.2 / −16.4, −10.2 / −16.5 | 0 | 52.2, 52.2 | 59.7, 59.6 | 47.7, 44.9 |
+
+- At `[30 50]` the floor is about 13.5 dB closer to the direct path, and the result repeats across both pairs to within 1 dB. Echoes pass through the same compressed chain, so weak targets lose roughly the same margin. With 1 s at 6.144 MS/s the processing gain is about 68 dB, so the `[10 0]` floor is close to the signal's own ambiguity floor, and `[30 50]` adds distortion products that don't correlate with REF.
+- REF output is 2.8 dB *lower* at `[30 50]` despite 50 dB more gain, and SURV rises only 2 dB for +20 dB. No sample comes within 90% of full scale, so the compression happens ahead of the ADC (LNAs or the N320 RF front end), not at the ADC.
+- The precheck's own "noise floor" region (130–150 km) sits where the 0.5 ms CPI's overlap runs out, so its floor is biased low. For that reason the table quotes the direct path against the 10–50 km floor.
+- Capture hangs found on the way (20:08 and 20:32): a legacy `BistaticDataAnalysis/log_iq_n320_2antennas.m` called `sudo` without `-n` and, with `BistaticDataAnalysis` added to the path after `TestSetupTesting`, shadowed the current copy, so MATLAB waited for a sudo password it could never get. The legacy copy is now deleted. It also picked antennas through `hCaptureAntennas` instead of the frozen SURV/REF mapping. Only `TestSetupTesting/log_iq_n320_2antennas.m` remains.
 
 
 ## July 28, 2026 TestSetupTesting Sync And Pluto Review State
