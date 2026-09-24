@@ -69,6 +69,10 @@ Python: `python3 ADSB_GPS/test_gatherTCPcompress.py`.
 
 `start_adsb_gps_loggers.sh` manages gpsd/dump1090/loggers. `gatherTCPcompress.py` reads dump1090 SBS-1 on TCP 30003 and supports `--run-seconds` and `--session-id` for bounded coordinated runs.
 
+### Receive site
+
+`TestSetupTesting/SiteGeometry.md` records the receive-site location, antenna layout and pointing, the Pluto/stairwell position and the local DTV transmitter table (`TestSetupTesting/siteData/20_DTV_direct_path_input.csv`). Update it whenever antennas or the injector move. `dtvPredictDirectPath` / `dtvAbsoluteLevelCheck` / `dtvFitPointing` compare tower levels with a Longley-Rice prediction, and `plutoCwLoopTest` / `plutoCwLoopAnalyze` / `runBoundaryLoopTests` run single-carrier loop tests.
+
 ### `reporting/`: published report site
 
 `reporting/` on `main` is published to GitHub Pages (https://pwilliammat.github.io/flightTest/). Follow `reporting/howToUpdateReports.md`: `reporting/reports/` holds exactly the accepted nine-report family; diagnostic HTML reports go in `reporting/diagnostics/` and are linked from `reporting/index.html`. Pushing `main` republishes the site.
