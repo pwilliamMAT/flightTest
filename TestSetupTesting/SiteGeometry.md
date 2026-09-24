@@ -6,19 +6,22 @@ Current layout of the passive-radar receive site and the Pluto calibration injec
 
 | Item | Value |
 | --- | --- |
-| Receive system location | 42.29917940712679 N, 71.34964782414613 W |
+| Receive system location (used in predictions) | 42.29917940712679 N, 71.34964782414613 W (about 77 ft south-east of REF; close enough for the 9–100 km tower paths) |
+| REF antenna | 42.299325729126025 N, 71.34985194911563 W (Google Maps, 2026-09-24) |
+| SURV antenna | 42.29932832679127 N, 71.34955294673453 W (Google Maps, 2026-09-24) |
+| Stairwell (Pluto, collection PC) | 42.299491169102254 N, 71.3498772818933 W (Google Maps, 2026-09-24) |
 | Collection PC | Glass-enclosed stairwell at the top of the parking structure |
 | Receive antenna height used in predictions | 10 m above ground (assumed; not surveyed) |
 
 ## Antenna and injector layout
 
-The three positions form a right triangle with the right angle at the REF antenna. Corrected on 2026-09-24: SURV is due **east** of REF (an earlier version of this file, and of the published diagnostic, had it west).
+The three positions form a near-right triangle (96° at the REF antenna). Distances and bearings below are computed from the Google Maps positions in the table above; they replace the paced estimates (65 ft, 91 ft, 112 ft) recorded earlier on 2026-09-24. Corrected on 2026-09-24: SURV is **east** of REF (an earlier version of this file, and of the published diagnostic, had it west).
 
 | From | To | Direction | Distance |
 | --- | --- | --- | --- |
-| REF antenna | Stairwell (Pluto, collection PC) | Due north | 65 ft (19.8 m) |
-| REF antenna | SURV antenna | Due east | 91 ft (27.7 m) |
-| SURV antenna | Stairwell | North-west (about 305.5° true) | 112 ft (34.1 m) |
+| REF antenna | Stairwell (Pluto, collection PC) | 353.5° true (just west of north) | 61 ft (18.5 m) |
+| REF antenna | SURV antenna | 89.3° true (east) | 81 ft (24.7 m) |
+| SURV antenna | Stairwell | 304.1° true (north-west) | 106 ft (32.3 m) |
 
 ```text
             N
@@ -26,13 +29,13 @@ The three positions form a right triangle with the right angle at the REF antenn
             |   Stairwell (Pluto, PC)
             |   o
             |   | \
-            |   |   \ 112 ft
+            |   |   \ 106 ft
             |   |     \
-            | 65 ft     \
+            | 61 ft     \
             |   |         \
             |   o-----------o
             |   REF Yagi    SURV Yagi
-            |   <-- 91 ft -->
+            |   <-- 81 ft -->
 ```
 
 Each rotator's controller is in a weather enclosure about 6–8 ft from its antenna, powered from a 15 VAC wall supply; the rotator and the antenna's built-in LNA are powered up the coax. The rotator turns only while the controller's button is held, and each press alternates direction; there is no position feedback.
@@ -41,12 +44,12 @@ Each rotator's controller is in a weather enclosure about 6–8 ft from its ante
 
 | Antenna | Pointing (true) | Notes |
 | --- | --- | --- |
-| REF Yagi (N320 RF1:RX2) | about 10° | The stairwell (0°) is about 10° off boresight; the eastern DTV towers (76–88°) are about 66–78° off. |
-| SURV Yagi (N320 RF0:RX2) | about 270° (west) | Looks along the REF–SURV leg toward the REF mast. The stairwell (305.5°) is about 35.5° off boresight; the eastern DTV towers are about 170° off, behind it. |
+| REF Yagi (N320 RF1:RX2) | about 10° | The stairwell (353.5°) is about 16.5° off boresight; the eastern DTV towers (76–88°) are about 66–78° off. |
+| SURV Yagi (N320 RF0:RX2) | about 270° (west) | Looks along the REF–SURV leg toward the REF mast. The stairwell (304.1°) is about 34° off boresight; the eastern DTV towers are about 170° off, behind it. |
 
 The operator's description read "the REF antenna is pointed around 10 degrees True whereas the REF antenna is pointed West"; one of the two must be SURV. The assignment above (REF north, SURV west) is the one consistent with the loop tests, where REF receives the stairwell carrier more strongly than SURV (REF also has a second LNA). The DTV absolute-level check (`dtvAbsoluteLevelCheck.m`, `dtvFitPointing.m`) was meant as the independent check, but on 2026-09-24 it could not fit the pointing: nine of the ten towers with a clear pilot sit at 76–88°, and REF levels are distorted by overload.
 
-Channel 22 from Hudson (309°, 15 km) is strong on REF but weak on SURV, although it is only 39° off SURV's boresight. From SURV the stairwell bears 305.5°, within about 3.5° of Hudson, so the stairwell structure most likely shadows Hudson for SURV. From REF the stairwell is at 0° and does not block it.
+Channel 22 from Hudson (309°, 15 km) is strong on REF but weak on SURV, although it is only 39° off SURV's boresight. From SURV the stairwell bears 304.1°, within about 5° of Hudson, so the stairwell structure most likely shadows Hudson for SURV. From REF the stairwell is at 353.5°, about 44° from Hudson, and does not block it.
 
 ## Injector placement options
 
@@ -54,9 +57,9 @@ A 100 ft SMA cable lets the Pluto stay in the stairwell with its transmit antenn
 
 | Position | Cable run from stairwell | REF: distance, off | SURV: distance, off | Change vs. stairwell, before cable loss and glass |
 | --- | --- | --- | --- | --- |
-| Stairwell (now) | – | 65 ft, 10° | 112 ft, 35.5° (through glass) | – |
-| Midpoint of the REF–SURV leg | 79 ft | 45.5 ft, 80° | 45.5 ft, 0° | SURV about +15 dB; REF about −16 dB |
-| 15 ft north of the midpoint | 68 ft | 48 ft, 62° | 48 ft, 18° | SURV about +13 dB; REF about −17 dB |
+| Stairwell (now) | – | 61 ft, 16.5° | 106 ft, 34° (through glass) | – |
+| Midpoint of the REF–SURV leg | 76 ft | 40.5 ft, 79° | 40.5 ft, 1° | SURV about +15 dB; REF about −15 dB |
+| 15 ft north of the midpoint | 65 ft | 43 ft, 59° | 43 ft, 20° | SURV about +12 dB; REF about −15.5 dB |
 
 100 ft of cable costs roughly 3 dB (LMR-400), 6 dB (LMR-240), 10–11 dB (RG-58) or 20 dB or more (RG-174) at 540 MHz. Taking the injector out of the glass stairwell also removes an unknown glass loss. REF has plenty of margin to give up (+21 to +49 dB at gain 0 on 2026-09-24). Keep the injector antenna horizontally polarised like the Yagis.
 
