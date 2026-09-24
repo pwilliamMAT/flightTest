@@ -39,9 +39,27 @@ The three positions form a right triangle with the right angle at the REF antenn
 | REF Yagi (N320 RF1:RX2) | about 10° | The stairwell (0°) is about 10° off boresight; the eastern DTV towers (76–88°) are about 66–78° off. |
 | SURV Yagi (N320 RF0:RX2) | about 270° (west) | The stairwell (54.5°) is about 145° off boresight, on the back side; the eastern DTV towers are about 170° off. |
 
-The operator's description read "the REF antenna is pointed around 10 degrees True whereas the REF antenna is pointed West"; one of the two must be SURV. The assignment above (REF north, SURV west) is the one consistent with the 602.05 MHz loop test, where REF received the stairwell carrier 17 dB stronger than SURV. The DTV absolute-level check (`dtvAbsoluteLevelCheck.m`) fits the pointing from tower levels and is the independent check.
+The operator's description read "the REF antenna is pointed around 10 degrees True whereas the REF antenna is pointed West"; one of the two must be SURV. The assignment above (REF north, SURV west) is the one consistent with the 602.05 MHz loop test, where REF received the stairwell carrier 17 dB stronger than SURV. The DTV absolute-level check (`dtvAbsoluteLevelCheck.m`, `dtvFitPointing.m`) was meant as the independent check, but on 2026-09-24 it could not fit the pointing: nine of the ten towers with a clear pilot sit at 76–88°, and REF levels are distorted by overload. The levels don't confirm REF north and SURV west. One observation argues against SURV at 270°: channel 22 from Hudson (309°, 15 km) is strong on REF (61° off its assumed boresight) but weak on SURV (39° off). Either SURV points elsewhere or its path toward Hudson is obstructed.
 
 Both Yagis are 12 dBi class UHF TV antennas (Report 01B), horizontally polarised. Neither currently points at the main DTV towers, which are 9–11 km to the east (bearing 82–88° true).
+
+## Receive chain (2026-09-24)
+
+| Channel | Chain |
+| --- | --- |
+| REF (RF1:RX2) | Consumer HDTV Yagi with built-in LNA and rotator → antenna controller → **Nooelec Lana wideband LNA (20 MHz–4 GHz)** → about 100 ft coax → N320 |
+| SURV (RF0:RX2) | Consumer HDTV Yagi with built-in LNA and rotator → antenna controller → coax → N320 (no second LNA; run length not recorded) |
+
+The Lana's gain and compression point at 600 MHz are not published on the vendor pages and have not been measured here.
+
+### Overload at the N320 input
+
+The local DTV cluster is predicted at about −14 dBm per channel at an isotropic antenna (`dtvPredictDirectPath`), before any antenna or LNA gain. Gain sweeps on 2026-09-24 show the receive chain is not linear at the `[30 50]` ([SURV REF]) RadioGain that `runLocalHDTVCapture.m`, the Pluto loop tests and `dtvAbsoluteLevelCheck.m` have used:
+
+- ATSC pilot at 599 MHz: SURV follows the gain only from 0 to about 10 dB. REF does not follow it even from 0 to 5 dB, and above 35 dB the REF pilot falls. Total output stays near −10 to −12 dBFS whatever the gain.
+- Pluto carrier at 602.05 MHz (`plutoCwGainSweep`): the REF tone stays at about −52 dBFS from gain 0 to 40, while the carrier-off floor rises 13 dB between gain 0 and 5. REF has its best margin at gain 0 (35 dB), SURV at gain 10 (15 dB). From SURV gain 15 up, the margin collapses.
+
+With the second LNA fitted, REF is overloaded at every N320 gain. Removing the Lana or adding a pad, ideally with a channel bandpass filter on both inputs, should restore a linear range. Until then, use RadioGain `[10 0]` for Pluto loop tests, and treat absolute levels and coupling figures from REF as lower bounds rather than linear measurements.
 
 ## Local DTV transmitters
 

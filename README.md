@@ -135,7 +135,7 @@ Important syntax notes:
   - `cf = 540e6`
   - `sr = 6.144e6`
   - `lo = 200e3`
-  - `gain = [30 50]`
+  - `gain = [10 0]` ([SURV REF]; changed from `[30 50]` on 2026-09-24 because the receive chain was overloaded, see `TestSetupTesting/SiteGeometry.md`)
   - `capture-duration = 30`
   - `repetitions = 1`
   - `repetition-spacing = 1.0`
@@ -147,7 +147,7 @@ Important syntax notes:
 - `--center-frequency <hz>` overrides the local radar capture center frequency and is written into the packaged session manifest.
 - `--lo-offset <hz>` overrides the local SDR LO offset and is passed through to `runLocalHDTVCapture`.
 - `--capture-file` sets the base name for the local `.bb` files; the shared session ID is appended automatically.
-- `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `30,50`.
+- `--gain` accepts either a scalar such as `30` or a dual-channel pair such as `10,0` ([SURV,REF]).
 - `--announce-host` overrides the hostname/IP that the coordinator prints into the development-machine sync command.
 - `adsb_capture/` is only a temporary staging area for fetched truth files.
 - The packaged session is written under `captures/` unless `--session-root` is provided.

@@ -13,8 +13,14 @@ function B = runBoundaryLoopTests(varargin)
 %   Stops at the first capture failure: after a mid-capture failure the N320
 %   may need a reboot before it streams again.
 %
+% The default boundaries are the gaps between adjacent on-air channels. Other
+% boundaries on the 6 MHz raster also work. Avoid 470 and 482 MHz (channels 14
+% and 16 carry land-mobile radio in the Boston area) and 608 MHz (channel 37 is
+% reserved for radio astronomy).
+%
 % Example:
 %   B = runBoundaryLoopTests('Boundaries_Hz', [506 512 518 524 584 590 596 602]*1e6);
+%   B = runBoundaryLoopTests('Boundaries_Hz', [476 488 494 500 530:6:578]*1e6);
 %
 % See also: plutoCwLoopTest, plutoCwLoopAnalyze, SiteGeometry.md.
 p = inputParser;
@@ -26,6 +32,7 @@ addParameter(p, 'PlutoFs_Hz', 2e6);
 addParameter(p, 'PlutoPpm', -17.4);
 addParameter(p, 'PlutoTxGain_dB', 0);
 addParameter(p, 'Amplitude', 0.78);
+addParameter(p, 'Gain', [10 0]);                   % N320 RadioGain [SURV REF]; see the overload note in SiteGeometry.md
 addParameter(p, 'OutputRoot', fullfile(fileparts(fileparts(mfilename('fullpath'))), 'captures', 'plutoCwLoopTests'));
 addParameter(p, 'SessionID', string(datetime('now', 'Format', 'yyyyMMdd''T''HHmmss')));
 parse(p, varargin{:}); o = p.Results;
@@ -41,7 +48,7 @@ for k = 1:numel(o.Boundaries_Hz)
         string(datetime('now', 'Format', 'HH:mm:ss')), bnd/1e6, target/1e6, nominal/1e6);
     H = plutoCwLoopTest('N320Center_Hz', bnd - o.N320BelowBoundary_Hz, ...
         'PlutoLO_Hz', nominal - o.PlutoToneOffset_Hz, 'ToneOffset_Hz', o.PlutoToneOffset_Hz, ...
-        'PlutoFs_Hz', o.PlutoFs_Hz, 'PlutoTxGain_dB', o.PlutoTxGain_dB, 'Amplitude', o.Amplitude);
+        'PlutoFs_Hz', o.PlutoFs_Hz, 'PlutoTxGain_dB', o.PlutoTxGain_dB, 'Amplitude', o.Amplitude, 'Gain', o.Gain);
     file = fullfile(outDir, sprintf('cwloop_%07.3fMHz.mat', bnd/1e6));
     save(file, 'H', '-v7.3');
     B(k).boundary_hz = bnd; B(k).target_hz = target; B(k).status = H.status; B(k).file = file;

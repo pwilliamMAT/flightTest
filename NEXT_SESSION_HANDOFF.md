@@ -1,6 +1,20 @@
 # Next Session Handoff
 
-Updated: July 28, 2026
+Updated: September 24, 2026
+
+## September 24, 2026: Receive Chain Overloaded At The Capture Gain
+
+The N320 receive chain is not linear at RadioGain `[30 50]` ([SURV REF]), the default in `runLocalHDTVCapture.m` that every passive-radar capture has used. The REF path has two LNAs in series: the antenna's built-in LNA and a second wideband LNA after the antenna controller, ahead of about 100 ft of coax. The local DTV cluster 9–11 km east is predicted at about −14 dBm per channel at an isotropic antenna.
+
+- `plutoCwGainSweep` at 602.05 MHz: the REF carrier stays at about −52 dBFS from gain 0 to 40 (no rise at all) and falls above that. SURV rises only from gain 0 to about 10. Total output stays near −10 to −12 dBFS at any gain.
+- At `[10 0]` the channel 35 pilot stands 24–27 dB above its neighbours on both channels (REF was down to 10.8 dB on some channels at `[30 50]`). Channel-boundary loop tests close at all 21 boundaries tested (476–602 MHz) on REF and at 20 on SURV. SURV is strongest at 536–548 MHz (+29 to +31 dB), so 542.05 MHz is the best calibration frequency found so far.
+- Details: `TestSetupTesting/SiteGeometry.md` (receive chain and overload note), `reporting/diagnostics/PlutoCombPresence_Diagnostic_V1.html`.
+
+Open items:
+
+1. Hardware: remove the second LNA from REF (or pad it by about 20 dB) and consider a channel bandpass filter on each input, then re-run `plutoCwGainSweep` to choose the gain.
+2. Check whether the overload contributed to the detector not producing truth-matched detections: compare the range-Doppler floor of short captures at `[30 50]` and `[10 0]`. The capture default (`runLocalHDTVCapture.m`, `run_coordinated_hdtv_capture.sh`) is now `[10 0]`; the Pluto tone and commissioning chain still defaults to `[30 50]` because its baselines were commissioned at that gain.
+
 
 ## July 28, 2026 TestSetupTesting Sync And Pluto Review State
 

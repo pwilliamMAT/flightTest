@@ -19,7 +19,7 @@ function A = dtvAbsoluteLevelCheck(P, varargin)
 % See also: dtvPredictDirectPath, basebandReceiver.
 p = inputParser;
 addParameter(p, 'RadioName', "My USRP N320");
-addParameter(p, 'Gain', [30 50]);                  % [SURV REF] = [RF0:RX2 RF1:RX2]
+addParameter(p, 'Gain', [10 0]);                   % [SURV REF] = [RF0:RX2 RF1:RX2]; [30 50] overloads (SiteGeometry.md)
 addParameter(p, 'Capture_s', 0.25);
 addParameter(p, 'NoiseChannelCenter_Hz', 551e6);   % RF channel 27, empty in the table
 addParameter(p, 'OccupiedHalfWidth_Hz', 2.69e6);

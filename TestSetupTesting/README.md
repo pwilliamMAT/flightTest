@@ -53,6 +53,18 @@ The current standalone calibration/precheck flow is:
 7. Score the received tone on each USRP channel for detect margin, frequency error, absolute level, and baseline-relative level drift, then add the joint channel-frequency consistency check plus advisory-only `xcorr`.
 8. Write a self-contained result folder with `result.mat`, `result.json`, `summary.txt`, `summary.png`, and the capture-file reference so the run can be reviewed later without rerunning hardware.
 
+### Receive-Chain Linearity and Channel-Boundary Loop Tests (2026-09-24)
+
+At the N320 gain that `runLocalHDTVCapture.m` used until 2026-09-24 and the Pluto scans still use (`[30 50]`, [SURV REF]) the receive chain is overloaded by the local DTV transmitters. REF also has a second wideband LNA in its path. See the overload note in [SiteGeometry.md](SiteGeometry.md). Check linearity before trusting any level or coupling figure:
+
+```matlab
+G = plutoCwGainSweep('Carrier_Hz', 602.05e6, 'Gains_dB', 0:5:50);   % weak carrier level vs. N320 gain
+B = runBoundaryLoopTests('Gain', [10 0]);                             % one CW carrier above each channel boundary
+P = dtvPredictDirectPath(); A = dtvAbsoluteLevelCheck(P, 'Gain', [10 0]); F = dtvFitPointing(A);
+```
+
+A channel is usable at a given gain only if the carrier rises about 1 dB per dB of gain there. On 2026-09-24 REF didn't rise at any gain and SURV only up to about 10 dB, so `[10 0]` was used for the loop tests. All 21 boundaries tested from 476 to 602 MHz closed the loop on REF and 20 on SURV. SURV is strongest at 536–548 MHz. Skip 470 and 482 MHz (land-mobile radio on channels 14 and 16 in the Boston area) and 608 MHz (channel 37, radio astronomy). Results are in `reporting/diagnostics/PlutoCombPresence_Diagnostic_V1.html`.
+
 ### Phase 1 Commissioning Sweep
 
 Once the Pluto placement is physically fixed, the preferred path to a reusable baseline is:

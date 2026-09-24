@@ -21,7 +21,7 @@ REPETITION_SPACING_S="1.0"
 LEAD_SECONDS_S="15"
 TAIL_SECONDS_S="5"
 CAPTURE_FILE="n320_hdtv_capture"
-GAIN_SPEC="30,50"
+GAIN_SPEC="10,0"   # [SURV REF]; 30,50 overloads the receive chain (see SiteGeometry.md)
 SESSION_ID="$(date +%Y%m%dT%H%M%S)"
 ADSB_STAGE_DIR="$REPO_ROOT/adsb_capture"
 SESSION_ROOT="$REPO_ROOT/captures"
@@ -59,7 +59,7 @@ Options:
   --lead-seconds <seconds>         ADS-B lead time before SDR capture (default: 15)
   --tail-seconds <seconds>         ADS-B tail time after SDR capture (default: 5)
   --capture-file <base>            Base name for local SDR files (default: n320_hdtv_capture)
-  --gain <g>                       Gain as N or N,M (default: 30,50)
+  --gain <g>                       Gain as N or N,M [SURV,REF] (default: 10,0)
   --session-id <id>                Shared session ID (default: current timestamp)
   --announce-host <host>           Hostname/IP to print in the development-machine sync command
   --adsb-stage-dir <path>          Local staging folder for fetched ADS-B files

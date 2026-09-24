@@ -4,8 +4,13 @@ function capture_info = runLocalHDTVCapture(varargin)
 %  terminal command stays short and only the commonly tuned parameters need
 %  to be overridden from the coordinator script.
 %
+%  Gain is the N320 RadioGain [SURV REF] = [RF0:RX2 RF1:RX2]. The default is
+%  [10 0]: at the older [30 50] both channels are overloaded by the local
+%  DTV transmitters (REF has a second LNA in its path). See the overload note
+%  in SiteGeometry.md.
+%
 %  Example:
-%    info = runLocalHDTVCapture('Gain', [30 50], ...
+%    info = runLocalHDTVCapture('Gain', [10 0], ...
 %        'CaptureDuration_s', 30, ...
 %        'CaptureFile', 'n320_hdtv_capture');
 
@@ -18,7 +23,7 @@ addParameter(p, 'RadioName', "My USRP N320", @(x) ischar(x) || isstring(x));
 addParameter(p, 'CenterFrequency_Hz', 540e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'SampleRate_Hz', 6.144e6, @(x) isnumeric(x) && isscalar(x) && x > 0);
 addParameter(p, 'LOOffset_Hz', 200e3, @(x) isnumeric(x) && isscalar(x));
-addParameter(p, 'Gain', [30 50], @(x) isnumeric(x) && (isscalar(x) || numel(x) == 2));
+addParameter(p, 'Gain', [10 0], @(x) isnumeric(x) && (isscalar(x) || numel(x) == 2));
 addParameter(p, 'Repetitions', 1, @(x) isnumeric(x) && isscalar(x) && x >= 1);
 addParameter(p, 'RepetitionSpacing_s', 1.0, @(x) isnumeric(x) && isscalar(x) && x >= 0);
 parse(p, varargin{:});

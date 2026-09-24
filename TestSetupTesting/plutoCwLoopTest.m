@@ -24,6 +24,7 @@ addParameter(p, 'ToneOffset_Hz', 500e3);        % Pluto baseband offset: carrier
 addParameter(p, 'PlutoFs_Hz', 2e6);
 addParameter(p, 'Amplitude', 0.78);
 addParameter(p, 'PlutoTxGain_dB', 0);
+addParameter(p, 'Gain', [10 0]);                % N320 RadioGain [SURV REF] = [RF0:RX2 RF1:RX2]; [30 50] overloads (SiteGeometry.md)
 addParameter(p, 'PreFrames', 10);
 addParameter(p, 'PulseFrames', 100);
 addParameter(p, 'PostFrames', 110);
@@ -49,7 +50,7 @@ toneWave = single(o.Amplitude * exp(1j*2*pi*o.ToneOffset_Hz/o.PlutoFs_Hz*(0:nBuf
 
 bbrx = basebandReceiver("My USRP N320");
 bbrx.CenterFrequency = o.N320Center_Hz; bbrx.SampleRate = fsN;
-bbrx.RadioGain = [30 50]; bbrx.Antennas = ["RF0:RX2", "RF1:RX2"];
+bbrx.RadioGain = o.Gain; bbrx.Antennas = ["RF0:RX2", "RF1:RX2"];
 
 % Per frame, keep the Hann-windowed FFT bins within +/-Keep_Hz of the expected
 % carrier (10 Hz bins for 0.1 s frames). Small to store; supports both averaged

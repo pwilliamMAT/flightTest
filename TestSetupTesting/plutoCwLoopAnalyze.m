@@ -6,7 +6,10 @@ function S = plutoCwLoopAnalyze(H, varargin)
 %   the Rayleigh statistic of its frame-to-frame phase relative to the
 %   stronger channel (carrier-on frames), with the carrier-off frames at the
 %   same bin as the null. Coupling is the tone level (Hann bin loss added
-%   back) minus the Pluto DAC level (20*log10(Amplitude)).
+%   back) minus the Pluto DAC level (20*log10(Amplitude)). coupling_gain0_dB
+%   also subtracts the N320 RadioGain, so runs at different gains compare;
+%   it is only meaningful where the chain is linear (see SiteGeometry.md:
+%   REF is overloaded at every gain with the second LNA fitted).
 %
 % Example:
 %   H = plutoCwLoopTest(...); S = plutoCwLoopAnalyze(H)
@@ -57,6 +60,8 @@ S.weak_phase_R_off = Roff; S.weak_phase_p_off = pOff;
 S.weak_detected = S.strong_detected && pOn < 1e-6 && pOff > 1e-3;
 S.tone_dBFS = toneDb;                                          % [SURV REF]
 S.coupling_dB = toneDb - dacDb;                                % [SURV REF]
+if isfield(H.settings, 'Gain'), S.gain_dB = H.settings.Gain; else, S.gain_dB = [30 50]; end   % older records: fixed [30 50]
+S.coupling_gain0_dB = S.coupling_dB - S.gain_dB;               % referred to N320 RadioGain 0
 S.floor_dBFS_per_bin = 10*log10(median(Poff, 1));             % [SURV REF], 10 Hz bins
 S.frames_on = nOn; S.frames_off = nOff;
 S.trace_dBFS = squeeze(10*log10(max(Pw(max(iB-2,1):min(iB+2,end), :, :), [], 1)));   % 2 x frames
