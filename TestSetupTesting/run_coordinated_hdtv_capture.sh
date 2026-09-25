@@ -182,7 +182,9 @@ run_ssh_body() {
 }
 
 remote_logger_pattern() {
-    printf "%s" "gatherTCPcompress.py.*${SESSION_ID_REGEX}"
+    # The bracket keeps pgrep -f from matching the remote "bash -lc" wrapper,
+    # whose own command line contains this pattern as literal text.
+    printf "%s" "[g]atherTCPcompress.py.*${SESSION_ID_REGEX}"
 }
 
 remote_logger_running() {
