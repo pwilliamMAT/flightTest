@@ -284,7 +284,7 @@ function build() {
     { label: 'Hum bins masked', data: pts(dp.f_hz, dp.masked.map(v => v || null)), borderColor: S, backgroundColor: S, borderWidth: 1.5, pointRadius: 0, stepped: 'middle', spanGaps: false }] }, options: o1 }));
   // pilot
   const pl = D.pilot; legend('c-pilot', [{ c: S, t: 'SURV' }, { c: R, t: 'REF' }, { c: M, t: 'markers: strongest bin within ±1 Hz of ±20, ±60, ±120 Hz' }]);
-  
+
   const o2 = opts('Offset from pilot carrier (Hz)', 'Level relative to carrier (dB)'); o2.scales.y.min = -75; o2.scales.y.max = 0; o2.scales.x.min = -150; o2.scales.x.max = 150;
   o2.plugins.vlines = { lines: [-120, -60, -20, 20, 60, 120].map(v => ({ x: v, label: (v > 0 ? '+' : '') + v })) };
   charts.push(new Chart(document.getElementById('c-pilot'), { type: 'line', plugins: [vlinePlugin], data: { datasets: [
