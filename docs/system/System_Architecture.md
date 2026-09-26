@@ -1,5 +1,7 @@
 # System Architecture Overview
 
+> **Master copy:** flightTest `main`, `docs/system/`, since 2026-09-26. Change it through git, following the change process in [README.md](README.md).
+
 **System:** Apple Hill passive bistatic radar testbed (cued collection against aircraft, using Boston-area ATSC DTV as illuminators).
 
 **Purpose of this document:** Source description for a MATLAB System Composer model. Each section below maps to a System Composer construct (see [System Composer Mapping](#system-composer-mapping)). Items marked *(proposed)* are first-draft suggestions to confirm or correct; items marked **TBD** are open.

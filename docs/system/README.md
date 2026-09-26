@@ -3,9 +3,11 @@
 This folder is the home of the system engineering material for the testbed: the architecture, the interface control document, and the records that keep them honest (as-built state, change requests, verification evidence).
 
 - **What the system is:** an ADS-B cue tasker on the Raspberry Pi tells a MATLAB resource manager which aircraft to collect on, with which DTV illuminator and when. An N320-based RF collector, signal processor and tracker then do the passive radar work. The top-level flow is in [System_Architecture.md](System_Architecture.md).
-- **Where the masters live:**
-  - The documents marked *received* below arrived on 2026-09-26 as copies of masters kept in the "043" project folder, and are stored here unchanged.
-  - **Open decision:** make this folder, on `main`, the master, so that changes go through git. Until then, changes are made in the 043 masters and re-copied here. Everything proposed against them is logged in [Change_Requests.md](Change_Requests.md) rather than edited in place.
+- **This folder, on `main`, is the master copy** of every system document (decided 2026-09-26).
+  - The documents marked *received* were imported unchanged on 2026-09-26 from the "043" project folder. Those copies are now retired.
+  - Change the documents here, through git, following the Conventions below.
+  - Other repositories point here rather than keeping copies. ADSB-remoter (the cue tasker) takes its message contract from [ICD_Messages.md](ICD_Messages.md).
+  - The note in [CT_1.1.0_handoff.md](CT_1.1.0_handoff.md) that "the master versions live in the 043 project folder" is superseded.
 
 ## Documents
 
@@ -55,7 +57,11 @@ The levels are defined in ICD §0. "Evidence" is the status the evidence support
 ## Conventions
 
 - **Messages and schemas:** follow ICD §1 (snake_case, units in names, flat envelope, `additionalProperties: false`, semver per schema) and the ICD §0 status levels.
-- **Changes to controlled documents:** add a CR with its evidence first. Edit the document only after the owner accepts it, then mark the CR **Done**.
+- **Changes to controlled documents** (architecture, ICD, site geometry, emitter table):
+  1. Add a CR with its evidence.
+  2. Once the owner accepts it, edit the document on a branch, and mark the CR **Done** in the same commit.
+  3. Merge to `main`.
+- **Fixes that change no meaning** (typos, links) can go straight in.
 - **Evidence files:** `evidence/<stream>_<UTC timestamp>.jsonl`, one message per line, exactly as received. Log each capture in [Verification_Log.md](Verification_Log.md).
 - **As-built:** update [As_Built.md](As_Built.md) in the same change as any deployment change.
 
@@ -70,7 +76,6 @@ The levels are defined in ICD §0. "Evidence" is the status the evidence support
 
 | Item | Where |
 |---|---|
-| Make this folder the master for the system documents | above |
 | Top-N opportunity cap | CR-1 |
 | Encoding of the cue stream (compression, compact mirror schema, or none) | CR-5, [analysis](analysis/Cue_Traffic_Encoding.md) |
 | Single source for site geometry | CR-7 |

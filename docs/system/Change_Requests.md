@@ -2,7 +2,7 @@
 
 Proposed changes to the controlled documents ([System_Architecture.md](System_Architecture.md) and [ICD_Messages.md](ICD_Messages.md)), and places where implementation got ahead of them.
 
-The owner (Leif) decides each one; accepted changes are then made in the controlled document itself. Evidence lives in [Verification_Log.md](Verification_Log.md) and [evidence/](evidence/).
+The owner (Leif) decides each one. Accepted changes are made in the controlled document in this folder, which is the master copy, in the same commit that marks the CR **Done**. Evidence lives in [Verification_Log.md](Verification_Log.md) and [evidence/](evidence/).
 
 | Field | Meaning |
 |---|---|

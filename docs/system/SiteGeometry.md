@@ -1,5 +1,7 @@
 # Receive Site Geometry
 
+> **Master copy:** flightTest `main`, `docs/system/`, since 2026-09-26. Change it through git, following the change process in [README.md](README.md).
+
 Current layout of the passive-radar receive site and the Pluto calibration injector, as described by the operator on 2026-09-24. Update this file whenever antennas or the injector move; the calibration analyses depend on it.
 
 ## Receive site
