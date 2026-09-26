@@ -9,7 +9,7 @@ Update this file whenever a host, service, address or deployed version changes.
 | ID | Item | As-built state | Code (repo, branch) | Runs on |
 |---|---|---|---|---|
 | AR | ADSB Receiver | Operating: dump1090 in Docker (`jraviles/dump1090`), SBS on TCP 30003 | — | Pi |
-| CT | ADSB Cue Tasker (ADSB-Remoter) | Operating as systemd `adsb-cue` (enabled at boot). Publishes CT 1.1.0 to multicast `239.192.10.1:31986` with the top-3 opportunity cap (CR-1) | [ADSB-remoter](https://github.com/lhilleMAT2022/ADSB-remoter) `feature/passive-radar-cueing` | Pi, `~/flightTest/ADSB-remoter` |
+| CT | ADSB Cue Tasker (ADSB-Remoter) | Operating as systemd `adsb-cue` (enabled at boot). Publishes **CT 2.0.0, compressed with dictionary 1**, to multicast `239.192.10.1:31986`: at most 8 opportunities per cue, fitted to one frame (1472 B) | [ADSB-remoter](https://github.com/lhilleMAT2022/ADSB-remoter) `feature/passive-radar-cueing` | Pi, `~/flightTest/ADSB-remoter` |
 | RM | Resource Manager | Not built. First piece: **CueListener**, which receives and ranks cues (MATLAB, no tasking) | flightTest `feature/adsb-cue-listener`, `CueListener/` | RF Collection Desktop (run by hand) |
 | RC | RF Collector | Rev 1 capture scripts (`TestSetupTesting/runLocalHDTVCapture.m`, `log_iq_n320_2antennas.m`); not driven by tasks | flightTest | RF Collection Desktop |
 | SP | Signal Processor | Offline pipeline (`BistaticDataAnalysis/`); the detector is not yet producing truth-matched detections | flightTest | desktops |
@@ -47,7 +47,7 @@ No other system ports from the ICD are in use yet.
 | | |
 |---|---|
 | Unit | `/etc/systemd/system/adsb-cue.service`, from ADSB-remoter `deploy/adsb-cue.service` |
-| Configuration | `deploy/pi-observers.ini`: only the surveyed receive site, 10 dBi / NF 3 dB / 8 MHz, set explicitly because the INI loader defaults the gain to 0. `deploy/pi-cue-config.json`: multicast, `source_address` 192.168.10.131, 16 KiB datagrams, top-3 opportunities |
+| Configuration | `deploy/pi-observers.ini`: only the surveyed receive site, 10 dBi / NF 3 dB / 8 MHz, set explicitly because the INI loader defaults the gain to 0. `deploy/pi-cue-config.json`: multicast, `source_address` 192.168.10.131, `encoding: deflate_dictionary`, `dictionary_id: 1`, 1472 B datagrams, up to 8 opportunities, `summary` off |
 | Behaviour | Exits 1 if the SBS source is unreachable or closes, and `Restart=on-failure` retries after 10 s. At boot it normally starts before dump1090 and connects on the second try. SIGTERM sends a final `stopping` heartbeat |
 | Logs | `sudo journalctl -u adsb-cue`. The Pi's journald keeps only notice and above, so the unit sets `SyslogLevel=notice` |
 | Control from the desktop | `ssh pi2@192.168.10.131 'sudo systemctl status\|restart\|stop adsb-cue'` |
@@ -58,9 +58,15 @@ No other system ports from the ICD are in use yet.
 
 Join the multicast group on `192.168.10.41`, because the default route is Wi-Fi. netcat cannot join multicast groups.
 
+The stream is compressed (CT 2.0.0), so decode it per datagram. From the ADSB-remoter checkout:
+
 ```bash
-socat -b 65535 -u UDP4-RECV:31986,reuseaddr,ip-add-membership=239.192.10.1:192.168.10.41,rcvbuf=8388608 STDOUT | jq -c .
-uv run python tools/cue_capture.py --bind 0.0.0.0:31986 --multicast-group 239.192.10.1 --multicast-interface 192.168.10.41 --duration-s 240   # ADSB-remoter: schema checks and a summary
+# Watch: socat gives one base64 line per datagram (RECVFROM + fork), cue_decode.py turns it into JSON
+socat -u UDP4-RECVFROM:31986,reuseaddr,ip-add-membership=239.192.10.1:192.168.10.41,fork SYSTEM:'base64 -w0; echo' \
+  | .venv/bin/python tools/cue_decode.py | jq -c .
+
+# Check: decode, validate against the schemas, and summarise gaps, snapshots, sizes and one-frame fit
+uv run python tools/cue_capture.py --bind 0.0.0.0:31986 --multicast-group 239.192.10.1 --multicast-interface 192.168.10.41 --duration-s 240 [--print]
 ```
 
-In MATLAB, use `runCueListener` (flightTest `CueListener/`).
+In MATLAB, use `runCueListener` (flightTest `CueListener/`). It decodes both framings and ships dictionary 1 in `CueListener/dictionaries/`.

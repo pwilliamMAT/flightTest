@@ -1,0 +1,136 @@
+{
+  "datagrams_over_one_frame": 0,
+  "datagrams_received": 223,
+  "duplicate_message_ids": 0,
+  "framing_counts": {
+    "compressed": 223
+  },
+  "invalid_messages": 0,
+  "maximum_datagram_bytes": 747,
+  "mean_datagram_bytes": 390.23766816143495,
+  "message_counts": {
+    "cue_heartbeat": 90,
+    "cue_snapshot_begin": 15,
+    "cue_snapshot_end": 15,
+    "track_cue": 103
+  },
+  "opportunities_per_track_cue": {
+    "maximum": 8,
+    "median": 8,
+    "minimum": 0
+  },
+  "out_of_order_sequences": 0,
+  "revisions_by_reason": {
+    "periodic_refresh": 66,
+    "prediction_error": 20,
+    "track_maneuver": 17
+  },
+  "schema_failure_count": 0,
+  "sequence_gaps": 0,
+  "snapshot_track_cue_consistency": {
+    "snapshot:013619b5-4b46-4d24-b2e8-1d01167db6ca": {
+      "expected_track_count": 3,
+      "matches_published": true,
+      "published_track_count": 3,
+      "received_track_cue_count": 3
+    },
+    "snapshot:173d4845-e19c-44f0-b7e5-1489bdf8068a": {
+      "expected_track_count": 1,
+      "matches_published": true,
+      "published_track_count": 1,
+      "received_track_cue_count": 1
+    },
+    "snapshot:2c4e93d2-3956-452a-84ba-d6af882411f6": {
+      "expected_track_count": 3,
+      "matches_published": true,
+      "published_track_count": 3,
+      "received_track_cue_count": 3
+    },
+    "snapshot:3bf945f5-04f9-4ec3-aaef-fde746bf8599": {
+      "expected_track_count": 3,
+      "matches_published": true,
+      "published_track_count": 3,
+      "received_track_cue_count": 3
+    },
+    "snapshot:3d3c034f-1472-4704-9eed-ac24e14d25b1": {
+      "expected_track_count": 3,
+      "matches_published": true,
+      "published_track_count": 3,
+      "received_track_cue_count": 3
+    },
+    "snapshot:400a6c73-507d-4afc-840a-aceda2bb7ca2": {
+      "expected_track_count": 1,
+      "matches_published": true,
+      "published_track_count": 1,
+      "received_track_cue_count": 1
+    },
+    "snapshot:46318e11-9f3e-44b3-bfb8-4061e944bac9": {
+      "expected_track_count": 1,
+      "matches_published": true,
+      "published_track_count": 1,
+      "received_track_cue_count": 1
+    },
+    "snapshot:6f2ba700-0361-472a-90a0-735505987822": {
+      "expected_track_count": 1,
+      "matches_published": true,
+      "published_track_count": 1,
+      "received_track_cue_count": 1
+    },
+    "snapshot:8dc2264f-2167-4069-9953-c9f15b37a739": {
+      "expected_track_count": 1,
+      "matches_published": true,
+      "published_track_count": 1,
+      "received_track_cue_count": 1
+    },
+    "snapshot:95e41f80-1aff-4b35-a880-5e6652e4a3a5": {
+      "expected_track_count": 4,
+      "matches_published": true,
+      "published_track_count": 4,
+      "received_track_cue_count": 4
+    },
+    "snapshot:98f5971f-be87-4f3a-a3ba-17b381efbc53": {
+      "expected_track_count": 5,
+      "matches_published": true,
+      "published_track_count": 5,
+      "received_track_cue_count": 5
+    },
+    "snapshot:99ead091-b909-4b07-9b14-da581f3b19f9": {
+      "expected_track_count": 3,
+      "matches_published": true,
+      "published_track_count": 3,
+      "received_track_cue_count": 3
+    },
+    "snapshot:a92cdcdb-1eed-43dd-85b1-c0a309794355": {
+      "expected_track_count": 0,
+      "matches_published": true,
+      "published_track_count": 0,
+      "received_track_cue_count": 0
+    },
+    "snapshot:ad481e9b-c64a-4f50-ba84-d765241cb47d": {
+      "expected_track_count": 3,
+      "matches_published": true,
+      "published_track_count": 3,
+      "received_track_cue_count": 3
+    },
+    "snapshot:bebe6a11-d1c2-446a-8886-781cdb2368f7": {
+      "expected_track_count": 3,
+      "matches_published": true,
+      "published_track_count": 3,
+      "received_track_cue_count": 3
+    }
+  },
+  "stale_revisions": 0,
+  "track_cue_json_size_bytes": {
+    "maximum": 9233,
+    "median": 9174,
+    "minimum": 1610
+  },
+  "track_cue_size_bytes": {
+    "maximum": 747,
+    "median": 681,
+    "minimum": 226
+  },
+  "unique_tracks": 11,
+  "valid_messages": 223,
+  "withdrawals": 0
+}
