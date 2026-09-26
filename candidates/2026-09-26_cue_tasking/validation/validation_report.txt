@@ -1,0 +1,96 @@
+Candidate files that promotion would publish under reporting/:
+  index.html  (10,286 B)
+  metadata/family_code_navigation.csv  (11,143 B)
+  metadata/family_evidence_catalog.csv  (10,505 B)
+  metadata/family_handoff_catalog.csv  (6,402 B)
+  metadata/family_known_gaps.md  (1,974 B)
+  metadata/family_manifest.json  (31,980 B)
+  metadata/family_visual_catalog.csv  (9,340 B)
+  reporting_README.md  (7,042 B)
+  reports/02_HardwareAndCollection_V5.html  (2,194,568 B)
+  reports/06_StatusAndFutureWork_V3.html  (78,395 B)
+  systems/README.md  (1,314 B)
+  systems/SystemArchitectureAndCueTasking_V1.html  (68,665 B)
+  systems/SystemArchitectureAndCueTasking_assets/fig_capture_timeline.svg  (35,116 B)
+  systems/SystemArchitectureAndCueTasking_assets/fig_cue_size_vs_opportunities.svg  (24,059 B)
+  systems/SystemArchitectureAndCueTasking_assets/fig_message_size.svg  (10,079 B)
+
+[1] Well-formedness
+  PASS index.html
+  PASS metadata/family_code_navigation.csv (CSV, columns [16])
+  PASS metadata/family_evidence_catalog.csv (CSV, columns [20])
+  PASS metadata/family_handoff_catalog.csv (CSV, columns [15])
+  PASS metadata/family_manifest.json (JSON)
+  PASS metadata/family_visual_catalog.csv (CSV, columns [18])
+  PASS reports/02_HardwareAndCollection_V5.html
+  PASS reports/06_StatusAndFutureWork_V3.html
+  PASS systems/SystemArchitectureAndCueTasking_V1.html
+  PASS systems/SystemArchitectureAndCueTasking_assets/fig_capture_timeline.svg (XML)
+  PASS systems/SystemArchitectureAndCueTasking_assets/fig_cue_size_vs_opportunities.svg (XML)
+  PASS systems/SystemArchitectureAndCueTasking_assets/fig_message_size.svg (XML)
+
+[2] Relative links and local assets (http/https/file links are not network-checked)
+  preview 'baseline': 15 HTML pages, 62 broken relative links
+    explainers/FlightTest_EndToEnd_HumanStory_V2.html: ['TechnicalSummaryFamily/assets/01A_IlluminatorSelection_assets/hudson_snr_coverage.png', 'TechnicalSummaryFamily/assets/01B_ReceiveChainDesign_assets/rf_budget_analyzer_system_model.png', 'TechnicalSummaryFamily/assets/02A_SyntheticEchoGeneration_assets/delay_doppler_placement.png', 'TechnicalSummaryFamily/assets/HardwarePhotos/new_Image%20(4).jpg', 'TechnicalSummaryFamily/reports/01A_IlluminatorSelection_V4.html', 'TechnicalSummaryFamily/reports/01B_ReceiveChainDesign_V2.html', 'TechnicalSummaryFamily/reports/01_NorthStarAndMotivation_V2.html', 'TechnicalSummaryFamily/reports/02A_SyntheticEchoGeneration_V1.html', 'TechnicalSummaryFamily/reports/02_HardwareAndCollection_V4.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html#gates', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html#recovery-timeline', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html#outcomes', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html#dependency-figure']
+    reports/01A_IlluminatorSelection_V4.html: ['../LinkBudget/AppleHill_CustomizeBuildingsForRayTracingAnalysisExample.mlx', '../LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx', '../LinkBudget/LinkBudgetProgress.pptx', '../LinkBudget/Radio_Tower_List.txt', '../LinkBudget/applehill.osm', '../LinkBudget/helperPathlossOverTerrain.m', '../LinkBudget/helperRadarCoverageTargetGrid.m', '../Radio_Stations/Radio_Stations/data_from_web/BostonStationList.html', '../Radio_Stations/Radio_Stations/data_from_web/scraper.ipynb', '01A_IlluminatorSelection_V4_audit.md', '01A_IlluminatorSelection_V4_figure_inventory.csv', '01A_IlluminatorSelection_V4_source_inventory.csv']
+    reports/01B_ReceiveChainDesign_V2.html: ['../LinkBudget/LinkBudgetProgress.pptx', '../MountingDiagramParkingLot.pptx', '../RFBudget/FlightTest_RFBudgetAnalysis.pptx', '../RFBudget/RFBudget_Ch27_Corrected%201.m', '../RFBudget/RFBudget_Comparative_Analysis.m', '../RFBudget/RFBudget_Newton.m', '../RFBudget/ZABP-587-S%2B_Plus25degC.s2p']
+    reports/01_NorthStarAndMotivation_V2.html: ['01_NorthStarAndMotivation.md', '01_NorthStarAndMotivation_figure_inventory.csv', '01_NorthStarAndMotivation_outline.yaml', '01_NorthStarAndMotivation_source_inventory.csv', '02_HardwareAndCollection_V3.html']
+    reports/02_HardwareAndCollection_V4.html: ['02_HardwareAndCollection_V4_evidence_register.csv', 'hardware_photo_inventory.csv', 'updated_figure_inventory.csv', 'updated_source_inventory.csv']
+    reports/03_AnalysisPipelineAndGateRebuild.html: ['figure_inventory.csv', 'source_inventory.csv']
+    reports/04_MitigationAndMapRateRecovery_V2.html: ['02_HardwareAndCollection_V3.html', '04_MitigationAndMapRateRecovery.md', '04_MitigationAndMapRateRecovery_figure_inventory.csv', '04_MitigationAndMapRateRecovery_outline.yaml', '04_MitigationAndMapRateRecovery_source_inventory.csv']
+    reports/06_StatusAndFutureWork_V2.html: ['02_HardwareAndCollection_V3.html', '06_StatusAndFutureWork_source_inventory.csv']
+    storyboards/manager_slide_storyboard_review.html: ['01_NorthStarAndMotivation_V2.html', '02_HardwareAndCollection_V4.html', '03_AnalysisPipelineAndGateRebuild.html', '04_MitigationAndMapRateRecovery_V2.html', '05_StrongestEvidence_G4RRecoveryStudy.html', '06_StatusAndFutureWork_V2.html', 'cross_report_evidence_catalog.csv', 'report_family_index.html']
+  preview 'retain': 18 HTML pages, 62 broken relative links
+    explainers/FlightTest_EndToEnd_HumanStory_V2.html: ['TechnicalSummaryFamily/assets/01A_IlluminatorSelection_assets/hudson_snr_coverage.png', 'TechnicalSummaryFamily/assets/01B_ReceiveChainDesign_assets/rf_budget_analyzer_system_model.png', 'TechnicalSummaryFamily/assets/02A_SyntheticEchoGeneration_assets/delay_doppler_placement.png', 'TechnicalSummaryFamily/assets/HardwarePhotos/new_Image%20(4).jpg', 'TechnicalSummaryFamily/reports/01A_IlluminatorSelection_V4.html', 'TechnicalSummaryFamily/reports/01B_ReceiveChainDesign_V2.html', 'TechnicalSummaryFamily/reports/01_NorthStarAndMotivation_V2.html', 'TechnicalSummaryFamily/reports/02A_SyntheticEchoGeneration_V1.html', 'TechnicalSummaryFamily/reports/02_HardwareAndCollection_V4.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html#gates', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html#recovery-timeline', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html#outcomes', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html#dependency-figure']
+    reports/01A_IlluminatorSelection_V4.html: ['../LinkBudget/AppleHill_CustomizeBuildingsForRayTracingAnalysisExample.mlx', '../LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx', '../LinkBudget/LinkBudgetProgress.pptx', '../LinkBudget/Radio_Tower_List.txt', '../LinkBudget/applehill.osm', '../LinkBudget/helperPathlossOverTerrain.m', '../LinkBudget/helperRadarCoverageTargetGrid.m', '../Radio_Stations/Radio_Stations/data_from_web/BostonStationList.html', '../Radio_Stations/Radio_Stations/data_from_web/scraper.ipynb', '01A_IlluminatorSelection_V4_audit.md', '01A_IlluminatorSelection_V4_figure_inventory.csv', '01A_IlluminatorSelection_V4_source_inventory.csv']
+    reports/01B_ReceiveChainDesign_V2.html: ['../LinkBudget/LinkBudgetProgress.pptx', '../MountingDiagramParkingLot.pptx', '../RFBudget/FlightTest_RFBudgetAnalysis.pptx', '../RFBudget/RFBudget_Ch27_Corrected%201.m', '../RFBudget/RFBudget_Comparative_Analysis.m', '../RFBudget/RFBudget_Newton.m', '../RFBudget/ZABP-587-S%2B_Plus25degC.s2p']
+    reports/01_NorthStarAndMotivation_V2.html: ['01_NorthStarAndMotivation.md', '01_NorthStarAndMotivation_figure_inventory.csv', '01_NorthStarAndMotivation_outline.yaml', '01_NorthStarAndMotivation_source_inventory.csv', '02_HardwareAndCollection_V3.html']
+    reports/02_HardwareAndCollection_V4.html: ['02_HardwareAndCollection_V4_evidence_register.csv', 'hardware_photo_inventory.csv', 'updated_figure_inventory.csv', 'updated_source_inventory.csv']
+    reports/03_AnalysisPipelineAndGateRebuild.html: ['figure_inventory.csv', 'source_inventory.csv']
+    reports/04_MitigationAndMapRateRecovery_V2.html: ['02_HardwareAndCollection_V3.html', '04_MitigationAndMapRateRecovery.md', '04_MitigationAndMapRateRecovery_figure_inventory.csv', '04_MitigationAndMapRateRecovery_outline.yaml', '04_MitigationAndMapRateRecovery_source_inventory.csv']
+    reports/06_StatusAndFutureWork_V2.html: ['02_HardwareAndCollection_V3.html', '06_StatusAndFutureWork_source_inventory.csv']
+    storyboards/manager_slide_storyboard_review.html: ['01_NorthStarAndMotivation_V2.html', '02_HardwareAndCollection_V4.html', '03_AnalysisPipelineAndGateRebuild.html', '04_MitigationAndMapRateRecovery_V2.html', '05_StrongestEvidence_G4RRecoveryStudy.html', '06_StatusAndFutureWork_V2.html', 'cross_report_evidence_catalog.csv', 'report_family_index.html']
+  preview 'replace': 16 HTML pages, 65 broken relative links
+    audits/report_family_story_spine.html: ['../reports/02_HardwareAndCollection_V4.html', '../reports/06_StatusAndFutureWork_V2.html']
+    explainers/FlightTest_EndToEnd_HumanStory_V2.html: ['TechnicalSummaryFamily/assets/01A_IlluminatorSelection_assets/hudson_snr_coverage.png', 'TechnicalSummaryFamily/assets/01B_ReceiveChainDesign_assets/rf_budget_analyzer_system_model.png', 'TechnicalSummaryFamily/assets/02A_SyntheticEchoGeneration_assets/delay_doppler_placement.png', 'TechnicalSummaryFamily/assets/HardwarePhotos/new_Image%20(4).jpg', 'TechnicalSummaryFamily/reports/01A_IlluminatorSelection_V4.html', 'TechnicalSummaryFamily/reports/01B_ReceiveChainDesign_V2.html', 'TechnicalSummaryFamily/reports/01_NorthStarAndMotivation_V2.html', 'TechnicalSummaryFamily/reports/02A_SyntheticEchoGeneration_V1.html', 'TechnicalSummaryFamily/reports/02_HardwareAndCollection_V4.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html#gates', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html#recovery-timeline', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html#outcomes', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html#dependency-figure']
+    reports/01A_IlluminatorSelection_V4.html: ['../LinkBudget/AppleHill_CustomizeBuildingsForRayTracingAnalysisExample.mlx', '../LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx', '../LinkBudget/LinkBudgetProgress.pptx', '../LinkBudget/Radio_Tower_List.txt', '../LinkBudget/applehill.osm', '../LinkBudget/helperPathlossOverTerrain.m', '../LinkBudget/helperRadarCoverageTargetGrid.m', '../Radio_Stations/Radio_Stations/data_from_web/BostonStationList.html', '../Radio_Stations/Radio_Stations/data_from_web/scraper.ipynb', '01A_IlluminatorSelection_V4_audit.md', '01A_IlluminatorSelection_V4_figure_inventory.csv', '01A_IlluminatorSelection_V4_source_inventory.csv', '02_HardwareAndCollection_V4.html', '06_StatusAndFutureWork_V2.html']
+    reports/01B_ReceiveChainDesign_V2.html: ['../LinkBudget/LinkBudgetProgress.pptx', '../MountingDiagramParkingLot.pptx', '../RFBudget/FlightTest_RFBudgetAnalysis.pptx', '../RFBudget/RFBudget_Ch27_Corrected%201.m', '../RFBudget/RFBudget_Comparative_Analysis.m', '../RFBudget/RFBudget_Newton.m', '../RFBudget/ZABP-587-S%2B_Plus25degC.s2p', '02_HardwareAndCollection_V4.html']
+    reports/01_NorthStarAndMotivation_V2.html: ['01_NorthStarAndMotivation.md', '01_NorthStarAndMotivation_figure_inventory.csv', '01_NorthStarAndMotivation_outline.yaml', '01_NorthStarAndMotivation_source_inventory.csv', '02_HardwareAndCollection_V3.html', '06_StatusAndFutureWork_V2.html']
+    reports/03_AnalysisPipelineAndGateRebuild.html: ['figure_inventory.csv', 'source_inventory.csv']
+    reports/04_MitigationAndMapRateRecovery_V2.html: ['02_HardwareAndCollection_V3.html', '04_MitigationAndMapRateRecovery.md', '04_MitigationAndMapRateRecovery_figure_inventory.csv', '04_MitigationAndMapRateRecovery_outline.yaml', '04_MitigationAndMapRateRecovery_source_inventory.csv', '06_StatusAndFutureWork_V2.html']
+    reports/05_StrongestEvidence_G4RRecoveryStudy.html: ['02_HardwareAndCollection_V4.html', '06_StatusAndFutureWork_V2.html']
+    storyboards/manager_slide_storyboard_review.html: ['01_NorthStarAndMotivation_V2.html', '02_HardwareAndCollection_V4.html', '03_AnalysisPipelineAndGateRebuild.html', '04_MitigationAndMapRateRecovery_V2.html', '05_StrongestEvidence_G4RRecoveryStudy.html', '06_StatusAndFutureWork_V2.html', 'cross_report_evidence_catalog.csv', 'report_family_index.html']
+  introduced by promotion in 'retain' mode: 0
+  introduced by promotion in 'replace' mode: 9
+    audits/report_family_story_spine.html: ../reports/02_HardwareAndCollection_V4.html
+    audits/report_family_story_spine.html: ../reports/06_StatusAndFutureWork_V2.html
+    reports/01A_IlluminatorSelection_V4.html: 02_HardwareAndCollection_V4.html
+    reports/01A_IlluminatorSelection_V4.html: 06_StatusAndFutureWork_V2.html
+    reports/01B_ReceiveChainDesign_V2.html: 02_HardwareAndCollection_V4.html
+    reports/01_NorthStarAndMotivation_V2.html: 06_StatusAndFutureWork_V2.html
+    reports/04_MitigationAndMapRateRecovery_V2.html: 06_StatusAndFutureWork_V2.html
+    reports/05_StrongestEvidence_G4RRecoveryStudy.html: 02_HardwareAndCollection_V4.html
+    reports/05_StrongestEvidence_G4RRecoveryStudy.html: 06_StatusAndFutureWork_V2.html
+  candidate pages with any broken relative link (retain mode): 0
+
+[3] Index, manifest, canonical order
+  PASS index links reports/02_HardwareAndCollection_V5.html
+  PASS index links reports/06_StatusAndFutureWork_V3.html
+  PASS index links systems/SystemArchitectureAndCueTasking_V1.html
+  PASS index no longer links reports/02_HardwareAndCollection_V4.html
+  PASS index no longer links reports/06_StatusAndFutureWork_V2.html
+  index family order: ['01', '01A', '01B', '02', '02A', '03', '04', '05', '06']
+  PASS manifest order ['01', '01A', '01B', '02', '02A', '03', '04', '05', '06'] matches canonical_order, index, and intended filenames
+  reports/ HTML in 'retain' mode: 11; beyond the family: ['02_HardwareAndCollection_V4.html', '06_StatusAndFutureWork_V2.html']
+  reports/ HTML in 'replace' mode: 9; equals intended family: True
+
+[4] Accepted files unchanged by the overlay (byte-identical in the preview)
+  accepted files replaced by candidates: ['index.html', 'metadata/family_code_navigation.csv', 'metadata/family_evidence_catalog.csv', 'metadata/family_handoff_catalog.csv', 'metadata/family_known_gaps.md', 'metadata/family_manifest.json', 'metadata/family_visual_catalog.csv', 'reporting_README.md']
+
+[5] Restricted and draft material in files promotion would publish
+  FLAG reports/06_StatusAndFutureWork_V3.html: draft marker: ['Draft']
+  FLAG systems/README.md: draft marker: ['Draft']
+  FLAG systems/SystemArchitectureAndCueTasking_V1.html: draft marker: ['Draft']
+  (any FLAG above is reviewed in UPDATE_MEMO.md; 239.192.10.1 is the organization-local multicast group and is not flagged)
+
+RESULT: PASS
