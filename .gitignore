@@ -21,3 +21,6 @@ captures/
 
 # Matlab autosave
 *.asv
+
+# macOS Finder metadata
+.DS_Store

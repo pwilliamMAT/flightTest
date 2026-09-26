@@ -21,6 +21,13 @@ classdef CueListener < handle
     %     cue_heartbeat          sender health: starting / running / degraded / stopping
     %     cue_snapshot_begin/end brackets a periodic resend of every active cue
     %
+    %   Receiver rules (ICD_Messages.md section 2.0): keep the track_cue with the
+    %   highest prediction.revision per track_id; delete a track on a withdrawal whose
+    %   withdrawn_prediction_revision is at least the revision held; drop repeated
+    %   message_id values; and treat a snapshot as complete when the number of
+    %   track_cues received with its snapshot_id equals the published_track_count in
+    %   cue_snapshot_end. A lost cue is repaired by the next 60 s snapshot.
+    %
     %   Why Java sockets: MATLAB's udpport can join a multicast group only on
     %   Windows, and it cannot choose which network interface joins. The RF
     %   collection desktop's default route is Wi-Fi, so the join must be made
@@ -71,6 +78,8 @@ classdef CueListener < handle
         LastHeartbeatReceivedUtc (1,1) datetime = NaT('TimeZone', 'UTC')
         % source_instance_id of the cue tasker currently being followed.
         SourceInstanceId (1,1) string = ""
+        % generated_utc of the most recent snapshot that arrived complete.
+        LastCompleteSnapshotUtc (1,1) datetime = NaT('TimeZone', 'UTC')
         % Counters: received messages, decode errors, sequence gaps, restarts, ...
         Stats struct
     end
@@ -89,11 +98,17 @@ classdef CueListener < handle
         Timer = []
         NextSequence = NaN
         CallSigns
+        % track_cues received so far per open snapshot_id.
+        OpenSnapshots
+        % Recently seen message_id values, oldest first, for de-duplication.
+        SeenMessageIds
+        SeenOrder = strings(0, 1)
     end
 
     properties (Constant, Access = private)
         BufferBytes = 65535
         MaxDatagramsPerPoll = 2000
+        MaxRememberedMessageIds = 10000
     end
 
     methods
@@ -124,6 +139,8 @@ classdef CueListener < handle
             obj.Tracks = containers.Map('KeyType', 'char', 'ValueType', 'any');
             obj.Withdrawn = containers.Map('KeyType', 'char', 'ValueType', 'any');
             obj.Stats = localEmptyStats();
+            obj.OpenSnapshots = containers.Map('KeyType', 'char', 'ValueType', 'double');
+            obj.SeenMessageIds = containers.Map('KeyType', 'char', 'ValueType', 'logical');
             obj.CallSigns = localLoadCallSigns(obj.DtvTableFile);
         end
 
@@ -262,6 +279,11 @@ classdef CueListener < handle
                 msg = [];
                 return
             end
+            if isfield(msg, 'message_id') && obj.isDuplicate(msg.message_id)
+                obj.Stats.Duplicates = obj.Stats.Duplicates + 1;
+                msg = [];
+                return
+            end
             obj.Stats.Received = obj.Stats.Received + 1;
             obj.trackSequence(msg);
             type = char(msg.message_type);
@@ -274,14 +296,17 @@ classdef CueListener < handle
             end
             switch type
                 case 'track_cue'
+                    obj.countSnapshotCue(msg);
                     obj.applyTrackCue(msg);
                 case 'track_cue_withdrawal'
                     obj.applyWithdrawal(msg);
                 case 'cue_heartbeat'
                     obj.LastHeartbeat = msg;
                     obj.LastHeartbeatReceivedUtc = receivedUtc;
-                case {'cue_snapshot_begin', 'cue_snapshot_end'}
-                    % Snapshot cues are ordinary track cues; the brackets only count.
+                case 'cue_snapshot_begin'
+                    obj.OpenSnapshots(char(msg.snapshot_id)) = 0;
+                case 'cue_snapshot_end'
+                    obj.closeSnapshot(msg);
                 otherwise
                     obj.Stats.UnknownMessages = obj.Stats.UnknownMessages + 1;
             end
@@ -378,7 +403,8 @@ classdef CueListener < handle
                 'HeartbeatReceivedUtc', obj.LastHeartbeatReceivedUtc, ...
                 'SenderActiveTracks', NaN, ...
                 'SenderEligibleTracks', NaN, ...
-                'CuedTracks', obj.Tracks.Count, ...
+                'CuedTracks', double(obj.Tracks.Count), ...
+                'LastCompleteSnapshotUtc', obj.LastCompleteSnapshotUtc, ...
                 'Stats', obj.Stats);
             if ~isempty(obj.LastHeartbeat)
                 s.HeartbeatStatus = string(obj.LastHeartbeat.status);
@@ -452,6 +478,49 @@ classdef CueListener < handle
                 obj.Stats.OutOfOrder = obj.Stats.OutOfOrder + 1;
             end
             obj.NextSequence = max(obj.NextSequence, sequence + 1);
+        end
+
+        function tf = isDuplicate(obj, messageId)
+            key = char(messageId);
+            tf = isKey(obj.SeenMessageIds, key);
+            if tf
+                return
+            end
+            obj.SeenMessageIds(key) = true;
+            obj.SeenOrder(end + 1, 1) = string(key);
+            if numel(obj.SeenOrder) > obj.MaxRememberedMessageIds
+                remove(obj.SeenMessageIds, char(obj.SeenOrder(1)));
+                obj.SeenOrder(1) = [];
+            end
+        end
+
+        function countSnapshotCue(obj, cue)
+            if ~isfield(cue, 'snapshot_id') || isempty(cue.snapshot_id)
+                return
+            end
+            key = char(cue.snapshot_id);
+            if isKey(obj.OpenSnapshots, key)
+                obj.OpenSnapshots(key) = obj.OpenSnapshots(key) + 1;
+            else
+                % The begin bracket was lost; count the cues anyway.
+                obj.OpenSnapshots(key) = 1;
+            end
+        end
+
+        function closeSnapshot(obj, snapshotEnd)
+            key = char(snapshotEnd.snapshot_id);
+            received = 0;
+            if isKey(obj.OpenSnapshots, key)
+                received = obj.OpenSnapshots(key);
+                remove(obj.OpenSnapshots, key);
+            end
+            if received == snapshotEnd.published_track_count
+                obj.Stats.SnapshotsComplete = obj.Stats.SnapshotsComplete + 1;
+                obj.LastCompleteSnapshotUtc = helperCueParseUtc(snapshotEnd.generated_utc);
+            else
+                % Some snapshot cues were lost; the next snapshot repairs them.
+                obj.Stats.SnapshotsIncomplete = obj.Stats.SnapshotsIncomplete + 1;
+            end
         end
 
         function applyTrackCue(obj, cue)
@@ -536,6 +605,7 @@ end
 function stats = localEmptyStats()
 stats = struct('Received', 0, 'DecodeErrors', 0, 'SequenceGaps', 0, 'OutOfOrder', 0, ...
     'SourceRestarts', 0, 'StaleRevisionsIgnored', 0, 'UnknownMessages', 0, ...
+    'Duplicates', 0, 'SnapshotsComplete', 0, 'SnapshotsIncomplete', 0, ...
     'MessageCounts', struct());
 end
 

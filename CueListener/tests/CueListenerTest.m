@@ -31,6 +31,10 @@ classdef CueListenerTest < matlab.unittest.TestCase
             testCase.verifyEqual(stats.MessageCounts.cue_snapshot_begin, 1);
             testCase.verifyEqual(stats.MessageCounts.cue_snapshot_end, 1);
             testCase.verifyEqual([stats.SequenceGaps, stats.OutOfOrder, stats.DecodeErrors], [0 0 0]);
+            testCase.verifyEqual([stats.SnapshotsComplete, stats.SnapshotsIncomplete], [1 0]);
+            testCase.verifyEqual(stats.Duplicates, 0);
+            testCase.verifyEqual(listener.LastCompleteSnapshotUtc, ...
+                datetime(2026, 9, 26, 0, 51, 37, 269, 'TimeZone', 'UTC'));
             testCase.verifyEqual(listener.status().HeartbeatStatus, "running");
         end
 
@@ -72,6 +76,7 @@ classdef CueListenerTest < matlab.unittest.TestCase
             listener = CueListener.replay(testCase.Fixture);
             stale = latestCue(listener, "adsb:C06363");
             stale.prediction.revision = 5;
+            stale.message_id = '9d7c1b6e-0000-4000-8000-0000000000a5';   % a different datagram
 
             listener.ingestMessage(stale);
 
@@ -106,6 +111,34 @@ classdef CueListenerTest < matlab.unittest.TestCase
             testCase.verifyEqual(listener.Stats.SequenceGaps, 2);
             testCase.verifyEqual(listener.Stats.SourceRestarts, 1);
             testCase.verifyEqual(listener.SourceInstanceId, "sender-b");
+        end
+
+        function testSnapshotWithALostCueIsIncomplete(testCase)
+            partial = [tempname '.jsonl'];
+            testCase.addTeardown(@() localDelete(partial));
+            lines = readlines(testCase.Fixture, 'EmptyLineRule', 'skip');
+            writelines(lines([1:13, 15:16]), partial);   % drop datagram 14, a snapshot cue
+
+            listener = CueListener.replay(partial);
+
+            testCase.verifyEqual(listener.Stats.SnapshotsIncomplete, 1);
+            testCase.verifyEqual(listener.Stats.SnapshotsComplete, 0);
+            testCase.verifyEqual(listener.Stats.SequenceGaps, 1);
+            testCase.verifyTrue(isnat(listener.LastCompleteSnapshotUtc));
+        end
+
+        function testRepeatedMessageIdIsDropped(testCase)
+            listener = CueListener();
+            heartbeat = localHeartbeat("sender-a", 1);
+            heartbeat.message_id = '9d7c1b6e-0000-4000-8000-000000000001';
+
+            listener.ingestMessage(heartbeat);
+            second = listener.ingestMessage(heartbeat);
+
+            testCase.verifyEmpty(second);
+            testCase.verifyEqual(listener.Stats.Duplicates, 1);
+            testCase.verifyEqual(listener.Stats.Received, 1);
+            testCase.verifyEqual(listener.Stats.OutOfOrder, 0);
         end
 
         function testUndecodableDatagramIsCounted(testCase)

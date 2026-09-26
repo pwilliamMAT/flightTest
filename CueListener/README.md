@@ -21,6 +21,15 @@ Deciding what to actually collect, when, and with which illuminator is the colle
 | `cue_heartbeat` | Sender health, every 10 s: `starting`, `running`, `degraded` (no ADS-B for more than 20 s, or a send failure) or `stopping`. |
 | `cue_snapshot_begin` / `_end` | Brackets a full resend of every active cue, every 60 s. |
 
+The message contract is [`docs/system/ICD_Messages.md`](../docs/system/ICD_Messages.md): §1.3 for transport and ports, and §2 for the CT messages. Where each software item fits is in [`docs/system/System_Architecture.md`](../docs/system/System_Architecture.md). The listener applies the receiver rules in ICD §2.0:
+
+- keep the `track_cue` with the highest `prediction.revision` per `track_id`;
+- delete a track on a withdrawal whose `withdrawn_prediction_revision` is at least the revision held;
+- drop any `message_id` it has already seen;
+- count a snapshot as complete when the number of cues received with its `snapshot_id` equals the `published_track_count` in `cue_snapshot_end` (`Stats.SnapshotsComplete`/`SnapshotsIncomplete`, `LastCompleteSnapshotUtc`). An incomplete snapshot is repaired by the next one, 60 s later.
+
+**Not yet in the ICD:** each `track_cue` currently carries at most 3 opportunities (ADSB-remoter `udp_output.maximum_opportunities_per_cue`). Without that cap, cues that have usable windows were about 25 kB, over the 16 KiB datagram limit, and were dropped. The cap is an open ICD change request; ICD §2.3 as written allows every usable opportunity. The listener handles any number.
+
 The JSON schemas are in the ADSB-remoter repo (`schemas/*-1.1.0.json`). They use the same bistatic convention as `BistaticDataAnalysis`: `R_excess = R_tx + R_rx − L`, and `f_D = −(fc/c)·dR_excess/dt`.
 
 SNR values are **pre-integration** estimates from the bistatic radar equation. Use them to rank opportunities, not as a detection prediction.
