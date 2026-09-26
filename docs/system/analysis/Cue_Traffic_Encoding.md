@@ -1,6 +1,6 @@
 # CT Cue Traffic: Labels vs Values, and Encoding Options
 
-**Date:** 2026-09-26. **Status:** analysis for decision (owner: Leif). **Relates to:** [ICD_Messages.md](../ICD_Messages.md) §1.2 (encoding), §1.3 (transport) and §2.3 (`track_cue`); [CR-1 and CR-5](../Change_Requests.md).
+**Date:** 2026-09-26. **Status:** decided 2026-09-26: JSON, with raw deflate and a preset dictionary, plus the value clean-up. See [CT_Message_2.0_Design.md](CT_Message_2.0_Design.md). **Relates to:** [ICD_Messages.md](../ICD_Messages.md) §1.2 (encoding), §1.3 (transport) and §2.3 (`track_cue`); [CR-1 and CR-5](../Change_Requests.md).
 
 **Question:** the multicast cue traffic looks like it is mostly JSON field names. Should the ADSB Cue Tasker (CT) compress it, move to a compact "mirror" schema with very short labels, or leave JSON altogether?
 
