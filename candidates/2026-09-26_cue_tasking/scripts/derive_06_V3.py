@@ -56,6 +56,10 @@ EDITS: list[tuple[str, str]] = [
         '<a href="#purpose">Purpose</a><a href="#executive-summary">Executive summary</a>',
         '<a href="#purpose">Purpose</a><a href="#executive-summary">Executive summary</a><a href="#changes">Since V2</a>',
     ),
+    (
+        "verification of one bounded correction candidate and collection-readiness evidence before any downstream advancement.</p>",
+        "verification of one bounded correction candidate and collection-readiness evidence before any downstream advancement. <strong>New in V3:</strong> the ADS-B cue interface that will task future collections is verified as infrastructure, the Pi time source is not yet locked, and a 25 September live-aircraft scan found no truth-matched track; none of these changes the blockers (see What changed since V2). <span class=\"evidence-id\">STAT-009</span> <span class=\"evidence-id\">STAT-010</span> <span class=\"evidence-id\">STAT-011</span></p>",
+    ),
     # Insert the new section before the evidence matrix.
     ('<section id="evidence-strength">', NEW_SECTION.strip() + '\n\n<section id="evidence-strength">'),
     # Evidence matrix rows.

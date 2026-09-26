@@ -40,9 +40,11 @@ COMPRESSED_TAG = 0xDC
 
 HERE = Path(__file__).resolve().parent
 CANDIDATE = HERE.parent
-REPO = CANDIDATE.parents[1]
+# The flightTest root is the nearest parent that holds docs/system (so the script can be moved).
+REPO = next(p for p in HERE.parents if (p / "docs" / "system" / "evidence").is_dir())
 EVIDENCE = REPO / "docs" / "system" / "evidence"
 ASSETS = CANDIDATE / "overlay" / "systems" / "SystemArchitectureAndCueTasking_assets"
+SUMMARY = CANDIDATE / "generated" / "cue_capture_summary.json"
 
 # Chart colours: validated pair (dataviz validator, light surface): plain JSON vs on the wire.
 C_JSON = "#eb6834"
@@ -396,7 +398,10 @@ def main() -> None:
     parser.add_argument("--adsb-remoter", type=Path, required=True, help="ADSB-remoter checkout (dictionary 1, schemas)")
     parser.add_argument("--wire", type=Path, default=EVIDENCE / "cue_traffic_20260926T1523Z_wire.jsonl")
     parser.add_argument("--plain-1-1", type=Path, default=EVIDENCE / "cue_traffic_20260926T1234Z.jsonl")
+    parser.add_argument("--assets-dir", type=Path, default=ASSETS, help="where the SVG figures are written")
+    parser.add_argument("--summary-out", type=Path, default=SUMMARY, help="where the JSON summary is written")
     args = parser.parse_args()
+    assets = args.assets_dir
 
     dictionary = (args.adsb_remoter / "schemas" / "dictionaries" / "cue-dictionary-1.bin").read_bytes()
     if hashlib.sha256(dictionary).hexdigest() != DICTIONARY_1_SHA256:
@@ -412,13 +417,14 @@ def main() -> None:
             ends.append(message["published_track_count"])
     summary["_snapshot_counts"] = ends
 
-    ASSETS.mkdir(parents=True, exist_ok=True)
-    (ASSETS / "fig_message_size.svg").write_text(fig_message_size(summary) + "\n")
-    (ASSETS / "fig_cue_size_vs_opportunities.svg").write_text(fig_size_vs_opportunities(summary) + "\n")
-    (ASSETS / "fig_capture_timeline.svg").write_text(fig_timeline(summary) + "\n")
+    assets.mkdir(parents=True, exist_ok=True)
+    (assets / "fig_message_size.svg").write_text(fig_message_size(summary) + "\n")
+    (assets / "fig_cue_size_vs_opportunities.svg").write_text(fig_size_vs_opportunities(summary) + "\n")
+    (assets / "fig_capture_timeline.svg").write_text(fig_timeline(summary) + "\n")
 
     public = {k: v for k, v in summary.items() if not k.startswith("_")}
-    out = CANDIDATE / "generated" / "cue_capture_summary.json"
+    out = args.summary_out
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(public, indent=2, sort_keys=True) + "\n")
 
     # Cross-check against the committed cue_capture.py summary.
@@ -440,7 +446,7 @@ def main() -> None:
         ok = mine == theirs
         failed |= not ok
         print(f"{'OK  ' if ok else 'DIFF'} {name}: reproduced={mine} committed={theirs}")
-    print(f"wrote {out.relative_to(REPO)} and 3 figures in {ASSETS.relative_to(REPO)}")
+    print(f"wrote {out} and 3 figures in {assets}")
     if failed:
         raise SystemExit(1)
 

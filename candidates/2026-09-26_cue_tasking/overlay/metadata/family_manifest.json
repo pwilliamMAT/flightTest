@@ -146,7 +146,7 @@
       "latest_version": "06_StatusAndFutureWork_V3.html",
       "accepted_version": "06_StatusAndFutureWork_V3.html",
       "canonical_filename": "06_StatusAndFutureWork_V3.html",
-      "source_hash": "ae6eaaa4c6e8b8ea77243f0927f957ab869e2fe33da70a6b383632d8c726be73",
+      "source_hash": "a59d1d19df75b24af1486a25b224735799a4e20565644bee17ee457ced15a355",
       "release_hash": null,
       "content_status": "Partially aligned",
       "primary_question": "Where does the project stand, and what should happen next?",
@@ -179,7 +179,7 @@
     {
       "ReportID": "02",
       "Filename": "02_HardwareAndCollection_V5.html",
-      "SourcePath": "flightTest branch reporting/candidates-cue-tasking: candidates/2026-09-26_cue_tasking/overlay/reports/02_HardwareAndCollection_V5.html",
+      "SourcePath": "flightTest main: reporting/reports/02_HardwareAndCollection_V5.html (accepted through candidate review; not in ManagerReport)",
       "SourceSHA256": "cd03cf2bd5d2c8dde57c4350e4c1b0a240cff557e8b62bf557961d515119b1fd"
     },
     {
@@ -209,8 +209,8 @@
     {
       "ReportID": "06",
       "Filename": "06_StatusAndFutureWork_V3.html",
-      "SourcePath": "flightTest branch reporting/candidates-cue-tasking: candidates/2026-09-26_cue_tasking/overlay/reports/06_StatusAndFutureWork_V3.html",
-      "SourceSHA256": "ae6eaaa4c6e8b8ea77243f0927f957ab869e2fe33da70a6b383632d8c726be73"
+      "SourcePath": "flightTest main: reporting/reports/06_StatusAndFutureWork_V3.html (accepted through candidate review; not in ManagerReport)",
+      "SourceSHA256": "a59d1d19df75b24af1486a25b224735799a4e20565644bee17ee457ced15a355"
     }
   ],
   "source_asset_hashes": [
@@ -498,7 +498,7 @@
   "post_release_changes": [
     {
       "date": "2026-09-26",
-      "change": "Reports 02 and 06 replaced by V5 and V3 through the candidate review in flightTest branch reporting/candidates-cue-tasking; no TechnicalSummaryFamily release was built for them.",
+      "change": "Reports 02 and 06 replaced by V5 and V3 through the 2026-09-26 candidate review; no TechnicalSummaryFamily release was built for them.",
       "release_hash": "null for the replaced reports until a release is built",
       "companion_reports": [
         "systems/SystemArchitectureAndCueTasking_V1.html (outside the canonical family)"

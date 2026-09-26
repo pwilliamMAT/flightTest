@@ -21,7 +21,6 @@ REPO = CANDIDATE.parents[1]
 SRC = REPO / "reporting" / "metadata"
 OUT = CANDIDATE / "overlay" / "metadata"
 OVERLAY = CANDIDATE / "overlay"
-BRANCH = "reporting/candidates-cue-tasking"
 
 R02_OLD, R02_NEW = "02_HardwareAndCollection_V4.html", "02_HardwareAndCollection_V5.html"
 R06_OLD, R06_NEW = "06_StatusAndFutureWork_V2.html", "06_StatusAndFutureWork_V3.html"
@@ -65,7 +64,7 @@ def manifest() -> None:
         if new:
             entry.update(
                 Filename=new,
-                SourcePath=f"flightTest branch {BRANCH}: candidates/2026-09-26_cue_tasking/overlay/reports/{new}",
+                SourcePath=f"flightTest main: reporting/reports/{new} (accepted through candidate review; not in ManagerReport)",
                 SourceSHA256=hashes[new],
             )
     data["known_gaps"] = data["known_gaps"] + [
@@ -75,8 +74,8 @@ def manifest() -> None:
     data["post_release_changes"] = [
         {
             "date": "2026-09-26",
-            "change": "Reports 02 and 06 replaced by V5 and V3 through the candidate review in "
-            f"flightTest branch {BRANCH}; no TechnicalSummaryFamily release was built for them.",
+            "change": "Reports 02 and 06 replaced by V5 and V3 through the 2026-09-26 candidate review; "
+            "no TechnicalSummaryFamily release was built for them.",
             "release_hash": "null for the replaced reports until a release is built",
             "companion_reports": [f"systems/{SYS} (outside the canonical family)"],
         }
@@ -95,7 +94,7 @@ def evidence_catalog() -> None:
         name,
     )
     text = replace_once(text, f"ManagerReport\\{R02_OLD},02 deployment/package visuals,../reports/{R02_OLD}",
-                        f"ManagerReport\\{R02_OLD} (V5 candidate: flightTest branch {BRANCH}),02 deployment/package visuals,../reports/{R02_NEW}", name)
+                        f"ManagerReport\\{R02_OLD} (superseded by V5 in reporting/reports; not in ManagerReport),02 deployment/package visuals,../reports/{R02_NEW}", name)
     text = replace_once(
         text,
         '"Passing map-contract correction and reviewed collection/reference-path qualification."',
@@ -103,7 +102,7 @@ def evidence_catalog() -> None:
         name,
     )
     text = replace_once(text, f"ManagerReport\\{R06_OLD},06 blocker/action visuals,../reports/{R06_OLD}",
-                        f"ManagerReport\\{R06_OLD} (V3 candidate: flightTest branch {BRANCH}),06 blocker/action visuals,../reports/{R06_NEW}", name)
+                        f"ManagerReport\\{R06_OLD} (superseded by V3 in reporting/reports; not in ManagerReport),06 blocker/action visuals,../reports/{R06_NEW}", name)
     (OUT / name).write_text(text, encoding="utf-8")
 
 
@@ -140,8 +139,8 @@ def code_navigation() -> None:
         '"flightTest main @ ad64bcd","analysis/ scripts and deployability probe","Owner decisions and captures","Controlled documents","SYS Figure 1",'
         'Release metadata link,Strong,Inspected only,,"None.",P1,"Master copy since 2026-09-26."',
         'Cue-report figure generation,"SYS companion","Reproduce the CT 2.0.0 acceptance numbers and draw SYS Figures 2-4.",'
-        f'"summarize_cue_capture.py (candidate branch {BRANCH}; final location to be set by the owner)",'
-        f'"flightTest {BRANCH}","derive_*.py candidate scripts","docs/system/evidence captures and dictionary 1","SVG figures and cue_capture_summary.json","SYS Figures 2-4",'
+        '"summarize_cue_capture.py (final location to be set by the owner; proposed docs/system/analysis/)",'
+        '"To be set at promotion","derive_*.py review scripts","docs/system/evidence captures and dictionary 1","SVG figures and cue_capture_summary.json","SYS Figures 2-4",'
         'Release metadata link,Moderate,"Executed 2026-09-26",'
         '"Final code location not yet decided.","Move the script to docs/system/analysis/ or another controlled location before promotion.",P1,"Cross-checks the committed capture summary."',
     ]
