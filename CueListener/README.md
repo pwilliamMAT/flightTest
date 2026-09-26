@@ -47,7 +47,8 @@ poll(L);          % or CueListener('Background', true) to poll from a timer
 stop(L);
 ```
 
-- **Call signs:** pass `'DtvTableFile'` pointing to the FCC DTV CSV (`TestSetupTesting/siteData/20_DTV_direct_path_input.csv` on the branches that carry it) to show call signs such as "WUTF-TV ch19" instead of raw emitter ids.
+- **Call signs:** emitter ids show as call signs, such as "WUTF-TV ch19", using the FCC DTV table in `TestSetupTesting/siteData/20_DTV_direct_path_input.csv`. It is the same table the cue tasker uses and the one `dtvPredictDirectPath` reads. Pass `'DtvTableFile'` to use another copy.
+- **Site geometry:** the receive-site positions and antenna pointing are in `TestSetupTesting/SiteGeometry.md`. `dtvPredictDirectPath`, `dtvAbsoluteLevelCheck` and `dtvFitPointing` compare measured DTV levels with levels predicted from that geometry.
 - **Log format:** `LogFile` output matches the ADSB-remoter `tools/cue_capture.py` JSONL format, so either tool's logs can be replayed here.
 
 ## Network notes
