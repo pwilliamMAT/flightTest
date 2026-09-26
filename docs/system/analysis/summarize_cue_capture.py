@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Reproduce the CT 2.0.0 live-acceptance numbers and draw the candidate report's figures.
+"""Reproduce the CT 2.0.0 live-acceptance numbers and draw the cue-tasking report figures.
 
-Candidate-review tool for candidates/2026-09-26_cue_tasking (not part of reporting/).
+Used for the system-engineering pages of the reporting site (subsystem design record SDR-CT).
 
 Inputs (all already committed evidence):
   * docs/system/evidence/cue_traffic_20260926T1523Z_wire.jsonl  - CT 2.0.0 live capture, wire bytes
@@ -10,13 +10,13 @@ Inputs (all already committed evidence):
   * ADSB-remoter schemas/dictionaries/cue-dictionary-1.bin       - released preset dictionary 1
   * ADSB-remoter schemas/*-2.0.0.json (optional)                 - schema validation, if jsonschema is installed
 
-Outputs:
-  * generated/cue_capture_summary.json (numbers quoted in the candidate reports)
-  * overlay/systems/SystemArchitectureAndCueTasking_assets/fig_*.svg (figures)
+Outputs (in --out-dir, or --assets-dir / --summary-out if given):
+  * cue_capture_summary.json (the numbers quoted in the reports)
+  * fig_message_size.svg, fig_cue_size_vs_opportunities.svg, fig_capture_timeline.svg
 
-Usage, from the flightTest worktree root:
-  python3 candidates/2026-09-26_cue_tasking/scripts/summarize_cue_capture.py \
-      --adsb-remoter ~/Documents/ADSB-remoter
+Usage, from the flightTest repository root (the ADSB-remoter checkout supplies dictionary 1 and schemas):
+  python3 docs/system/analysis/summarize_cue_capture.py --adsb-remoter ../ADSB-remoter --out-dir /tmp/cue_figs
+Exit status 1 if any reproduced number differs from the committed capture summary.
 
 Standard library only, except jsonschema (optional). Decoding follows ICD_Messages.md 1.3:
 first byte 0xDC, byte 1 = dictionary id, then raw deflate (RFC 1951) with the preset dictionary.
@@ -39,12 +39,9 @@ ONE_FRAME_BYTES = 1472
 COMPRESSED_TAG = 0xDC
 
 HERE = Path(__file__).resolve().parent
-CANDIDATE = HERE.parent
-# The flightTest root is the nearest parent that holds docs/system (so the script can be moved).
+# The flightTest root is the nearest parent that holds docs/system/evidence.
 REPO = next(p for p in HERE.parents if (p / "docs" / "system" / "evidence").is_dir())
 EVIDENCE = REPO / "docs" / "system" / "evidence"
-ASSETS = CANDIDATE / "overlay" / "systems" / "SystemArchitectureAndCueTasking_assets"
-SUMMARY = CANDIDATE / "generated" / "cue_capture_summary.json"
 
 # Chart colours: validated pair (dataviz validator, light surface): plain JSON vs on the wire.
 C_JSON = "#eb6834"
@@ -398,10 +395,13 @@ def main() -> None:
     parser.add_argument("--adsb-remoter", type=Path, required=True, help="ADSB-remoter checkout (dictionary 1, schemas)")
     parser.add_argument("--wire", type=Path, default=EVIDENCE / "cue_traffic_20260926T1523Z_wire.jsonl")
     parser.add_argument("--plain-1-1", type=Path, default=EVIDENCE / "cue_traffic_20260926T1234Z.jsonl")
-    parser.add_argument("--assets-dir", type=Path, default=ASSETS, help="where the SVG figures are written")
-    parser.add_argument("--summary-out", type=Path, default=SUMMARY, help="where the JSON summary is written")
+    parser.add_argument("--out-dir", type=Path, required=True, help="where the summary and figures are written")
+    parser.add_argument("--assets-dir", type=Path, help="figures here instead of --out-dir")
+    parser.add_argument("--summary-out", type=Path, help="summary JSON here instead of --out-dir")
     args = parser.parse_args()
-    assets = args.assets_dir
+    assets = args.assets_dir or args.out_dir
+    if args.summary_out is None:
+        args.summary_out = args.out_dir / "cue_capture_summary.json"
 
     dictionary = (args.adsb_remoter / "schemas" / "dictionaries" / "cue-dictionary-1.bin").read_bytes()
     if hashlib.sha256(dictionary).hexdigest() != DICTIONARY_1_SHA256:
