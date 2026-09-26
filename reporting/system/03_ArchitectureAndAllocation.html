@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Architecture, allocation and design rules of the passive radar testbed.">
+<title>Architecture and Allocation</title>
+<style>
+:root{--ink:#172033;--muted:#526176;--line:#cbd5e1;--panel:#f8fafc;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--purple:#6d28d9;--purple2:#f5f3ff}
+*{box-sizing:border-box}body{max-width:1240px;margin:2rem auto;padding:0 1rem 3rem;color:var(--ink);background:#fff;font:16px/1.52 "Segoe UI",Arial,sans-serif}h1,h2,h3{line-height:1.22;color:#102a43}h1{font-size:2.15rem;margin:.2rem 0 .25rem}h2{margin-top:2.8rem;padding-top:.35rem;border-top:2px solid #e2e8f0;font-size:1.55rem}h3{margin-top:1.5rem;font-size:1.15rem}p{max-width:1080px}a{color:#075caa;text-decoration-thickness:1px;text-underline-offset:2px}a:hover{color:#003f73}code{font:.92em Consolas,"Courier New",monospace;background:#f1f5f9;padding:.08rem .25rem;border-radius:3px}.subtitle,.small{color:var(--muted)}.subtitle{font-size:1.05rem;margin:.15rem 0 .7rem}.small{font-size:.92rem}.kicker{margin:0;color:var(--blue);font-size:.82rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.eli5{padding:.85rem 1rem;border-left:5px solid var(--blue);background:var(--blue2);font-size:1.03rem}.technical{padding-left:1rem;border-left:2px solid #cbd5e1}.callout{border:1px solid var(--line);border-left:5px solid var(--blue);padding:.85rem 1rem;margin:1rem 0;background:var(--blue2)}.callout.warn{border-left-color:var(--amber);background:var(--amber2)}.callout.stop{border-left-color:var(--red);background:var(--red2)}.source{font-size:.92rem;color:var(--muted);margin-top:.65rem}.source a{font-weight:600}.tag{display:inline-block;border-radius:99px;padding:.16rem .55rem;font-size:.83rem;font-weight:700;white-space:nowrap}.t-verified{color:#166534;background:#ecfdf3}.t-partial,.t-proposed{color:#9a5b00;background:#fff7e6}.t-notmet{color:#a61b1b;background:#fff1f1}.t-notstarted{color:#475569;background:#f1f5f9}.t-info{color:#075caa;background:#eaf3fb}.figure{margin:1.25rem 0 1.6rem;padding:1rem;border:1px solid var(--line);background:#fff}.figure svg{display:block;width:100%;height:auto}.figure figcaption{margin:.7rem .2rem 0;color:var(--muted);font-size:.94rem}.table-wrap{overflow-x:auto;margin:1rem 0 1.4rem}.decision-table{width:100%;min-width:900px;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border:1px solid var(--line);padding:.6rem;vertical-align:top;text-align:left;overflow-wrap:anywhere}.decision-table th{background:#edf3f8;color:#102a43}.decision-table tbody tr:nth-child(even){background:#fbfdff}.decision-table.compact td,.decision-table.compact th{font-size:.9rem;padding:.45rem .55rem}.decision-table .tag{white-space:normal}.decision-table.wide{min-width:1120px}.plain-list li{margin:.45rem 0}.metric{font-variant-numeric:tabular-nums;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem;margin:1rem 0 1.3rem}.card{border:1px solid var(--line);border-top:4px solid var(--blue);padding:.8rem 1rem;background:var(--panel)}.card h3{margin:.1rem 0 .4rem;font-size:1.02rem}.card p{margin:.3rem 0 0;font-size:.92rem}.step-no{font:700 .8rem Consolas,"Courier New",monospace;color:var(--blue)}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.draft-banner{margin:1rem 0;padding:.8rem 1rem;border:2px dashed var(--amber);background:var(--amber2);font-weight:600}.req-tree ul{list-style:none;margin:.2rem 0 .2rem 1.1rem;padding-left:.8rem;border-left:2px solid #e2e8f0}.req-tree>ul{margin-left:0;border-left:0;padding-left:0}.req-tree li{margin:.28rem 0}.evidence-id{display:inline-block;font:700 .82rem Consolas,"Courier New",monospace;color:#075caa;background:var(--blue2);border:1px solid #c7ddec;border-radius:4px;padding:.08rem .33rem;white-space:nowrap}.rid{display:inline-block;min-width:6.2rem;font:700 .85rem Consolas,"Courier New",monospace;color:#075caa}dl dt{font-weight:700;margin-top:1rem}dl dd{margin:.25rem 0 0 1rem}footer{margin-top:3rem;padding-top:1rem;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}@media(max-width:760px){body{margin:1rem auto}.two-col{grid-template-columns:1fr}h1{font-size:1.7rem}.decision-table{min-width:760px}.figure{padding:.55rem}}
+</style>
+</head>
+<body>
+<style>.sys-nav{margin:0 0 1.2rem;padding:.6rem .8rem;border:1px solid var(--line,#cbd5e1);border-top:4px solid #0f4c81;background:#f8fafc;font:14px/1.45 "Segoe UI",Arial,sans-serif}.sys-nav strong{color:#102a43;margin-right:.6rem}.sys-nav a{display:inline-block;margin:.1rem .7rem .1rem 0;color:#075caa;white-space:nowrap}.sys-nav a[aria-current=page]{color:#102a43;font-weight:700;text-decoration:none;border-bottom:2px solid #0f4c81}.sys-nav .sys-nav-home{float:right;margin-right:0}@media(max-width:760px){.sys-nav .sys-nav-home{float:none}}</style><nav class="sys-nav" aria-label="System engineering section"><a class="sys-nav-home" href="../index.html">Reporting home</a><strong>System engineering</strong><a href="index.html">Process and status</a><a href="01_MissionAndNeeds.html">1 · Mission and needs</a><a href="02_Requirements.html">2 · Requirements (DRAFT)</a><a href="03_ArchitectureAndAllocation.html" aria-current="page">3 · Architecture and allocation</a><a href="04_Interfaces.html">4 · Interfaces</a><a href="05_VerificationAndTraceability.html">5 · Verification and traceability</a><a href="06_TruthSeparation.html">6 · Truth separation</a><a href="07_AsBuiltAndConfiguration.html">7 · As-built and configuration</a><a href="SDR_CT_CueTasking_V1.html">Subsystem record: CT</a></nav>
+<header>
+<p class="kicker">System engineering · step 3</p>
+<h1>Architecture and Allocation</h1>
+<p class="subtitle">Ten software items, their hosts, their status, and the requirements each carries</p>
+<p class="small">Status snapshot: 26 September 2026. The masters of everything summarised here are in flightTest <a href="https://github.com/pwilliamMAT/flightTest/tree/main/docs/system"><code>docs/system/</code></a>; where a page and a master disagree, the master wins.</p>
+</header>
+
+<section id="purpose">
+<h2>Purpose</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The testbed is split into ten programs, each with one job and a two-letter ID, placed on three computers. This page shows how they connect, which exist today, and which requirements each one carries.</p>
+<div class="technical">
+<p>The architecture is written as the source of a MATLAB System Composer model: functional items, hardware items, networks, an allocation of items to hosts, and a profile of stereotypes. Every MATLAB item is to become a compiled standalone app on the MATLAB Runtime, Linux first; the named exceptions are the Cue Tasker (Python), system services (chrony, gpsd, dump1090) and the ESP32 antenna-node firmware.</p>
+</div>
+<div class="callout stop"><strong>Claim boundary:</strong> the architecture is a design record. Items shown as planned or proposed do not exist; a link drawn in the design is not evidence that it works. Only the cue stream has been verified on the wire.</div>
+</section>
+<section id="figure">
+<h2>Functional architecture with as-built status</h2>
+<figure class="figure" id="architecture-figure">
+<svg viewBox="0 0 1180 560" role="img" aria-labelledby="arch-title arch-desc">
+<title id="arch-title">Functional architecture with as-built status, 2026-09-26</title>
+<desc id="arch-desc">Boxes for the ten software items and the time source, grouped by host. The ADS-B receiver feeds the cue tasker over SBS on TCP 30003. The cue tasker's multicast track_cue stream to the Resource Manager is the only verified message link. Links from the Resource Manager to the RF Collector, and on to the Signal Processor, Tracker and Report and Display, are proposed and drawn dashed.</desc>
+<defs><marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#64748b"/></marker><marker id="ahb" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="14" refY="8" orient="auto"><path d="M0,0 L16,8 L0,16 z" fill="#0f4c81"/></marker><style>.s{font-family:Segoe UI,Arial,sans-serif;fill:#172033}.h{font-size:15px;font-weight:700}.b{font-size:12px}.sm{font-size:11px;fill:#526176}.lbl{paint-order:stroke;stroke:#ffffff;stroke-width:3px;stroke-linejoin:round}.host{fill:#f8fafc;stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:5 4}.op{fill:#eaf3fb;stroke:#0f4c81;stroke-width:1.6}.dev{fill:#fff7e6;stroke:#9a5b00;stroke-width:1.4}.pl{fill:#ffffff;stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:4 3}.a{stroke:#64748b;stroke-width:1.8;fill:none;marker-end:url(#ah)}.ad{stroke:#94a3b8;stroke-width:1.6;fill:none;stroke-dasharray:6 4;marker-end:url(#ah)}.av{stroke:#0f4c81;stroke-width:4;fill:none;marker-end:url(#ahb)}</style></defs>
+<rect class="host" x="20" y="40" width="300" height="420" rx="10"/><text class="s h" x="36" y="66">ADS-B Raspberry Pi</text>
+<rect class="host" x="380" y="40" width="780" height="420" rx="10"/><text class="s h" x="396" y="66">RF Collection Desktop (+ N320, Pluto)</text>
+<rect class="op" x="45" y="90" width="250" height="70" rx="8"/><text class="s h" x="60" y="115">AR  ADS-B Receiver</text><text class="s b" x="60" y="135">dump1090 in Docker</text><text class="s sm" x="60" y="151">Operating</text>
+<rect class="op" x="45" y="215" width="250" height="84" rx="8"/><text class="s h" x="60" y="240">CT  ADS-B Cue Tasker</text><text class="s b" x="60" y="259">ADSB-remoter, systemd adsb-cue</text><text class="s sm" x="60" y="276">Operating · publishes CT 2.0.0</text><text class="s sm" x="60" y="291">(SYS-002)</text>
+<rect class="dev" x="45" y="360" width="250" height="78" rx="8"/><text class="s h" x="60" y="385">Time Source</text><text class="s b" x="60" y="404">chrony: internet NTP via desktop</text><text class="s sm" x="60" y="421">GPS/PPS configured, not locked (SYS-007)</text>
+<line class="a" x1="170" y1="160" x2="170" y2="212"/><text class="s sm lbl" x="178" y="192">SBS · TCP 30003</text>
+<rect class="dev" x="420" y="200" width="230" height="110" rx="8"/><text class="s h" x="435" y="225">RM  Resource Manager</text><text class="s b" x="435" y="245">First piece: CueListener</text><text class="s b" x="435" y="263">receives, applies ICD §2.0,</text><text class="s b" x="435" y="281">ranks cues · no tasking</text><text class="s sm" x="435" y="299">(SYS-005, SYS-010)</text>
+<path class="av" d="M295,257 C340,257 370,255 416,255"/>
+<text class="s b lbl" x="357" y="240" text-anchor="middle" font-weight="700" fill="#0f4c81">track_cue</text><text class="s sm lbl" x="357" y="282" text-anchor="middle">multicast</text><text class="s sm lbl" x="357" y="297" text-anchor="middle">Verified</text><text class="s sm lbl" x="357" y="312" text-anchor="middle">2.0.0</text>
+<rect class="op" x="720" y="90" width="200" height="70" rx="8"/><text class="s h" x="735" y="115">RC  RF Collector</text><text class="s b" x="735" y="134">Rev 1 capture scripts</text><text class="s sm" x="735" y="151">not task-driven</text>
+<rect class="dev" x="720" y="215" width="200" height="80" rx="8"/><text class="s h" x="735" y="240">SP  Signal Processor</text><text class="s b" x="735" y="259">BistaticDataAnalysis</text><text class="s sm" x="735" y="277">offline; detector not yet</text><text class="s sm" x="735" y="290">truth-matched (SYS-011)</text>
+<rect class="pl" x="720" y="345" width="200" height="60" rx="8"/><text class="s h" x="735" y="370">TR  Tracker</text><text class="s sm" x="735" y="390">Planned</text>
+<rect class="dev" x="960" y="90" width="180" height="70" rx="8"/><text class="s h" x="975" y="115">CM  Calibration</text><text class="s b" x="975" y="134">Pluto and DTV-level</text><text class="s sm" x="975" y="151">scripts · in development</text>
+<rect class="pl" x="960" y="215" width="180" height="60" rx="8"/><text class="s h" x="975" y="240">RD  Report &amp; Display</text><text class="s sm" x="975" y="260">Planned</text>
+<rect class="pl" x="960" y="345" width="180" height="84" rx="8"/><text class="s h" x="975" y="370">AM  Activity Mgr</text><text class="s h" x="975" y="392">AC  Antenna Ctrl</text><text class="s sm" x="975" y="414">Planned / proposed</text>
+<path class="ad" d="M650,225 C690,190 690,140 717,128"/><text class="s sm lbl" x="655" y="170">collection_task</text><text class="s sm lbl" x="655" y="184">Proposed</text>
+<line class="ad" x1="820" y1="160" x2="820" y2="212"/><text class="s sm lbl" x="826" y="182">capture_record · Proposed</text>
+<line class="ad" x1="820" y1="295" x2="820" y2="342"/><text class="s sm lbl" x="826" y="325">detection_list · Proposed</text>
+<path class="ad" d="M720,380 C660,380 560,360 540,313"/><text class="s sm lbl" x="560" y="398">track_report · Proposed</text>
+<path class="ad" d="M958,125 C930,165 700,180 652,215"/><text class="s sm lbl" x="1140" y="200" text-anchor="end">calibration_request · Proposed</text>
+<rect x="20" y="480" width="20" height="14" class="op"/><text class="s b" x="48" y="492">operating / installed</text>
+<rect x="210" y="480" width="20" height="14" class="dev"/><text class="s b" x="238" y="492">first piece or in development</text>
+<rect x="450" y="480" width="20" height="14" class="pl"/><text class="s b" x="478" y="492">planned or proposed</text>
+<line class="av" x1="650" y1="487" x2="710" y2="487"/><text class="s b" x="720" y="492">verified message link</text>
+<line class="ad" x1="880" y1="487" x2="930" y2="487"/><text class="s b" x="940" y="492">proposed message</text>
+<text class="s sm" x="20" y="526">Simplified from S02 and S03: health, antenna-state, and time-sync links are omitted.</text><text class="s sm" x="20" y="544">The CT stream (UDP multicast 239.192.10.1:31986) is also addressed to TR, RD and AM as future group members; only the RM listener consumes it today.</text>
+</svg>
+<figcaption><strong>Figure 1 — Functional architecture with as-built status.</strong> <span class="evidence-id">SYS-001</span> <span class="evidence-id">SYS-002</span> <span class="evidence-id">SYS-003</span> <span class="evidence-id">SYS-010</span> The single thick link is the only interface verified on the wire. Everything to its right is designed but not connected: collections are still started by hand, and no message yet carries a cue into a capture. Evidence IDs (SYS-…) refer to the <a href="SDR_CT_CueTasking_V1.html">CT subsystem record</a>. Sources: <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/System_Architecture.md">System_Architecture.md</a>, <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/ICD_Messages.md">ICD_Messages.md</a>, <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/As_Built.md">As_Built.md</a>. [Implemented]</figcaption>
+</figure>
+
+</section>
+<section id="items">
+<h2>Software items</h2>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th style="width:9%">ID</th><th style="width:18%">Item</th><th style="width:37%">Role in the design</th><th>As-built, 2026-09-26</th></tr></thead>
+<tbody>
+<tr><td>AR</td><td>ADS-B Receiver</td><td>dump1090 decodes 1090 MHz ADS-B and serves SBS reports.</td><td>Operating on the Pi.</td></tr>
+<tr><td>CT</td><td>ADS-B Cue Tasker</td><td>Tracks aircraft from SBS, predicts bistatic geometry and SNR per DTV emitter, publishes cues.</td><td>Operating as <code>adsb-cue</code> on the Pi, CT 2.0.0 compressed. <span class="evidence-id">SYS-002</span></td></tr>
+<tr><td>RM</td><td>Resource Manager</td><td>Plans collections in a 1-minute and a 5-minute loop; resolves cue, track and calibration tasks for one N320 and two rotator-mounted antennas.</td><td>First piece (<code>CueListener</code>): receives and ranks cues; no scheduling. <span class="evidence-id">SYS-005</span></td></tr>
+<tr><td>RC</td><td>RF Collector</td><td>Executes collection tasks on the N320 and writes captures with metadata.</td><td>Rev 1 capture scripts, not driven by tasks; see <a href="../reports/02_HardwareAndCollection_V5.html">Report 02</a>.</td></tr>
+<tr><td>SP</td><td>Signal Processor</td><td>Direct-path and clutter cancellation, range-Doppler map, CFAR detection.</td><td>Offline pipeline; detector not yet producing truth-matched detections. <span class="evidence-id">SYS-011</span></td></tr>
+<tr><td>CM</td><td>Calibration Manager</td><td>Pluto-injection health checks and DTV level checks; requests calibration slots from RM.</td><td>Scripts in development on feature branches; not on <code>main</code>.</td></tr>
+<tr><td>TR, RD, AM, AC</td><td>Tracker; Report &amp; Display; Activity Manager; Antenna Controller</td><td>Bistatic range-Doppler tracking; display and scoring; launch and health; rotator pointing.</td><td>Planned or proposed; not built.</td></tr>
+</tbody>
+</table>
+</div>
+
+</section>
+<section id="allocation">
+<h2>Allocation to hosts</h2>
+<div class="table-wrap"><table class="decision-table" style="min-width:640px"><thead><tr><th style="width:40%">Software item</th><th>Allocated to</th></tr></thead><tbody>
+<tr><td>AR ADS-B Receiver; Time Source; CT ADS-B Cue Tasker</td><td>ADS-B Raspberry Pi (+ RTL-SDR, GPS receiver)</td></tr>
+<tr><td>RM Resource Manager; RC RF Collector; CM Calibration Manager; AC Antenna Controller; TR Tracker; AM Activity Manager</td><td>RF Collection Desktop (+ USRP N320, Pluto SDR, ESP32 gateway to the antenna nodes)</td></tr>
+<tr><td>SP Signal Processor; RD Report and Display</td><td>RF Collection Desktop (near-real-time, primary display); RF Data Reduction Desktop (offline processing, auxiliary display)</td></tr>
+</tbody></table></div>
+</section>
+<section id="requirements">
+<h2>Requirements allocated to each item</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Counting requirements per item shows where the work is: the cue path is largely verified, while the scheduling, processing, tracking and packaging items carry most of the unmet requirements.</p>
+<div class='table-wrap'><table class='decision-table compact'><thead><tr><th style='width:11%'>Item</th><th style='width:12%'>Requirements</th><th style='width:28%'>Status</th><th>IDs</th></tr></thead><tbody><tr><td><strong>AR</strong></td><td>7</td><td>2 verified, 4 partial, 1 not met</td><td class='small'>SR-01, SR-05, SR-06, SR-14, DR-TIME-2, DR-DATA-4, DR-DEP-4</td></tr><tr><td><strong>CT</strong></td><td>9</td><td>6 verified, 3 partial</td><td class='small'>SR-01, SR-05, SR-14, DR-CUE-1, DR-CUE-2, DR-CUE-3, DR-CUE-4, DR-CUE-5, DR-DEP-4</td></tr><tr><td><strong>RM</strong></td><td>15</td><td>2 verified, 4 partial, 2 not met, 2 not started, 5 proposed</td><td class='small'>SR-02, SR-12, SR-14, DR-CUE-4, DR-CUE-5, DR-CUE-6, DR-CUE-7, DR-TASK-1, DR-TASK-2, DR-DATA-6, DR-DATA-7, DR-DEP-1, DR-DEP-2, DR-DEP-3, DR-TS-1</td></tr><tr><td><strong>RC</strong></td><td>19</td><td>10 partial, 5 not met, 4 proposed</td><td class='small'>SR-03, SR-05, SR-06, SR-10, SR-12, SR-14, DR-TASK-1, DR-TIME-1, DR-TIME-2, DR-DATA-1, DR-DATA-2, DR-DATA-3, DR-DATA-4, DR-DATA-6, DR-DATA-7, DR-DEP-1, DR-DEP-2, DR-DEP-3, DR-TS-1</td></tr><tr><td><strong>SP</strong></td><td>9</td><td>3 partial, 3 not met, 1 not started, 2 proposed</td><td class='small'>SR-07, SR-12, SR-14, DR-DEP-1, DR-DEP-2, DR-DEP-3, DR-TS-2, DR-TS-3, DR-TS-6</td></tr><tr><td><strong>TR</strong></td><td>10</td><td>3 partial, 2 not met, 3 not started, 2 proposed</td><td class='small'>SR-08, SR-12, SR-14, DR-DEP-1, DR-DEP-2, DR-DEP-3, DR-TS-2, DR-TS-3, DR-TS-5, DR-TS-6</td></tr><tr><td><strong>RD</strong></td><td>7</td><td>4 partial, 2 not met, 1 not started</td><td class='small'>SR-10, SR-12, SR-14, DR-DEP-1, DR-DEP-2, DR-DEP-3, DR-TS-5</td></tr><tr><td><strong>CM</strong></td><td>6</td><td>4 partial, 2 not met</td><td class='small'>SR-09, SR-12, SR-14, DR-DEP-1, DR-DEP-2, DR-DEP-3</td></tr><tr><td><strong>AM</strong></td><td>6</td><td>3 partial, 2 not met, 1 not started</td><td class='small'>SR-12, SR-14, SR-15, DR-DEP-1, DR-DEP-2, DR-DEP-3</td></tr><tr><td><strong>AC</strong></td><td>7</td><td>1 verified, 3 partial, 2 not met, 1 not started</td><td class='small'>SR-04, SR-12, SR-14, DR-DEP-1, DR-DEP-2, DR-DEP-3, DR-DEP-4</td></tr><tr><td><strong>Time Source</strong></td><td>6</td><td>1 verified, 3 partial, 2 not met</td><td class='small'>SR-05, SR-14, DR-TIME-1, DR-TIME-2, DR-TIME-3, DR-DEP-4</td></tr></tbody></table></div>
+<p class="small">Requirements allocated to “MATLAB items” or “All items” are counted for every item they cover. Process-only requirements are not listed.</p>
+</section>
+<section id="rules">
+<h2>Design rules</h2>
+<ul class="plain-list">
+<li><strong>Deployment:</strong> one entry point per MATLAB item; host-specific values from configuration; privileged host setup outside the apps; deployability of every toolbox or hardware dependency proven in a compiled app first (SR-12, DR-DEP-1 to DR-DEP-4).</li>
+<li><strong>Transport:</strong> TCP for tasks, captures, detections, tracks and calibration; UDP for heartbeats and antenna state; the cue stream is UDP multicast by design, recovered by snapshots and sequence numbers (<a href="04_Interfaces.html">Interfaces</a>).</li>
+<li><strong>Timing:</strong> hosts keep UTC through the Time Source; internet NTP is accepted, with an accepted 0.1 s host-to-host tolerance; the N320 takes no PPS or 10 MHz reference (<a href="07_AsBuiltAndConfiguration.html">As-built</a>).</li>
+<li><strong>Truth separation (accepted, CR-9):</strong> every capture is labelled by how it was chosen, every product by how cues and truth were used and by its emitter, and only truth-blind products count as independent evidence (<a href="06_TruthSeparation.html">Truth separation</a>). The design rule is still to be added to the architecture (A-7).</li>
+</ul>
+<p class="source">Masters: <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/System_Architecture.md">System_Architecture.md</a> (as designed, rev. 2026-09-25), <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/As_Built.md">As_Built.md</a> (as built), <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/Change_Requests.md">CR-8</a> (as-built corrections).</p>
+</section>
+
+<footer>
+<p>System Engineering section of the FlightTest reporting site. It is separate from the exploration report family and follows the same evidence rules: every claim states its evidence and claim boundary. Requirement and interface status words (Verified, Partial, Proposed) are defined on the <a href="02_Requirements.html">requirements page</a> and in the ICD; none of them is a radar-performance result.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="As-built state, deployed configuration, time source and actions for the passive radar testbed.">
+<title>As-Built and Configuration</title>
+<style>
+:root{--ink:#172033;--muted:#526176;--line:#cbd5e1;--panel:#f8fafc;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--purple:#6d28d9;--purple2:#f5f3ff}
+*{box-sizing:border-box}body{max-width:1240px;margin:2rem auto;padding:0 1rem 3rem;color:var(--ink);background:#fff;font:16px/1.52 "Segoe UI",Arial,sans-serif}h1,h2,h3{line-height:1.22;color:#102a43}h1{font-size:2.15rem;margin:.2rem 0 .25rem}h2{margin-top:2.8rem;padding-top:.35rem;border-top:2px solid #e2e8f0;font-size:1.55rem}h3{margin-top:1.5rem;font-size:1.15rem}p{max-width:1080px}a{color:#075caa;text-decoration-thickness:1px;text-underline-offset:2px}a:hover{color:#003f73}code{font:.92em Consolas,"Courier New",monospace;background:#f1f5f9;padding:.08rem .25rem;border-radius:3px}.subtitle,.small{color:var(--muted)}.subtitle{font-size:1.05rem;margin:.15rem 0 .7rem}.small{font-size:.92rem}.kicker{margin:0;color:var(--blue);font-size:.82rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.eli5{padding:.85rem 1rem;border-left:5px solid var(--blue);background:var(--blue2);font-size:1.03rem}.technical{padding-left:1rem;border-left:2px solid #cbd5e1}.callout{border:1px solid var(--line);border-left:5px solid var(--blue);padding:.85rem 1rem;margin:1rem 0;background:var(--blue2)}.callout.warn{border-left-color:var(--amber);background:var(--amber2)}.callout.stop{border-left-color:var(--red);background:var(--red2)}.source{font-size:.92rem;color:var(--muted);margin-top:.65rem}.source a{font-weight:600}.tag{display:inline-block;border-radius:99px;padding:.16rem .55rem;font-size:.83rem;font-weight:700;white-space:nowrap}.t-verified{color:#166534;background:#ecfdf3}.t-partial,.t-proposed{color:#9a5b00;background:#fff7e6}.t-notmet{color:#a61b1b;background:#fff1f1}.t-notstarted{color:#475569;background:#f1f5f9}.t-info{color:#075caa;background:#eaf3fb}.figure{margin:1.25rem 0 1.6rem;padding:1rem;border:1px solid var(--line);background:#fff}.figure svg{display:block;width:100%;height:auto}.figure figcaption{margin:.7rem .2rem 0;color:var(--muted);font-size:.94rem}.table-wrap{overflow-x:auto;margin:1rem 0 1.4rem}.decision-table{width:100%;min-width:900px;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border:1px solid var(--line);padding:.6rem;vertical-align:top;text-align:left;overflow-wrap:anywhere}.decision-table th{background:#edf3f8;color:#102a43}.decision-table tbody tr:nth-child(even){background:#fbfdff}.decision-table.compact td,.decision-table.compact th{font-size:.9rem;padding:.45rem .55rem}.decision-table .tag{white-space:normal}.decision-table.wide{min-width:1120px}.plain-list li{margin:.45rem 0}.metric{font-variant-numeric:tabular-nums;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem;margin:1rem 0 1.3rem}.card{border:1px solid var(--line);border-top:4px solid var(--blue);padding:.8rem 1rem;background:var(--panel)}.card h3{margin:.1rem 0 .4rem;font-size:1.02rem}.card p{margin:.3rem 0 0;font-size:.92rem}.step-no{font:700 .8rem Consolas,"Courier New",monospace;color:var(--blue)}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.draft-banner{margin:1rem 0;padding:.8rem 1rem;border:2px dashed var(--amber);background:var(--amber2);font-weight:600}.req-tree ul{list-style:none;margin:.2rem 0 .2rem 1.1rem;padding-left:.8rem;border-left:2px solid #e2e8f0}.req-tree>ul{margin-left:0;border-left:0;padding-left:0}.req-tree li{margin:.28rem 0}.evidence-id{display:inline-block;font:700 .82rem Consolas,"Courier New",monospace;color:#075caa;background:var(--blue2);border:1px solid #c7ddec;border-radius:4px;padding:.08rem .33rem;white-space:nowrap}.rid{display:inline-block;min-width:6.2rem;font:700 .85rem Consolas,"Courier New",monospace;color:#075caa}dl dt{font-weight:700;margin-top:1rem}dl dd{margin:.25rem 0 0 1rem}footer{margin-top:3rem;padding-top:1rem;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}@media(max-width:760px){body{margin:1rem auto}.two-col{grid-template-columns:1fr}h1{font-size:1.7rem}.decision-table{min-width:760px}.figure{padding:.55rem}}
+</style>
+</head>
+<body>
+<style>.sys-nav{margin:0 0 1.2rem;padding:.6rem .8rem;border:1px solid var(--line,#cbd5e1);border-top:4px solid #0f4c81;background:#f8fafc;font:14px/1.45 "Segoe UI",Arial,sans-serif}.sys-nav strong{color:#102a43;margin-right:.6rem}.sys-nav a{display:inline-block;margin:.1rem .7rem .1rem 0;color:#075caa;white-space:nowrap}.sys-nav a[aria-current=page]{color:#102a43;font-weight:700;text-decoration:none;border-bottom:2px solid #0f4c81}.sys-nav .sys-nav-home{float:right;margin-right:0}@media(max-width:760px){.sys-nav .sys-nav-home{float:none}}</style><nav class="sys-nav" aria-label="System engineering section"><a class="sys-nav-home" href="../index.html">Reporting home</a><strong>System engineering</strong><a href="index.html">Process and status</a><a href="01_MissionAndNeeds.html">1 · Mission and needs</a><a href="02_Requirements.html">2 · Requirements (DRAFT)</a><a href="03_ArchitectureAndAllocation.html">3 · Architecture and allocation</a><a href="04_Interfaces.html">4 · Interfaces</a><a href="05_VerificationAndTraceability.html">5 · Verification and traceability</a><a href="06_TruthSeparation.html">6 · Truth separation</a><a href="07_AsBuiltAndConfiguration.html" aria-current="page">7 · As-built and configuration</a><a href="SDR_CT_CueTasking_V1.html">Subsystem record: CT</a></nav>
+<header>
+<p class="kicker">System engineering · step 7</p>
+<h1>As-Built and Configuration</h1>
+<p class="subtitle">What runs where, with which settings, and the open actions</p>
+<p class="small">Status snapshot: 26 September 2026. The masters of everything summarised here are in flightTest <a href="https://github.com/pwilliamMAT/flightTest/tree/main/docs/system"><code>docs/system/</code></a>; where a page and a master disagree, the master wins.</p>
+</header>
+
+<section id="purpose">
+<h2>Purpose</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The design says what should exist; this page says what actually runs, where, with which settings, and what is still to fix.</p>
+<div class="callout stop"><strong>Claim boundary:</strong> as-built entries are installed-state records. They show that something is deployed and how it is configured, not that it performs to any requirement; performance status is on the verification page.</div>
+</section>
+<section id="items">
+<h2>Software items as built</h2>
+<div class="table-wrap"><table class="decision-table"><thead><tr><th style="width:8%">ID</th><th style="width:40%">As built, 2026-09-26</th><th style="width:30%">Code (repository, branch)</th><th>Runs on</th></tr></thead><tbody>
+<tr><td>AR</td><td>Operating: dump1090 in Docker, SBS on TCP 30003.</td><td>—</td><td>ADS-B Pi</td></tr>
+<tr><td>CT</td><td>Operating as the systemd service <code>adsb-cue</code>, enabled at boot; publishes CT 2.0.0 compressed with dictionary 1.</td><td><a href="https://github.com/lhilleMAT2022/ADSB-remoter/tree/feature/passive-radar-cueing">ADSB-remoter <code>feature/passive-radar-cueing</code></a> (deployed at <a href="https://github.com/lhilleMAT2022/ADSB-remoter/blob/55062fc8a4ccacbcb7cedb5dfe8cdbe7a23c8f21"><code>55062fc</code></a>)</td><td>ADS-B Pi</td></tr>
+<tr><td>RM</td><td>First piece only: CueListener receives and ranks cues; no tasking. Run by hand.</td><td><a href="https://github.com/pwilliamMAT/flightTest/tree/feature/adsb-cue-listener">flightTest <code>feature/adsb-cue-listener</code></a> (review point <a href="https://github.com/pwilliamMAT/flightTest/tree/94bf9247fc9384fd0601e7ef4654f2a1630485c6/CueListener"><code>94bf924</code></a>); stays on the branch pending review (A-1)</td><td>Collection desktop</td></tr>
+<tr><td>RC</td><td>Rev 1 capture scripts; not driven by tasks.</td><td>flightTest <code>TestSetupTesting/</code></td><td>Collection desktop</td></tr>
+<tr><td>SP</td><td>Offline pipeline; detector not yet producing truth-matched detections.</td><td>flightTest <code>BistaticDataAnalysis/</code></td><td>Desktops</td></tr>
+<tr><td>CM</td><td>Pluto calibration scripts and a geometry-based DTV level check.</td><td>flightTest <code>feature/pluto-azimuth-environment-scan</code>; the <code>dtv*</code> scripts also on <code>feature/adsb-cue-listener</code></td><td>Collection desktop</td></tr>
+<tr><td>TR, RD, AM, AC</td><td>Not built.</td><td>—</td><td>—</td></tr>
+</tbody></table></div>
+</section>
+<section id="config">
+<h2>Deployed cue-tasker configuration</h2>
+<div class="table-wrap"><table class="decision-table" style="min-width:640px"><thead><tr><th style="width:45%">Setting</th><th>Value</th></tr></thead><tbody>
+<tr><td>Observers</td><td>The real receive site only; receiver 10 dBi, NF 3 dB, 8 MHz (set explicitly)</td></tr>
+<tr><td>Prediction horizon / sample interval</td><td>600 s / 10 s</td></tr>
+<tr><td>Detection threshold for predicted windows</td><td>−10 dB, pre-integration (modeled)</td></tr>
+<tr><td>Maximum prediction age; ADS-B report age for “degraded”</td><td>30 s; 20 s</td></tr>
+<tr><td>Destination</td><td>UDP multicast <code>239.192.10.1:31986</code>, TTL 1</td></tr>
+<tr><td>Encoding; datagram limit; opportunities per cue</td><td><code>deflate_dictionary</code> with dictionary 1; 1472 B; up to 8</td></tr>
+<tr><td>Heartbeat; snapshot</td><td>10 s; 60 s</td></tr>
+</tbody></table></div>
+<p class="source">Source: <a href="https://github.com/lhilleMAT2022/ADSB-remoter/blob/55062fc8a4ccacbcb7cedb5dfe8cdbe7a23c8f21/deploy/pi-cue-config.json"><code>deploy/pi-cue-config.json</code></a>, <a href="https://github.com/lhilleMAT2022/ADSB-remoter/blob/55062fc8a4ccacbcb7cedb5dfe8cdbe7a23c8f21/deploy/pi-observers.ini"><code>deploy/pi-observers.ini</code></a>, <a href="https://github.com/lhilleMAT2022/ADSB-remoter/blob/55062fc8a4ccacbcb7cedb5dfe8cdbe7a23c8f21/deploy/adsb-cue.service"><code>deploy/adsb-cue.service</code></a>.</p>
+</section>
+<section id="time">
+<h2>Time source</h2>
+<div class="two-col">
+<div class="callout"><strong>Accepted: internet NTP</strong><ul class="plain-list"><li>chrony on the Pi keeps time from internet NTP, routed through the collection desktop.</li><li>Stated tolerance: <strong>0.1 s</strong> between the Pi and the collection desktop (accepted by the owner on 26 September 2026, DR-TIME-1). Basis: the one check after NTP was reachable found +0.05 to +0.09 s, limited by SSH jitter; chrony reported 0.3 ms to its source.</li><li>Why 0.1 s is enough for now: at up to about 290 m/s, 0.1 s changes the bistatic range by at most about 58 m, about one range cell for a ~5.4 MHz ATSC signal.</li></ul></div>
+<div class="callout warn"><strong>To do and open</strong><ul class="plain-list"><li>Hardware to-do: GPS/PPS reference clocks are configured but not locked; a loose component is suspected. Reseat and re-check (A-2, Leif; DR-TIME-3). Not a blocker for NTP-based timing.</li><li>Open: the Pi was measured 14.9 s slow before 2026-09-25 21:07 UTC. ADS-B truth recorded before then, including the 2026-09-25 tracking scan, is not timing truth until its offset is bounded (A-3, Pat; DR-TIME-4).</li><li>Open: no package yet records the hosts' time-sync state (DR-TIME-2).</li></ul></div>
+</div>
+</section>
+<section id="actions">
+<h2>Action register</h2>
+<div class="table-wrap"><table class="decision-table">
+<thead><tr><th style="width:7%">ID</th><th style="width:38%">Action</th><th style="width:14%">Who</th><th style="width:16%">Traces to</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>A-1</td><td>Review the CueListener branch <a href="https://github.com/pwilliamMAT/flightTest/tree/feature/adsb-cue-listener"><code>feature/adsb-cue-listener</code></a> (pinned review point <a href="https://github.com/pwilliamMAT/flightTest/tree/94bf9247fc9384fd0601e7ef4654f2a1630485c6/CueListener"><code>94bf924</code></a>), including the <code>dtv*</code> level-check scripts. CueListener stays on that branch until the review is done.</td><td>Pat</td><td>SR-02, DR-CUE-6, SR-09</td><td>The first piece of the Resource Manager is not on <code>main</code>; a review is the step before any merge.</td></tr>
+<tr><td>A-2</td><td>Reseat the suspected loose component in the Pi's GPS/PPS path and re-check the reference-clock lock.</td><td>Leif (hardware and integration)</td><td>DR-TIME-3</td><td>Hardware troubleshooting to-do. It does not block NTP-based timing, which is accepted.</td></tr>
+<tr><td>A-3</td><td>Bound the Pi clock offset for ADS-B truth recorded before 2026-09-25 21:07 UTC, starting with the 2026-09-25 tracking scan.</td><td>Pat</td><td>DR-TIME-4</td><td>The Pi was measured 14.9 s slow before NTP was reachable; earlier truth is not timing truth until bounded.</td></tr>
+<tr><td>A-4</td><td>Review the DRAFT requirements baseline; it stays DRAFT while CR-10 is open.</td><td>Leif (system)</td><td>CR-10</td><td>The baseline as a whole is not accepted; individual decisions of 2026-09-26 are recorded in it.</td></tr>
+<tr><td>A-5</td><td>Add a repeatable host-clock check (Pi against collection desktop) and record chrony state with every collection.</td><td>Pat</td><td>DR-TIME-1, DR-TIME-2</td><td>The accepted 0.1 s tolerance rests on one SSH-jitter-limited check.</td></tr>
+<tr><td>A-6</td><td>Design Resource Manager scheduling and the <code>collection_task</code> message with <code>cue_ref</code> and <code>collection_basis</code>.</td><td>Leif (system)</td><td>SR-02, DR-TASK-1, DR-TS-1</td><td>Next design step: no collection is yet scheduled from a cue.</td></tr>
+<tr><td>A-7</td><td>Add the CR-9 follow-up to the Proposed ICD §3 messages: an emitter list and a capture bandwidth in <code>collection_task</code> and <code>capture_record</code>, and <code>truth_use</code> in <code>detection_list</code> and <code>track_report</code>; add the truth-separation design rule to the architecture.</td><td>Leif (system)</td><td>CR-9, DR-DATA-7, DR-TS-1, DR-TS-2, DR-TS-6</td><td>CR-9 is accepted; the controlled documents are not updated yet.</td></tr>
+</tbody></table></div>
+<p class="source">Masters: <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/As_Built.md">As_Built.md</a>, <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/Change_Requests.md">CR-8</a>, <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/Verification_Log.md">Verification_Log.md</a>. Host addresses and access details are kept in the master record, not on this site.</p>
+</section>
+
+<footer>
+<p>System Engineering section of the FlightTest reporting site. It is separate from the exploration report family and follows the same evidence rules: every claim states its evidence and claim boundary. Requirement and interface status words (Verified, Partial, Proposed) are defined on the <a href="02_Requirements.html">requirements page</a> and in the ICD; none of them is a radar-performance result.</p>
+</footer>
+</body>
+</html>
