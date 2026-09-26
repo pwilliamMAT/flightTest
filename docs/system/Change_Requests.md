@@ -19,6 +19,8 @@ The owner (Leif) decides each one. Accepted changes are made in the controlled d
 | CR-6 | Stale tracks are not withdrawn until purged | Clarification | ICD §2.0, §2.4 | Open |
 | CR-7 | Single controlled source for observer site geometry | Proposal | Architecture (CT inputs); SiteGeometry.md | Open |
 | CR-8 | As-built corrections to System_Architecture.md | Correction | Architecture: RF Collection Desktop, Raspberry Pi, Time Source, CT, open item 9 | Open |
+| CR-9 | Truth separation for cued collections and cue-aided association | Proposal | Architecture (new design rule); ICD §3.1, §3.5, §3.8, §3.9 (labels, emitter list, capture bandwidth); Requirements DR-TS, DR-DATA-6, DR-DATA-7 | **Accepted** 2026-09-26, with the emitter amendment (documents to be updated) |
+| CR-10 | Adopt a requirements baseline | Proposal | New controlled document [Requirements.md](Requirements.md) | Open (DRAFT for review; individual decisions of 2026-09-26 recorded in it) |
 
 ---
 
@@ -110,3 +112,69 @@ The emitter table also exists in several copies (see the [README](README.md)).
 - **Time Source:** chrony on the Pi keeps time from **internet NTP through that NAT**. The GPS/PPS reference clocks are configured but not locked (as of 2026-09-25). Before NTP was reachable, the Pi ran about 15 s slow, which shifts every cue timestamp and all ADS-B truth. The Time Source is therefore not yet "Operating" as described.
 - **ADSB Cue Tasker:** it runs as the systemd service `adsb-cue`, executing `adsb-console --headless --source 127.0.0.1:30003 --observerfile deploy/pi-observers.ini --cue-config deploy/pi-cue-config.json`, not `python3 -m adsb_remoter`. The Activity Manager does not launch it yet.
 - **Open item 9:** `dtvPredictDirectPath.m` exists: on flightTest `feature/pluto-azimuth-environment-scan` and `feature/adsb-cue-listener`, in `TestSetupTesting/`.
+- **Owner decision, 2026-09-26 (time source):** internet NTP is an accepted time source, with a host-to-host tolerance of 0.1 s, also accepted ([Requirements.md](Requirements.md) DR-TIME-1). The value comes from the one check on 2026-09-25 (+0.05 to +0.09 s, limited by SSH jitter). GPS/PPS lock is a hardware troubleshooting to-do, probably a loose component to reseat (DR-TIME-3). It does not block NTP-based timing. The re-check of ADS-B timing recorded before 2026-09-25 21:07 UTC stays open (DR-TIME-4).
+
+### CR-9: Truth separation for cued collections and cue-aided association
+
+- **Status:** **Accepted** by the owner on 2026-09-26, with the emitter and wide-capture amendment below. The documents listed under "Changes on acceptance" are still to be updated.
+- **Why:** the reporting family's rule is that ADS-B truth is post hoc and must not steer map formation, thresholding, non-maximum suppression or detection. Two things now change that picture, as the owner confirmed on 2026-09-26:
+  - CT cues choose **when** to collect and **with which emitter**, and may set antenna pointing.
+  - The architecture lets the Tracker use cues to help **association**.
+
+  CT cues and the ADS-B truth used for scoring come from the same receiver. Without a rule, evidence from cued collections could be mistaken for independent detection evidence.
+- **Terms:**
+  - A **site** ("tower") is a transmitter site. One site may host several **emitters**: DTV transmitters on different RF channels and frequencies.
+  - An **emitter** is one transmitter on one RF channel, identified by `emitter_id` (`dtv:<facility>:<channel>:<MHz>`). A cue names an emitter, not a site.
+  - A capture may be centred on the cued emitter, or widened (for example to 12 MHz) to take in adjacent channels of interest, so one capture can hold several emitters.
+- **Definitions:**
+  - *Collection basis:* how a capture was chosen.
+    - `cued`: time, emitter or pointing came from a CT cue.
+    - `uncued`: chosen without ADS-B, for example on a timetable.
+    - `calibration`
+    - `survey`
+  - *Truth use:* whether cues or ADS-B entered the processing that made a detection or a track.
+    - `truth_blind`: they entered no step of map formation, thresholding, non-maximum suppression, detection, association or track initiation.
+    - `cue_aided`: they entered any of those steps, for example gating, association aid, track initiation, or the choice of cells to search.
+- **Rule (accepted):**
+  1. **TS-1, label collections.**
+     - Every capture carries `collection_basis`. The label applies to the **whole capture**, including every channel and emitter in it.
+     - A cued capture also carries the `cue_ref` of the prediction that caused it (track, prediction revision, observer, **cued emitter**, window start).
+  2. **TS-2, label products.**
+     - Every detection list and track report carries `truth_use`, judged **per product**.
+     - Every detection list and track report records the **emitter** (`emitter_id`, RF channel) it came from.
+  3. **TS-3, independent evidence.**
+     - Only `truth_blind` products count as independent detection or tracking evidence.
+     - A cued collection may still yield independent detection evidence: choosing when and where to collect is upstream of the IQ, provided that nothing after capture uses the cue or ADS-B.
+     - Truth is attached only after candidates are generated, as in the family rule.
+  4. **TS-4, rates.**
+     - Detection probability measured on cued collections is reported as *conditional on a cued opportunity*.
+     - This applies to **every product from a cued collection**, including products on emitters other than the cued one, because the whole collection was cued.
+     - False-alarm rates state the collections, emitters and cells they were measured on.
+     - A rate measured on cued data is not presented as the rate of uncued operation.
+  5. **TS-5, cue-aided association.**
+     - Results that used cues for association or initiation are scored and reported separately, labelled `cue_aided`, and never presented as independent tracking performance.
+     - Because cues and scoring truth share one ADS-B source, agreement between a cue-aided track and ADS-B is a consistency check, not a measurement.
+  6. **TS-6, scoring source.** Scoring uses the logged ADS-B reports for the collection window, not CT predictions.
+  7. **TS-7, reports.** Every reported result based on cued data states its `collection_basis`, `truth_use` and emitter. `cue_aided` evidence is never classed as operational evidence.
+- **Follow-up (not done here; the ICD is not edited by this CR yet):**
+  - The Proposed ICD §3 messages will need an **emitter list** and a **capture bandwidth**.
+  - Today `collection_task` (§3.1) names a single `emitter_id` and a centre frequency and sample rate. `capture_record` (§3.5) has a centre frequency and sample rate but no emitter list.
+  - `detection_list` (§3.8) and `track_report` (§3.9) already carry `emitter_id`; they still need `truth_use`.
+  - Requirements DR-DATA-7 and DR-TS-6 track this.
+- **Changes on acceptance (to do):**
+  - a "Truth separation" design rule in System_Architecture.md;
+  - the labels, the emitter list and the capture bandwidth in ICD §3.1, §3.5, §3.8 and §3.9. These are all Proposed messages, so no released schema changes;
+  - Requirements DR-TS-1 to DR-TS-6, DR-DATA-6 and DR-DATA-7 follow the rule.
+
+### CR-10: Adopt a requirements baseline
+
+- **Why:** the architecture and ICD had no requirements above them. Nothing traced back to what the testbed is for, so verification had nothing to be traced against.
+- **Proposal:** [Requirements.md](Requirements.md) is a DRAFT baseline:
+  - 2 mission goals;
+  - 6 mission needs;
+  - 15 system requirements;
+  - 30 derived requirements.
+
+  Each requirement has a rationale, parent, allocation, verification method, status, and evidence. No values are invented; unknown values are TBD. The one value set from a measurement (DR-TIME-1, 0.1 s) cites the measurement, and the owner accepted it on 2026-09-26.
+- **Owner decisions so far (2026-09-26):** the 0.1 s tolerance, the Python CT as a named exception, CR-9 with its amendment, and keeping the Report 02 acceptance tests out of the requirements. They are recorded in Requirements.md §7.
+- **Decide:** review each requirement. When the baseline is accepted, remove the DRAFT banner, mark this CR Done, and make Requirements.md a controlled document under the Conventions in [README.md](README.md).

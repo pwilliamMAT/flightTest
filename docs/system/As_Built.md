@@ -15,7 +15,7 @@ Update this file whenever a host, service, address or deployed version changes.
 | SP | Signal Processor | Offline pipeline (`BistaticDataAnalysis/`); the detector is not yet producing truth-matched detections | flightTest | desktops |
 | CM | Calibration Manager | Pluto calibration scripts, plus a geometry-based DTV level check (`dtvPredictDirectPath`, `dtvAbsoluteLevelCheck`, `dtvFitPointing`). None of these are on `main` yet | flightTest `feature/pluto-azimuth-environment-scan` (the `dtv*` scripts are also on `feature/adsb-cue-listener`) | RF Collection Desktop |
 | TR, RD, AM, AC | Tracker, Report & Display, Activity Manager, Antenna Controller | Not built | — | — |
-| Time Source | chrony + gpsd | chrony is synced to **internet NTP** through the desktop NAT. GPS/PPS reference clocks are configured but not locked | — | Pi |
+| Time Source | chrony + gpsd | chrony is synced to **internet NTP** through the desktop NAT; accepted by the owner on 2026-09-26 (CR-8). GPS/PPS reference clocks are configured but not locked. Hardware to-do: reseat the suspected loose component and re-check the lock | — | Pi |
 
 ## Hosts and network
 

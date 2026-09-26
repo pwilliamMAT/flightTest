@@ -20,12 +20,14 @@ This folder is the home of the system engineering material for the testbed: the 
 | [CT_1.1.0_handoff.md](CT_1.1.0_handoff.md) | Work brief that took the CT messages to schema 1.1.0 | received | 2026-09-25 |
 | [CT_1.1.0_report.md](CT_1.1.0_report.md) | The CT agent's report back on that brief | received | 2026-09-25 |
 | [As_Built.md](As_Built.md) | What actually runs, where, and how it is started, updated and monitored | authored here | 2026-09-26 |
-| [Change_Requests.md](Change_Requests.md) | Register of deviations, corrections and proposals against the architecture and ICD (CR-1 … CR-8) | authored here | 2026-09-26 |
+| [Change_Requests.md](Change_Requests.md) | Register of deviations, corrections and proposals against the architecture and ICD (CR-1 … CR-10) | authored here | 2026-09-26 |
+| [Requirements.md](Requirements.md) | **DRAFT** requirements baseline: mission goals, needs, system and derived requirements, with allocation, verification method and status (CR-10) | authored here, for review | 2026-09-26 draft |
 | [Verification_Log.md](Verification_Log.md) | Dated checks and their evidence | authored here | 2026-09-26 |
 | [Engineering_Notes.md](Engineering_Notes.md) | Lessons learned: network, MATLAB, hosts, SE practice | authored here | 2026-09-26 |
 | [analysis/Cue_Traffic_Encoding.md](analysis/Cue_Traffic_Encoding.md) | Label-versus-value analysis of the cue traffic and encoding options (for CR-5) | authored here | 2026-09-26 |
 | [analysis/analyze_cue_traffic.py](analysis/analyze_cue_traffic.py), [analysis/check_matlab_decompress.m](analysis/check_matlab_decompress.m) | Scripts that reproduce the analysis | authored here | 2026-09-26 |
 | [analysis/CT_Message_2.0_Design.md](analysis/CT_Message_2.0_Design.md) | CR-5 design: compressed JSON framing, the dictionary as a controlled artifact, the 2.0.0 value clean-up | authored here | 2026-09-26, approved |
+| [analysis/summarize_cue_capture.py](analysis/summarize_cue_capture.py) | Reproduces the CT 2.0.0 live-acceptance numbers from a wire capture, cross-checks them against the committed summary, and draws the report figures | authored here | 2026-09-26 |
 | [analysis/deployability/](analysis/deployability/) | Compiled-app probe: Java multicast and deflate-with-dictionary in a standalone MATLAB app | authored here | 2026-09-26 |
 | [evidence/](evidence/) | Raw wire captures behind the verification log: one JSON message per line, or for compressed traffic `{received_unix_s, datagram_b64}` per datagram (decode with ADSB-remoter `tools/cue_decode.py`) | captured | 2026-09-26 |
 
@@ -81,4 +83,6 @@ The levels are defined in ICD §0. "Evidence" is the status the evidence support
 |---|---|
 | Top-N opportunity cap | CR-1 |
 | Single source for site geometry | CR-7 |
+| Truth separation for cued collections: accepted; architecture rule and ICD §3 labels, emitter list and capture bandwidth still to add | CR-9 |
+| Requirements baseline (DRAFT) | CR-10, [Requirements.md](Requirements.md) |
 | Remaining architecture open items | System_Architecture.md, "Remaining Open Items" |
