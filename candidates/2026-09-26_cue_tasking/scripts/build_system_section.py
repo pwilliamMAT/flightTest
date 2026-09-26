@@ -41,7 +41,7 @@ SNAPSHOT = "26 September 2026"
 PAGES = [
     ("index.html", "0", "Process and status"),
     ("01_MissionAndNeeds.html", "1", "Mission and needs"),
-    ("02_Requirements.html", "2", "Requirements"),
+    ("02_Requirements.html", "2", "Requirements (DRAFT)"),
     ("03_ArchitectureAndAllocation.html", "3", "Architecture and allocation"),
     ("04_Interfaces.html", "4", "Interfaces"),
     ("05_VerificationAndTraceability.html", "5", "Verification and traceability"),
@@ -254,19 +254,24 @@ ACTIONS = f"""<div class="table-wrap"><table class="decision-table">
 <thead><tr><th style="width:7%">ID</th><th style="width:38%">Action</th><th style="width:14%">Who</th><th style="width:16%">Traces to</th><th>Why</th></tr></thead>
 <tbody>
 <tr><td>A-1</td><td>Review the CueListener branch <a href="{CUE_BRANCH}"><code>feature/adsb-cue-listener</code></a> (pinned review point <a href="{CUE_PIN}"><code>94bf924</code></a>), including the <code>dtv*</code> level-check scripts. CueListener stays on that branch until the review is done.</td><td>Pat</td><td>SR-02, DR-CUE-6, SR-09</td><td>The first piece of the Resource Manager is not on <code>main</code>; a review is the step before any merge.</td></tr>
-<tr><td>A-2</td><td>Reseat the suspected loose component in the Pi's GPS/PPS path and re-check the reference-clock lock.</td><td>Testbed engineers (TBD)</td><td>DR-TIME-3</td><td>Hardware troubleshooting to-do. It does not block NTP-based timing, which is accepted.</td></tr>
-<tr><td>A-3</td><td>Bound the Pi clock offset for ADS-B truth recorded before 2026-09-25 21:07 UTC, starting with the 2026-09-25 tracking scan.</td><td>TBD</td><td>DR-TIME-4</td><td>The Pi was measured 14.9 s slow before NTP was reachable; earlier truth is not timing truth until bounded.</td></tr>
-<tr><td>A-4</td><td>Review the DRAFT requirements baseline and the truth-separation rule text.</td><td>Owner</td><td>CR-10, CR-9</td><td>Nothing in the baseline or the rule is accepted yet.</td></tr>
-<tr><td>A-5</td><td>Add a repeatable host-clock check (Pi against collection desktop) and record chrony state with every collection.</td><td>TBD</td><td>DR-TIME-1, DR-TIME-2</td><td>The 0.1 s tolerance rests on one SSH-jitter-limited check.</td></tr>
-<tr><td>A-6</td><td>Design Resource Manager scheduling and the <code>collection_task</code> message with <code>cue_ref</code> and <code>collection_basis</code>.</td><td>TBD</td><td>SR-02, DR-TASK-1, DR-TS-1</td><td>Next design step: no collection is yet scheduled from a cue.</td></tr>
+<tr><td>A-2</td><td>Reseat the suspected loose component in the Pi's GPS/PPS path and re-check the reference-clock lock.</td><td>Leif (hardware and integration)</td><td>DR-TIME-3</td><td>Hardware troubleshooting to-do. It does not block NTP-based timing, which is accepted.</td></tr>
+<tr><td>A-3</td><td>Bound the Pi clock offset for ADS-B truth recorded before 2026-09-25 21:07 UTC, starting with the 2026-09-25 tracking scan.</td><td>Pat</td><td>DR-TIME-4</td><td>The Pi was measured 14.9 s slow before NTP was reachable; earlier truth is not timing truth until bounded.</td></tr>
+<tr><td>A-4</td><td>Review the DRAFT requirements baseline; it stays DRAFT while CR-10 is open.</td><td>Leif (system)</td><td>CR-10</td><td>The baseline as a whole is not accepted; individual decisions of 2026-09-26 are recorded in it.</td></tr>
+<tr><td>A-5</td><td>Add a repeatable host-clock check (Pi against collection desktop) and record chrony state with every collection.</td><td>Pat</td><td>DR-TIME-1, DR-TIME-2</td><td>The accepted 0.1 s tolerance rests on one SSH-jitter-limited check.</td></tr>
+<tr><td>A-6</td><td>Design Resource Manager scheduling and the <code>collection_task</code> message with <code>cue_ref</code> and <code>collection_basis</code>.</td><td>Leif (system)</td><td>SR-02, DR-TASK-1, DR-TS-1</td><td>Next design step: no collection is yet scheduled from a cue.</td></tr>
+<tr><td>A-7</td><td>Add the CR-9 follow-up to the Proposed ICD §3 messages: an emitter list and a capture bandwidth in <code>collection_task</code> and <code>capture_record</code>, and <code>truth_use</code> in <code>detection_list</code> and <code>track_report</code>; add the truth-separation design rule to the architecture.</td><td>Leif (system)</td><td>CR-9, DR-DATA-7, DR-TS-1, DR-TS-2, DR-TS-6</td><td>CR-9 is accepted; the controlled documents are not updated yet.</td></tr>
 </tbody></table></div>"""
 
 DECISIONS = """<ul class="plain-list">
 <li><strong>Two report tracks.</strong> The exploration report family ("can we do it, and what does it look like") stays at nine reports. System engineering is presented in this separate section as a formal design process.</li>
-<li><strong>Time source.</strong> Internet NTP is an accepted time source. The stated host-to-host tolerance is 0.1 s (proposed in DR-TIME-1 from the one measurement). GPS/PPS lock is a hardware troubleshooting to-do, not a blocker for NTP-based timing. The re-check of earlier ADS-B timing stays open.</li>
-<li><strong>Truth separation.</strong> Cues now choose when to collect and with which tower, and the Tracker may use cues to help association. A written rule is needed so that evidence from cued collections is never mistaken for independent detection evidence. The rule text is proposed as CR-9 (<a href="06_TruthSeparation.html">page 6</a>).</li>
+<li><strong>Requirements.</strong> The baseline is published labelled DRAFT; CR-10 stays open. Values still marked TBD stay TBD for now.</li>
+<li><strong>Time source.</strong> Internet NTP is an accepted time source, with an accepted host-to-host tolerance of 0.1 s (DR-TIME-1). GPS/PPS lock is a hardware troubleshooting to-do, not a blocker for NTP-based timing. The re-check of earlier ADS-B timing stays open.</li>
+<li><strong>MATLAB exception.</strong> The Python Cue Tasker is an accepted named exception under MG-1 (DR-DEP-4).</li>
+<li><strong>Truth separation.</strong> CR-9 is accepted, amended for sites that host several emitters and for captures widened (for example to 12 MHz) to take in adjacent channels: the cued/uncued label covers the whole capture, every product records its emitter, and products on other emitters of a cued collection are still conditional on the cue (<a href="06_TruthSeparation.html">page 6</a>). The ICD and architecture follow-up is action A-7.</li>
+<li><strong>Report 02 criteria.</strong> The Report 02 acceptance tests stay in Report 02 and do not become derived requirements.</li>
+<li><strong>Owners.</strong> System, RF and integration actions go to Leif; everything else to Pat.</li>
 <li><strong>Code location.</strong> CueListener and the <code>dtv*</code> scripts stay on <code>feature/adsb-cue-listener</code>, with a review action for Pat (A-1).</li>
-<li><strong>Figure script.</strong> The script that reproduces the cue-interface numbers lives in <code>docs/system/analysis/</code>.</li>
+<li><strong>Release build.</strong> No full TechnicalSummaryFamily release build is run: it needs files that exist only on the Windows workstation. This is recorded as a known limitation.</li>
 </ul>"""
 
 
@@ -280,11 +285,11 @@ def boundary(text: str) -> str:
 def page_index() -> str:
     steps = [
         ("01_MissionAndNeeds.html", "1", "Mission and needs", "Two mission goals, five stakeholder groups, six mission needs.", "Draft", "t-partial", "Requirements.md §1–3"),
-        ("02_Requirements.html", "2", "Requirements", f"{len(level('SR-'))} system and {len(level('DR-'))} derived requirements with allocation, method and status.", "DRAFT baseline (CR-10)", "t-partial", "Requirements.md"),
+        ("02_Requirements.html", "2", "Requirements (DRAFT)", f"DRAFT baseline: {len(level('SR-'))} system and {len(level('DR-'))} derived requirements with allocation, method and status.", "DRAFT baseline (CR-10)", "t-partial", "Requirements.md"),
         ("03_ArchitectureAndAllocation.html", "3", "Architecture and allocation", "Ten software items allocated to three hosts; deployment policy; design rules.", "Controlled (rev. 2026-09-25)", "t-info", "System_Architecture.md"),
         ("04_Interfaces.html", "4", "Interfaces", "Message contract: envelope, transport, framing, per-message status.", "ICD Draft B; CT messages Verified", "t-partial", "ICD_Messages.md"),
         ("05_VerificationAndTraceability.html", "5", "Verification and traceability", "Every requirement traced to its method, status and evidence.", f"{sum(1 for r in REQS if status_key(r.get('Status','')) == 'Verified')} requirements verified", "t-partial", "Verification_Log.md"),
-        ("06_TruthSeparation.html", "6", "Truth separation", "How cued collections and cue-aided association are labelled and scored.", "Proposed (CR-9)", "t-proposed", "Change_Requests.md CR-9"),
+        ("06_TruthSeparation.html", "6", "Truth separation", "How cued collections and cue-aided association are labelled and scored.", "Accepted (CR-9); not yet implemented", "t-partial", "Change_Requests.md CR-9"),
         ("07_AsBuiltAndConfiguration.html", "7", "As-built and configuration", "What runs where, deployed configuration, time source, actions.", "Recorded 2026-09-26", "t-info", "As_Built.md"),
         ("SDR_CT_CueTasking_V1.html", "SDR", "Subsystem record: CT", "ADS-B Cue Tasker design, deployment and live cue-interface verification.", "1 of 10 items recorded", "t-partial", "ADSB-remoter; evidence/"),
     ]
@@ -359,7 +364,7 @@ def page_mission() -> str:
 <h2>Mission needs</h2>
 <p class="eli5"><strong>Bottom line (ELI5):</strong> Six needs connect the goals to requirements. Only one of them (datasets that can be shared) has no part met yet.</p>
 {req_table(level("MN-"), with_rationale=False)}
-<div class="callout warn"><strong>Open point for the owner:</strong> the Cue Tasker is written in Python. The architecture names it as an exception to the MATLAB rule; whether that exception is consistent with MG-1 is for the owner to confirm (DR-DEP-4).</div>
+<div class="callout"><strong>Named exception, accepted:</strong> the Cue Tasker is written in Python. The owner accepted it on 26 September 2026 as a named exception under MG-1, alongside the system services and the antenna-node firmware (DR-DEP-4).</div>
 <p class="source">Master: <a href="{MAIN}/Requirements.md">docs/system/Requirements.md</a> §1–3 (DRAFT, CR-10).</p>
 </section>
 """
@@ -382,7 +387,7 @@ def page_requirements() -> str:
     for title, rows in groups:
         sections.append(f"<h3>{title} ({len(rows)})</h3>{req_table(rows)}")
     body = f"""
-<div class="draft-banner">DRAFT requirements baseline for owner review (proposed by CR-10, 26 September 2026). No requirement is accepted yet. Values marked TBD are unknown; the one proposed value (DR-TIME-1, 0.1 s) cites its measurement.</div>
+<div class="draft-banner">DRAFT — requirements baseline for owner review (CR-10, open). The baseline as a whole is not accepted. Owner decisions of 26 September 2026 on individual items are recorded below; values marked TBD are still unknown.</div>
 <section id="purpose">
 <h2>Purpose</h2>
 <p class="eli5"><strong>Bottom line (ELI5):</strong> Until now the testbed had a design but no written list of what it must do. This baseline starts from the two mission goals and works down, writing requirements only where the goals or existing design decisions already call for them, and marks every unknown value as TBD rather than guessing.</p>
@@ -405,17 +410,16 @@ def page_requirements() -> str:
 {''.join(sections)}
 </section>
 <section id="open">
-<h2>Open points for the owner</h2>
+<h2>Owner decisions and open points</h2>
+<p><strong>Decided 26 September 2026:</strong> the 0.1 s host-clock tolerance (DR-TIME-1); the Python Cue Tasker as an accepted named exception (DR-DEP-4); the truth-separation rule CR-9 with its emitter and wide-capture amendment (DR-TS-1 to DR-TS-6, DR-DATA-7); the Report 02 acceptance tests stay in Report 02 and are not derived requirements.</p>
 <ol class="plain-list">
-<li>Accept, change or reject each requirement; decide each TBD and the proposed 0.1 s tolerance.</li>
-<li>Is a Python cue tasker consistent with MG-1, or should CT eventually move to MATLAB (DR-DEP-4)?</li>
-<li>What must a data-release statement contain, and who approves it (SR-11, DR-DATA-5)?</li>
-<li>Should the Report 02 acceptance criteria (A-B-A reference test, 30 s drop test) become derived requirements under SR-03 and SR-10?</li>
+<li>Accept, change or reject each requirement; the baseline stays DRAFT while CR-10 is open.</li>
+<li>Values still TBD: pointing tolerance (SR-04), ADS-B lead and tail (DR-DATA-4), content and approver of the data-release statement (SR-11, DR-DATA-5).</li>
 </ol>
 <p class="source">Master: <a href="{MAIN}/Requirements.md">docs/system/Requirements.md</a>; change request CR-10 in <a href="{MAIN}/Change_Requests.md">Change_Requests.md</a>.</p>
 </section>
 """
-    return page("02_Requirements.html", "System Requirements (Draft Baseline)", "System engineering · step 2",
+    return page("02_Requirements.html", "System Requirements — DRAFT Baseline", "System engineering · step 2",
                 "From mission goals to derived requirements, with allocation, verification method and status", body,
                 "Draft requirements baseline of the passive radar testbed.")
 
@@ -482,8 +486,8 @@ def page_architecture() -> str:
 <ul class="plain-list">
 <li><strong>Deployment:</strong> one entry point per MATLAB item; host-specific values from configuration; privileged host setup outside the apps; deployability of every toolbox or hardware dependency proven in a compiled app first (SR-12, DR-DEP-1 to DR-DEP-4).</li>
 <li><strong>Transport:</strong> TCP for tasks, captures, detections, tracks and calibration; UDP for heartbeats and antenna state; the cue stream is UDP multicast by design, recovered by snapshots and sequence numbers (<a href="04_Interfaces.html">Interfaces</a>).</li>
-<li><strong>Timing:</strong> hosts keep UTC through the Time Source; internet NTP is accepted, with a proposed 0.1 s host-to-host tolerance; the N320 takes no PPS or 10 MHz reference (<a href="07_AsBuiltAndConfiguration.html">As-built</a>).</li>
-<li><strong>Truth separation (proposed):</strong> collections and products are labelled by how cues and truth were used, and only truth-blind products count as independent evidence (<a href="06_TruthSeparation.html">Truth separation</a>, CR-9).</li>
+<li><strong>Timing:</strong> hosts keep UTC through the Time Source; internet NTP is accepted, with an accepted 0.1 s host-to-host tolerance; the N320 takes no PPS or 10 MHz reference (<a href="07_AsBuiltAndConfiguration.html">As-built</a>).</li>
+<li><strong>Truth separation (accepted, CR-9):</strong> every capture is labelled by how it was chosen, every product by how cues and truth were used and by its emitter, and only truth-blind products count as independent evidence (<a href="06_TruthSeparation.html">Truth separation</a>). The design rule is still to be added to the architecture (A-7).</li>
 </ul>
 <p class="source">Masters: <a href="{MAIN}/System_Architecture.md">System_Architecture.md</a> (as designed, rev. 2026-09-25), <a href="{MAIN}/As_Built.md">As_Built.md</a> (as built), <a href="{MAIN}/Change_Requests.md">CR-8</a> (as-built corrections).</p>
 </section>
@@ -538,6 +542,7 @@ def page_interfaces() -> str:
 <h2>Message register</h2>
 <div class="table-wrap"><table class="decision-table" style="min-width:700px"><thead><tr><th style="width:38%">Message</th><th style="width:25%">Producer → consumers</th><th>ICD Draft B status</th></tr></thead><tbody>{rows}</tbody></table></div>
 <p class="small">The proposed <code>truth_track</code> message was dropped: the Tracker and Report &amp; Display consume <code>track_cue</code> directly. That is why truth separation (<a href="06_TruthSeparation.html">page 6</a>) matters for the Tracker.</p>
+<div class="callout warn"><strong>Follow-up from CR-9 (not yet in the ICD):</strong> <code>collection_task</code> and <code>capture_record</code> will need an emitter list and a capture bandwidth, because one capture can cover several emitters (a site may host several, and a capture may be widened to about 12 MHz). <code>detection_list</code> and <code>track_report</code> already carry <code>emitter_id</code> and will need <code>truth_use</code>. Action A-7.</div>
 </section>
 <section id="conventions">
 <h2>Conventions every message follows</h2>
@@ -632,44 +637,54 @@ def page_truth() -> str:
     body = f"""
 <section id="purpose">
 <h2>Purpose</h2>
-<p class="eli5"><strong>Bottom line (ELI5):</strong> ADS-B now plays two roles: it tells us when and where to listen, and it is the answer key we mark the radar against. If the same information also helped the radar find the aircraft, marking it against the answer key would prove nothing. This rule keeps the two roles apart and makes every result say which role ADS-B played.</p>
-<div class="callout warn"><strong>Status:</strong> proposed as CR-9. The owner accepted the need on 26 September 2026 (cues choose when to collect and with which tower, and the Tracker may use cues to help association); the rule text below is for review. Until it is accepted, no result from a cued collection may be presented as independent detection evidence.</div>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> ADS-B now plays two roles: it tells us when and where to listen, and it is the answer key we mark the radar against. If the same information also helped the radar find the aircraft, marking it against the answer key would prove nothing. This rule keeps the two roles apart and makes every result say which role ADS-B played, and which transmitter lit the aircraft.</p>
+<div class="callout"><strong>Status:</strong> accepted as CR-9 on 26 September 2026, with an amendment for sites that host several emitters and for captures widened to take in adjacent channels. The labels are not yet implemented: the ICD messages that will carry them are still Proposed, and the design rule is still to be added to the architecture (action A-7). No cued collection has been made yet.</div>
 {boundary("this page defines how evidence is labelled and counted. It creates no evidence, and it does not change any existing claim of the exploration family, whose rule that ADS-B truth is post hoc and must not steer map formation, thresholding, non-maximum suppression or detection still applies.")}
 </section>
 <section id="definitions">
-<h2>Definitions</h2>
+<h2>Terms and definitions</h2>
+<div class="callout"><strong>Site, emitter, capture.</strong> A <strong>site</strong> (“tower”) is a transmitter site. One site may host several <strong>emitters</strong>: DTV transmitters on different RF channels and frequencies. An emitter is identified by <code>emitter_id</code> (<code>dtv:&lt;facility&gt;:&lt;channel&gt;:&lt;MHz&gt;</code>), and <strong>a cue names an emitter</strong>, not a site. A <strong>capture</strong> may be centred on the cued emitter or widened, for example to 12 MHz, to take in adjacent channels of interest, so one capture can hold several emitters.</div>
 <div class="two-col">
-<div class="callout"><strong>Collection basis</strong> (how a capture was chosen)<ul class="plain-list"><li><code>cued</code>: time, illuminator or pointing came from a CT cue.</li><li><code>uncued</code>: chosen without ADS-B, for example on a timetable.</li><li><code>calibration</code>, <code>survey</code>.</li></ul></div>
-<div class="callout"><strong>Truth use</strong> (did cues or ADS-B enter the processing?)<ul class="plain-list"><li><code>truth_blind</code>: no cue or ADS-B input to map formation, thresholding, non-maximum suppression, detection, association or track initiation.</li><li><code>cue_aided</code>: any such input, for example gating, association aid, track initiation, or the choice of cells to search.</li></ul></div>
+<div class="callout"><strong>Collection basis</strong> (how a capture was chosen; applies to the whole capture)<ul class="plain-list"><li><code>cued</code>: time, emitter or pointing came from a CT cue.</li><li><code>uncued</code>: chosen without ADS-B, for example on a timetable.</li><li><code>calibration</code>, <code>survey</code>.</li></ul></div>
+<div class="callout"><strong>Truth use</strong> (did cues or ADS-B enter the processing? judged per product)<ul class="plain-list"><li><code>truth_blind</code>: no cue or ADS-B input to map formation, thresholding, non-maximum suppression, detection, association or track initiation.</li><li><code>cue_aided</code>: any such input, for example gating, association aid, track initiation, or the choice of cells to search.</li></ul></div>
 </div>
 </section>
 <section id="rules">
-<h2>Proposed rule</h2>
+<h2>Accepted rule</h2>
 <div class="table-wrap"><table class="decision-table"><thead><tr><th style="width:8%">Rule</th><th style="width:52%">Text</th><th>Where it lands</th></tr></thead><tbody>
-<tr><td>TS-1</td><td><strong>Label collections.</strong> Every capture carries <code>collection_basis</code>; a cued capture also carries the <code>cue_ref</code> of the prediction that caused it (track, prediction revision, observer, emitter, window start).</td><td>ICD <code>collection_task</code>, <code>capture_record</code>, dataset manifest; DR-TS-1, DR-DATA-6</td></tr>
-<tr><td>TS-2</td><td><strong>Label products.</strong> Every detection list and track report carries <code>truth_use</code>.</td><td>ICD <code>detection_list</code>, <code>track_report</code>; DR-TS-2</td></tr>
+<tr><td>TS-1</td><td><strong>Label collections.</strong> Every capture carries <code>collection_basis</code>. The label applies to the <strong>whole capture, including every channel and emitter in it</strong>. A cued capture also carries the <code>cue_ref</code> of the prediction that caused it (track, prediction revision, observer, cued emitter, window start).</td><td>ICD <code>collection_task</code>, <code>capture_record</code>, dataset manifest; DR-TS-1, DR-DATA-6</td></tr>
+<tr><td>TS-2</td><td><strong>Label products.</strong> Every detection list and track report carries <code>truth_use</code>, judged <strong>per product</strong>, and records the <strong>emitter</strong> (<code>emitter_id</code>, RF channel) it came from.</td><td>ICD <code>detection_list</code>, <code>track_report</code>; DR-TS-2, DR-TS-6</td></tr>
 <tr><td>TS-3</td><td><strong>Independent evidence.</strong> Only <code>truth_blind</code> products count as independent detection or tracking evidence. A cued collection can still give independent detection evidence, because choosing when and where to listen happens before the IQ exists, provided that nothing after capture uses the cue or ADS-B. Truth is attached only after candidates are generated.</td><td>DR-TS-3; SR-07</td></tr>
-<tr><td>TS-4</td><td><strong>Rates.</strong> Detection probability from cued collections is reported as conditional on a cued opportunity. False-alarm rates state the collections and cells they were measured on. A rate from cued data is not presented as the rate of uncued operation.</td><td>DR-TS-4</td></tr>
+<tr><td>TS-4</td><td><strong>Rates.</strong> Detection probability from cued collections is reported as conditional on a cued opportunity. This holds for <strong>every product of a cued collection, including products on emitters other than the cued one</strong>, because the whole collection was cued. False-alarm rates state the collections, emitters and cells they were measured on. A rate from cued data is not presented as the rate of uncued operation.</td><td>DR-TS-4</td></tr>
 <tr><td>TS-5</td><td><strong>Cue-aided association.</strong> Results that used cues for association or initiation are scored and reported separately, labelled <code>cue_aided</code>, and never presented as independent tracking performance. Because cues and scoring truth share one ADS-B source, agreement between a cue-aided track and ADS-B is a consistency check, not a measurement.</td><td>DR-TS-5; SR-08</td></tr>
 <tr><td>TS-6</td><td><strong>Scoring source.</strong> Scoring uses the logged ADS-B reports for the collection window, not CT predictions.</td><td>SR-06</td></tr>
-<tr><td>TS-7</td><td><strong>Reports.</strong> Every reported result based on cued data states its <code>collection_basis</code> and <code>truth_use</code>; <code>cue_aided</code> evidence is never classed as operational evidence.</td><td>SR-13; reporting rules</td></tr>
+<tr><td>TS-7</td><td><strong>Reports.</strong> Every reported result based on cued data states its <code>collection_basis</code>, <code>truth_use</code> and emitter; <code>cue_aided</code> evidence is never classed as operational evidence.</td><td>SR-13; reporting rules</td></tr>
 </tbody></table></div>
 </section>
 <section id="examples">
 <h2>How the rule sorts typical cases</h2>
 <div class="table-wrap"><table class="decision-table"><thead><tr><th style="width:40%">Case</th><th style="width:14%">Collection basis</th><th style="width:13%">Truth use</th><th>Independent detection evidence?</th></tr></thead><tbody>
 <tr><td>Timetabled capture; truth-blind detector; ADS-B attached after detection.</td><td>uncued</td><td>truth_blind</td><td>Yes.</td></tr>
-<tr><td>Capture time and tower chosen from a cue; truth-blind detector; ADS-B attached after detection.</td><td>cued</td><td>truth_blind</td><td>Yes, reported as conditional on a cued opportunity (TS-4).</td></tr>
+<tr><td>Capture time and emitter chosen from a cue; truth-blind detector; ADS-B attached after detection.</td><td>cued</td><td>truth_blind</td><td>Yes, reported as conditional on a cued opportunity (TS-4), with the cued emitter recorded.</td></tr>
+<tr><td>Cued capture widened to about 12 MHz; a truth-blind detection on an adjacent channel, from another emitter at the same or another site.</td><td>cued (whole capture)</td><td>truth_blind</td><td>Yes, still conditional on the cue (TS-4); the product records its own emitter, not the cued one (TS-2).</td></tr>
 <tr><td>Cued capture; detector searches only the range-Doppler cells around the cue's prediction.</td><td>cued</td><td>cue_aided</td><td>No. Consistency check only.</td></tr>
 <tr><td>Tracker uses cues to start or associate tracks.</td><td>any</td><td>cue_aided</td><td>No. Scored and reported separately as cue-aided tracking (TS-5).</td></tr>
 <tr><td>Pluto calibration capture.</td><td>calibration</td><td>—</td><td>Not detection evidence; calibration evidence only.</td></tr>
 </tbody></table></div>
-<p class="source">Master (proposed): <a href="{MAIN}/Change_Requests.md">Change_Requests.md, CR-9</a>. Requirements DR-TS-1 to DR-TS-5 in the <a href="02_Requirements.html">draft baseline</a>. Family rule: <a href="../reports/03_AnalysisPipelineAndGateRebuild.html">Report 03</a> (truth separation in the G1–G10 gates).</p>
+</section>
+<section id="followup">
+<h2>Follow-up in the controlled documents</h2>
+<ul class="plain-list">
+<li>The Proposed ICD §3 messages will need an <strong>emitter list</strong> and a <strong>capture bandwidth</strong>: <code>collection_task</code> today names one <code>emitter_id</code>, and <code>capture_record</code> has a centre frequency and sample rate but no emitter list (DR-DATA-7).</li>
+<li><code>detection_list</code> and <code>track_report</code> already carry <code>emitter_id</code>; they will need <code>truth_use</code> (DR-TS-2, DR-TS-6).</li>
+<li>A “Truth separation” design rule is to be added to the architecture. All of this is action A-7 (Leif); the ICD is not edited yet.</li>
+</ul>
+<p class="source">Master: <a href="{MAIN}/Change_Requests.md">Change_Requests.md, CR-9</a> (accepted 2026-09-26). Requirements DR-TS-1 to DR-TS-6 and DR-DATA-6, DR-DATA-7 in the <a href="02_Requirements.html">DRAFT baseline</a>. Family rule: <a href="../reports/03_AnalysisPipelineAndGateRebuild.html">Report 03</a> (truth separation in the G1–G10 gates).</p>
 </section>
 """
     return page("06_TruthSeparation.html", "Truth Separation for Cued Collections", "System engineering · step 6",
                 "How cued collections and cue-aided association are labelled, counted and scored", body,
-                "Proposed truth-separation rule for cued collections and cue-aided association.")
+                "Accepted truth-separation rule (CR-9) for cued collections and cue-aided association.")
 
 
 def page_asbuilt() -> str:
@@ -707,8 +722,8 @@ def page_asbuilt() -> str:
 <section id="time">
 <h2>Time source</h2>
 <div class="two-col">
-<div class="callout"><strong>Accepted: internet NTP</strong><ul class="plain-list"><li>chrony on the Pi keeps time from internet NTP, routed through the collection desktop.</li><li>Stated tolerance: <strong>0.1 s</strong> between the Pi and the collection desktop (proposed, DR-TIME-1). Basis: the one check after NTP was reachable found +0.05 to +0.09 s, limited by SSH jitter; chrony reported 0.3 ms to its source.</li><li>Why 0.1 s is enough for now: at up to about 290 m/s, 0.1 s changes the bistatic range by at most about 58 m, about one range cell for a ~5.4 MHz ATSC signal.</li></ul></div>
-<div class="callout warn"><strong>To do and open</strong><ul class="plain-list"><li>Hardware to-do: GPS/PPS reference clocks are configured but not locked; a loose component is suspected. Reseat and re-check (A-2, DR-TIME-3). Not a blocker for NTP-based timing.</li><li>Open: the Pi was measured 14.9 s slow before 2026-09-25 21:07 UTC. ADS-B truth recorded before then, including the 2026-09-25 tracking scan, is not timing truth until its offset is bounded (A-3, DR-TIME-4).</li><li>Open: no package yet records the hosts' time-sync state (DR-TIME-2).</li></ul></div>
+<div class="callout"><strong>Accepted: internet NTP</strong><ul class="plain-list"><li>chrony on the Pi keeps time from internet NTP, routed through the collection desktop.</li><li>Stated tolerance: <strong>0.1 s</strong> between the Pi and the collection desktop (accepted by the owner on 26 September 2026, DR-TIME-1). Basis: the one check after NTP was reachable found +0.05 to +0.09 s, limited by SSH jitter; chrony reported 0.3 ms to its source.</li><li>Why 0.1 s is enough for now: at up to about 290 m/s, 0.1 s changes the bistatic range by at most about 58 m, about one range cell for a ~5.4 MHz ATSC signal.</li></ul></div>
+<div class="callout warn"><strong>To do and open</strong><ul class="plain-list"><li>Hardware to-do: GPS/PPS reference clocks are configured but not locked; a loose component is suspected. Reseat and re-check (A-2, Leif; DR-TIME-3). Not a blocker for NTP-based timing.</li><li>Open: the Pi was measured 14.9 s slow before 2026-09-25 21:07 UTC. ADS-B truth recorded before then, including the 2026-09-25 tracking scan, is not timing truth until its offset is bounded (A-3, Pat; DR-TIME-4).</li><li>Open: no package yet records the hosts' time-sync state (DR-TIME-2).</li></ul></div>
 </div>
 </section>
 <section id="actions">
@@ -732,11 +747,11 @@ The masters stay in flightTest `docs/system/` on `main` (architecture, requireme
 | --- | --- | --- |
 | [index.html](index.html) | 0 | Process overview, decisions, action register, status at a glance |
 | [01_MissionAndNeeds.html](01_MissionAndNeeds.html) | 1 | Mission goals, stakeholders, mission needs |
-| [02_Requirements.html](02_Requirements.html) | 2 | DRAFT requirements baseline: tree, status counts, full tables |
+| [02_Requirements.html](02_Requirements.html) | 2 | **DRAFT** requirements baseline (CR-10 open): tree, status counts, full tables |
 | [03_ArchitectureAndAllocation.html](03_ArchitectureAndAllocation.html) | 3 | Architecture figure, items, allocation, requirements per item, design rules |
 | [04_Interfaces.html](04_Interfaces.html) | 4 | ICD summary: status ladder, message register, conventions, transport |
 | [05_VerificationAndTraceability.html](05_VerificationAndTraceability.html) | 5 | Verification activities and the traceability matrix |
-| [06_TruthSeparation.html](06_TruthSeparation.html) | 6 | Proposed rule for cued collections and cue-aided association (CR-9) |
+| [06_TruthSeparation.html](06_TruthSeparation.html) | 6 | Accepted rule for cued collections and cue-aided association (CR-9), with the multi-emitter and wide-capture amendment |
 | [07_AsBuiltAndConfiguration.html](07_AsBuiltAndConfiguration.html) | 7 | As-built items, deployed configuration, time source, actions |
 | [SDR_CT_CueTasking_V1.html](SDR_CT_CueTasking_V1.html) | SDR | Subsystem design record 1: ADS-B Cue Tasker and the verified cue interface |
 

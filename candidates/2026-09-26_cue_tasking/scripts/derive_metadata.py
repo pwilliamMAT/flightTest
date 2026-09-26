@@ -35,23 +35,25 @@ RESULT_06_OLD = "Map-contract verification and collection/reference qualificatio
 RESULT_06 = ("Map-contract verification and collection/reference qualification remain independent blockers; "
              "the ADS-B cue interface is verified as infrastructure only.")
 UNKNOWN_06_OLD = "Passing map-contract correction and reviewed collection/reference-path qualification."
-UNKNOWN_06 = ("Passing map-contract correction, reviewed collection/reference-path qualification, an accepted "
-              "truth-separation rule for cued collections, and a first collection scheduled from an ADS-B cue.")
+UNKNOWN_06 = ("Passing map-contract correction, reviewed collection/reference-path qualification, implemented "
+              "truth-separation labels for cued collections (CR-9), and a first collection scheduled from an ADS-B cue.")
 EVIDENCE_02_OLD = "Report 02 V4 package/manifests and qualification criteria."
 EVIDENCE_02 = "Report 02 V5 package/manifests, qualification criteria, and as-built cueing/time state."
 MANIFEST_GAPS = [
     "The ADS-B Pi time source is NTP-disciplined (accepted); GPS/PPS lock is a hardware to-do, and Pi-timed ADS-B truth before 2026-09-25 21:07 UTC carries an unknown clock offset.",
     "ADS-B cues are verified as a message interface only; no collection has been scheduled from a cue.",
-    "The truth-separation rule for cued collections and cue-aided association is proposed (CR-9), not accepted.",
+    "The truth-separation rule for cued collections and cue-aided association is accepted (CR-9) but its labels are not yet implemented.",
+    "No full TechnicalSummaryFamily release build was run for 02 V5 and 06 V3: a full build needs files that exist only on the Windows workstation.",
 ]
 KNOWN_GAPS_ADDED = (
     "\n## Added 2026-09-26 (cue-tasking update)\n\n"
-    "- The ADS-B Pi keeps time from internet NTP, which is accepted, with a proposed 0.1 s host-to-host tolerance; GPS/PPS lock is a hardware to-do. Before 2026-09-25 21:07 UTC the Pi was measured 14.9 s slow, so Pi-timed ADS-B truth from earlier collections carries an unknown offset until it is re-checked (Report 02 V5 TIME-001; Report 06 V3 STAT-010).\n"
+    "- The ADS-B Pi keeps time from internet NTP, which is accepted, with an accepted 0.1 s host-to-host tolerance; GPS/PPS lock is a hardware to-do. Before 2026-09-25 21:07 UTC the Pi was measured 14.9 s slow, so Pi-timed ADS-B truth from earlier collections carries an unknown offset until it is re-checked (Report 02 V5 TIME-001; Report 06 V3 STAT-010).\n"
     "- The ADS-B cue interface is verified as a message interface only. The Resource Manager does not schedule collections, and no collection has been made from a cue (Report 06 V3 STAT-009, STAT-012).\n"
-    "- Cues choose when and with which tower to collect, and the Tracker may use cues to help association. The truth-separation rule that labels cued collections and cue-aided products is proposed (CR-9, System Engineering section) and not yet accepted; until it is, no cued result counts as independent detection evidence (Report 06 V3 STAT-013).\n"
+    "- Cues choose when and with which emitter to collect, and the Tracker may use cues to help association. The truth-separation rule (CR-9, System Engineering section) is accepted: the cued/uncued label covers the whole capture, including every channel of a capture widened to take in adjacent channels; every product records its emitter and whether it is truth-blind or cue-aided; products on other emitters of a cued collection are still conditional on the cue. The labels are not yet implemented in the ICD or the code, and no cued collection exists yet (Report 06 V3 STAT-013).\n"
     "- Predicted SNR in cues is a modeled, pre-integration ranking estimate and has not been reconciled with the Report 01A/01B models.\n"
-    "- CueListener and the DTV level-check scripts stay on branch `feature/adsb-cue-listener` pending review; the Cue Tasker code is on an ADSB-remoter feature branch.\n"
-    "- The system requirements baseline is a draft (CR-10); no requirement is accepted.\n"
+    "- CueListener and the DTV level-check scripts stay on branch `feature/adsb-cue-listener` pending review by Pat; the Cue Tasker code is on an ADSB-remoter feature branch.\n"
+    "- The system requirements baseline is published as a DRAFT (CR-10 open); only the individual owner decisions of 2026-09-26 recorded in it are accepted.\n"
+    "- No full TechnicalSummaryFamily release build was run for 02 V5 and 06 V3. A full build validates local workstation evidence links and ManagerReport companion files, which exist only on the Windows workstation; the builder and verifier were tested in a scratch workspace instead.\n"
 )
 RELEASE_POLICY_ADDED = (
     " Reports 02 V5 and 06 V3 replace 02 V4 and 06 V2 as the current versions; the superseded files stay in "
@@ -163,6 +165,7 @@ def manifest() -> None:
                   "no TechnicalSummaryFamily release was built for them. The superseded 02 V4 and 06 V2 stay in reports/.",
         "release_hash": "null for the replaced reports until a release is built",
         "builder": "buildTechnicalSummaryFamily.m and verifyTechnicalSummaryFamily.m updated for the new filenames and metadata",
+        "full_build": "not run: a full build needs files that exist only on the Windows workstation (known limitation)",
         "separate_sections": ["system/ (System Engineering section; outside the canonical family)"],
     }]
     (OUT / "family_manifest.json").write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")

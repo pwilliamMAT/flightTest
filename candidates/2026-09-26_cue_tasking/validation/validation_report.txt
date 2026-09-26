@@ -1,29 +1,29 @@
 Candidate files that promotion would publish under reporting/:
-  index.html  (11,569 B)
+  index.html  (11,591 B)
   metadata/family_code_navigation.csv  (11,106 B)
-  metadata/family_evidence_catalog.csv  (10,562 B)
+  metadata/family_evidence_catalog.csv  (10,571 B)
   metadata/family_handoff_catalog.csv  (6,402 B)
-  metadata/family_known_gaps.md  (2,380 B)
-  metadata/family_manifest.json  (32,305 B)
+  metadata/family_known_gaps.md  (2,974 B)
+  metadata/family_manifest.json  (32,599 B)
   metadata/family_visual_catalog.csv  (9,251 B)
-  reporting_README.md  (7,600 B)
-  reports/02_HardwareAndCollection_V5.html  (2,195,463 B)
-  reports/06_StatusAndFutureWork_V3.html  (80,742 B)
-  scripts/buildTechnicalSummaryFamily.m  (92,809 B)
+  reporting_README.md  (7,616 B)
+  reports/02_HardwareAndCollection_V5.html  (2,195,461 B)
+  reports/06_StatusAndFutureWork_V3.html  (81,289 B)
+  scripts/buildTechnicalSummaryFamily.m  (93,613 B)
   scripts/verifyTechnicalSummaryFamily.m  (31,222 B)
-  system/01_MissionAndNeeds.html  (12,788 B)
-  system/02_Requirements.html  (43,155 B)
-  system/03_ArchitectureAndAllocation.html  (22,557 B)
-  system/04_Interfaces.html  (13,739 B)
-  system/05_VerificationAndTraceability.html  (26,460 B)
-  system/06_TruthSeparation.html  (12,712 B)
-  system/07_AsBuiltAndConfiguration.html  (14,634 B)
-  system/README.md  (2,060 B)
-  system/SDR_CT_CueTasking_V1.html  (62,163 B)
+  system/01_MissionAndNeeds.html  (12,837 B)
+  system/02_Requirements.html  (45,451 B)
+  system/03_ArchitectureAndAllocation.html  (22,756 B)
+  system/04_Interfaces.html  (14,216 B)
+  system/05_VerificationAndTraceability.html  (27,490 B)
+  system/06_TruthSeparation.html  (14,986 B)
+  system/07_AsBuiltAndConfiguration.html  (15,244 B)
+  system/README.md  (2,128 B)
+  system/SDR_CT_CueTasking_V1.html  (62,350 B)
   system/SDR_CT_CueTasking_assets/fig_capture_timeline.svg  (35,116 B)
   system/SDR_CT_CueTasking_assets/fig_cue_size_vs_opportunities.svg  (24,059 B)
   system/SDR_CT_CueTasking_assets/fig_message_size.svg  (10,079 B)
-  system/index.html  (16,137 B)
+  system/index.html  (17,375 B)
 
 [1] Well-formedness
   PASS index.html
@@ -110,7 +110,7 @@ Candidate files that promotion would publish under reporting/:
 
 [5] Restricted and draft material in files promotion would publish
   (any FLAG above is reviewed in UPDATE_MEMO.md; 239.192.10.1 is the organization-local multicast group and is not flagged)
-  Intentionally labelled DRAFT content (the requirements baseline and pages that cite it): ['system/01_MissionAndNeeds.html', 'system/02_Requirements.html', 'system/07_AsBuiltAndConfiguration.html', 'system/README.md', 'system/index.html']
+  Intentionally labelled DRAFT content (the requirements baseline and pages that cite it): ['index.html', 'metadata/family_known_gaps.md', 'reporting_README.md', 'scripts/buildTechnicalSummaryFamily.m', 'system/01_MissionAndNeeds.html', 'system/02_Requirements.html', 'system/03_ArchitectureAndAllocation.html', 'system/04_Interfaces.html', 'system/05_VerificationAndTraceability.html', 'system/06_TruthSeparation.html', 'system/07_AsBuiltAndConfiguration.html', 'system/README.md', 'system/SDR_CT_CueTasking_V1.html', 'system/index.html']
 
 [6] Confidential wording on the whole branch (files added or lines added relative to origin/main)
   PASS: 0 confidential-wording hits (3 terms from the external list)

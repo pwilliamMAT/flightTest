@@ -71,7 +71,7 @@
       "latest_version": "02_HardwareAndCollection_V5.html",
       "accepted_version": "02_HardwareAndCollection_V5.html",
       "canonical_filename": "02_HardwareAndCollection_V5.html",
-      "source_hash": "4ddcf21c23c5b80a19ca52175e07646d8f4e3c2cee23683dfd9ccd7dc34a7436",
+      "source_hash": "c4b082054aa0b342c353ab36e4cff9c8cb8ff047e05e55f7868e1cafc2d5ca1f",
       "release_hash": null,
       "content_status": "Older-pattern reference report",
       "primary_question": "What physical hardware and collection infrastructure were built?",
@@ -146,7 +146,7 @@
       "latest_version": "06_StatusAndFutureWork_V3.html",
       "accepted_version": "06_StatusAndFutureWork_V3.html",
       "canonical_filename": "06_StatusAndFutureWork_V3.html",
-      "source_hash": "4c4dbffa31df5d1525b8c679aeb694001b942376cd7ade202263308a55879d49",
+      "source_hash": "fae3cc99f0ee10850fde7bf94948a9f7f913bac1037f98feace4cdd3f7e5f7b6",
       "release_hash": null,
       "content_status": "Partially aligned",
       "primary_question": "Where does the project stand, and what should happen next?",
@@ -180,7 +180,7 @@
       "ReportID": "02",
       "Filename": "02_HardwareAndCollection_V5.html",
       "SourcePath": "flightTest main: reporting/reports/02_HardwareAndCollection_V5.html (accepted through candidate review; not in ManagerReport)",
-      "SourceSHA256": "4ddcf21c23c5b80a19ca52175e07646d8f4e3c2cee23683dfd9ccd7dc34a7436"
+      "SourceSHA256": "c4b082054aa0b342c353ab36e4cff9c8cb8ff047e05e55f7868e1cafc2d5ca1f"
     },
     {
       "ReportID": "02A",
@@ -210,7 +210,7 @@
       "ReportID": "06",
       "Filename": "06_StatusAndFutureWork_V3.html",
       "SourcePath": "flightTest main: reporting/reports/06_StatusAndFutureWork_V3.html (accepted through candidate review; not in ManagerReport)",
-      "SourceSHA256": "4c4dbffa31df5d1525b8c679aeb694001b942376cd7ade202263308a55879d49"
+      "SourceSHA256": "fae3cc99f0ee10850fde7bf94948a9f7f913bac1037f98feace4cdd3f7e5f7b6"
     }
   ],
   "source_asset_hashes": [
@@ -492,7 +492,8 @@
     "No operational detection, tracking, or localization claim is established.",
     "The ADS-B Pi time source is NTP-disciplined (accepted); GPS/PPS lock is a hardware to-do, and Pi-timed ADS-B truth before 2026-09-25 21:07 UTC carries an unknown clock offset.",
     "ADS-B cues are verified as a message interface only; no collection has been scheduled from a cue.",
-    "The truth-separation rule for cued collections and cue-aided association is proposed (CR-9), not accepted."
+    "The truth-separation rule for cued collections and cue-aided association is accepted (CR-9) but its labels are not yet implemented.",
+    "No full TechnicalSummaryFamily release build was run for 02 V5 and 06 V3: a full build needs files that exist only on the Windows workstation."
   ],
   "mutable_current_release_root": "C:\\Users\\pwilliam\\OneDrive - MathWorks\\Documents\\SFTT\\Customers\\FlightTest\\ManagerReport\\TechnicalSummaryFamily",
   "promotion_timestamp": "2026-09-21T18:13:51***",
@@ -502,6 +503,7 @@
       "change": "Reports 02 and 06 replaced by V5 and V3 through the 2026-09-26 candidate review; no TechnicalSummaryFamily release was built for them. The superseded 02 V4 and 06 V2 stay in reports/.",
       "release_hash": "null for the replaced reports until a release is built",
       "builder": "buildTechnicalSummaryFamily.m and verifyTechnicalSummaryFamily.m updated for the new filenames and metadata",
+      "full_build": "not run: a full build needs files that exist only on the Windows workstation (known limitation)",
       "separate_sections": [
         "system/ (System Engineering section; outside the canonical family)"
       ]

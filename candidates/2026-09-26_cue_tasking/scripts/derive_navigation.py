@@ -20,7 +20,7 @@ SITE = "https://pwilliammat.github.io/flightTest"
 
 INDEX_SECTION = """    <section>
       <h2>System engineering</h2>
-      <p>The testbed as a formal system design: mission goals, a draft requirements baseline, architecture and allocation, interfaces, verification and traceability, truth separation, and the as-built configuration. This section is separate from the exploration family above, which asks “can we do it, and what does it look like”. Every page states its purpose and claim boundary; its status words are requirement- and interface-level, not radar results.</p>
+      <p>The testbed as a formal system design: mission goals, a DRAFT requirements baseline, architecture and allocation, interfaces, verification and traceability, truth separation, and the as-built configuration. This section is separate from the exploration family above, which asks “can we do it, and what does it look like”. Every page states its purpose and claim boundary; its status words are requirement- and interface-level, not radar results.</p>
       <div class="report-grid">
         <a class="report-card" href="system/index.html" target="_blank" rel="noopener noreferrer">
           <p class="report-id">System</p>
@@ -29,8 +29,8 @@ INDEX_SECTION = """    <section>
         </a>
         <a class="report-card" href="system/02_Requirements.html" target="_blank" rel="noopener noreferrer">
           <p class="report-id">System · 2</p>
-          <h3>Requirements (Draft)</h3>
-          <p>Two mission goals traced to 15 system and 28 derived requirements, each with allocation, verification method and status. A draft for owner review.</p>
+          <h3>Requirements — DRAFT</h3>
+          <p>DRAFT baseline for owner review (CR-10 open): two mission goals traced to 15 system and 30 derived requirements, each with allocation, verification method and status.</p>
         </a>
         <a class="report-card" href="system/05_VerificationAndTraceability.html" target="_blank" rel="noopener noreferrer">
           <p class="report-id">System · 5</p>
@@ -73,7 +73,7 @@ def main() -> None:
          "**Canonical family mapping and claim boundaries:** [family_manifest.json](metadata/family_manifest.json)<br>\n"
          f"**System engineering (separate from the family):** [design process and status]({SITE}/system/index.html)"),
         ("- [Diagnostic reports](diagnostics/README.md):",
-         f"- [System engineering section](system/README.md): the testbed as a formal system design process, separate from the exploration family. It covers mission goals, a [draft requirements baseline]({SITE}/system/02_Requirements.html), architecture and allocation, interfaces, [verification and traceability]({SITE}/system/05_VerificationAndTraceability.html), [truth separation for cued collections]({SITE}/system/06_TruthSeparation.html), the as-built configuration, and the first subsystem design record ([ADS-B cue tasking]({SITE}/system/SDR_CT_CueTasking_V1.html)). The masters stay in `docs/system/`.\n"
+         f"- [System engineering section](system/README.md): the testbed as a formal system design process, separate from the exploration family. It covers mission goals, a [DRAFT requirements baseline]({SITE}/system/02_Requirements.html), architecture and allocation, interfaces, [verification and traceability]({SITE}/system/05_VerificationAndTraceability.html), [truth separation for cued collections (accepted rule)]({SITE}/system/06_TruthSeparation.html), the as-built configuration, and the first subsystem design record ([ADS-B cue tasking]({SITE}/system/SDR_CT_CueTasking_V1.html)). The masters stay in `docs/system/`.\n"
          "- [Diagnostic reports](diagnostics/README.md):"),
         ("| `diagnostics/` | Diagnostic reports from hardware and calibration troubleshooting; not part of the accepted family. |",
          "| `system/` | System engineering section: design-process pages and subsystem design records; separate from the accepted family. Masters in `docs/system/`. |\n"

@@ -83,6 +83,6 @@ The levels are defined in ICD §0. "Evidence" is the status the evidence support
 |---|---|
 | Top-N opportunity cap | CR-1 |
 | Single source for site geometry | CR-7 |
-| Truth separation for cued collections | CR-9 |
+| Truth separation for cued collections: accepted; architecture rule and ICD §3 labels, emitter list and capture bandwidth still to add | CR-9 |
 | Requirements baseline (DRAFT) | CR-10, [Requirements.md](Requirements.md) |
 | Remaining architecture open items | System_Architecture.md, "Remaining Open Items" |

@@ -8,11 +8,11 @@ The masters stay in flightTest `docs/system/` on `main` (architecture, requireme
 | --- | --- | --- |
 | [index.html](index.html) | 0 | Process overview, decisions, action register, status at a glance |
 | [01_MissionAndNeeds.html](01_MissionAndNeeds.html) | 1 | Mission goals, stakeholders, mission needs |
-| [02_Requirements.html](02_Requirements.html) | 2 | DRAFT requirements baseline: tree, status counts, full tables |
+| [02_Requirements.html](02_Requirements.html) | 2 | **DRAFT** requirements baseline (CR-10 open): tree, status counts, full tables |
 | [03_ArchitectureAndAllocation.html](03_ArchitectureAndAllocation.html) | 3 | Architecture figure, items, allocation, requirements per item, design rules |
 | [04_Interfaces.html](04_Interfaces.html) | 4 | ICD summary: status ladder, message register, conventions, transport |
 | [05_VerificationAndTraceability.html](05_VerificationAndTraceability.html) | 5 | Verification activities and the traceability matrix |
-| [06_TruthSeparation.html](06_TruthSeparation.html) | 6 | Proposed rule for cued collections and cue-aided association (CR-9) |
+| [06_TruthSeparation.html](06_TruthSeparation.html) | 6 | Accepted rule for cued collections and cue-aided association (CR-9), with the multi-emitter and wide-capture amendment |
 | [07_AsBuiltAndConfiguration.html](07_AsBuiltAndConfiguration.html) | 7 | As-built items, deployed configuration, time source, actions |
 | [SDR_CT_CueTasking_V1.html](SDR_CT_CueTasking_V1.html) | SDR | Subsystem design record 1: ADS-B Cue Tasker and the verified cue interface |
 

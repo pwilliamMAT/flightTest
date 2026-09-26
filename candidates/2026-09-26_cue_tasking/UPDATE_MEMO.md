@@ -1,208 +1,174 @@
 # Update memo: System Engineering section, requirements baseline, and cue-tasking updates (2026-09-26)
 
-For: Leif (owner). Status: **candidates and proposals for review. Nothing is promoted.** Branch `reporting/candidates-cue-tasking`. `reporting/` is unchanged on this branch, and `main` has not been pushed.
+For: Leif (owner). Status: **candidates and proposals, ready for promotion, not yet promoted.** Branch `reporting/candidates-cue-tasking`. `reporting/` is unchanged on this branch, and `main` has not been pushed.
 
-This revision applies the owner's decisions of 2026-09-26:
+## 0. Owner decisions applied
 
-1. System engineering gets its own section, built as a formal design process. The exploration family stays at nine reports.
-2. The superseded 02 V4 and 06 V2 stay in `reports/`.
-3. The builder and verifier are updated and tested in a scratch workspace.
-4. The truth-separation rule is written down.
-5. Internet NTP is accepted, with a stated tolerance; GPS/PPS lock is a hardware to-do; the re-check of earlier ADS-B timing stays open.
-6. CueListener stays on its branch, with a review action for Pat.
-7. ADSB-remoter links are fine (the repository is public).
-8. The figure script moves to `docs/system/analysis/`.
-9. Manifest SourcePath reads "flightTest main: reporting/reports/…".
+**First round (2026-09-26):**
+- System engineering gets its own section, built as a formal design process. The exploration family stays at nine reports.
+- The superseded 02 V4 and 06 V2 stay in `reports/`.
+- The builder and verifier are updated and tested in a scratch workspace.
+- The truth-separation rule is written down.
+- Internet NTP is accepted as the time source; GPS/PPS lock is a hardware to-do.
+- CueListener stays on its branch, with a review action for Pat.
+- ADSB-remoter is public, so links to it are fine.
+- The figure script moves to `docs/system/analysis/`.
+- The manifest SourcePath reads "flightTest main: reporting/reports/…".
 
-## 1. Proposed structure
+**Second round (2026-09-26):**
+1. **Requirements publish as DRAFT.** The requirements page, its section-index card, the reporting-index card and the section navigation all say DRAFT. CR-10 stays open.
+2. **The 0.1 s NTP tolerance is accepted** (DR-TIME-1). The other TBD values stay TBD.
+3. **The Python Cue Tasker is an accepted named exception under MG-1.** DR-DEP-4 is now Verified.
+4. **CR-9 is accepted, with an amendment.** One site may host several emitters, and a capture may be widened to about 12 MHz. The amended rule:
+   - the cued/uncued label covers the whole capture, including every channel in it;
+   - every product records its emitter;
+   - products on other emitters of a cued collection are still conditional on the cue;
+   - truth-blind versus cue-aided is judged per product;
+   - "tower" means the transmitter site, and a cue names an emitter.
 
-### Reporting site (overlay → `reporting/`)
+   This touches CR-9, DR-TS-1..6 (new DR-TS-6), new DR-DATA-7, the truth-separation page and the known gaps. The CR-9 follow-up records that the Proposed ICD §3 `collection_task` and `capture_record` need an emitter list and a capture bandwidth. The ICD itself is not edited.
+5. **The Report 02 acceptance tests stay out of the requirements.** Recorded in Requirements.md §7 and on the requirements page.
+6. **Owners.** System, RF and integration actions go to Leif; everything else to Pat. A-1 Pat, A-2 Leif, A-3 Pat, A-4 Leif, A-5 Pat, A-6 Leif, and new A-7 Leif (the ICD and architecture follow-up from CR-9). This is applied to the section index, the as-built page, and the 06 V3 management row.
+7. **No full release build.** The manifest keeps its `post_release_changes` note and adds `"full_build": "not run …"`. The known gaps (markdown and manifest) record that a full build needs files from the Windows workstation.
+
+## 1. Structure
 
 ```
 reporting/
-  index.html                  + new "System engineering" section (separate from the family)
-  reporting_README.md         + section link, structure row
+  index.html                  + "System engineering" section, separate from the family (requirements card says DRAFT)
+  reporting_README.md         + section link and structure row
   reports/                    exploration family, still nine reports:
-    02_HardwareAndCollection_V5.html   (new current; V4 retained unchanged)
-    06_StatusAndFutureWork_V3.html     (new current; V2 retained unchanged)
-  system/                     NEW: System Engineering section
-    index.html                         0 · Process and status: steps, decisions, action register, status counts
-    01_MissionAndNeeds.html            1 · Mission goals, stakeholders, mission needs
-    02_Requirements.html               2 · DRAFT baseline: tree, counts, full tables (generated from docs/system/Requirements.md)
-    03_ArchitectureAndAllocation.html  3 · Architecture figure, items, allocation, requirements per item, design rules
-    04_Interfaces.html                 4 · ICD summary: status ladder, message register, conventions, ports, framing
-    05_VerificationAndTraceability.html 5 · Verification activities → requirements; full traceability matrix
-    06_TruthSeparation.html            6 · Proposed truth-separation rule (CR-9) and worked cases
-    07_AsBuiltAndConfiguration.html    7 · As-built items, deployed CT configuration, time source, actions
-    SDR_CT_CueTasking_V1.html          Subsystem design record 1: CT (the former V1 report, retargeted)
-    SDR_CT_CueTasking_assets/*.svg     3 figures generated by docs/system/analysis/summarize_cue_capture.py
+    02_HardwareAndCollection_V5.html   (current; V4 retained unchanged)
+    06_StatusAndFutureWork_V3.html     (current; V2 retained unchanged)
+  system/                     System Engineering section
+    index.html                 0 · process, decisions, action register (owners), status counts
+    01_MissionAndNeeds.html    1 · mission goals, stakeholders, needs
+    02_Requirements.html       2 · DRAFT baseline, generated from docs/system/Requirements.md
+    03_ArchitectureAndAllocation.html  4 · 04_Interfaces.html  5 · 05_VerificationAndTraceability.html
+    06_TruthSeparation.html    6 · accepted rule CR-9 (multi-emitter amendment) and worked cases
+    07_AsBuiltAndConfiguration.html    7 · as-built, CT configuration, time source, action register
+    SDR_CT_CueTasking_V1.html + SDR_CT_CueTasking_assets/ (3 SVG)   subsystem design record 1
     README.md
-  metadata/                   family metadata updated (6 files)
-  scripts/                    buildTechnicalSummaryFamily.m, verifyTechnicalSummaryFamily.m updated
+  metadata/ (6 files), scripts/ (builder and verifier)
+docs/system/ (proposals, to merge to main first):
+  Requirements.md (new, DRAFT); Change_Requests.md (CR-9 accepted and amended, CR-10 open, CR-8 time decision);
+  README.md; As_Built.md; analysis/summarize_cue_capture.py
 ```
 
-About the section:
-
-- Each page states its purpose and claim boundary in the family's style. The masters stay in `docs/system/`: pages link to them on `main` and do not copy them.
-- Evidence links inside the CT record stay pinned to `ad64bcd`.
-- Status words are requirement- and interface-level. Every page says that none of them is a radar result.
-
-### `docs/system/` proposals on this branch (follow the CR process in `docs/system/README.md`)
-
-| File | Change |
-|---|---|
-| `Requirements.md` (new) | **DRAFT** requirements baseline, proposed by CR-10 |
-| `Change_Requests.md` | Adds **CR-9**, truth separation for cued collections and cue-aided association (proposal, Open), and **CR-10**, adopt a requirements baseline (Open). Adds the owner's time-source decision to CR-8 |
-| `README.md` | Index rows for Requirements.md and `analysis/summarize_cue_capture.py`; CR range 1–10; open decisions CR-9 and CR-10 |
-| `As_Built.md` | Time Source row: NTP accepted (CR-8); GPS/PPS reseat to-do |
-| `analysis/summarize_cue_capture.py` (moved here from the candidate folder) | Reproduces the live-acceptance numbers, cross-checks the committed summary, and draws the three figures (`--out-dir`) |
-
-## 2. Draft requirements baseline (docs/system/Requirements.md)
+## 2. Draft requirements baseline (counts after the second round)
 
 | Level | Count | Verified | Partial | Not met | Not started | Proposed |
 |---|---:|---:|---:|---:|---:|---:|
 | Mission goals | 2 | — | — | — | — | — |
 | Mission needs | 6 | 0 | 5 | 1 | 0 | 0 |
 | System requirements | 15 | 1 | 8 | 1 | 5 | 0 |
-| Derived requirements | 28 | 5 | 6 | 7 | 2 | 8 |
+| Derived requirements | 30 | 6 | 5 | 7 | 5 | 7 |
 
-Each requirement has:
-
-- an ID, rationale and parent;
-- an allocation to architecture items (AR, CT, RM, RC, SP, TR, RD, CM, AM, AC, Time Source, or process);
-- a verification method (I/A/D/T);
-- a status with evidence links.
-
-Unknown values are **TBD**: pointing tolerance, ADS-B lead/tail, release-statement content. The only proposed number is DR-TIME-1, 0.1 s, which cites the one clock measurement (+0.05 to +0.09 s). Its rationale: 0.1 s at up to about 290 m/s is at most about 58 m of bistatic range, about one range cell.
-
-Top-level tree (each requirement shown under its first parent):
+Top-level tree:
 
 ```
 MG-1  complete system built with MATLAB and MathWorks tools
-  MN-1  complete chain, MATLAB except named exceptions ....... SR-02 scheduling, SR-07 processing, SR-08 tracking,
-                                                               SR-12 MATLAB/compiled deployment, SR-14 ICD, SR-15 health
-  MN-2  real data on aircraft of opportunity (DTV) ........... SR-01 cueing, SR-03 collection, SR-04 pointing, SR-09 calibration
-  MN-5  claims traceable to evidence ......................... SR-13 evidence discipline
+  MN-1  complete chain, MATLAB except named exceptions ... SR-02, SR-07, SR-08, SR-12, SR-14, SR-15
+  MN-2  real data on aircraft of opportunity ............. SR-01, SR-03, SR-04, SR-09
+  MN-5  claims traceable to evidence ..................... SR-13
   MN-6  MATLAB items run as deployed apps
 MG-2  data proving MATLAB functions on shareable real data
-  MN-3  independent truth for every dataset .................. SR-05 timing, SR-06 truth packaging
-  MN-4  datasets shareable (packaged, traceable, cleared) .... SR-10 packaging/provenance, SR-11 data release
-Derived: DR-CUE-1..7, DR-TASK-1..2, DR-TIME-1..4, DR-DATA-1..6, DR-DEP-1..4, DR-TS-1..5
+  MN-3  independent truth for every dataset .............. SR-05, SR-06
+  MN-4  shareable datasets ............................... SR-10, SR-11
+Derived: DR-CUE-1..7, DR-TASK-1..2, DR-TIME-1..4, DR-DATA-1..7, DR-DEP-1..4, DR-TS-1..6
 ```
 
-What is verified: SR-01 (at interface level), DR-CUE-1, 2, 3, 4 and 6. These are all about the cue path. No requirement about detection, tracking or dataset release is met.
+Status changes in the second round:
 
-The goals appear only as the project's mission goals (MG-1, MG-2). A branch-wide scan finds no confidential wording (section 6).
+- **DR-DEP-4** is now Verified (the exception is accepted).
+- **DR-TS-3, 4 and 5** are Not started. The rule is accepted, but no cued products exist yet.
+- **DR-TS-1, DR-TS-2, new DR-TS-6 and new DR-DATA-7** are Proposed, because the ICD messages that will carry them are still Proposed.
 
-## 3. Truth-separation rule (CR-9, proposed; `system/06_TruthSeparation.html`)
+## 3. Validation, re-run after the second round
 
-- **Labels.** Every capture carries `collection_basis`:
-  - `cued`, with a `cue_ref`;
-  - `uncued`, `calibration` or `survey`.
+**Candidate view** (`scripts/validate_candidates.py`):
 
-  Every detection or track product carries `truth_use`: `truth_blind` or `cue_aided`.
-- **TS-3, independent evidence.** Only `truth_blind` products count as independent detection or tracking evidence. A cued collection still qualifies if nothing after capture uses the cue or ADS-B.
-- **TS-4, rates.**
-  - Detection probability from cued data is conditional on a cued opportunity.
-  - False-alarm rates state their data basis.
-- **TS-5, cue-aided association.** Scored and reported separately, never as independent tracking performance. Agreement with ADS-B is only a consistency check, because cues and truth share one source.
-- **TS-6, scoring.** Scoring uses logged ADS-B, not CT predictions.
-- **TS-7, reports.** Reports state both labels.
-- **Where the labels land.** ICD §3.1, §3.5, §3.8 and §3.9. These messages are still Proposed, so no released schema changes.
-- **Where the rule is recorded.** Requirements DR-TS-1..5 and DR-DATA-6; family known gaps; 06 V3 STAT-013.
+- All 12 candidate pages are well formed and have 0 broken relative links.
+- Keeping V4/V2 in `reports/` introduces 0 new broken links.
+- The index links the new files, and the canonical order holds.
+- There is no restricted material.
+- The `docs/system` links resolve.
+- **Confidential wording: 0 hits** in every file and line the branch adds. The term list is kept outside the repository and passed with `--confidential-terms`.
+- The only DRAFT-labelled content is intentional: the requirements baseline, which the section navigation shows on every section page.
 
-## 4. Family report changes (still candidates)
+**Changes under `reporting/`: 0.** `git diff origin/main -- reporting` is empty.
 
-| Report | Change since the last candidate |
-|---|---|
-| 06 V3 | STAT-010 time source is now **Implemented** (NTP accepted, 0.1 s tolerance; GPS/PPS reseat is a hardware to-do; the earlier-data re-check is open). New **STAT-013**: truth-separation rule, In Progress (CR-9). STAT-012 names Pat's review of `feature/adsb-cue-listener`. The management-recommendation row lists the decisions and actions. All links now point to `../system/`. |
-| 02 V5 | TIME-001 is now Implemented (NTP accepted, GPS/PPS to-do). The qualification callout points to DR-TIME-1/2. Links now point to `../system/`. |
+**Builder test** (scratch workspace, R2026a; `validation/builder_test_report.txt`):
 
-Evidence classes are unchanged from the previous memo:
+- Failed checks: 306, all "Dependency resolution" (273 Windows-workstation `file:///` links and 33 companion files that exist only in ManagerReport). This is a strict subset of the unmodified control's 319.
+- The builder-generated metadata matches the candidate metadata in every value that doesn't depend on the build machine.
+- A full release build needs the Windows workstation, which is not available. This is recorded as a known limitation.
 
-- **Measured** (message interface): the live capture; the Pi clock readings.
-- **Installed**: the CT service; NTP.
-- **Diagnostic**: the tests, the compiled probe, and the tracking-scan diagnostic, which is quoted only.
-- **Modeled**: predicted SNR.
-- **Design record**: the architecture and requirements.
-- **Operational**: none.
+## 4. Exactly how promotion would run (not run here)
 
-## 5. Builder and verifier (`overlay/scripts/`, derived by `scripts/derive_family_scripts.py`)
+From a clean clone or worktree of flightTest, with the push identity already configured:
 
-**Builder** (`buildTechnicalSummaryFamily.m`):
+```bash
+# 0. Start from the reviewed branch
+git fetch origin
+git switch main && git pull --ff-only origin main
+B=origin/reporting/candidates-cue-tasking     # or the local branch if it was not pushed
 
-- The canonical filenames are now 02 V5 and 06 V3.
-- 02 V4 and 06 V2 become legacy names, which release copies rewrite to V5/V3.
-- The embedded metadata definitions now carry the same strings as the candidate metadata:
-  - the 02/06 still-unknown text and the 06 strongest result;
-  - the H04 evidence text;
-  - the VIS-07/08/09/18 paths, plus VIS-20..23;
-  - five code-navigation rows;
-  - the known-gaps text and the manifest `known_gaps`.
-- A new `localRewriteSiteSectionLinks` points links to `../system/`, `../diagnostics/` and similar at the public site inside release copies. Those pages are not part of a release.
+# 1. Merge the docs/system proposals to main (only docs/system; no candidates/ folder on main)
+git checkout $B -- docs/system/Requirements.md docs/system/Change_Requests.md docs/system/README.md \
+    docs/system/As_Built.md docs/system/analysis/summarize_cue_capture.py
+git status --short                                   # expect exactly these 5 paths
+git diff --cached --check
+git commit -m "Add the DRAFT requirements baseline, accept CR-9 (truth separation), record time-source decisions"
 
-**Verifier** (`verifyTechnicalSummaryFamily.m`):
+# 2. Bring the candidate folder in temporarily and copy the overlay into reporting/
+#    (adds system/, 02 V5, 06 V3; replaces index.html, reporting_README.md, metadata/, scripts/;
+#     02 V4 and 06 V2 stay in place)
+git checkout $B -- candidates/2026-09-26_cue_tasking
+cp -r candidates/2026-09-26_cue_tasking/overlay/. reporting/
 
-- The expected filenames are now V5 and V3.
-- 02 V4 and 06 V2 are added to the obsolete-name list.
-- A **latent bug is fixed**. `"^https?://[^\\s]+$"` in a MATLAB string excludes the letter `s`, so any external URL containing an "s" failed. It is now `\S`. The accepted reports have no external links, so the bug never showed.
+# 3. Validate the accepted repository view, then drop the candidate folder before committing
+python3 candidates/2026-09-26_cue_tasking/scripts/validate_candidates.py --confidential-terms <external terms file>
+#   expect RESULT: PASS (0 broken relative links, canonical order, index links, 0 confidential hits)
+python3 -c "import json;json.load(open('reporting/metadata/family_manifest.json'))"
+git rm -r -q --cached candidates && rm -rf candidates   # candidate tooling never goes to main
+git add reporting/system reporting/reports/02_HardwareAndCollection_V5.html \
+    reporting/reports/06_StatusAndFutureWork_V3.html reporting/metadata reporting/scripts \
+    reporting/index.html reporting/reporting_README.md
+git status --short                                   # expect only the reporting/ paths above
+git diff --cached --check && git diff --cached --stat
+git commit -m "Promote 02 V5, 06 V3 and the System Engineering section"
 
-**Test** (scratch workspace in the session scratchpad; never ManagerReport; MATLAB R2026a; full report in `validation/builder_test_report.txt`):
+# 4. Push main (triggers the GitHub Pages deploy for reporting/**), then check the Actions run and the site
+git push origin main
+```
 
-- **A full build cannot pass on this Linux desktop, with the accepted or the candidate scripts.** The verifier requires the workstation `file:///C:/…` evidence and the ManagerReport-only companion files to exist.
-- **Control (unmodified scripts, accepted 02 V4 / 06 V2):** 319 failed checks, all "Dependency resolution" (273 workstation links, 46 companions).
-- **Candidate:** 306 failed checks, all "Dependency resolution" (273 workstation links, 33 companions). This is a strict subset of the control's failures, and every other check passed. In the link audit:
-  - 195 canonical report links resolved, including the accepted reports' links to V4/V2, which were rewritten to V5/V3;
-  - 41 external links resolved;
-  - no obsolete links.
-- **Builder-generated metadata against the hand-edited candidate metadata** (`scripts/check_builder_metadata.py`): identical in every non-machine-derived cell of the 4 CSVs, the known-gaps text, and the manifest (`known_gaps`, canonical order, report fields, source hashes).
-- **What I could not verify:** a promoted release. Promotion runs only after validation passes, and that needs the Windows workstation.
+Notes on these steps:
 
-## 6. Step-6 validation (candidate view; `scripts/validate_candidates.py` → `validation/validation_report.txt`)
+- Step 1 lands before step 2 because the section pages link to the `docs/system` masters on `main`.
+- Step 3 runs the validator on the promoted tree; its overlay comparison then becomes trivially equal. The branch-only check reports the same results.
 
-| Check | Result |
-|---|---|
-| Family contains exactly the intended accepted versions in canonical order | **Pass**: manifest, index and filenames (01, 01A, 01B, 02 V5, 02A, 03, 04, 05, 06 V3). With V4/V2 retained, `reports/` holds 11 HTML files, and only the nine are indexed |
-| Every report-local image, asset and link resolves | **Pass** for all 12 candidate pages (0 broken relative links, fragments checked). Promotion introduces 0 new broken links with V4/V2 retained (it would introduce 9 if they were removed) |
-| Index links the new files | **Pass**: 02 V5, 06 V3, `system/index.html`, `02_Requirements`, `05_Verification…`, `SDR_CT_…`. V4/V2 are no longer linked from the index |
-| Accepted files not changed except those intended | **Pass**. The overlay replaces only `index.html`, `reporting_README.md`, the 6 metadata files and the 2 scripts |
-| No restricted or unfinished material | **Pass**: no keys, credentials, private host IPs, logins or branch paths in published files. **Intentionally labelled DRAFT:** the requirements page plus the index, mission and as-built pages and the section README, which cite it (see question 1) |
-| Confidential wording (branch-wide: all added files and added lines vs `origin/main`) | **Pass**: 0 hits for the owner's confidential terms. The term list is kept outside the repository and passed with `--confidential-terms`, so the repository never contains it. Two raw matches are accepted wording copied unchanged from 02 V4 and from the verifier's messages, both unrelated to the goals, and are allow-listed. A repository-wide search also matches random letters inside base64 wire data in `docs/system/evidence/` |
-| Relative links in the proposed `docs/system` documents | **Pass** (0 unresolved) |
-| Well-formedness | **Pass** (HTML balanced; SVG, JSON and CSV parse) |
-| Numbers trace to sources | **Pass**: 10 of 10 capture numbers reproduced. Requirement counts are generated from Requirements.md |
+## 5. Remaining open points
 
-## 7. Exactly what promotion would change
+- **TBD values:** pointing tolerance (SR-04), ADS-B lead and tail (DR-DATA-4), and the content and approver of the data-release statement (SR-11, DR-DATA-5).
+- **CR-10** (requirements baseline) stays open; the baseline publishes as DRAFT.
+- **Action A-7 (Leif):** add the CR-9 labels, emitter list and capture bandwidth to the ICD, and the truth-separation rule to the architecture.
+- **Not changed and still naming V4/V2** (update only if separately reviewed):
+  - the story spine;
+  - the explainer;
+  - the storyboard;
+  - `docs/START_HERE.md` and `docs/ENGINEERING_INDEX.md`.
 
-1. **First merge the `docs/system` proposals to `main`:** Requirements.md, the Change_Requests (CR-9, CR-10, CR-8 note), README, As_Built, and `analysis/summarize_cue_capture.py`. The section pages link to these masters on `main`; until they are merged, the requirements, CR-9 and figure-script links return 404.
-2. **Then copy `overlay/` onto `reporting/`:**
-   - add `system/` (9 HTML, README, 3 SVG), `reports/02_HardwareAndCollection_V5.html` and `reports/06_StatusAndFutureWork_V3.html`;
-   - replace `index.html`, `reporting_README.md`, `metadata/` (6 files) and `scripts/` (2 files);
-   - keep `reports/02_HardwareAndCollection_V4.html` and `reports/06_StatusAndFutureWork_V2.html` unchanged.
-3. **Staging (not run):** `git add reporting/system reporting/reports/02_HardwareAndCollection_V5.html reporting/reports/06_StatusAndFutureWork_V3.html reporting/metadata reporting/scripts reporting/index.html reporting/reporting_README.md`.
-4. **Not changed** (they still name V4/V2; update only if separately reviewed): the story spine, the explainer, the storyboard, `docs/START_HERE.md`, `docs/ENGINEERING_INDEX.md`, audits. `diagnostics/README.md` still wrongly says the diagnostics are not listed in `index.html`.
-5. **Candidate folder:** `candidates/2026-09-26_cue_tasking/` holds only review tooling. Delete it or keep it on the branch; nothing in it is published.
+  `diagnostics/README.md` still says the diagnostics are not listed in `index.html`, which is no longer true.
 
-## 8. Remaining questions for Leif
-
-1. **Publishing a DRAFT:** promote the section with the requirements page clearly labelled DRAFT (as built), or hold `02_Requirements.html` (and the counts on other pages) until CR-10 is accepted?
-2. **Values:** accept or amend the proposed 0.1 s tolerance (DR-TIME-1). Decide the TBDs: pointing tolerance (SR-04), ADS-B lead/tail (DR-DATA-4), release-statement content and approver (SR-11, DR-DATA-5).
-3. **MG-1 and a Python CT:** is a Python cue tasker consistent with MG-1, or should CT eventually move to MATLAB (DR-DEP-4)?
-4. **CR-9:** accept the rule text as written, or amend it? In particular, is conditional Pd on cued data (TS-4) the reporting you want?
-5. **Report 02 criteria:** should its CTRL-001 acceptance criteria (the A-B-A reference test, the 30 s drop test) become derived requirements under SR-03 and SR-10?
-6. **Owners:** who owns actions A-2 (GPS/PPS reseat), A-3 (earlier-timing re-check), A-5 (repeatable clock check) and A-6 (RM scheduling design)? They are TBD on the pages.
-7. **Release build:** a full release build still needs the Windows workstation. Run `buildTechnicalSummaryFamily` there after promotion, or leave the manifest's `post_release_changes` note until the next planned release?
-
-## 9. Reproduce (from the worktree root)
+## 6. Reproduce the candidate
 
 ```bash
 C=candidates/2026-09-26_cue_tasking
 python3 docs/system/analysis/summarize_cue_capture.py --adsb-remoter ../ADSB-remoter --out-dir $C/generated --assets-dir $C/overlay/system/SDR_CT_CueTasking_assets
-python3 $C/scripts/build_system_section.py      # section pages; requirements parsed from docs/system/Requirements.md
+python3 $C/scripts/build_system_section.py
 python3 $C/scripts/derive_06_V3.py && python3 $C/scripts/derive_02_V5.py && python3 $C/scripts/derive_navigation.py
 python3 $C/scripts/derive_metadata.py && python3 $C/scripts/derive_family_scripts.py
 python3 $C/scripts/validate_candidates.py --confidential-terms <terms file kept outside the repo>
-# builder test: copy the nine reports, asset folders, ../HardwarePhotos and overlay/scripts/*.m into a scratch folder,
-# run buildTechnicalSummaryFamily(<scratch>) in MATLAB, then:
 python3 $C/scripts/check_builder_metadata.py <scratch>/TechnicalSummaryFamily_Releases/<id>_staging
 ```

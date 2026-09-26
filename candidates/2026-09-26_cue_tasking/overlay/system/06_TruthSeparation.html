@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Proposed truth-separation rule for cued collections and cue-aided association.">
+<meta name="description" content="Accepted truth-separation rule (CR-9) for cued collections and cue-aided association.">
 <title>Truth Separation for Cued Collections</title>
 <style>
 :root{--ink:#172033;--muted:#526176;--line:#cbd5e1;--panel:#f8fafc;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--purple:#6d28d9;--purple2:#f5f3ff}
@@ -11,7 +11,7 @@
 </style>
 </head>
 <body>
-<style>.sys-nav{margin:0 0 1.2rem;padding:.6rem .8rem;border:1px solid var(--line,#cbd5e1);border-top:4px solid #0f4c81;background:#f8fafc;font:14px/1.45 "Segoe UI",Arial,sans-serif}.sys-nav strong{color:#102a43;margin-right:.6rem}.sys-nav a{display:inline-block;margin:.1rem .7rem .1rem 0;color:#075caa;white-space:nowrap}.sys-nav a[aria-current=page]{color:#102a43;font-weight:700;text-decoration:none;border-bottom:2px solid #0f4c81}.sys-nav .sys-nav-home{float:right;margin-right:0}@media(max-width:760px){.sys-nav .sys-nav-home{float:none}}</style><nav class="sys-nav" aria-label="System engineering section"><a class="sys-nav-home" href="../index.html">Reporting home</a><strong>System engineering</strong><a href="index.html">Process and status</a><a href="01_MissionAndNeeds.html">1 · Mission and needs</a><a href="02_Requirements.html">2 · Requirements</a><a href="03_ArchitectureAndAllocation.html">3 · Architecture and allocation</a><a href="04_Interfaces.html">4 · Interfaces</a><a href="05_VerificationAndTraceability.html">5 · Verification and traceability</a><a href="06_TruthSeparation.html" aria-current="page">6 · Truth separation</a><a href="07_AsBuiltAndConfiguration.html">7 · As-built and configuration</a><a href="SDR_CT_CueTasking_V1.html">Subsystem record: CT</a></nav>
+<style>.sys-nav{margin:0 0 1.2rem;padding:.6rem .8rem;border:1px solid var(--line,#cbd5e1);border-top:4px solid #0f4c81;background:#f8fafc;font:14px/1.45 "Segoe UI",Arial,sans-serif}.sys-nav strong{color:#102a43;margin-right:.6rem}.sys-nav a{display:inline-block;margin:.1rem .7rem .1rem 0;color:#075caa;white-space:nowrap}.sys-nav a[aria-current=page]{color:#102a43;font-weight:700;text-decoration:none;border-bottom:2px solid #0f4c81}.sys-nav .sys-nav-home{float:right;margin-right:0}@media(max-width:760px){.sys-nav .sys-nav-home{float:none}}</style><nav class="sys-nav" aria-label="System engineering section"><a class="sys-nav-home" href="../index.html">Reporting home</a><strong>System engineering</strong><a href="index.html">Process and status</a><a href="01_MissionAndNeeds.html">1 · Mission and needs</a><a href="02_Requirements.html">2 · Requirements (DRAFT)</a><a href="03_ArchitectureAndAllocation.html">3 · Architecture and allocation</a><a href="04_Interfaces.html">4 · Interfaces</a><a href="05_VerificationAndTraceability.html">5 · Verification and traceability</a><a href="06_TruthSeparation.html" aria-current="page">6 · Truth separation</a><a href="07_AsBuiltAndConfiguration.html">7 · As-built and configuration</a><a href="SDR_CT_CueTasking_V1.html">Subsystem record: CT</a></nav>
 <header>
 <p class="kicker">System engineering · step 6</p>
 <h1>Truth Separation for Cued Collections</h1>
@@ -21,39 +21,49 @@
 
 <section id="purpose">
 <h2>Purpose</h2>
-<p class="eli5"><strong>Bottom line (ELI5):</strong> ADS-B now plays two roles: it tells us when and where to listen, and it is the answer key we mark the radar against. If the same information also helped the radar find the aircraft, marking it against the answer key would prove nothing. This rule keeps the two roles apart and makes every result say which role ADS-B played.</p>
-<div class="callout warn"><strong>Status:</strong> proposed as CR-9. The owner accepted the need on 26 September 2026 (cues choose when to collect and with which tower, and the Tracker may use cues to help association); the rule text below is for review. Until it is accepted, no result from a cued collection may be presented as independent detection evidence.</div>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> ADS-B now plays two roles: it tells us when and where to listen, and it is the answer key we mark the radar against. If the same information also helped the radar find the aircraft, marking it against the answer key would prove nothing. This rule keeps the two roles apart and makes every result say which role ADS-B played, and which transmitter lit the aircraft.</p>
+<div class="callout"><strong>Status:</strong> accepted as CR-9 on 26 September 2026, with an amendment for sites that host several emitters and for captures widened to take in adjacent channels. The labels are not yet implemented: the ICD messages that will carry them are still Proposed, and the design rule is still to be added to the architecture (action A-7). No cued collection has been made yet.</div>
 <div class="callout stop"><strong>Claim boundary:</strong> this page defines how evidence is labelled and counted. It creates no evidence, and it does not change any existing claim of the exploration family, whose rule that ADS-B truth is post hoc and must not steer map formation, thresholding, non-maximum suppression or detection still applies.</div>
 </section>
 <section id="definitions">
-<h2>Definitions</h2>
+<h2>Terms and definitions</h2>
+<div class="callout"><strong>Site, emitter, capture.</strong> A <strong>site</strong> (“tower”) is a transmitter site. One site may host several <strong>emitters</strong>: DTV transmitters on different RF channels and frequencies. An emitter is identified by <code>emitter_id</code> (<code>dtv:&lt;facility&gt;:&lt;channel&gt;:&lt;MHz&gt;</code>), and <strong>a cue names an emitter</strong>, not a site. A <strong>capture</strong> may be centred on the cued emitter or widened, for example to 12 MHz, to take in adjacent channels of interest, so one capture can hold several emitters.</div>
 <div class="two-col">
-<div class="callout"><strong>Collection basis</strong> (how a capture was chosen)<ul class="plain-list"><li><code>cued</code>: time, illuminator or pointing came from a CT cue.</li><li><code>uncued</code>: chosen without ADS-B, for example on a timetable.</li><li><code>calibration</code>, <code>survey</code>.</li></ul></div>
-<div class="callout"><strong>Truth use</strong> (did cues or ADS-B enter the processing?)<ul class="plain-list"><li><code>truth_blind</code>: no cue or ADS-B input to map formation, thresholding, non-maximum suppression, detection, association or track initiation.</li><li><code>cue_aided</code>: any such input, for example gating, association aid, track initiation, or the choice of cells to search.</li></ul></div>
+<div class="callout"><strong>Collection basis</strong> (how a capture was chosen; applies to the whole capture)<ul class="plain-list"><li><code>cued</code>: time, emitter or pointing came from a CT cue.</li><li><code>uncued</code>: chosen without ADS-B, for example on a timetable.</li><li><code>calibration</code>, <code>survey</code>.</li></ul></div>
+<div class="callout"><strong>Truth use</strong> (did cues or ADS-B enter the processing? judged per product)<ul class="plain-list"><li><code>truth_blind</code>: no cue or ADS-B input to map formation, thresholding, non-maximum suppression, detection, association or track initiation.</li><li><code>cue_aided</code>: any such input, for example gating, association aid, track initiation, or the choice of cells to search.</li></ul></div>
 </div>
 </section>
 <section id="rules">
-<h2>Proposed rule</h2>
+<h2>Accepted rule</h2>
 <div class="table-wrap"><table class="decision-table"><thead><tr><th style="width:8%">Rule</th><th style="width:52%">Text</th><th>Where it lands</th></tr></thead><tbody>
-<tr><td>TS-1</td><td><strong>Label collections.</strong> Every capture carries <code>collection_basis</code>; a cued capture also carries the <code>cue_ref</code> of the prediction that caused it (track, prediction revision, observer, emitter, window start).</td><td>ICD <code>collection_task</code>, <code>capture_record</code>, dataset manifest; DR-TS-1, DR-DATA-6</td></tr>
-<tr><td>TS-2</td><td><strong>Label products.</strong> Every detection list and track report carries <code>truth_use</code>.</td><td>ICD <code>detection_list</code>, <code>track_report</code>; DR-TS-2</td></tr>
+<tr><td>TS-1</td><td><strong>Label collections.</strong> Every capture carries <code>collection_basis</code>. The label applies to the <strong>whole capture, including every channel and emitter in it</strong>. A cued capture also carries the <code>cue_ref</code> of the prediction that caused it (track, prediction revision, observer, cued emitter, window start).</td><td>ICD <code>collection_task</code>, <code>capture_record</code>, dataset manifest; DR-TS-1, DR-DATA-6</td></tr>
+<tr><td>TS-2</td><td><strong>Label products.</strong> Every detection list and track report carries <code>truth_use</code>, judged <strong>per product</strong>, and records the <strong>emitter</strong> (<code>emitter_id</code>, RF channel) it came from.</td><td>ICD <code>detection_list</code>, <code>track_report</code>; DR-TS-2, DR-TS-6</td></tr>
 <tr><td>TS-3</td><td><strong>Independent evidence.</strong> Only <code>truth_blind</code> products count as independent detection or tracking evidence. A cued collection can still give independent detection evidence, because choosing when and where to listen happens before the IQ exists, provided that nothing after capture uses the cue or ADS-B. Truth is attached only after candidates are generated.</td><td>DR-TS-3; SR-07</td></tr>
-<tr><td>TS-4</td><td><strong>Rates.</strong> Detection probability from cued collections is reported as conditional on a cued opportunity. False-alarm rates state the collections and cells they were measured on. A rate from cued data is not presented as the rate of uncued operation.</td><td>DR-TS-4</td></tr>
+<tr><td>TS-4</td><td><strong>Rates.</strong> Detection probability from cued collections is reported as conditional on a cued opportunity. This holds for <strong>every product of a cued collection, including products on emitters other than the cued one</strong>, because the whole collection was cued. False-alarm rates state the collections, emitters and cells they were measured on. A rate from cued data is not presented as the rate of uncued operation.</td><td>DR-TS-4</td></tr>
 <tr><td>TS-5</td><td><strong>Cue-aided association.</strong> Results that used cues for association or initiation are scored and reported separately, labelled <code>cue_aided</code>, and never presented as independent tracking performance. Because cues and scoring truth share one ADS-B source, agreement between a cue-aided track and ADS-B is a consistency check, not a measurement.</td><td>DR-TS-5; SR-08</td></tr>
 <tr><td>TS-6</td><td><strong>Scoring source.</strong> Scoring uses the logged ADS-B reports for the collection window, not CT predictions.</td><td>SR-06</td></tr>
-<tr><td>TS-7</td><td><strong>Reports.</strong> Every reported result based on cued data states its <code>collection_basis</code> and <code>truth_use</code>; <code>cue_aided</code> evidence is never classed as operational evidence.</td><td>SR-13; reporting rules</td></tr>
+<tr><td>TS-7</td><td><strong>Reports.</strong> Every reported result based on cued data states its <code>collection_basis</code>, <code>truth_use</code> and emitter; <code>cue_aided</code> evidence is never classed as operational evidence.</td><td>SR-13; reporting rules</td></tr>
 </tbody></table></div>
 </section>
 <section id="examples">
 <h2>How the rule sorts typical cases</h2>
 <div class="table-wrap"><table class="decision-table"><thead><tr><th style="width:40%">Case</th><th style="width:14%">Collection basis</th><th style="width:13%">Truth use</th><th>Independent detection evidence?</th></tr></thead><tbody>
 <tr><td>Timetabled capture; truth-blind detector; ADS-B attached after detection.</td><td>uncued</td><td>truth_blind</td><td>Yes.</td></tr>
-<tr><td>Capture time and tower chosen from a cue; truth-blind detector; ADS-B attached after detection.</td><td>cued</td><td>truth_blind</td><td>Yes, reported as conditional on a cued opportunity (TS-4).</td></tr>
+<tr><td>Capture time and emitter chosen from a cue; truth-blind detector; ADS-B attached after detection.</td><td>cued</td><td>truth_blind</td><td>Yes, reported as conditional on a cued opportunity (TS-4), with the cued emitter recorded.</td></tr>
+<tr><td>Cued capture widened to about 12 MHz; a truth-blind detection on an adjacent channel, from another emitter at the same or another site.</td><td>cued (whole capture)</td><td>truth_blind</td><td>Yes, still conditional on the cue (TS-4); the product records its own emitter, not the cued one (TS-2).</td></tr>
 <tr><td>Cued capture; detector searches only the range-Doppler cells around the cue's prediction.</td><td>cued</td><td>cue_aided</td><td>No. Consistency check only.</td></tr>
 <tr><td>Tracker uses cues to start or associate tracks.</td><td>any</td><td>cue_aided</td><td>No. Scored and reported separately as cue-aided tracking (TS-5).</td></tr>
 <tr><td>Pluto calibration capture.</td><td>calibration</td><td>—</td><td>Not detection evidence; calibration evidence only.</td></tr>
 </tbody></table></div>
-<p class="source">Master (proposed): <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/Change_Requests.md">Change_Requests.md, CR-9</a>. Requirements DR-TS-1 to DR-TS-5 in the <a href="02_Requirements.html">draft baseline</a>. Family rule: <a href="../reports/03_AnalysisPipelineAndGateRebuild.html">Report 03</a> (truth separation in the G1–G10 gates).</p>
+</section>
+<section id="followup">
+<h2>Follow-up in the controlled documents</h2>
+<ul class="plain-list">
+<li>The Proposed ICD §3 messages will need an <strong>emitter list</strong> and a <strong>capture bandwidth</strong>: <code>collection_task</code> today names one <code>emitter_id</code>, and <code>capture_record</code> has a centre frequency and sample rate but no emitter list (DR-DATA-7).</li>
+<li><code>detection_list</code> and <code>track_report</code> already carry <code>emitter_id</code>; they will need <code>truth_use</code> (DR-TS-2, DR-TS-6).</li>
+<li>A “Truth separation” design rule is to be added to the architecture. All of this is action A-7 (Leif); the ICD is not edited yet.</li>
+</ul>
+<p class="source">Master: <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/Change_Requests.md">Change_Requests.md, CR-9</a> (accepted 2026-09-26). Requirements DR-TS-1 to DR-TS-6 and DR-DATA-6, DR-DATA-7 in the <a href="02_Requirements.html">DRAFT baseline</a>. Family rule: <a href="../reports/03_AnalysisPipelineAndGateRebuild.html">Report 03</a> (truth separation in the G1–G10 gates).</p>
 </section>
 
 <footer>
