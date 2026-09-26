@@ -25,6 +25,8 @@ This folder is the home of the system engineering material for the testbed: the 
 | [Engineering_Notes.md](Engineering_Notes.md) | Lessons learned: network, MATLAB, hosts, SE practice | authored here | 2026-09-26 |
 | [analysis/Cue_Traffic_Encoding.md](analysis/Cue_Traffic_Encoding.md) | Label-versus-value analysis of the cue traffic and encoding options (for CR-5) | authored here | 2026-09-26 |
 | [analysis/analyze_cue_traffic.py](analysis/analyze_cue_traffic.py), [analysis/check_matlab_decompress.m](analysis/check_matlab_decompress.m) | Scripts that reproduce the analysis | authored here | 2026-09-26 |
+| [analysis/CT_Message_2.0_Design.md](analysis/CT_Message_2.0_Design.md) | CR-5 design: compressed JSON framing, the dictionary as a controlled artifact, the 2.0.0 value clean-up | authored here | 2026-09-26, for approval |
+| [analysis/deployability/](analysis/deployability/) | Compiled-app probe: Java multicast and deflate-with-dictionary in a standalone MATLAB app | authored here | 2026-09-26 |
 | [evidence/](evidence/) | Raw wire captures behind the verification log (one JSON message per line) | captured | 2026-09-26 |
 
 ## Software items and where their code is
@@ -77,6 +79,6 @@ The levels are defined in ICD §0. "Evidence" is the status the evidence support
 | Item | Where |
 |---|---|
 | Top-N opportunity cap | CR-1 |
-| Encoding of the cue stream (compression, compact mirror schema, or none) | CR-5, [analysis](analysis/Cue_Traffic_Encoding.md) |
+| CT 2.0.0 design details: version label, time format scope, dropping `summary`, fit-to-frame, where the dictionary lives | CR-5, [design §6](analysis/CT_Message_2.0_Design.md) |
 | Single source for site geometry | CR-7 |
 | Remaining architecture open items | System_Architecture.md, "Remaining Open Items" |

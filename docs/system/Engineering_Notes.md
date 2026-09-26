@@ -38,12 +38,19 @@ Lessons verified on this testbed. Each item is something that cost time, or woul
   - Use `java.net.MulticastSocket` (CR-2). Verify it in the compiler deployability check.
 - **MATLAB passes arrays to Java by copy.**
   - `stream.read(buf)` and `inflater.inflate(buf)` fill a Java-side copy, and the MATLAB `buf` stays empty.
-  - Let Java own the bytes: `DatagramPacket.getData()`, `org.apache.commons.io.IOUtils.toByteArray(stream)`.
+  - Let Java own the bytes:
+    - for datagrams, read back through `DatagramPacket.getData()`;
+    - for decompression, write the compressed bytes *into* a `java.util.zip.InflaterOutputStream` and take the result from `ByteArrayOutputStream.toByteArray()`.
+  - Avoid `org.apache.commons.io`: it's bundled with MATLAB, but it isn't part of standard Java.
 - **`DatagramPacket.receive` shrinks the packet length** to the last datagram's size. Reset it with `setLength(bufferSize)` before every receive, or later datagrams are silently truncated.
 - **`udpport` datagram writes split at `OutputDatagramSize`**, which defaults to 512 bytes. Set it to 65507 when one message must be one datagram.
 - **`jsondecode` handles the cue schema well.** `null` becomes `[]`; arrays of objects with identical keys become struct arrays (otherwise cell arrays); nested objects become structs. Consumers should accept both struct and cell arrays.
 - **Class redefinition needs `clear`.** While an instance of a handle class exists in the session, MATLAB keeps using the old definition. `clear` the objects and the class name before re-running tests.
 - **In-memory decompression works through `java.util.zip`.** gzip and raw deflate with a preset dictionary take 0.1–0.4 ms per cue ([analysis/check_matlab_decompress.m](analysis/check_matlab_decompress.m)).
+- **Java-based I/O deploys cleanly.**
+  - A MATLAB Compiler standalone app using `java.net.MulticastSocket` and `java.util.zip` ran on the Runtime.
+  - It needed only the base, standard and graphics runtime add-ons; avoiding `udpport` also avoids the Instrument Control Toolbox runtime.
+  - Compiling a small probe takes seconds, so do it before designing around a toolbox feature ([analysis/deployability/](analysis/deployability/)).
 
 ## Hosts, time and services
 

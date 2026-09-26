@@ -8,8 +8,10 @@
 %   zlib (the ADSB cue tasker side): both decoded byte-exact, gzip 0.37 ms, deflate with
 %   dictionary 0.16 ms, jsondecode 0.30 ms per 8 kB track_cue.
 %
-%   Note: MATLAB passes arrays to Java by copy, so Java must do the byte copying
-%   (IOUtils.toByteArray); reading into a MATLAB buffer with stream.read(buf) leaves it empty.
+%   Note: MATLAB passes arrays to Java by copy, so stream.read(buf) or inflate(buf) into a
+%   MATLAB buffer leaves it empty. Write the compressed bytes INTO a java.util.zip
+%   InflaterOutputStream and take the result from ByteArrayOutputStream.toByteArray(): plain
+%   Java 8, no MATLAB-bundled libraries, and it works in compiled apps (see deployability/).
 %
 %   See also analyze_cue_traffic.py, Cue_Traffic_Encoding.md.
 
@@ -43,20 +45,15 @@ df = bytesOut.toByteArray();
 repeats = 200;
 tic
 for k = 1:repeats
-    in = java.util.zip.GZIPInputStream(java.io.ByteArrayInputStream(gz));
-    gzText = native2unicode(typecast(org.apache.commons.io.IOUtils.toByteArray(in), 'uint8').', 'UTF-8');
-    in.close();
+    % Java's GZIPOutputStream writes a minimal 10-byte header and an 8-byte trailer around
+    % raw deflate data, so the body inflates like the dictionary case below.
+    gzText = inflateRaw(gz(11:end - 8), []);
 end
 gzipMs = 1e3 * toc / repeats;
 
 tic
 for k = 1:repeats
-    inflater = java.util.zip.Inflater(true);
-    inflater.setDictionary(dictionary);            % raw streams take the dictionary before input
-    in = java.util.zip.InflaterInputStream(java.io.ByteArrayInputStream(df), inflater);
-    dfText = native2unicode(typecast(org.apache.commons.io.IOUtils.toByteArray(in), 'uint8').', 'UTF-8');
-    in.close();
-    inflater.end();
+    dfText = inflateRaw(df, dictionary);
 end
 deflateMs = 1e3 * toc / repeats;
 
@@ -69,3 +66,17 @@ jsonMs = 1e3 * toc / repeats;
 fprintf('track_cue %d B | gzip %d B, decode ok=%d, %.2f ms | deflate+dictionary %d B, decode ok=%d, %.2f ms | jsondecode %.2f ms\n', ...
     numel(cueBytes), numel(gz), strcmp(gzText, char(cue)), gzipMs, ...
     numel(df), strcmp(dfText, char(cue)), deflateMs, jsonMs);
+
+function text = inflateRaw(compressed, dictionary)
+% Raw deflate (RFC 1951) decode with an optional preset dictionary, java.util.zip only.
+inflater = java.util.zip.Inflater(true);
+if ~isempty(dictionary)
+    inflater.setDictionary(dictionary);   % raw streams take the dictionary before any input
+end
+sink = java.io.ByteArrayOutputStream(16384);
+stream = java.util.zip.InflaterOutputStream(sink, inflater);
+stream.write(compressed);
+stream.close();
+inflater.end();
+text = native2unicode(typecast(sink.toByteArray(), 'uint8').', 'UTF-8');
+end

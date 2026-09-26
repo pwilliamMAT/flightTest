@@ -11,11 +11,11 @@ The owner (Leif) decides each one. Accepted changes are made in the controlled d
 
 | CR | Title | Kind | Affects | Status |
 |---|---|---|---|---|
-| CR-1 | Cap `track_cue` opportunities to the top N by peak SNR | Deviation | ICD §2.3, §2.5; `cue-config` schema | Open |
-| CR-2 | MATLAB consumers need a Java multicast socket | Proposal | ICD §1.3; Architecture Deployment Policy rule 5, open item 4 | Open |
+| CR-1 | Cap `track_cue` opportunities to the top N by peak SNR | Deviation | ICD §2.3, §2.5; `cue-config` schema | Open (to be replaced by fit-to-frame, CR-5) |
+| CR-2 | MATLAB consumers need a Java multicast socket | Proposal | ICD §1.3; Architecture Deployment Policy rule 5, open item 4 | Open (deployability verified) |
 | CR-3 | Mark CT messages Verified from the 2026-09-26 capture | Proposal | ICD §0 status table | Open |
 | CR-4 | Revision comparison across CT restarts | Clarification | ICD §2.0 receiver rule | Open |
-| CR-5 | Encoding of the CT cue stream | Proposal | ICD §1.2, §1.3, §2.3 | Open (analysis done) |
+| CR-5 | Encoding of the CT cue stream | Proposal | ICD §1.2, §1.3, §2, §3.1 | **Accepted** in direction; design awaiting approval |
 | CR-6 | Stale tracks are not withdrawn until purged | Clarification | ICD §2.0, §2.4 | Open |
 | CR-7 | Single controlled source for observer site geometry | Proposal | Architecture (CT inputs); SiteGeometry.md | Open |
 | CR-8 | As-built corrections to System_Architecture.md | Correction | Architecture: RF Collection Desktop, Raspberry Pi, Time Source, CT, open item 9 | Open |
@@ -28,11 +28,13 @@ The owner (Leif) decides each one. Accepted changes are made in the controlled d
 - **Why:** decision CT-9(c) alone did not fit the datagram limit. With usable windows, a cue with 11 opportunities was about 25 kB even without history, over `maximum_datagram_bytes` = 16 384. CT counted it as failed and did not send it. In practice **every cue that carried an opportunity was dropped**, and only empty cues reached receivers. Capped at 3, a cue is about 8 kB.
 - **Conflicts with:** ICD §2.3 ("one *opportunity* per (observer, emitter) pair") and §2.5 ("No schema changes are proposed").
 - **Decide:** accept the cap and its default, or choose another limit. CR-5 could remove the need for a cap.
+- **Update 2026-09-26:** the CR-5 design replaces the fixed cap with fit-to-frame shedding (§2 of [the design](analysis/CT_Message_2.0_Design.md)). CR-1 closes when that design is accepted.
 
 ### CR-2: MATLAB consumers of the multicast cue stream
 
 - **Finding (2026-09-26, R2026a on Ubuntu):** `udpport` cannot join a multicast group on Linux; `configureMulticast` raises `instrument:interface:udpport:PlatformNotSupported`. It also cannot choose the interface that joins. The RF Collection Desktop's default route is its Wi-Fi, so a join on the default interface receives nothing from the data network.
 - **Working method:** `java.net.MulticastSocket`, joined on the data-network interface (`192.168.10.41`). This is implemented and tested in `CueListener` (flightTest branch `feature/adsb-cue-listener`).
+- **Deployability verified 2026-09-26:** a MATLAB Compiler standalone app joined the live group through Java on `eno1` and decoded the cues, on the MATLAB Runtime. It needed only the base, standard and graphics runtime add-ons, not the Instrument Control Toolbox ([analysis/deployability/](analysis/deployability/)).
 - **Proposed changes:**
   - ICD §1.3: state that consumers join on the data-network interface.
   - Architecture Deployment Policy rule 5 and open item 4: add "Java `MulticastSocket` and `java.util.zip` inside a compiled app" to the compiler deployability checks.
@@ -64,7 +66,19 @@ See [analysis/Cue_Traffic_Encoding.md](analysis/Cue_Traffic_Encoding.md).
   - Bandwidth is not a constraint (under 0.1% of 1 GbE even at 100 aircraft).
   - Datagram size is: every `track_cue` is fragmented into 6 IP fragments, and the size limit forced CR-1.
 - **Options that fit one frame:** deflate with a preset dictionary (no schema change), compact mirror + gzip, or packed binary. Leaving JSON buys little.
-- **Decision pending:** the four questions at the end of the analysis.
+- **Decision (Leif, 2026-09-26):**
+  - keep JSON;
+  - compress each datagram with raw deflate and a fixed, versioned preset dictionary;
+  - clean up the values.
+
+  The priorities are mainline MATLAB compatibility and the ability to build compiled apps; a modest schema change is acceptable if it helps both.
+- **Design:** [analysis/CT_Message_2.0_Design.md](analysis/CT_Message_2.0_Design.md).
+  - Wire framing: a `0xDC` tag and a dictionary id; plain JSON stays available.
+  - The dictionary becomes a controlled artifact.
+  - Message version 2.0.0, with epoch-millisecond times, rounding, `models` once per cue, and the derivable fields removed.
+  - Fit-to-frame opportunity shedding.
+  - Measured: a median `track_cue` of 536 B, against 7 962 B today.
+  - Five points await confirmation (§6 of the design). After approval, the ICD edit and the implementation follow the change process.
 
 ### CR-6: Stale tracks are not withdrawn until purged
 
