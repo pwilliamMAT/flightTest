@@ -13,10 +13,11 @@ classdef CueListener < handle
     %   class only listens, keeps the latest cue for every aircraft, and answers the
     %   question "what are the best opportunities right now?".
     %
-    %   Message types (JSON schemas 1.1.0 in the ADSB-remoter repo):
-    %     track_cue              latest prediction for one aircraft, with up to N
-    %                            (default 3) DTV opportunities ranked by peak SNR,
-    %                            each with its predicted observation windows
+    %   Message types (CT schema 2.0.0, ICD_Messages.md section 2; times are integer
+    %   epoch milliseconds in *_utc_ms fields):
+    %     track_cue              latest prediction for one aircraft, with up to 8 DTV
+    %                            opportunities ranked by peak SNR (as many as fit one
+    %                            Ethernet frame), each with its predicted windows
     %     track_cue_withdrawal   the aircraft is gone; forget that prediction
     %     cue_heartbeat          sender health: starting / running / degraded / stopping
     %     cue_snapshot_begin/end brackets a periodic resend of every active cue
@@ -27,6 +28,13 @@ classdef CueListener < handle
     %   message_id values; and treat a snapshot as complete when the number of
     %   track_cues received with its snapshot_id equals the published_track_count in
     %   cue_snapshot_end. A lost cue is repaired by the next 60 s snapshot.
+    %
+    %   Framing (ICD section 1.3): each datagram is either plain JSON (first byte '{')
+    %   or compressed: 0xDC, a dictionary id, then raw deflate with that preset
+    %   dictionary. The listener detects this per datagram and decodes with
+    %   java.util.zip (plain Java 8, works in compiled apps). Dictionaries ship in
+    %   CueListener/dictionaries and are checked against their SHA-256 when loaded.
+    %   Messages whose schema_version is not 2.x are counted and dropped.
     %
     %   Why Java sockets: MATLAB's udpport can join a multicast group only on
     %   Windows, and it cannot choose which network interface joins. The RF
@@ -53,6 +61,7 @@ classdef CueListener < handle
     %     ReceiveBufferBytes  socket buffer; snapshot bursts overflow the kernel default (8 MiB)
     %     LogFile             append every datagram as JSONL, cue_capture.py format ("" = off)
     %     DtvTableFile        FCC DTV CSV used to turn emitter ids into call signs
+    %     DictionaryDir       folder of cue-dictionary-<id>.bin/.sha256 (default: dictionaries/)
     %     Background          poll from a MATLAB timer after start()  (default false)
     %     PollPeriod_s        timer period when Background is true    (default 0.25)
     %     MessageFcn          @(msg, listener) called for every decoded message ([] = none)
@@ -66,6 +75,7 @@ classdef CueListener < handle
         ReceiveBufferBytes (1,1) double
         LogFile (1,1) string
         DtvTableFile (1,1) string
+        DictionaryDir (1,1) string
         Background (1,1) logical
         PollPeriod_s (1,1) double
         MessageFcn
@@ -78,7 +88,7 @@ classdef CueListener < handle
         LastHeartbeatReceivedUtc (1,1) datetime = NaT('TimeZone', 'UTC')
         % source_instance_id of the cue tasker currently being followed.
         SourceInstanceId (1,1) string = ""
-        % generated_utc of the most recent snapshot that arrived complete.
+        % generated_utc_ms of the most recent snapshot that arrived complete.
         LastCompleteSnapshotUtc (1,1) datetime = NaT('TimeZone', 'UTC')
         % Counters: received messages, decode errors, sequence gaps, restarts, ...
         Stats struct
@@ -98,6 +108,8 @@ classdef CueListener < handle
         Timer = []
         NextSequence = NaN
         CallSigns
+        % Compression dictionaries by id (int8 row vectors).
+        Dictionaries
         % track_cues received so far per open snapshot_id.
         OpenSnapshots
         % Recently seen message_id values, oldest first, for de-duplication.
@@ -109,6 +121,9 @@ classdef CueListener < handle
         BufferBytes = 65535
         MaxDatagramsPerPoll = 2000
         MaxRememberedMessageIds = 10000
+        CompressedFrameTag = 220        % 0xDC
+        PlainFrameFirstByte = 123       % '{'
+        SupportedMajorVersion = "2"
     end
 
     methods
@@ -121,6 +136,7 @@ classdef CueListener < handle
             addParameter(p, 'ReceiveBufferBytes', 8 * 1024 * 1024, @(x) isnumeric(x) && x > 0);
             addParameter(p, 'LogFile', "", @localIsText);
             addParameter(p, 'DtvTableFile', localDefaultDtvTable(), @localIsText);
+            addParameter(p, 'DictionaryDir', localDefaultDictionaryDir(), @localIsText);
             addParameter(p, 'Background', false, @(x) islogical(x) || isnumeric(x));
             addParameter(p, 'PollPeriod_s', 0.25, @(x) isnumeric(x) && x > 0);
             addParameter(p, 'MessageFcn', [], @(x) isempty(x) || isa(x, 'function_handle'));
@@ -133,6 +149,7 @@ classdef CueListener < handle
             obj.ReceiveBufferBytes = o.ReceiveBufferBytes;
             obj.LogFile = string(o.LogFile);
             obj.DtvTableFile = string(o.DtvTableFile);
+            obj.DictionaryDir = string(o.DictionaryDir);
             obj.Background = logical(o.Background);
             obj.PollPeriod_s = o.PollPeriod_s;
             obj.MessageFcn = o.MessageFcn;
@@ -142,6 +159,7 @@ classdef CueListener < handle
             obj.OpenSnapshots = containers.Map('KeyType', 'char', 'ValueType', 'double');
             obj.SeenMessageIds = containers.Map('KeyType', 'char', 'ValueType', 'logical');
             obj.CallSigns = localLoadCallSigns(obj.DtvTableFile);
+            obj.Dictionaries = localLoadDictionaries(obj.DictionaryDir);
         end
 
         function start(obj)
@@ -242,12 +260,68 @@ classdef CueListener < handle
                 end
                 n = obj.Packet.getLength();
                 data = obj.Packet.getData();
-                text = native2unicode(typecast(data(1:n), 'uint8').', 'UTF-8');
-                msg = obj.ingest(text);
+                msg = obj.ingestDatagram(data(1:n).');
                 if ~isempty(msg)
                     messages{end + 1} = msg; %#ok<AGROW>
                 end
             end
+        end
+
+        function msg = ingestDatagram(obj, datagram, receivedUtc)
+            %INGESTDATAGRAM Decode one datagram (plain or compressed) and ingest the message.
+            if nargin < 3
+                receivedUtc = datetime('now', 'TimeZone', 'UTC');
+            end
+            try
+                text = obj.decodeDatagram(datagram);
+            catch err
+                obj.Stats.FrameErrors = obj.Stats.FrameErrors + 1;
+                obj.Stats.LastFrameError = string(err.message);
+                msg = [];
+                return
+            end
+            msg = obj.ingest(text, receivedUtc);
+        end
+
+        function text = decodeDatagram(obj, datagram)
+            %DECODEDATAGRAM The UTF-8 JSON text carried by one datagram (ICD section 1.3).
+            %   DATAGRAM is int8 or uint8 bytes. Plain datagrams start with '{'; compressed
+            %   ones are 0xDC, a dictionary id, then raw deflate with that preset dictionary.
+            datagram = datagram(:).';
+            if isa(datagram, 'int8')
+                bytes = typecast(datagram, 'uint8');     % Java byte[] arrives as int8
+            else
+                bytes = uint8(datagram);
+            end
+            if isempty(bytes)
+                error('CueListener:EmptyDatagram', 'Empty datagram.');
+            end
+            if bytes(1) == obj.PlainFrameFirstByte
+                obj.Stats.PlainDatagrams = obj.Stats.PlainDatagrams + 1;
+                text = native2unicode(bytes, 'UTF-8');
+                return
+            end
+            if bytes(1) ~= obj.CompressedFrameTag
+                error('CueListener:UnknownFrame', 'Unknown frame tag 0x%02X.', bytes(1));
+            end
+            if numel(bytes) < 3
+                error('CueListener:TruncatedFrame', 'Truncated compressed datagram.');
+            end
+            dictionaryId = double(bytes(2));
+            if ~isKey(obj.Dictionaries, dictionaryId)
+                error('CueListener:UnknownDictionary', 'Unknown dictionary id %d.', dictionaryId);
+            end
+            % MATLAB passes arrays to Java by copy, so write the compressed bytes into an
+            % InflaterOutputStream and read the result back from the ByteArrayOutputStream.
+            inflater = java.util.zip.Inflater(true);      % raw deflate, no zlib header
+            inflater.setDictionary(obj.Dictionaries(dictionaryId));
+            sink = java.io.ByteArrayOutputStream(16384);
+            stream = java.util.zip.InflaterOutputStream(sink, inflater);
+            stream.write(typecast(bytes(3:end), 'int8'));
+            stream.close();
+            inflater.end();
+            obj.Stats.CompressedDatagrams = obj.Stats.CompressedDatagrams + 1;
+            text = native2unicode(typecast(sink.toByteArray(), 'uint8').', 'UTF-8');
         end
 
         function msg = ingest(obj, text, receivedUtc)
@@ -276,6 +350,12 @@ classdef CueListener < handle
             end
             if ~isstruct(msg) || ~isscalar(msg) || ~isfield(msg, 'message_type')
                 obj.Stats.DecodeErrors = obj.Stats.DecodeErrors + 1;
+                msg = [];
+                return
+            end
+            if ~isfield(msg, 'schema_version') || ...
+                    ~startsWith(string(msg.schema_version), obj.SupportedMajorVersion + ".")
+                obj.Stats.UnsupportedVersion = obj.Stats.UnsupportedVersion + 1;
                 msg = [];
                 return
             end
@@ -327,7 +407,7 @@ classdef CueListener < handle
 
         function tbl = activeCues(obj, varargin)
             %ACTIVECUES One row per cued aircraft, strongest best opportunity first.
-            %   Cues whose prediction has expired (valid_until_utc before Now) are left
+            %   Cues whose prediction has expired (valid_until_utc_ms before Now) are left
             %   out unless IncludeExpired is true. Aircraft with no usable opportunity
             %   sort last with NaN SNR.
             p = inputParser;
@@ -340,7 +420,7 @@ classdef CueListener < handle
             rows = cell(numel(keys), 1);
             for k = 1:numel(keys)
                 cue = obj.Tracks(keys{k});
-                validUntil = helperCueParseUtc(cue.prediction.valid_until_utc);
+                validUntil = helperCueParseUtc(cue.prediction.valid_until_utc_ms);
                 if ~p.Results.IncludeExpired && validUntil < now
                     continue
                 end
@@ -371,12 +451,12 @@ classdef CueListener < handle
                             'Emitter', obj.emitterLabel(opp), ...
                             'Frequency_MHz', opp.carrier_frequency_hz / 1e6, ...
                             'RfChannel', localNumberOrNaN(opp.rf_channel), ...
-                            'WindowStart', helperCueParseUtc(w.start_utc), ...
-                            'WindowEnd', helperCueParseUtc(w.end_utc), ...
+                            'WindowStart', helperCueParseUtc(w.start_utc_ms), ...
+                            'WindowEnd', helperCueParseUtc(w.end_utc_ms), ...
                             'Duration_s', w.duration_s, ...
                             'PeakSNR_dB', w.max_snr_db, ...
                             'MeanSNR_dB', w.mean_snr_db, ...
-                            'PeakSNRTime', helperCueParseUtc(w.peak_snr_utc), ...
+                            'PeakSNRTime', helperCueParseUtc(w.peak_snr_utc_ms), ...
                             'MinBistaticRange_m', w.min_bistatic_range_m, ...
                             'MaxBistaticRange_m', w.max_bistatic_range_m, ...
                             'MinDoppler_Hz', w.min_bistatic_doppler_hz, ...
@@ -429,9 +509,10 @@ classdef CueListener < handle
     methods (Static)
         function obj = replay(logFile, varargin)
             %REPLAY Build a listener offline from a JSONL log.
-            %   Accepts this class's LogFile format and tools/cue_capture.py output
-            %   (lines of {"received_unix_s": ..., "payload": {...}}) as well as raw
-            %   one-message-per-line JSON.
+            %   Accepts this class's LogFile format, ADSB-remoter tools/cue_capture.py
+            %   output (lines of {"received_unix_s", "payload", "datagram_b64"}), and raw
+            %   one-message-per-line JSON. When a line carries the wire bytes
+            %   (datagram_b64), those are decoded exactly as a live datagram would be.
             obj = CueListener(varargin{:});
             lines = readlines(logFile, 'EmptyLineRule', 'skip');
             for k = 1:numel(lines)
@@ -442,11 +523,15 @@ classdef CueListener < handle
                     continue
                 end
                 receivedUtc = datetime('now', 'TimeZone', 'UTC');
+                if isstruct(record) && isfield(record, 'received_unix_s')
+                    receivedUtc = datetime(record.received_unix_s, ...
+                        'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+                end
+                if isstruct(record) && isfield(record, 'datagram_b64')
+                    obj.ingestDatagram(matlab.net.base64decode(record.datagram_b64), receivedUtc);
+                    continue
+                end
                 if isstruct(record) && isfield(record, 'payload')
-                    if isfield(record, 'received_unix_s')
-                        receivedUtc = datetime(record.received_unix_s, ...
-                            'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
-                    end
                     record = record.payload;
                 end
                 obj.ingestMessage(record, receivedUtc);
@@ -516,7 +601,7 @@ classdef CueListener < handle
             end
             if received == snapshotEnd.published_track_count
                 obj.Stats.SnapshotsComplete = obj.Stats.SnapshotsComplete + 1;
-                obj.LastCompleteSnapshotUtc = helperCueParseUtc(snapshotEnd.generated_utc);
+                obj.LastCompleteSnapshotUtc = helperCueParseUtc(snapshotEnd.generated_utc_ms);
             else
                 % Some snapshot cues were lost; the next snapshot repairs them.
                 obj.Stats.SnapshotsIncomplete = obj.Stats.SnapshotsIncomplete + 1;
@@ -558,7 +643,7 @@ classdef CueListener < handle
                 'ICAO', string(cue.track.icao), ...
                 'Callsign', localStringOrEmpty(cue.track.callsign), ...
                 'Revision', cue.prediction.revision, ...
-                'ReportAge_s', seconds(now - helperCueParseUtc(cue.track.last_report_utc)), ...
+                'ReportAge_s', seconds(now - helperCueParseUtc(cue.track.last_report_utc_ms)), ...
                 'ValidUntil', validUntil, ...
                 'Opportunities', numel(opps), ...
                 'BestEmitter', "", ...
@@ -579,8 +664,8 @@ classdef CueListener < handle
                         row.BestEmitter = obj.emitterLabel(opps{i});
                         row.BestFrequency_MHz = opps{i}.carrier_frequency_hz / 1e6;
                         row.BestPeakSNR_dB = bestSnr;
-                        row.BestWindowStart = helperCueParseUtc(windows{j}.start_utc);
-                        row.BestWindowEnd = helperCueParseUtc(windows{j}.end_utc);
+                        row.BestWindowStart = helperCueParseUtc(windows{j}.start_utc_ms);
+                        row.BestWindowEnd = helperCueParseUtc(windows{j}.end_utc_ms);
                     end
                 end
             end
@@ -606,7 +691,8 @@ function stats = localEmptyStats()
 stats = struct('Received', 0, 'DecodeErrors', 0, 'SequenceGaps', 0, 'OutOfOrder', 0, ...
     'SourceRestarts', 0, 'StaleRevisionsIgnored', 0, 'UnknownMessages', 0, ...
     'Duplicates', 0, 'SnapshotsComplete', 0, 'SnapshotsIncomplete', 0, ...
-    'MessageCounts', struct());
+    'PlainDatagrams', 0, 'CompressedDatagrams', 0, 'FrameErrors', 0, 'LastFrameError', "", ...
+    'UnsupportedVersion', 0, 'MessageCounts', struct());
 end
 
 function items = localAsCell(value)
@@ -657,6 +743,34 @@ end
 function path = localDefaultDtvTable()
 repoRoot = fileparts(fileparts(mfilename('fullpath')));
 path = string(fullfile(repoRoot, 'TestSetupTesting', 'siteData', '20_DTV_direct_path_input.csv'));
+end
+
+function path = localDefaultDictionaryDir()
+path = string(fullfile(fileparts(mfilename('fullpath')), 'dictionaries'));
+end
+
+function dictionaries = localLoadDictionaries(folder)
+% Released compression dictionaries by id, each checked against its .sha256 file.
+dictionaries = containers.Map('KeyType', 'double', 'ValueType', 'any');
+if strlength(folder) == 0 || ~isfolder(folder)
+    return
+end
+files = dir(fullfile(folder, 'cue-dictionary-*.bin'));
+for k = 1:numel(files)
+    [~, stem] = fileparts(files(k).name);
+    id = str2double(extractAfter(stem, 'cue-dictionary-'));
+    fid = fopen(fullfile(folder, files(k).name), 'r');
+    bytes = fread(fid, Inf, '*uint8').';
+    fclose(fid);
+    expected = strtok(fileread(fullfile(folder, stem + ".sha256")));
+    digest = java.security.MessageDigest.getInstance('SHA-256').digest(typecast(bytes, 'int8'));
+    actual = lower(reshape(dec2hex(typecast(digest, 'uint8'), 2).', 1, []));
+    if ~strcmp(actual, expected)
+        error('CueListener:DictionaryChecksum', '%s: SHA-256 %s does not match %s.', ...
+            files(k).name, actual, expected);
+    end
+    dictionaries(id) = typecast(bytes, 'int8');
+end
 end
 
 function callSigns = localLoadCallSigns(path)

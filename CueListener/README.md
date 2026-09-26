@@ -10,13 +10,13 @@ The cue tasker is `adsb-console --headless` from the [ADSB-remoter](https://gith
 - works out the bistatic geometry to our receive site for every UHF DTV tower;
 - keeps the time windows in which the predicted bistatic SNR stays above the detection threshold.
 
-It then "rings the bell": it sends one JSON message per aircraft carrying up to three opportunities, ranked by peak SNR. The messages go out as UDP multicast to `239.192.10.1:31986`.
+It then "rings the bell": it sends one JSON message per aircraft carrying up to 8 opportunities, ranked by peak SNR and fitted into one Ethernet frame. The messages go out as UDP multicast to `239.192.10.1:31986`. On the deployed Pi each message is compressed (see Framing); a compressed 8-opportunity cue is about 700 B on the wire.
 
 Deciding what to actually collect, when, and with which illuminator is the collection system's job. `CueListener` only listens. It keeps the latest cue for each aircraft and answers "what are the best opportunities right now?".
 
 | Message | Meaning |
 | :--- | :--- |
-| `track_cue` | Latest prediction for one aircraft (`prediction.revision` increases). It holds up to 3 opportunities; each names an illuminator (`emitter_id` = `dtv:<facility>:<rf channel>:<MHz>`) and lists its predicted windows with start/end, peak and mean SNR, and bistatic range and Doppler limits. |
+| `track_cue` | Latest prediction for one aircraft (`prediction.revision` increases). It holds up to 8 opportunities. Each names an illuminator (`emitter_id` = `dtv:<facility>:<rf channel>:<MHz>`, plus numeric `carrier_frequency_hz` and `rf_channel`) and lists its predicted windows: start/end, peak and mean SNR, and bistatic range and Doppler limits. The model settings (`models`) appear once per cue. |
 | `track_cue_withdrawal` | The aircraft was dropped. Forget that prediction. |
 | `cue_heartbeat` | Sender health, every 10 s: `starting`, `running`, `degraded` (no ADS-B for more than 20 s, or a send failure) or `stopping`. |
 | `cue_snapshot_begin` / `_end` | Brackets a full resend of every active cue, every 60 s. |
@@ -28,9 +28,14 @@ The message contract is [`docs/system/ICD_Messages.md`](../docs/system/ICD_Messa
 - drop any `message_id` it has already seen;
 - count a snapshot as complete when the number of cues received with its `snapshot_id` equals the `published_track_count` in `cue_snapshot_end` (`Stats.SnapshotsComplete`/`SnapshotsIncomplete`, `LastCompleteSnapshotUtc`). An incomplete snapshot is repaired by the next one, 60 s later.
 
-**Not yet in the ICD:** each `track_cue` currently carries at most 3 opportunities (ADSB-remoter `udp_output.maximum_opportunities_per_cue`). Without that cap, cues that have usable windows were about 25 kB, over the 16 KiB datagram limit, and were dropped. The cap is an open ICD change request; ICD §2.3 as written allows every usable opportunity. The listener handles any number.
+**Schema 2.0.0 (ICD Draft B).** Times are integer epoch milliseconds in `*_utc_ms` fields; `helperCueParseUtc` turns them into UTC datetimes. The listener drops messages whose `schema_version` isn't 2.x (`Stats.UnsupportedVersion`).
 
-The JSON schemas are in the ADSB-remoter repo (`schemas/*-1.1.0.json`). They use the same bistatic convention as `BistaticDataAnalysis`: `R_excess = R_tx + R_rx − L`, and `f_D = −(fc/c)·dR_excess/dt`.
+**Framing (ICD §1.3).** A datagram is either plain JSON (first byte `{`) or compressed: `0xDC`, a dictionary id, then raw deflate of the JSON with that preset dictionary. The listener detects which, per datagram.
+- **Dictionaries:** the released ones ship in `CueListener/dictionaries/`, copied from their master in ADSB-remoter `schemas/dictionaries/`, and are checked against their SHA-256 when the listener is constructed.
+- **Decoding:** uses `java.util.zip` only, which also works in compiled apps (`docs/system/analysis/deployability/`).
+- **Counters:** `Stats.PlainDatagrams`, `CompressedDatagrams` and `FrameErrors`.
+
+The JSON schemas are in the ADSB-remoter repo (`schemas/*-2.0.0.json`, also embedded in the ICD). They use the same bistatic convention as `BistaticDataAnalysis`: `R_excess = R_tx + R_rx − L`, and `f_D = −(fc/c)·dR_excess/dt`.
 
 SNR values are **pre-integration** estimates from the bistatic radar equation. Use them to rank opportunities, not as a detection prediction.
 
@@ -65,10 +70,11 @@ stop(L);
 - **Java multicast socket:** MATLAB's `udpport` can join a multicast group only on Windows (`configureMulticast` raises `PlatformNotSupported` on Linux), and it cannot choose the interface that joins. The listener therefore uses a `java.net.MulticastSocket`.
 - **Join interface:** the socket joins on `InterfaceAddress`, which defaults to `192.168.10.41`, the collection desktop's `eno1`. The desktop's default route is its Wi-Fi, so a join without an explicit interface would go out on the wrong network. On another machine on the data network, pass its own 192.168.10.x address.
 - **Same network only:** the sender uses TTL 1, so listeners must be on 192.168.10.0/24.
-- **Buffer size:** every 60 s the sender resends all active cues in one burst of about 8 kB per aircraft, which can overflow a default kernel socket buffer. The listener asks for 8 MiB. `Stats.SequenceGaps` counts any datagrams lost anyway.
-- **Monitoring alongside MATLAB:** the socket shares its port, so `socat` or `cue_capture.py` can listen at the same time. With socat, keep `-b 65535`:
+- **Buffer size:** every 60 s the sender resends all active cues in one burst, which can overflow a default kernel socket buffer. The listener asks for 8 MiB. `Stats.SequenceGaps` counts any datagrams lost anyway.
+- **Monitoring alongside MATLAB:** the socket shares its port, so socat or `cue_capture.py` can listen at the same time. The stream is compressed, so give each datagram its own socat child process (`UDP4-RECVFROM` + `fork`) and decode the base64 lines with ADSB-remoter's `tools/cue_decode.py`:
   ```bash
-  socat -b 65535 -u UDP4-RECV:31986,reuseaddr,ip-add-membership=239.192.10.1:192.168.10.41,rcvbuf=8388608 STDOUT | jq -c .
+  socat -u UDP4-RECVFROM:31986,reuseaddr,ip-add-membership=239.192.10.1:192.168.10.41,fork SYSTEM:'base64 -w0; echo' \
+    | ~/Documents/ADSB-remoter/.venv/bin/python ~/Documents/ADSB-remoter/tools/cue_decode.py | jq -c .
   ```
 
 ## Tests
@@ -77,4 +83,11 @@ stop(L);
 runtests('CueListener/tests/CueListenerTest.m')
 ```
 
-The fixture holds 16 real datagrams from the Pi, captured on 2026-09-26. The tests cover replay, ranking, expiry, revision ordering, withdrawals, sequence gaps and sender restarts, the timeline plot, and a real UDP socket receiving on loopback, with a log round trip.
+The fixture holds 20 consecutive real CT 2.0.0 datagrams from the Pi (2026-09-26 15:32 UTC), stored as their exact compressed wire bytes. The tests cover:
+- decoding the compressed stream;
+- plain and compressed framing, unknown frames and dictionaries, and the dictionary checksum;
+- replay, ranking, expiry and revision ordering;
+- withdrawals, duplicates, sequence gaps, sender restarts and snapshot completeness;
+- dropping older schema versions;
+- the timeline plot;
+- a real UDP socket receiving compressed datagrams on loopback, with a log round trip.

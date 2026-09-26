@@ -1,13 +1,19 @@
 function t = helperCueParseUtc(value)
-%HELPERCUEPARSEUTC Parse a cue-message UTC timestamp into a UTC datetime.
-%   The ADS-B cue tasker writes ISO 8601 UTC with a Z suffix and milliseconds
-%   ("2026-09-26T00:50:38.433Z"). Empty values or JSON null (decoded as [])
-%   return NaT, so callers can compare and sort without special cases.
+%HELPERCUEPARSEUTC Convert a cue-message UTC time into a UTC datetime.
+%   CT 2.0.0 sends times as integer milliseconds since 1970-01-01T00:00:00Z in
+%   *_utc_ms fields (ICD_Messages.md section 1.2); jsondecode gives a double, which
+%   holds them exactly. ISO 8601 strings ("2026-09-26T00:50:38.433Z", CT 1.x) are
+%   still accepted for old logs. Empty values or JSON null (decoded as []) return NaT,
+%   so callers can compare and sort without special cases.
 %
 %   See also CueListener.
 
 if isempty(value)
     t = NaT('TimeZone', 'UTC');
+    return
+end
+if isnumeric(value)
+    t = datetime(double(value) / 1000, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
     return
 end
 text = string(value);
