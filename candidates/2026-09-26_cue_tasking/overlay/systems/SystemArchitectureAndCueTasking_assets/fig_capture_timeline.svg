@@ -1,0 +1,256 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 300" role="img" aria-labelledby="t d" font-family="Segoe UI,Arial,sans-serif">
+<title id="t">Timeline of the CT 2.0.0 live acceptance capture</title><desc id="d">Three lanes over the 15-minute capture: heartbeats every 10 s, snapshot ends every 60 s labelled with the number of cues they published, and track_cue datagrams sized by opportunity count.</desc>
+<rect width="1100" height="300" fill="#ffffff"/>
+<text x="24.0" y="32.0" font-size="18" fill="#172033" text-anchor="start" font-weight="700" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">What arrived, and when: CT 2.0.0 live capture, 2026-09-26 from 15:23 UTC</text>
+<text x="24.0" y="54.0" font-size="12" fill="#526176" text-anchor="start" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">Numbers above snapshot marks = published_track_count, each equal to the track_cue messages received for that snapshot.</text>
+<line x1="170.0" y1="80" x2="170.0" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<text x="170.0" y="268.0" font-size="11" fill="#526176" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">+0 min</text>
+<line x1="229.7" y1="80" x2="229.7" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<line x1="289.4" y1="80" x2="289.4" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<text x="289.4" y="268.0" font-size="11" fill="#526176" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">+2 min</text>
+<line x1="349.2" y1="80" x2="349.2" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<line x1="408.9" y1="80" x2="408.9" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<text x="408.9" y="268.0" font-size="11" fill="#526176" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">+4 min</text>
+<line x1="468.6" y1="80" x2="468.6" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<line x1="528.3" y1="80" x2="528.3" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<text x="528.3" y="268.0" font-size="11" fill="#526176" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">+6 min</text>
+<line x1="588.0" y1="80" x2="588.0" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<line x1="647.7" y1="80" x2="647.7" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<text x="647.7" y="268.0" font-size="11" fill="#526176" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">+8 min</text>
+<line x1="707.5" y1="80" x2="707.5" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<line x1="767.2" y1="80" x2="767.2" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<text x="767.2" y="268.0" font-size="11" fill="#526176" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">+10 min</text>
+<line x1="826.9" y1="80" x2="826.9" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<line x1="886.6" y1="80" x2="886.6" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<text x="886.6" y="268.0" font-size="11" fill="#526176" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">+12 min</text>
+<line x1="946.3" y1="80" x2="946.3" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<line x1="1006.1" y1="80" x2="1006.1" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+<text x="1006.1" y="268.0" font-size="11" fill="#526176" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">+14 min</text>
+<text x="158.0" y="114.0" font-size="12" fill="#172033" text-anchor="end" font-weight="600" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">heartbeat (10 s)</text>
+<text x="158.0" y="169.0" font-size="12" fill="#172033" text-anchor="end" font-weight="600" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">snapshot end (60 s)</text>
+<text x="158.0" y="224.0" font-size="12" fill="#172033" text-anchor="end" font-weight="600" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">track_cue</text>
+<circle cx="170.0" cy="110" r="4" fill="#526176"><title>heartbeat +0.0 s</title></circle>
+<circle cx="178.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +8.2 s, 8 opportunities, 691 B</title></circle>
+<circle cx="180.0" cy="110" r="4" fill="#526176"><title>heartbeat +10.0 s</title></circle>
+<circle cx="180.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +10.0 s, 8 opportunities, 708 B</title></circle>
+<circle cx="180.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +10.0 s, 8 opportunities, 725 B</title></circle>
+<circle cx="180.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +10.0 s, 8 opportunities, 687 B</title></circle>
+<circle cx="189.9" cy="110" r="4" fill="#526176"><title>heartbeat +20.0 s</title></circle>
+<circle cx="195.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +25.3 s, 8 opportunities, 671 B</title></circle>
+<circle cx="199.9" cy="110" r="4" fill="#526176"><title>heartbeat +30.0 s</title></circle>
+<circle cx="209.8" cy="110" r="4" fill="#526176"><title>heartbeat +40.0 s</title></circle>
+<circle cx="219.8" cy="110" r="4" fill="#526176"><title>heartbeat +50.0 s</title></circle>
+<circle cx="225.9" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +56.1 s, 0 opportunities, 259 B</title></circle>
+<circle cx="229.7" cy="110" r="4" fill="#526176"><title>heartbeat +60.0 s</title></circle>
+<circle cx="239.7" cy="110" r="4" fill="#526176"><title>heartbeat +70.0 s</title></circle>
+<circle cx="239.7" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +70.0 s, 0 opportunities, 295 B</title></circle>
+<circle cx="249.6" cy="110" r="4" fill="#526176"><title>heartbeat +80.0 s</title></circle>
+<circle cx="255.9" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +86.3 s, 0 opportunities, 259 B</title></circle>
+<circle cx="259.6" cy="110" r="4" fill="#526176"><title>heartbeat +90.0 s</title></circle>
+<circle cx="269.5" cy="110" r="4" fill="#526176"><title>heartbeat +100.0 s</title></circle>
+<circle cx="279.5" cy="110" r="4" fill="#526176"><title>heartbeat +110.0 s</title></circle>
+<circle cx="286.7" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +117.3 s, 0 opportunities, 257 B</title></circle>
+<circle cx="289.4" cy="110" r="4" fill="#526176"><title>heartbeat +120.0 s</title></circle>
+<circle cx="299.4" cy="110" r="4" fill="#526176"><title>heartbeat +130.0 s</title></circle>
+<circle cx="299.4" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +130.0 s, 0 opportunities, 289 B</title></circle>
+<circle cx="309.3" cy="110" r="4" fill="#526176"><title>heartbeat +140.0 s</title></circle>
+<circle cx="319.3" cy="110" r="4" fill="#526176"><title>heartbeat +150.0 s</title></circle>
+<circle cx="327.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +157.9 s, 8 opportunities, 651 B</title></circle>
+<circle cx="329.2" cy="110" r="4" fill="#526176"><title>heartbeat +160.0 s</title></circle>
+<circle cx="339.2" cy="110" r="4" fill="#526176"><title>heartbeat +170.0 s</title></circle>
+<circle cx="349.2" cy="110" r="4" fill="#526176"><title>heartbeat +180.1 s</title></circle>
+<circle cx="357.3" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +188.2 s, 8 opportunities, 691 B</title></circle>
+<circle cx="359.1" cy="110" r="4" fill="#526176"><title>heartbeat +190.0 s</title></circle>
+<circle cx="359.1" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +190.0 s, 8 opportunities, 724 B</title></circle>
+<circle cx="369.1" cy="110" r="4" fill="#526176"><title>heartbeat +200.0 s</title></circle>
+<circle cx="379.0" cy="110" r="4" fill="#526176"><title>heartbeat +210.0 s</title></circle>
+<circle cx="387.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +218.3 s, 8 opportunities, 662 B</title></circle>
+<circle cx="389.0" cy="110" r="4" fill="#526176"><title>heartbeat +220.0 s</title></circle>
+<circle cx="398.9" cy="110" r="4" fill="#526176"><title>heartbeat +230.0 s</title></circle>
+<circle cx="408.9" cy="110" r="4" fill="#526176"><title>heartbeat +240.0 s</title></circle>
+<circle cx="418.1" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +249.3 s, 8 opportunities, 669 B</title></circle>
+<circle cx="418.8" cy="110" r="4" fill="#526176"><title>heartbeat +250.0 s</title></circle>
+<circle cx="418.8" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +250.0 s, 8 opportunities, 706 B</title></circle>
+<circle cx="428.8" cy="110" r="4" fill="#526176"><title>heartbeat +260.0 s</title></circle>
+<circle cx="438.7" cy="110" r="4" fill="#526176"><title>heartbeat +270.0 s</title></circle>
+<circle cx="448.7" cy="110" r="4" fill="#526176"><title>heartbeat +280.0 s</title></circle>
+<circle cx="449.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +280.3 s, 8 opportunities, 681 B</title></circle>
+<circle cx="458.7" cy="110" r="4" fill="#526176"><title>heartbeat +290.0 s</title></circle>
+<circle cx="464.6" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +296.0 s, 8 opportunities, 629 B</title></circle>
+<circle cx="468.6" cy="110" r="4" fill="#526176"><title>heartbeat +300.0 s</title></circle>
+<circle cx="471.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +303.3 s, 8 opportunities, 688 B</title></circle>
+<circle cx="477.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +309.4 s, 8 opportunities, 645 B</title></circle>
+<circle cx="478.5" cy="110" r="4" fill="#526176"><title>heartbeat +310.0 s</title></circle>
+<circle cx="478.5" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +310.0 s, 8 opportunities, 713 B</title></circle>
+<circle cx="478.6" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +310.0 s, 8 opportunities, 681 B</title></circle>
+<circle cx="478.6" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +310.0 s, 8 opportunities, 724 B</title></circle>
+<circle cx="483.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +315.4 s, 8 opportunities, 665 B</title></circle>
+<circle cx="488.5" cy="110" r="4" fill="#526176"><title>heartbeat +320.0 s</title></circle>
+<circle cx="498.5" cy="110" r="4" fill="#526176"><title>heartbeat +330.0 s</title></circle>
+<circle cx="508.5" cy="110" r="4" fill="#526176"><title>heartbeat +340.1 s</title></circle>
+<circle cx="508.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +340.3 s, 8 opportunities, 689 B</title></circle>
+<circle cx="511.0" cy="220" r="4.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +342.6 s, 3 opportunities, 441 B</title></circle>
+<circle cx="513.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +344.8 s, 8 opportunities, 682 B</title></circle>
+<circle cx="518.4" cy="110" r="4" fill="#526176"><title>heartbeat +350.0 s</title></circle>
+<circle cx="524.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +356.4 s, 8 opportunities, 673 B</title></circle>
+<circle cx="528.3" cy="110" r="4" fill="#526176"><title>heartbeat +360.0 s</title></circle>
+<circle cx="538.3" cy="110" r="4" fill="#526176"><title>heartbeat +370.0 s</title></circle>
+<circle cx="538.3" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +370.0 s, 8 opportunities, 722 B</title></circle>
+<circle cx="538.3" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +370.0 s, 8 opportunities, 708 B</title></circle>
+<circle cx="538.3" cy="220" r="4.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +370.0 s, 3 opportunities, 477 B</title></circle>
+<circle cx="541.5" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +373.3 s, 0 opportunities, 266 B</title></circle>
+<circle cx="548.2" cy="110" r="4" fill="#526176"><title>heartbeat +380.0 s</title></circle>
+<circle cx="554.1" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +385.9 s, 8 opportunities, 649 B</title></circle>
+<circle cx="555.4" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +387.2 s, 8 opportunities, 677 B</title></circle>
+<circle cx="558.2" cy="110" r="4" fill="#526176"><title>heartbeat +390.0 s</title></circle>
+<circle cx="567.0" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +398.9 s, 0 opportunities, 262 B</title></circle>
+<circle cx="568.1" cy="110" r="4" fill="#526176"><title>heartbeat +400.0 s</title></circle>
+<circle cx="578.1" cy="110" r="4" fill="#526176"><title>heartbeat +410.0 s</title></circle>
+<circle cx="584.3" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +416.3 s, 8 opportunities, 689 B</title></circle>
+<circle cx="585.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +417.7 s, 8 opportunities, 665 B</title></circle>
+<circle cx="586.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +418.2 s, 8 opportunities, 678 B</title></circle>
+<circle cx="588.0" cy="110" r="4" fill="#526176"><title>heartbeat +420.0 s</title></circle>
+<circle cx="590.6" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +422.6 s, 8 opportunities, 641 B</title></circle>
+<circle cx="597.2" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +429.2 s, 0 opportunities, 262 B</title></circle>
+<circle cx="598.0" cy="110" r="4" fill="#526176"><title>heartbeat +430.0 s</title></circle>
+<circle cx="598.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +430.0 s, 8 opportunities, 701 B</title></circle>
+<circle cx="598.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +430.0 s, 8 opportunities, 710 B</title></circle>
+<circle cx="598.0" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +430.0 s, 0 opportunities, 289 B</title></circle>
+<circle cx="598.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +430.0 s, 8 opportunities, 677 B</title></circle>
+<circle cx="607.9" cy="110" r="4" fill="#526176"><title>heartbeat +440.0 s</title></circle>
+<circle cx="615.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +448.0 s, 8 opportunities, 664 B</title></circle>
+<circle cx="617.9" cy="110" r="4" fill="#526176"><title>heartbeat +450.0 s</title></circle>
+<circle cx="621.1" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +453.3 s, 8 opportunities, 701 B</title></circle>
+<circle cx="627.9" cy="110" r="4" fill="#526176"><title>heartbeat +460.1 s</title></circle>
+<circle cx="628.1" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +460.2 s, 0 opportunities, 260 B</title></circle>
+<circle cx="637.8" cy="110" r="4" fill="#526176"><title>heartbeat +470.0 s</title></circle>
+<circle cx="646.1" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +478.3 s, 8 opportunities, 693 B</title></circle>
+<circle cx="647.7" cy="110" r="4" fill="#526176"><title>heartbeat +480.0 s</title></circle>
+<circle cx="651.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +483.3 s, 8 opportunities, 688 B</title></circle>
+<circle cx="657.7" cy="110" r="4" fill="#526176"><title>heartbeat +490.0 s</title></circle>
+<circle cx="657.8" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +490.1 s, 8 opportunities, 730 B</title></circle>
+<circle cx="657.8" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +490.1 s, 0 opportunities, 297 B</title></circle>
+<circle cx="657.8" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +490.1 s, 8 opportunities, 722 B</title></circle>
+<circle cx="659.0" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +491.3 s, 0 opportunities, 263 B</title></circle>
+<circle cx="667.7" cy="110" r="4" fill="#526176"><title>heartbeat +500.0 s</title></circle>
+<circle cx="676.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +509.3 s, 8 opportunities, 680 B</title></circle>
+<circle cx="677.6" cy="110" r="4" fill="#526176"><title>heartbeat +510.0 s</title></circle>
+<circle cx="680.8" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +513.2 s, 8 opportunities, 682 B</title></circle>
+<circle cx="683.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +516.3 s, 8 opportunities, 638 B</title></circle>
+<circle cx="687.6" cy="110" r="4" fill="#526176"><title>heartbeat +520.0 s</title></circle>
+<circle cx="694.8" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +527.3 s, 8 opportunities, 692 B</title></circle>
+<circle cx="697.5" cy="110" r="4" fill="#526176"><title>heartbeat +530.0 s</title></circle>
+<circle cx="705.1" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +537.7 s, 0 opportunities, 228 B</title></circle>
+<circle cx="707.5" cy="110" r="4" fill="#526176"><title>heartbeat +540.0 s</title></circle>
+<circle cx="707.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +540.2 s, 8 opportunities, 676 B</title></circle>
+<circle cx="713.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +546.2 s, 8 opportunities, 686 B</title></circle>
+<circle cx="713.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +546.5 s, 8 opportunities, 667 B</title></circle>
+<circle cx="717.4" cy="110" r="4" fill="#526176"><title>heartbeat +550.0 s</title></circle>
+<circle cx="717.5" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +550.0 s, 8 opportunities, 711 B</title></circle>
+<circle cx="717.5" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +550.0 s, 0 opportunities, 262 B</title></circle>
+<circle cx="717.5" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +550.1 s, 8 opportunities, 724 B</title></circle>
+<circle cx="717.5" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +550.1 s, 8 opportunities, 719 B</title></circle>
+<circle cx="717.5" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +550.1 s, 8 opportunities, 702 B</title></circle>
+<circle cx="725.6" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +558.2 s, 8 opportunities, 687 B</title></circle>
+<circle cx="727.4" cy="110" r="4" fill="#526176"><title>heartbeat +560.0 s</title></circle>
+<circle cx="729.1" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +561.8 s, 8 opportunities, 703 B</title></circle>
+<circle cx="734.1" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +566.8 s, 8 opportunities, 706 B</title></circle>
+<circle cx="736.7" cy="220" r="3.0" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +569.4 s, 0 opportunities, 226 B</title></circle>
+<circle cx="737.3" cy="110" r="4" fill="#526176"><title>heartbeat +570.0 s</title></circle>
+<circle cx="738.5" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +571.2 s, 8 opportunities, 679 B</title></circle>
+<circle cx="743.8" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +576.5 s, 8 opportunities, 695 B</title></circle>
+<circle cx="747.3" cy="110" r="4" fill="#526176"><title>heartbeat +580.0 s</title></circle>
+<circle cx="756.5" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +589.3 s, 8 opportunities, 697 B</title></circle>
+<circle cx="757.2" cy="110" r="4" fill="#526176"><title>heartbeat +590.0 s</title></circle>
+<circle cx="758.4" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +591.2 s, 8 opportunities, 712 B</title></circle>
+<circle cx="767.2" cy="110" r="4" fill="#526176"><title>heartbeat +600.0 s</title></circle>
+<circle cx="774.4" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +607.2 s, 8 opportunities, 671 B</title></circle>
+<circle cx="777.1" cy="110" r="4" fill="#526176"><title>heartbeat +610.0 s</title></circle>
+<circle cx="777.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +610.0 s, 8 opportunities, 737 B</title></circle>
+<circle cx="777.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +610.0 s, 8 opportunities, 708 B</title></circle>
+<circle cx="777.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +610.0 s, 8 opportunities, 747 B</title></circle>
+<circle cx="787.1" cy="110" r="4" fill="#526176"><title>heartbeat +620.0 s</title></circle>
+<circle cx="787.3" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +620.2 s, 8 opportunities, 666 B</title></circle>
+<circle cx="789.4" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +622.3 s, 8 opportunities, 712 B</title></circle>
+<circle cx="797.1" cy="110" r="4" fill="#526176"><title>heartbeat +630.0 s</title></circle>
+<circle cx="805.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +638.2 s, 8 opportunities, 674 B</title></circle>
+<circle cx="807.0" cy="110" r="4" fill="#526176"><title>heartbeat +640.0 s</title></circle>
+<circle cx="817.0" cy="110" r="4" fill="#526176"><title>heartbeat +650.0 s</title></circle>
+<circle cx="818.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +651.2 s, 8 opportunities, 667 B</title></circle>
+<circle cx="820.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +653.3 s, 8 opportunities, 704 B</title></circle>
+<circle cx="826.9" cy="110" r="4" fill="#526176"><title>heartbeat +660.0 s</title></circle>
+<circle cx="835.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +668.8 s, 8 opportunities, 674 B</title></circle>
+<circle cx="836.9" cy="110" r="4" fill="#526176"><title>heartbeat +670.0 s</title></circle>
+<circle cx="836.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +670.0 s, 8 opportunities, 700 B</title></circle>
+<circle cx="836.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +670.0 s, 8 opportunities, 711 B</title></circle>
+<circle cx="836.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +670.0 s, 8 opportunities, 742 B</title></circle>
+<circle cx="846.8" cy="110" r="4" fill="#526176"><title>heartbeat +680.0 s</title></circle>
+<circle cx="856.8" cy="110" r="4" fill="#526176"><title>heartbeat +690.0 s</title></circle>
+<circle cx="857.3" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +690.5 s, 8 opportunities, 626 B</title></circle>
+<circle cx="864.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +697.5 s, 8 opportunities, 645 B</title></circle>
+<circle cx="864.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +698.0 s, 8 opportunities, 662 B</title></circle>
+<circle cx="866.7" cy="110" r="4" fill="#526176"><title>heartbeat +700.0 s</title></circle>
+<circle cx="868.9" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +702.2 s, 8 opportunities, 681 B</title></circle>
+<circle cx="876.7" cy="110" r="4" fill="#526176"><title>heartbeat +710.0 s</title></circle>
+<circle cx="886.6" cy="110" r="4" fill="#526176"><title>heartbeat +720.0 s</title></circle>
+<circle cx="894.3" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +727.7 s, 8 opportunities, 683 B</title></circle>
+<circle cx="894.8" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +728.2 s, 8 opportunities, 705 B</title></circle>
+<circle cx="896.6" cy="110" r="4" fill="#526176"><title>heartbeat +730.0 s</title></circle>
+<circle cx="896.6" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +730.0 s, 8 opportunities, 718 B</title></circle>
+<circle cx="896.6" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +730.0 s, 8 opportunities, 737 B</title></circle>
+<circle cx="896.6" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +730.0 s, 8 opportunities, 711 B</title></circle>
+<circle cx="898.8" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +732.3 s, 8 opportunities, 678 B</title></circle>
+<circle cx="906.5" cy="110" r="4" fill="#526176"><title>heartbeat +740.0 s</title></circle>
+<circle cx="916.5" cy="110" r="4" fill="#526176"><title>heartbeat +750.0 s</title></circle>
+<circle cx="924.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +758.3 s, 8 opportunities, 685 B</title></circle>
+<circle cx="926.5" cy="110" r="4" fill="#526176"><title>heartbeat +760.0 s</title></circle>
+<circle cx="936.4" cy="110" r="4" fill="#526176"><title>heartbeat +770.1 s</title></circle>
+<circle cx="946.4" cy="110" r="4" fill="#526176"><title>heartbeat +780.0 s</title></circle>
+<circle cx="956.4" cy="110" r="4" fill="#526176"><title>heartbeat +790.1 s</title></circle>
+<circle cx="966.3" cy="110" r="4" fill="#526176"><title>heartbeat +800.0 s</title></circle>
+<circle cx="967.7" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +801.5 s, 8 opportunities, 648 B</title></circle>
+<circle cx="976.2" cy="110" r="4" fill="#526176"><title>heartbeat +810.1 s</title></circle>
+<circle cx="986.2" cy="110" r="4" fill="#526176"><title>heartbeat +820.0 s</title></circle>
+<circle cx="996.1" cy="110" r="4" fill="#526176"><title>heartbeat +830.0 s</title></circle>
+<circle cx="998.4" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +832.3 s, 8 opportunities, 675 B</title></circle>
+<circle cx="1006.1" cy="110" r="4" fill="#526176"><title>heartbeat +840.1 s</title></circle>
+<circle cx="1016.0" cy="110" r="4" fill="#526176"><title>heartbeat +850.0 s</title></circle>
+<circle cx="1016.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +850.0 s, 8 opportunities, 707 B</title></circle>
+<circle cx="1026.0" cy="110" r="4" fill="#526176"><title>heartbeat +860.1 s</title></circle>
+<circle cx="1029.2" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +863.2 s, 8 opportunities, 677 B</title></circle>
+<circle cx="1035.9" cy="110" r="4" fill="#526176"><title>heartbeat +870.0 s</title></circle>
+<circle cx="1045.9" cy="110" r="4" fill="#526176"><title>heartbeat +880.0 s</title></circle>
+<circle cx="1055.8" cy="110" r="4" fill="#526176"><title>heartbeat +890.0 s</title></circle>
+<circle cx="1060.0" cy="220" r="7.8" fill="#2a78d6" fill-opacity="0.55" stroke="#ffffff" stroke-width="1"><title>track_cue +894.2 s, 8 opportunities, 678 B</title></circle>
+<rect x="178.0" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +10.0 s: 3 cues</title></rect>
+<text x="180.0" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">3</text>
+<rect x="237.7" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +70.0 s: 1 cues</title></rect>
+<text x="239.7" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">1</text>
+<rect x="297.4" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +130.0 s: 1 cues</title></rect>
+<text x="299.4" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">1</text>
+<rect x="357.1" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +190.0 s: 1 cues</title></rect>
+<text x="359.1" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">1</text>
+<rect x="416.8" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +250.0 s: 1 cues</title></rect>
+<text x="418.8" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">1</text>
+<rect x="476.6" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +310.0 s: 3 cues</title></rect>
+<text x="478.6" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">3</text>
+<rect x="536.3" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +370.0 s: 3 cues</title></rect>
+<text x="538.3" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">3</text>
+<rect x="596.0" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +430.0 s: 4 cues</title></rect>
+<text x="598.0" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">4</text>
+<rect x="655.8" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +490.1 s: 3 cues</title></rect>
+<text x="657.8" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">3</text>
+<rect x="715.5" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +550.1 s: 5 cues</title></rect>
+<text x="717.5" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">5</text>
+<rect x="775.2" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +610.0 s: 3 cues</title></rect>
+<text x="777.2" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">3</text>
+<rect x="834.9" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +670.0 s: 3 cues</title></rect>
+<text x="836.9" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">3</text>
+<rect x="894.6" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +730.0 s: 3 cues</title></rect>
+<text x="896.6" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">3</text>
+<rect x="954.4" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +790.1 s: 0 cues</title></rect>
+<text x="956.4" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">0</text>
+<rect x="1014.0" y="155" width="4" height="20" rx="2" fill="#172033"><title>snapshot end +850.0 s: 1 cues</title></rect>
+<text x="1016.0" y="151.0" font-size="11" fill="#172033" text-anchor="middle" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">1</text>
+<text x="170.0" y="290.0" font-size="11" fill="#526176" text-anchor="start" font-weight="400" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">Dot size in the track_cue lane grows with the number of opportunities (0 to 8).</text>
+</svg>

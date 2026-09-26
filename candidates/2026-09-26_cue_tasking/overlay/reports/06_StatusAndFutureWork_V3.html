@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status and Future Work — V3</title>
+<style>
+:root{--ink:#172033;--muted:#526176;--line:#cbd5e1;--panel:#f8fafc;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--purple:#6d28d9;--purple2:#f5f3ff}
+*{box-sizing:border-box}body{max-width:1240px;margin:2rem auto;padding:0 1rem 3rem;color:var(--ink);background:#fff;font:16px/1.52 "Segoe UI",Arial,sans-serif}h1,h2,h3{line-height:1.22;color:#102a43}h1{font-size:2.15rem;margin-bottom:.25rem}h2{margin-top:2.8rem;padding-top:.35rem;border-top:2px solid #e2e8f0;font-size:1.55rem}h3{margin-top:1.5rem;font-size:1.15rem}p{max-width:1080px}a{color:#075caa;text-decoration-thickness:1px;text-underline-offset:2px}a:hover{color:#003f73}nav{position:sticky;top:0;z-index:2;margin:1rem 0 1.4rem;padding:.75rem 1rem;background:rgba(255,255,255,.96);border:1px solid var(--line);box-shadow:0 2px 7px #182b4915}nav a{margin-right:.8rem;white-space:nowrap}code{font:.92em Consolas,"Courier New",monospace;background:#f1f5f9;padding:.08rem .25rem;border-radius:3px}.subtitle,.small{color:var(--muted)}.subtitle{font-size:1.05rem;margin:.15rem 0 .7rem}.small{font-size:.92rem}.status-strip,.grid{display:grid;gap:.75rem;margin:1.1rem 0 1.35rem}.status-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.status-strip div,.card,.ask{border:1px solid var(--line);padding:.8rem 1rem;background:var(--panel)}.status-strip strong,.card h3{display:block;color:#102a43}.status-strip p,.card p{margin:.3rem 0 0}.eli5{padding:.85rem 1rem;border-left:5px solid var(--blue);background:var(--blue2);font-size:1.03rem}.technical{padding-left:1rem;border-left:2px solid #cbd5e1}.callout{border:1px solid var(--line);border-left:5px solid var(--blue);padding:.85rem 1rem;margin:1rem 0;background:var(--blue2)}.callout.warn{border-left-color:var(--amber);background:var(--amber2)}.callout.stop{border-left-color:var(--red);background:var(--red2)}.source{font-size:.92rem;color:var(--muted);margin-top:.65rem}.source a{font-weight:600}.tag{display:inline-block;border-radius:99px;padding:.16rem .55rem;font-size:.83rem;font-weight:700;white-space:nowrap}.implemented,.demonstrated{color:#075caa;background:#eaf3fb}.investigated{color:#6d28d9;background:#f5f3ff}.supported,.progress{color:#9a5b00;background:#fff7e6}.blocked{color:#a61b1b;background:#fff1f1}.figure{margin:1.25rem 0 1.6rem;padding:1rem;border:1px solid var(--line);background:#fff}.figure svg{display:block;width:100%;height:auto}.figure figcaption{margin:.7rem .2rem 0;color:var(--muted);font-size:.94rem}.table-wrap{overflow-x:auto;margin:1rem 0 1.4rem}.decision-table{width:100%;min-width:900px;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border:1px solid var(--line);padding:.65rem;vertical-align:top;text-align:left;overflow-wrap:anywhere}.decision-table th{background:#edf3f8;color:#102a43}.decision-table tbody tr:nth-child(even){background:#fbfdff}.metric{font-variant-numeric:tabular-nums;font-weight:700}.check{color:var(--green);font-weight:700}.fail{color:var(--red);font-weight:700}.plain-list li{margin:.45rem 0}dl dt{font-weight:700;margin-top:1rem}dl dd{margin:.25rem 0 0 1rem}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.ask{border-top:4px solid var(--blue)}.ask.warn{border-top-color:var(--amber)}.ask.stop{border-top-color:var(--red)}footer{margin-top:3rem;padding-top:1rem;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}@media(max-width:760px){body{margin:1rem auto}.status-strip,.two-col{grid-template-columns:1fr}h1{font-size:1.7rem}.decision-table{min-width:760px}nav{position:static}.figure{padding:.55rem}}
+</style>
+<style>
+/* V2 executive-readability and evidence-traceability upgrade */
+.executive-summary{margin:1.45rem 0;padding:1.2rem 1.3rem;border:1px solid var(--line);border-top:5px solid var(--blue);background:linear-gradient(145deg,#f6fbff,#fff)}.executive-summary h2{margin-top:0;border-top:0;padding-top:0}.summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.7rem;margin:1rem 0 .2rem}.summary-grid>div,.interpretation-grid>div{border:1px solid var(--line);border-top:4px solid var(--blue);padding:.75rem .8rem;background:#fff}.summary-grid strong,.interpretation-grid h3{display:block;color:#102a43;margin-bottom:.25rem;font-size:.94rem}.summary-grid p,.interpretation-grid p{margin:0;font-size:.88rem;line-height:1.38}.matrix-wrap{overflow-x:auto;margin:1rem 0 1.4rem}.evidence-matrix{width:100%;min-width:880px;border-collapse:collapse;font-size:.9rem}.evidence-matrix th{background:#102a43;color:#fff;text-align:left;padding:.58rem .65rem}.evidence-matrix td{border:1px solid var(--line);padding:.58rem .65rem;vertical-align:top;line-height:1.35}.evidence-matrix tbody tr:nth-child(even){background:#f8fafc}.status-chip{display:inline-block;border-radius:99px;padding:.16rem .5rem;font-size:.78rem;font-weight:750;white-space:nowrap}.status-implemented,.status-demonstrated{background:var(--blue2);color:#075caa}.status-investigated{background:var(--purple2);color:var(--purple)}.status-supported,.status-progress{background:var(--amber2);color:var(--amber)}.status-blocked{background:var(--red2);color:var(--red)}.evidence-id{display:inline-block;font:700 .82rem Consolas,"Courier New",monospace;color:#075caa;background:var(--blue2);border:1px solid #c7ddec;border-radius:4px;padding:.08rem .33rem;white-space:nowrap}.capability-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin:1rem 0 1.3rem}.capability-grid>article{border:1px solid var(--line);border-top:4px solid var(--blue);padding:.78rem .85rem;background:#fff}.capability-grid h3{margin:.05rem 0 .35rem;font-size:1rem}.capability-grid p{margin:.2rem 0 0;font-size:.87rem;line-height:1.35}.interpretation-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin:1rem 0 1.3rem}.interpretation-grid>div:nth-child(1){border-top-color:var(--green)}.interpretation-grid>div:nth-child(2){border-top-color:var(--amber)}.interpretation-grid>div:nth-child(3){border-top-color:var(--red)}.interpretation-grid>div:nth-child(4){border-top-color:var(--blue)}.recommendation{margin:1rem 0;padding:1rem 1.1rem;border:1px solid var(--line);border-left:6px solid var(--blue);background:#f8fafc}.recommendation h3{margin:.05rem 0 .45rem}.family-map{margin:1rem 0;padding:.9rem 1rem;border:1px solid var(--line);background:var(--panel)}.family-map ol{margin:.45rem 0 .1rem;padding-left:1.35rem}.family-map li{margin:.28rem 0}@media(max-width:900px){.summary-grid,.capability-grid,.interpretation-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.summary-grid,.capability-grid,.interpretation-grid{grid-template-columns:1fr}.evidence-matrix{font-size:.82rem}}
+</style>
+</head>
+<body>
+<header>
+<h1>Status and Future Work</h1>
+<p class="subtitle">Passive HDTV aircraft-localization program — standalone evidence report, V3 status update</p>
+<p class="small">Status snapshot: 26 September 2026 for the system architecture, ADS-B cue tasking, time source, and live-aircraft diagnostic (STAT-009 to STAT-012); 18 September 2026 for STAT-001 to STAT-008, which V3 carries forward from V2 unchanged. V3 also corrects the Report 02 and Report 05 links. The report embeds all visual explanations. Local evidence links point to the authoritative PassiveBistaticRestart records when opened on the originating workstation.</p>
+</header>
+
+<nav aria-label="Report navigation">
+<a href="#purpose">Purpose</a><a href="#executive-summary">Executive summary</a><a href="#changes">Since V2</a><a href="#evidence-strength">Evidence matrix</a><a href="#capability-matrix">Capability matrix</a><a href="#management-interpretation">Interpretation</a><a href="#why">Why it matters</a><a href="#readiness">Readiness</a><a href="#evidence">Evidence</a><a href="#blocked">Blocked work</a><a href="#milestones">Milestones</a><a href="#asks">Recommendation</a><a href="#local">Local evidence</a><a href="#glossary">Glossary</a><a href="#sources">Sources</a>
+</nav>
+
+<section id="purpose">
+<h2>1. Purpose and current status</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The project has built and tested important parts of the “listen, compare, and make an aircraft measurement” chain. It is not allowed to call the chain ready yet. A large, integrity-valid map test failed, so the next work is to review and verify one bounded correction before restarting that test. This is the gate system doing its job: it protects later detection, tracking, and localization work from being built on an untrusted map.</p>
+<div class="technical">
+<p>The north star is a trustworthy passive-bistatic capability that can detect and track aircraft in field data, characterize where one link can provide useful measurements, and establish honest evidence for later multi-measurement localization. The active milestone is G4-R map-rate validity and field-readiness closure. As of 2026-09-18, the formal 108-condition R5A matrix failed its frozen map-rate criteria. A native-first, calibration-trained then frozen 16-tap NLMS path is supported as a bounded upstream R4 correction candidate, but it has not been adopted into production R4 or verified under the current production contract.</p>
+<p>Formal G5 selection, formal G6 freeze, formal G8 detection, <code>objectDetection</code>, tracker readiness, tracking, and localization evaluation are disabled. Collection suitability is separately blocked until a reviewed numerical ADS-B timing and geometry policy and appropriate acquisition evidence exist.</p>
+</div>
+<div class="status-strip" aria-label="Current project orientation">
+<div><strong>Active decision</strong><span class="tag progress">In Progress</span><p>Review whether the native-first frozen-NLMS ordering should become a bounded R4 correction, then verify it. <span class="evidence-id">STAT-008</span></p></div>
+<div><strong>Map-contract closure</strong><span class="tag blocked">Blocked</span><p>R5A retained 108 exact-manifest pairs; 59/108 had at least one failed criterion. <span class="evidence-id">STAT-003</span></p></div>
+<div><strong>Collection suitability</strong><span class="tag blocked">Blocked</span><p>Requires a reviewed ADS-B timing/geometry policy and collection/Reference Path evidence. <span class="evidence-id">STAT-006</span></p></div>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S06-01 Project State</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/NorthStar.md">S06-03 North Star</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md">S06-02 decisions</a>.</p>
+</section>
+
+<section id="executive-summary" class="executive-summary">
+<h2>2. Executive summary</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> This report summarizes what the passive HDTV program can responsibly say today. It demonstrates a replayable early analysis chain and a historical fixed-pilot Passive Map checkpoint; it does not demonstrate live-aircraft detection, operational Pd/Pfa, validated Tracking, or validated Localization. The 108-pair R5A map-rate matrix failed its frozen criteria, so management should authorize controlled verification of one bounded correction candidate and collection-readiness evidence before any downstream advancement.</p>
+<div class="summary-grid">
+<div><strong>Report topic</strong><p>Current readiness, evidence boundaries, dependencies, and the management decisions needed to progress. <span class="evidence-id">STAT-001–STAT-008</span></p></div>
+<div><strong>Demonstrated</strong><p>Named reference-session replay/synchronization and a historical R4 fixed-pilot Passive Map checkpoint. <span class="evidence-id">STAT-001</span> <span class="evidence-id">STAT-002</span></p></div>
+<div><strong>Does not demonstrate</strong><p>No live-aircraft detection, operational Pd/Pfa, validated Measurement, Tracking, or Localization. <span class="evidence-id">STAT-007</span></p></div>
+<div><strong>Why it matters</strong><p>Trusted downstream use requires a physically comparable Passive Map and independently suitable collection evidence, not an attractive map or diagnostic result. <span class="evidence-id">STAT-003</span> <span class="evidence-id">STAT-006</span></p></div>
+<div><strong>Exact next action</strong><p>Review the native-first frozen-NLMS correction candidate; if approved, verify it against the unchanged R4 contract before separately considering replacement R5A work. <span class="evidence-id">STAT-004</span></p></div>
+</div>
+</section>
+
+<section id="changes">
+<h2>What changed since V2</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Between 18 and 26 September the program gained a written system design and its first live, checked link between two parts: an ADS-B “bell ringer” that tells the collection side which aircraft to collect on. That is useful plumbing. It does not change the map-contract or collection-suitability blockers below, and a live-aircraft scan on 25 September still found no truth-matched detection.</p>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th style="width:12%">Evidence ID</th><th style="width:20%">Change</th><th style="width:13%">Status</th><th style="width:28%">Quantitative anchor</th><th>What it does not change</th></tr></thead>
+<tbody>
+<tr><td><span class="evidence-id">STAT-009</span></td><td>ADS-B cue interface (Cue Tasker → Resource Manager), CT messages 2.0.0</td><td><span class="tag demonstrated">Demonstrated</span></td><td>Live capture 2026-09-26 15:23–15:38 UTC: 223 datagrams, 0 schema failures, 0 sequence gaps, none over one Ethernet frame (largest 747 B); 103 cues from 11 aircraft. ICD status Verified.</td><td>A message-interface result only. No collection was scheduled from a cue, and no detection is implied.</td></tr>
+<tr><td><span class="evidence-id">STAT-010</span></td><td>Time source on the ADS-B Pi</td><td><span class="tag blocked">Blocked</span></td><td>2026-09-25: Pi clock 14.9 s slow with GPS/PPS unlocked; now disciplined by internet NTP through the collection desktop. GPS/PPS still not locked.</td><td>ADS-B truth written by the Pi before 2026-09-25 21:07 UTC carries an unknown clock offset. This adds to, and does not replace, the ADS-B timing policy that STAT-006 requires.</td></tr>
+<tr><td><span class="evidence-id">STAT-011</span></td><td>Live-aircraft tracking scan, 2026-09-25 (diagnostic, outside the family)</td><td><span class="tag investigated">Investigated</span></td><td>One overlapping ADS-B aircraft matched once in 75 opportunities; 91% of 34,054 detections were 60 Hz hum lines; no truth-matched track. See the <a href="../diagnostics/TrackingScan_NoDetection_Diagnostic_V1.html">tracking-scan diagnostic</a>.</td><td>It is diagnostic evidence with its own claim boundary; it neither opens nor closes a formal gate.</td></tr>
+<tr><td><span class="evidence-id">STAT-012</span></td><td>Cue-driven collection (Resource Manager scheduling)</td><td><span class="tag progress">In Progress</span></td><td>First piece built (MATLAB CueListener: receives and ranks cues, 16 of 16 tests); <code>collection_task</code> and all downstream messages are still Proposed.</td><td>Collections are still started by hand. Scheduling is enabling infrastructure, not a detection or suitability result.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout warn"><strong>Carried forward unchanged:</strong> STAT-001 to STAT-008 repeat the 2026-09-18 evidence of V2. They were not re-verified for this update. The system architecture, the interface control document, and the cue-interface evidence are reported in the companion <a href="../systems/SystemArchitectureAndCueTasking_V1.html">System Architecture and ADS-B Cue Tasking</a> report, which owns those claims.</div>
+<p class="source">Primary evidence: <a href="https://github.com/pwilliamMAT/flightTest/blob/ad64bcd3ccd9ffbee023c0e1f13544bd6774c2f2/docs/system/README.md">system README and message status register</a>, <a href="https://github.com/pwilliamMAT/flightTest/blob/ad64bcd3ccd9ffbee023c0e1f13544bd6774c2f2/docs/system/Verification_Log.md">Verification Log</a>, <a href="https://github.com/pwilliamMAT/flightTest/blob/ad64bcd3ccd9ffbee023c0e1f13544bd6774c2f2/docs/system/As_Built.md">As-Built</a>, <a href="https://github.com/pwilliamMAT/flightTest/blob/ad64bcd3ccd9ffbee023c0e1f13544bd6774c2f2/docs/system/Change_Requests.md">CR-8</a>, <a href="../diagnostics/TrackingScan_NoDetection_Diagnostic_V1.html">tracking-scan diagnostic</a>.</p>
+</section>
+
+<section id="evidence-strength">
+<h2>3. Evidence Strength Matrix</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Earlier evidence is real but non-additive: a later blocked dependency prevents a downstream performance claim. The matrix records what each cited evidence object supports, not a maturity score.</p>
+<div class="matrix-wrap">
+<table class="evidence-matrix">
+<thead><tr><th>Evidence ID</th><th>Topic</th><th>Status</th><th>Evidence anchor</th><th>What it supports—and does not support</th></tr></thead>
+<tbody>
+<tr><td><span class="evidence-id">STAT-001</span></td><td>Replay and synchronization</td><td><span class="status-chip status-demonstrated">Demonstrated</span></td><td>15 one-second dual-channel captures at 6.144 MHz; 89.0313× median warm-load speedup.</td><td>Reproducible named-baseline preparation; not collection suitability or detector performance.</td></tr>
+<tr><td><span class="evidence-id">STAT-002</span></td><td>Historical R4 fixed-pilot Passive Map</td><td><span class="status-chip status-demonstrated">Demonstrated</span></td><td>Correlation 0.987568; frozen R4 criteria passed.</td><td>Historical fixed-pilot contract evidence; not current production closure after R5A.</td></tr>
+<tr><td><span class="evidence-id">STAT-003</span></td><td>R5A map-rate matrix</td><td><span class="status-chip status-blocked">Blocked</span></td><td>108 exact-manifest pairs; 59/108 had at least one failed criterion.</td><td>Integrity-valid failure retained as authoritative; map-rate closure is not achieved.</td></tr>
+<tr><td><span class="evidence-id">STAT-004</span></td><td>Native-first frozen-NLMS characterization</td><td><span class="status-chip status-supported">Supported Diagnostic</span></td><td>Nine real-control criteria passed; 4.1958 dB median Direct Path/ridge reduction.</td><td>Bounded upstream R4 correction candidate only; not product selection, R5A authorization, or site sufficiency.</td></tr>
+<tr><td><span class="evidence-id">STAT-005</span></td><td>G6-D and support studies</td><td><span class="status-chip status-investigated">Investigated</span></td><td>72 cases and 648 maps; 15 km replay: 14,035 actual versus 12,832 historical CUTs.</td><td>Diagnostic support-policy insight; not a detector validation or Pd/Pfa result.</td></tr>
+<tr><td><span class="evidence-id">STAT-006</span></td><td>Collection suitability / Reference Path</td><td><span class="status-chip status-blocked">Blocked</span></td><td>462,838 ADS-B source samples; 42.559% sampled opportunity.</td><td>Opportunity context only; reviewed timing/geometry policy and acquisition evidence remain required.</td></tr>
+<tr><td><span class="evidence-id">STAT-007</span></td><td>Formal Measurement, Tracking, Localization</td><td><span class="status-chip status-blocked">Blocked</span></td><td>Formal G8 leaves CFAR execution and detector tuning disabled; no detection table is emitted.</td><td>Prevents unsupported Measurement, Tracking, and Localization claims.</td></tr>
+<tr><td><span class="evidence-id">STAT-008</span></td><td>Current correction decision</td><td><span class="status-chip status-progress">In Progress</span></td><td>Reviewed candidate requires bounded adoption decision and controlled R4 verification.</td><td>Defines the next evidence step; does not authorize a replacement matrix.</td></tr>
+<tr><td><span class="evidence-id">STAT-009</span></td><td>ADS-B cue interface</td><td><span class="status-chip status-demonstrated">Demonstrated</span></td><td>223 datagrams, 0 schema failures, 0 gaps, all within one frame (2026-09-26).</td><td>Message delivery to the collection side; not scheduling, collection, or detection.</td></tr>
+<tr><td><span class="evidence-id">STAT-010</span></td><td>Pi time source</td><td><span class="status-chip status-blocked">Blocked</span></td><td>Pi 14.9 s slow before 2026-09-25 21:07 UTC; GPS/PPS not locked; NTP now.</td><td>Earlier Pi-timed ADS-B truth has an unknown offset; the designed GPS/PPS source is not operating.</td></tr>
+<tr><td><span class="evidence-id">STAT-011</span></td><td>Live-aircraft tracking scan</td><td><span class="status-chip status-investigated">Investigated</span></td><td>1 of 75 truth opportunities matched; 91% of detections at ±60 Hz.</td><td>Diagnostic only; no truth-matched track and no gate change.</td></tr>
+<tr><td><span class="evidence-id">STAT-012</span></td><td>Cue-driven collection</td><td><span class="status-chip status-progress">In Progress</span></td><td>Resource Manager receives and ranks cues; <code>collection_task</code> is Proposed.</td><td>No collection has been scheduled from a cue.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="capability-matrix">
+<h2>4. Capability Matrix</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The program has evidence for upstream collection/replay and synchronization work. The current decision is whether a bounded correction preserves the Passive Map contract; no downstream Measurement, Tracking, or Localization capability is established.</p>
+<div class="capability-grid">
+<article><h3>Collection</h3><span class="status-chip status-demonstrated">Demonstrated</span><p>Named reference session: 15 one-second dual-channel captures. <span class="evidence-id">STAT-001</span></p></article>
+<article><h3>Replay</h3><span class="status-chip status-demonstrated">Demonstrated</span><p>Fail-closed cache and reproducible baseline preparation. <span class="evidence-id">STAT-001</span></p></article>
+<article><h3>Synchronization</h3><span class="status-chip status-demonstrated">Demonstrated</span><p>G3 cache: 411.1911 s rebuild; 4.6185 s median warm load. <span class="evidence-id">STAT-001</span></p></article>
+<article><h3>Map Validation</h3><span class="status-chip status-blocked">Blocked</span><p>R5A: 59/108 failures; correction review remains active. <span class="evidence-id">STAT-003</span> <span class="evidence-id">STAT-008</span></p></article>
+<article><h3>Collection Suitability</h3><span class="status-chip status-blocked">Blocked</span><p>Reference Path and ADS-B timing/geometry policy evidence are incomplete. <span class="evidence-id">STAT-006</span></p></article>
+<article><h3>Detection</h3><span class="status-chip status-blocked">Blocked</span><p>Formal G8 and the detection table remain disabled. <span class="evidence-id">STAT-007</span></p></article>
+<article><h3>Tracking</h3><span class="status-chip status-blocked">Blocked</span><p>Requires validated Measurements with an uncertainty contract. <span class="evidence-id">STAT-007</span></p></article>
+<article><h3>Localization</h3><span class="status-chip status-blocked">Blocked</span><p>Requires validated Measurements and suitable multi-observation geometry. <span class="evidence-id">STAT-007</span></p></article>
+<article><h3>Cue Tasking</h3><span class="status-chip status-demonstrated">Demonstrated</span><p>ADS-B cues reach the collection side intact; message interface only. <span class="evidence-id">STAT-009</span></p></article>
+<article><h3>Collection Scheduling</h3><span class="status-chip status-progress">In Progress</span><p>Cues are received and ranked; no collection is tasked from them yet. <span class="evidence-id">STAT-012</span></p></article>
+<article><h3>Time Source</h3><span class="status-chip status-blocked">Blocked</span><p>NTP only; GPS/PPS not locked; earlier Pi clock 14.9 s slow. <span class="evidence-id">STAT-010</span></p></article>
+<article><h3>Live-Aircraft Detection</h3><span class="status-chip status-investigated">Investigated</span><p>2026-09-25 scan: no truth-matched track (diagnostic). <span class="evidence-id">STAT-011</span></p></article>
+</div>
+</section>
+
+<section id="management-interpretation">
+<h2>Recommended Management Interpretation</h2>
+<div class="interpretation-grid">
+<div><h3>Demonstrated</h3><p>Replay/synchronization and the historical fixed-pilot Passive Map checkpoint are bounded, inspectable results. <span class="evidence-id">STAT-001</span> <span class="evidence-id">STAT-002</span></p></div>
+<div><h3>Supported Diagnostic</h3><p>The native-first frozen-NLMS result supports review of one bounded R4 correction candidate—not a product choice or performance claim. <span class="evidence-id">STAT-004</span></p></div>
+<div><h3>Blocked</h3><p>R5A closure, R5B collection suitability, Detection, Tracking, and Localization remain blocked. <span class="evidence-id">STAT-003</span> <span class="evidence-id">STAT-006</span> <span class="evidence-id">STAT-007</span></p></div>
+<div><h3>Next Required Evidence</h3><p>Controlled R4 correction verification and reviewed collection/reference-chain timing/geometry evidence precede any downstream advancement. Cue-driven scheduling and a locked time source are enabling work in parallel, not substitutes. <span class="evidence-id">STAT-010</span> <span class="evidence-id">STAT-012</span> <span class="evidence-id">STAT-008</span> <span class="evidence-id">STAT-006</span></p></div>
+</div>
+</section>
+
+<section id="why">
+<h2>5. Why the status matters</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Tracking and localization are only as trustworthy as the aircraft measurements supplied to them. A good-looking map, a synthetic demonstration, or a collection photograph cannot substitute for a validated detector measurement with known timing, geometry, and uncertainty.</p>
+<div class="technical">
+<p>This program intentionally separates four questions: whether the analysis path is implemented, whether a bounded result is demonstrated, whether a diagnostic result supports a narrow finding, and whether a formal gate has opened. The distinction prevents infrastructure or diagnostic evidence from being promoted into aircraft-performance evidence. It also keeps a useful result—such as the cause of a map mismatch—from being discarded merely because it does not yet authorize a detector.</p>
+<p>Report <a href="02_HardwareAndCollection_V5.html">02_HardwareAndCollection_V5.html — Hardware and Collection Infrastructure</a> contains the physical deployment, capture packaging, and collection-history evidence. Report <a href="03_AnalysisPipelineAndGateRebuild.html">03_AnalysisPipelineAndGateRebuild.html — Analysis Pipeline and Gate Rebuild</a> explains the G1–G10 architecture. Report <a href="04_MitigationAndMapRateRecovery_V2.html">04_MitigationAndMapRateRecovery_V2.html — Mitigation and Map-Rate Recovery</a> owns the detailed recovery journey. This report uses their conclusions only to answer current readiness and future decisions.</p>
+</div>
+<div class="callout warn"><strong>Quantitative context <span class="evidence-id">STAT-005</span>:</strong> the reference session has 15 one-second dual-channel captures at 6.144 MHz, and the G6-D diagnostic evaluated 72 cases, 648 maps, 5,832 map/Pfa operating points, and 7,047 injected-truth opportunities. Those counts make the diagnostic work reviewable; they do not establish live-aircraft detection, operational Pd, or operational Pfa.</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md">S06-04 README</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S06-01 G6-D record</a>, <a href="02_HardwareAndCollection_V5.html">S06-12 Report 02</a>, <a href="03_AnalysisPipelineAndGateRebuild.html">S06-13 Report 03</a>.</p>
+</section>
+
+<section id="readiness">
+<h2>6. Current status scorecard and technical readiness model</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The project is not “all red” and it is not ready for a performance claim. Early processing and several bounded experiments have evidence. The formal path is held at the map-validation checkpoint until one reviewed correction and one separate collection-suitability policy are resolved.</p>
+<h3>Technical explanation</h3>
+<div class="technical">
+<p>The scorecard below uses only the project’s allowed status vocabulary. Each row states what the status means, a quantitative anchor, and the engineering interpretation. The scorecard is not a percentage-complete estimate.</p>
+</div>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th>Evidence area</th><th>Status</th><th>Quantitative evidence</th><th>Engineering interpretation</th></tr></thead>
+<tbody>
+<tr><td><span class="evidence-id">STAT-001</span> Early data and synchronization chain</td><td><span class="tag demonstrated">Demonstrated</span></td><td>Reference session: 15 one-second dual-channel captures at 6.144 MHz. G3 cache: 411.1911 s rebuild versus 4.6185 s median warm load, 89.0313×.</td><td>Reproducible upstream preparation and provenance-safe reuse exist for the named baseline; this is not collection sufficiency or detector performance.</td></tr>
+<tr><td><span class="evidence-id">STAT-002</span> Fixed R4 map-rate checkpoint</td><td><span class="tag demonstrated">Demonstrated</span></td><td>Correlation 0.987568; off-origin difference 0.001191; zero-Doppler difference 0.00083923; Direct Path/off-ridge difference 1.6814 dB.</td><td>The earlier fixed pilot met its frozen Passive Map contract after the corrected comparison path. It authorized the historical R5A execution; it does not describe current production state after R5A failed.</td></tr>
+<tr><td><span class="evidence-id">STAT-003</span> R5A bounded matrix</td><td><span class="tag blocked">Blocked</span></td><td>108 pairs; median correlation 0.52810; minimum −0.027356; 59/108 pairs with at least one failed criterion.</td><td>The Passive Map contract is not closed. The integrity-valid failure is retained rather than explained away.</td></tr>
+<tr><td><span class="evidence-id">STAT-004</span> Cancellation-order characterization</td><td><span class="tag supported">Supported Diagnostic</span></td><td>Native-first frozen 16-tap NLMS passed nine real-control map-rate criteria; Direct Path/ridge reduction median 4.1958 dB; truth-window contrast improvement 11.8320 dB.</td><td>Supports a reviewed upstream R4 correction candidate only; it does not select G5, establish hardware/site sufficiency, or authorize a new R5A matrix.</td></tr>
+<tr><td><span class="evidence-id">STAT-005</span> G6-D and synthetic integration studies</td><td><span class="tag investigated">Investigated</span></td><td>G6-D: 72 cases, 648 maps. A 15 km synthetic support replay used 14,035 actual CUTs versus 12,832 historical CUTs.</td><td>Bounded truth-blind diagnostic evidence separates support policy from synthetic target placement. It cannot freeze G6 or validate detection.</td></tr>
+<tr><td><span class="evidence-id">STAT-006</span> Collection suitability and Reference Path</td><td><span class="tag blocked">Blocked</span></td><td>Phase A reconstructed 462,838 valid ADS-B source samples; current G6-D support represented 42.559% of sampled opportunity.</td><td>Opportunity context is not acquisition acceptance. A reviewed timing/geometry policy plus lock, mapping, and overrun evidence are still needed.</td></tr>
+<tr><td><span class="evidence-id">STAT-007</span> Formal G5/G6/G8, objectDetection, Tracking</td><td><span class="tag blocked">Blocked</span></td><td>Formal G8 refusal has CFAR execution and detector tuning disabled; no detection table is emitted.</td><td>Downstream refusal is intentional until reviewed upstream correction/R4 verification, R5A authorization and result, R5B policy, formal G5/G6, and formal truth alignment are available.</td></tr>
+</tbody>
+</table>
+</div>
+<figure class="figure" id="scorecard-figure">
+<svg viewBox="0 0 1180 430" role="img" aria-labelledby="score-title score-desc">
+<title id="score-title">Current readiness dashboard</title>
+<desc id="score-desc">Seven evidence areas appear as cards. Demonstrated early chain and R4 pilot are blue, diagnostic evidence is amber and purple, while R5A, collection suitability, and formal downstream gates are red.</desc>
+<style>.s{font-family:Segoe UI,Arial,sans-serif;fill:#172033}.h{font-size:18px;font-weight:700}.b{font-size:13px}.sm{font-size:12px;fill:#526176}.box{stroke:#64748b;stroke-width:1.2}.blue{fill:#eaf3fb}.amber{fill:#fff7e6}.purple{fill:#f5f3ff}.red{fill:#fff1f1}.chip{font-size:12px;font-weight:700}.line{stroke:#cbd5e1;stroke-width:1.2}</style>
+<text class="s h" x="25" y="31">Readiness evidence is intentionally non-additive</text><text class="s sm" x="25" y="51">A later red dependency prevents a formal detector claim even when earlier blue evidence exists.</text>
+<rect class="box blue" x="25" y="78" width="250" height="112" rx="8"/><text class="s h" x="43" y="107">Early chain</text><text class="s chip" x="43" y="130" fill="#075caa">Demonstrated</text><text class="s b" x="43" y="153">15 captures; G3 cache</text><text class="s b" x="43" y="173">89.0313× warm speedup</text>
+<rect class="box blue" x="310" y="78" width="250" height="112" rx="8"/><text class="s h" x="328" y="107">Fixed R4 pilot</text><text class="s chip" x="328" y="130" fill="#075caa">Demonstrated</text><text class="s b" x="328" y="153">Correlation 0.987568</text><text class="s b" x="328" y="173">Frozen criteria met</text>
+<rect class="box red" x="595" y="78" width="250" height="112" rx="8"/><text class="s h" x="613" y="107">R5A matrix</text><text class="s chip" x="613" y="130" fill="#a61b1b">Blocked</text><text class="s b" x="613" y="153">108 pairs; 59/108 fail</text><text class="s b" x="613" y="173">Median correlation 0.52810</text>
+<rect class="box amber" x="880" y="78" width="275" height="112" rx="8"/><text class="s h" x="898" y="107">Correction candidate</text><text class="s chip" x="898" y="130" fill="#9a5b00">Supported Diagnostic</text><text class="s b" x="898" y="153">Nine real controls pass</text><text class="s b" x="898" y="173">Review + R4 verification needed</text>
+<rect class="box purple" x="25" y="235" width="350" height="112" rx="8"/><text class="s h" x="43" y="264">Diagnostic studies</text><text class="s chip" x="43" y="287" fill="#6d28d9">Investigated</text><text class="s b" x="43" y="310">G6-D: 72 cases, 648 maps</text><text class="s b" x="43" y="330">No formal G6/G8 promotion</text>
+<rect class="box red" x="415" y="235" width="350" height="112" rx="8"/><text class="s h" x="433" y="264">Collection suitability</text><text class="s chip" x="433" y="287" fill="#a61b1b">Blocked</text><text class="s b" x="433" y="310">42.559% sampled opportunity</text><text class="s b" x="433" y="330">Policy + acquisition evidence absent</text>
+<rect class="box red" x="805" y="235" width="350" height="112" rx="8"/><text class="s h" x="823" y="264">Formal downstream gates</text><text class="s chip" x="823" y="287" fill="#a61b1b">Blocked</text><text class="s b" x="823" y="310">G5/G6/G8, objectDetection</text><text class="s b" x="823" y="330">tracking and localization unavailable</text>
+<line class="line" x1="25" y1="385" x2="1155" y2="385"/><text class="s sm" x="25" y="413">The scorecard records evidence state, not a probability of successful aircraft detection.</text>
+</svg>
+<figcaption><strong>Figure 1 — Current readiness scorecard.</strong> <span class="evidence-id">STAT-001–STAT-008</span> Each card includes a status label, a quantitative anchor, and an engineering interpretation. No card is a performance measure. Sources: S06-01, S06-06 through S06-11. [Supported Diagnostic]</figcaption>
+</figure>
+</section>
+
+<section id="evidence">
+<h2>7. Figures and visual evidence: what the strongest numbers say</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The important contrast is not “one plot looked good and another looked bad.” The R4 fixed pilot met predeclared map-contract limits, then the broader R5A matrix did not. The next correction candidate is promising only because a separate, bounded characterization isolated a specific order-of-operations difference.</p>
+<div class="technical">
+<p>R4 and R5A answer different questions. The R4 fixed pilot checks a frozen configuration at one prescribed condition; the R5A matrix checks the same Passive Map contract across 108 paired conditions. The matrix failed peak agreement, correlation, energy-difference, Direct Path/ridge, and classification-stability conditions. The cancellation characterization then tested a fixed family of methods and found that native-rate 16-tap NLMS trained on target-free calibration and frozen before scoring preserved the tested map contract; the current independently reset native/reduced comparator did not.</p>
+</div>
+<h3>Figures and visual evidence</h3>
+<figure class="figure" id="map-contract-figure">
+<svg viewBox="0 0 1180 500" role="img" aria-labelledby="map-title map-desc">
+<title id="map-title">R4 fixed-pilot and R5A matrix map-contract comparison</title>
+<desc id="map-desc">A comparison shows R4 values within limits and R5A aggregate values outside limits. The figure is explicitly labeled as map-contract evidence, not aircraft performance.</desc>
+<style>.s{font-family:Segoe UI,Arial,sans-serif;fill:#172033}.h{font-size:19px;font-weight:700}.b{font-size:13px}.sm{font-size:12px;fill:#526176}.axis{stroke:#64748b;stroke-width:1.3}.grid{stroke:#dbe5ee;stroke-width:1}.blue{fill:#0f4c81}.red{fill:#a61b1b}.amber{fill:#9a5b00}.limit{stroke:#9a5b00;stroke-width:2;stroke-dasharray:6 4}.row{fill:#f8fafc;stroke:#cbd5e1;stroke-width:1}</style>
+<text class="s h" x="26" y="31">Frozen map-contract evidence — not a detector performance chart</text><text class="s sm" x="26" y="51">Blue = earlier R4 fixed-pilot result; red = R5A aggregate result; dashed amber = frozen threshold.</text>
+<rect class="row" x="25" y="77" width="1130" height="68" rx="5"/><text class="s b" x="42" y="106">Normalized map correlation</text><line class="axis" x1="310" y1="118" x2="1080" y2="118"/><line class="limit" x1="1003" y1="89" x2="1003" y2="135"/><rect class="blue" x="310" y="94" width="760" height="14"/><rect class="red" x="310" y="119" width="407" height="14"/><text class="s b" x="1088" y="106">R4 0.987568</text><text class="s b" x="725" y="132">R5A median 0.52810</text><text class="s sm" x="978" y="86">limit 0.90</text>
+<rect class="row" x="25" y="161" width="1130" height="68" rx="5"/><text class="s b" x="42" y="190">Off-origin energy difference</text><line class="axis" x1="310" y1="202" x2="1080" y2="202"/><line class="limit" x1="438" y1="173" x2="438" y2="219"/><rect class="blue" x="310" y="178" width="3" height="14"/><rect class="red" x="310" y="203" width="709" height="14"/><text class="s b" x="448" y="190">limit ≤ 0.05</text><text class="s b" x="1026" y="216">R5A 0.27648</text><text class="s b" x="317" y="190">R4 0.001191</text>
+<rect class="row" x="25" y="245" width="1130" height="68" rx="5"/><text class="s b" x="42" y="274">Zero-Doppler energy difference</text><line class="axis" x1="310" y1="286" x2="1080" y2="286"/><line class="limit" x1="566" y1="257" x2="566" y2="303"/><rect class="blue" x="310" y="262" width="2" height="14"/><rect class="red" x="310" y="287" width="686" height="14"/><text class="s b" x="575" y="274">limit ≤ 0.10</text><text class="s b" x="1003" y="300">R5A 0.26735</text><text class="s b" x="317" y="274">R4 0.00083923</text>
+<rect class="row" x="25" y="329" width="1130" height="68" rx="5"/><text class="s b" x="42" y="358">Direct Path / off-ridge difference (dB)</text><line class="axis" x1="310" y1="370" x2="1080" y2="370"/><line class="limit" x1="472" y1="341" x2="472" y2="387"/><rect class="blue" x="310" y="346" width="45" height="14"/><rect class="red" x="310" y="371" width="770" height="14"/><text class="s b" x="480" y="358">limit ≤ 6 dB</text><text class="s b" x="1087" y="384">R5A 28.5053</text><text class="s b" x="362" y="358">R4 1.6814</text>
+<text class="s sm" x="25" y="445">Peak agreement and classification stability also failed in the R5A aggregate audit. The R4 pilot and candidate characterization do not erase those failures.</text><text class="s sm" x="25" y="468">Physical evidence is relevant to future collection acceptance and is intentionally cross-referenced to Report 02; it is not used here as map-performance evidence.</text>
+</svg>
+<figcaption><strong>Figure 2 — R4 fixed-pilot versus R5A aggregate Passive Map-contract evidence.</strong> <span class="evidence-id">STAT-002</span> <span class="evidence-id">STAT-003</span> The values come from the passing 2026-09-11 R4 checkpoint and the failed 2026-09-15 R5A matrix. The comparison explains the current block; it says nothing about live aircraft, Pd, Pfa, Tracking, or Localization. Sources: S06-06, S06-09, S06-01. [Blocked]</figcaption>
+</figure>
+<div class="callout"><strong>Engineering interpretation:</strong> treating the R5A failure as a real, preserved result is important. The evidence-supported next move is not to widen a detector, select an LMS product, or collect a headline performance figure. It is to review the specific native-first correction, verify it under the existing R4 contract and regressions, and only then consider a separately authorized replacement R5A matrix.</div>
+</section>
+
+<section id="demonstrated">
+<h2>8. Demonstrated work</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Demonstrated work means a named result met a stated contract on stated data. It does not mean that all conditions or all later uses of that result have been validated.</p>
+<div class="grid">
+<article class="card"><h3><span class="tag implemented">Implemented</span> Gate-aware analysis framework <span class="evidence-id">STAT-007</span></h3><p>G1–G10 are defined with distinct roles. The workflow can refuse downstream execution rather than emitting an apparently complete result with missing prerequisites.</p><p class="small">Quantitative anchor: the G8 prerequisite scaffold leaves CFAR execution and detector tuning disabled and emits no detection table.</p></article>
+<article class="card"><h3><span class="tag demonstrated">Demonstrated</span> Baseline ingest and synchronization <span class="evidence-id">STAT-001</span></h3><p>The named reference session has a reproducible input contract. The G3 evidence cache was fail-closed against source, configuration, and payload mismatch while preserving exact scientific hashes.</p><p class="small">Quantitative anchor: 411.1911 s rebuild; 4.6185 s median warm load; 89.0313× speedup.</p></article>
+<article class="card"><h3><span class="tag demonstrated">Demonstrated</span> Fixed-pilot Passive Map comparison <span class="evidence-id">STAT-002</span></h3><p>The earlier R4 checkpoint passed frozen physical map-rate criteria and exact production-parity checks after the comparison correction.</p><p class="small">Quantitative anchor: 34/34 focused G4-R tests, 19/19 G5 regressions, and 22/22 G6-D regressions passed in that checkpoint.</p></article>
+<article class="card"><h3><span class="tag demonstrated">Demonstrated</span> Evidence retention and audit <span class="evidence-id">STAT-003</span></h3><p>Formal G4-R bundles retained compact metrics and summary outputs rather than raw IQ or complete Passive Map collections, while exact-manifest and source-audit checks were used before coordination.</p><p class="small">Quantitative anchor: the R5A coordinator reconstructed exactly 108 unique condition rows from three 36-condition background shards.</p></article>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S06-01 verified state</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/README.md">S06-04 gate terminology</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R4_Checkpoint/20260911T185618631Z/summary.md">S06-09 R4 summary</a>.</p>
+</section>
+
+<section id="diagnostic">
+<h2>9. Supported diagnostic findings</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Diagnostic evidence is valuable because it narrows the next question. It does not answer a bigger question than the experiment was designed to answer.</p>
+<div class="technical">
+<p>The cancellation characterization is the most direct current diagnostic. The native-first frozen-NLMS candidate preserved the tested common-grid map contract across nine real controls and a 15 km map-preservation guard. In contrast, the independently reset native/reduced NLMS comparator did not preserve the map contract in every real control. This supports review of rate/order/reset semantics; it does not establish a mitigation-product winner or hardware adequacy.</p>
+<p>The G6-D and synthetic studies are also bounded. G6-D had structural and retention checks, but its recommendation is provisional. The 15 km synthetic support study showed that historical support excluded that known synthetic truth; the diagnostic replay changed only a support boundary and is not a production detector change. PBR-SVE-001 Phase A quantified sampled ADS-B geometry opportunity, not detection or localization coverage.</p>
+</div>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th>Finding</th><th>Status</th><th>Quantitative evidence</th><th>What it supports</th><th>What it does not support</th></tr></thead>
+<tbody>
+<tr><td><span class="evidence-id">STAT-004</span> Native-first frozen NLMS order</td><td><span class="tag supported">Supported Diagnostic</span></td><td>4.1958 dB median Direct Path/ridge reduction; 0.0689 dB minimum; 11.8320 dB relative truth-window contrast improvement.</td><td>Review of a bounded R4 correction.</td><td>Formal G5 selection, R5A authorization, hardware/site sufficiency, or operational performance.</td></tr>
+<tr><td><span class="evidence-id">STAT-005</span> G6-D product comparison</td><td><span class="tag supported">Supported Diagnostic</span></td><td>Target-hit counts: 308 conservative, 252 aggressive, 112 none across the complete Pfa sweep; all had zero matched-control nuisance alarms.</td><td>A campaign-conditional provisional diagnostic recommendation.</td><td>Formal G6 freeze, formal G8 detection, objectDetection, or an operational Pd/Pfa claim.</td></tr>
+<tr><td><span class="evidence-id">STAT-005</span> 15 km synthetic support consequence</td><td><span class="tag investigated">Investigated</span></td><td>Historical support: 12,832 CUTs; diagnostic replay: 14,035 CUTs. Selected-CUT power 0.0074079 versus CA-CFAR threshold 0.0019946.</td><td>The historical support excluded that synthetic truth.</td><td>A wider production support recommendation or a live-aircraft result.</td></tr>
+<tr><td><span class="evidence-id">STAT-006</span> ADS-B opportunity context</td><td><span class="tag investigated">Investigated</span></td><td>462,838 valid source samples; 42.559% current actual-CUT sampled opportunity; 95.132% core-rectangle opportunity.</td><td>Where sampled trajectories map into stated delay-Doppler rectangles.</td><td>Detector support selection, detection rate, Tracking continuity, or Localization coverage.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-014--accept-the-cancellation-characterization-as-a-reviewed-r4-correction-candidate-only">S06-02 D-014</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S06-01 diagnostic records</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Cancellation_Characterization/20260916T125719176Z/summary.md">S06-07 cancellation summary</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/aircraft_surveillance_envelope/20260910T124054969Z/summary.md">S06-11 Phase A summary</a>.</p>
+</section>
+
+<section id="blocked">
+<h2>10. Blocked work, boundaries, and non-claims</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Formal downstream work is disabled because the map-forming contract and collection-suitability evidence are not both closed. A block is not a judgment that the project failed; it is a precise statement that a later claim would be premature.</p>
+<div class="two-col">
+<div class="callout stop"><strong>Formal work that remains blocked <span class="evidence-id">STAT-007</span></strong><ul class="plain-list"><li>Formal G5 product selection and held-out confirmation.</li><li>Formal G6 CPI/integration freeze.</li><li>Formal G7 product-level truth windows.</li><li>Formal G8 detection validation and <code>objectDetection</code> emission.</li><li>Tracker readiness, Tracking, and track-to-truth evaluation.</li><li>Any Localization-performance evaluation.</li><li>R5B collection suitability until the reviewed ADS-B timing/geometry policy and acquisition evidence exist.</li></ul></div>
+<div class="callout warn"><strong>Boundaries that remain in force <span class="evidence-id">STAT-003</span> <span class="evidence-id">STAT-004</span></strong><ul class="plain-list"><li>The passed 2026-09-11 R4 checkpoint is historical fixed-pilot evidence, not current production-pass state.</li><li>The 2026-09-16 native-first checkpoint is a bounded correction candidate; adoption and verification are pending.</li><li>R5A failure remains authoritative and is not superseded by a small diagnostic study.</li><li>Infrastructure evidence and collection photographs belong to Report 02 and are not promoted into signal-performance evidence here.</li><li>Truth remains post hoc; it cannot steer Passive Map formation, thresholding, or nonmaximum suppression.</li><li>ADS-B cues may choose when and on which illuminator to collect. That choice, and any cue-aided association, must be recorded and kept out of truth-blind detection evaluation; the rule for cued collections is not yet written down. <span class="evidence-id">STAT-012</span></li><li>“Verified” for the cue messages is an interface-control status, not a radar result. <span class="evidence-id">STAT-009</span></li></ul></div>
+</div>
+<div class="callout stop"><strong>This report does not claim <span class="evidence-id">STAT-007</span> <span class="evidence-id">STAT-009</span>:</strong> that a predicted cue opportunity or SNR will yield a detection; accurate Pi-timed ADS-B truth before 2026-09-25; live-aircraft radar detection; operational Pd; operational Pfa; validated Tracking performance; validated Localization performance; a selected mitigation product; a frozen detector input; hardware sufficiency; site sufficiency; or collection suitability.</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/G4RMapRateValidityPlan.md">S06-05 G4-R plan</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md">S06-02 D-003, D-004, D-013, D-014</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S06-01 current blocker</a>.</p>
+</section>
+
+<section id="interpretation">
+<h2>11. Meaning and interpretation</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The program has converted a vague “can we see aircraft?” question into a narrower, testable sequence: make the map physically comparable, decide whether the collection is suitable, freeze an input product, validate a truth-blind detector, then evaluate trackers and localization with real measurement contracts.</p>
+<div class="technical">
+<p>The failed matrix and the bounded correction candidate point to a controlled engineering decision, not an open-ended search. The original Passive Map comparison defect was explained; the R5A failure then identified behavior that the native-first ordering may correct. The next verification must preserve the existing map metrics, parity, source fingerprints, and regressions. It must not silently change criteria or treat synthetic-target association as a substitute for matrix validation. <span class="evidence-id">STAT-003</span> <span class="evidence-id">STAT-004</span></p>
+<p>The collection branch is independently important. ADS-B opportunity analysis can say that a specified rectangle contains 42.559% of sampled opportunity, but it cannot determine whether IQ/ADS-B timing is sufficiently aligned or whether the Reference Path was suitable for a formal field result. That requires a reviewed policy and traceable acquisition evidence. Physical installation and package evidence should be read in Report 02, not inferred from analysis artifacts. <span class="evidence-id">STAT-006</span></p>
+</div>
+<figure class="figure" id="dependency-figure">
+<svg viewBox="0 0 1180 620" role="img" aria-labelledby="dep-title dep-desc">
+<title id="dep-title">Dependency chain from the current correction decision to tracking and localization</title>
+<desc id="dep-desc">The diagram begins with reviewed upstream correction and R4 verification, then separates replacement R5A and R5B collection-suitability policy. Both feed formal G5, G6, G7, and G8, then tracker readiness, tracking, and future localization.</desc>
+<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#64748b"/></marker><style>.s{font-family:Segoe UI,Arial,sans-serif;fill:#172033}.h{font-size:17px;font-weight:700}.b{font-size:13px}.sm{font-size:12px;fill:#526176}.a{stroke:#64748b;stroke-width:2.3;fill:none;marker-end:url(#arr)}.box{stroke:#64748b;stroke-width:1.4}.amber{fill:#fff7e6}.red{fill:#fff1f1}.purple{fill:#f5f3ff}.blue{fill:#eaf3fb}</style></defs>
+<rect class="box amber" x="380" y="20" width="420" height="62" rx="8"/><text class="s h" x="404" y="47">1. Review bounded R4 correction candidate</text><text class="s b" x="404" y="68">Native-first frozen-NLMS is evidence-supported; not adopted.</text>
+<rect class="box amber" x="380" y="118" width="420" height="62" rx="8"/><text class="s h" x="404" y="145">2. Controlled R4 verification</text><text class="s b" x="404" y="166">Existing map contract, parity, fingerprints, and regressions.</text>
+<line class="a" x1="590" y1="82" x2="590" y2="116"/>
+<rect class="box red" x="90" y="225" width="430" height="70" rx="8"/><text class="s h" x="114" y="252">3a. Replacement R5A authorization and matrix</text><text class="s b" x="114" y="275">Separately authorized only after corrected R4 verification.</text>
+<rect class="box red" x="660" y="225" width="430" height="70" rx="8"/><text class="s h" x="684" y="252">3b. R5B collection-suitability policy</text><text class="s b" x="684" y="275">Reviewed ADS-B timing/geometry policy + acquisition evidence.</text>
+<line class="a" x1="500" y1="180" x2="307" y2="223"/><line class="a" x1="680" y1="180" x2="873" y2="223"/>
+<rect class="box red" x="380" y="340" width="420" height="62" rx="8"/><text class="s h" x="404" y="367">4. Formal G5 decision and G6 freeze</text><text class="s b" x="404" y="388">Validated map contract and controlled product evidence required.</text>
+<line class="a" x1="305" y1="295" x2="500" y2="338"/><line class="a" x1="875" y1="295" x2="680" y2="338"/>
+<rect class="box red" x="380" y="438" width="420" height="62" rx="8"/><text class="s h" x="404" y="465">5. Formal G7 truth alignment and G8 validation</text><text class="s b" x="404" y="486">Truth-blind detector and measurement contract required.</text>
+<line class="a" x1="590" y1="402" x2="590" y2="436"/>
+<rect class="box purple" x="155" y="537" width="340" height="60" rx="8"/><text class="s h" x="179" y="563">6. Tracker readiness and tracking</text><text class="s b" x="179" y="584">Validated measurements + uncertainty required.</text>
+<rect class="box purple" x="685" y="537" width="340" height="60" rx="8"/><text class="s h" x="709" y="563">7. Future localization evaluation</text><text class="s b" x="709" y="584">Multiple suitable observations/links required.</text>
+<line class="a" x1="520" y1="500" x2="402" y2="535"/><line class="a" x1="660" y1="500" x2="778" y2="535"/>
+</svg>
+<figcaption><strong>Figure 3 — Dependency chain to future Tracking and Localization.</strong> <span class="evidence-id">STAT-004</span> <span class="evidence-id">STAT-006</span> <span class="evidence-id">STAT-007</span> <span class="evidence-id">STAT-008</span> Amber denotes the next controlled decision and verification. Red denotes prerequisites that are currently blocked. Purple denotes future use of validated Measurements. The branches are distinct: a successful R5A replacement does not remove the need for R5B collection-suitability policy. Sources: S06-01, S06-05, S06-02. [Blocked]</figcaption>
+</figure>
+</section>
+
+<section id="milestones">
+<h2>12. Next required milestones and future paths</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The next milestone is deliberately small: decide whether to adopt one reviewed correction and prove that it preserves the existing map contract. Only after that proof can the program decide whether to spend resources on a replacement matrix. Tracking and localization are future paths, not the next task.</p>
+<div class="technical">
+<p>The future tracking path is: validated map formation and collection suitability → formal G5 product decision → formal G6 frozen detector input → formal G7 time/geometry truth windows → formal G8 truth-blind detector validation and measurement contract → tracker readiness → tracking and truth evaluation. The localization path begins only after tracking-quality measurements and suitable multi-observation geometry are available. One-link opportunity analysis is useful context but is not localization-capable coverage.</p>
+</div>
+<figure class="figure" id="milestone-figure">
+<svg viewBox="0 0 1180 340" role="img" aria-labelledby="mile-title mile-desc">
+<title id="mile-title">Milestone path from present evidence to future tracking and localization</title>
+<desc id="mile-desc">A horizontal timeline distinguishes established evidence, the current decision, blocked formal gates, and future tracking/localization work.</desc>
+<defs><marker id="arr2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#64748b"/></marker><style>.s{font-family:Segoe UI,Arial,sans-serif;fill:#172033}.h{font-size:16px;font-weight:700}.b{font-size:12px}.sm{font-size:11px;fill:#526176}.a{stroke:#64748b;stroke-width:2.2;fill:none;marker-end:url(#arr2)}.box{stroke:#64748b;stroke-width:1.3}.blue{fill:#eaf3fb}.amber{fill:#fff7e6}.red{fill:#fff1f1}.purple{fill:#f5f3ff}</style></defs>
+<text class="s h" x="25" y="31">Program path: preserve evidence, resolve dependencies, then validate measurements</text>
+<rect class="box blue" x="25" y="85" width="205" height="125" rx="8"/><text class="s h" x="43" y="114">Established evidence</text><text class="s b" x="43" y="140">Early chain + fixed R4</text><text class="s b" x="43" y="160">G6-D and opportunity</text><text class="s b" x="43" y="180">diagnostics</text>
+<rect class="box amber" x="270" y="85" width="205" height="125" rx="8"/><text class="s h" x="288" y="114">Current decision</text><text class="s b" x="288" y="140">Review correction</text><text class="s b" x="288" y="160">Verify R4 contract</text><text class="s b" x="288" y="180">without threshold changes</text>
+<rect class="box red" x="515" y="85" width="205" height="125" rx="8"/><text class="s h" x="533" y="114">Map + collection</text><text class="s b" x="533" y="140">Authorize replacement R5A</text><text class="s b" x="533" y="160">R5B timing/geometry</text><text class="s b" x="533" y="180">policy and evidence</text>
+<rect class="box red" x="760" y="85" width="185" height="125" rx="8"/><text class="s h" x="778" y="114">Validated measurement</text><text class="s b" x="778" y="140">Formal G5/G6/G7/G8</text><text class="s b" x="778" y="160">truth-blind detector</text><text class="s b" x="778" y="180">measurement contract</text>
+<rect class="box purple" x="985" y="85" width="170" height="125" rx="8"/><text class="s h" x="1003" y="114">Future use</text><text class="s b" x="1003" y="140">Tracker readiness</text><text class="s b" x="1003" y="160">Tracking</text><text class="s b" x="1003" y="180">Localization</text>
+<line class="a" x1="230" y1="147" x2="268" y2="147"/><line class="a" x1="475" y1="147" x2="513" y2="147"/><line class="a" x1="720" y1="147" x2="758" y2="147"/><line class="a" x1="945" y1="147" x2="983" y2="147"/>
+<text class="s sm" x="25" y="257">All arrows represent dependencies, not an approval to begin the next box.</text><text class="s sm" x="25" y="282">No milestone on this path is a PowerPoint, a slide concept, or a substitute for the evidence required at that milestone.</text>
+</svg>
+<figcaption><strong>Figure 4 — Required milestone path.</strong> <span class="evidence-id">STAT-004</span> <span class="evidence-id">STAT-006</span> <span class="evidence-id">STAT-007</span> <span class="evidence-id">STAT-008</span> Quantitative diagnostic work supports the present decision but does not shorten the formal sequence. Report 04 contains the detailed recovery evidence; this report preserves only the readiness implications. Sources: S06-01, S06-02, S06-05, S06-14. [In Progress]</figcaption>
+</figure>
+</section>
+
+<section id="asks">
+<h2>13. Management Recommendation</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> Authorize controlled correction verification and collection-readiness evidence before downstream advancement. Preserve the failed R5A evidence; do not ask the team to produce a detector or Tracking result before its inputs are validated. <span class="evidence-id">STAT-003</span> <span class="evidence-id">STAT-004</span> <span class="evidence-id">STAT-006</span> <span class="evidence-id">STAT-007</span></p>
+<div class="recommendation"><h3>Recommended action</h3><p>Review the native-first frozen-NLMS candidate as a bounded R4 correction. If approved, fund controlled verification against the unchanged R4 contract and, in parallel, obtain the reviewed ADS-B timing/geometry and Reference Path evidence required for collection suitability. Consider replacement R5A only after successful correction verification. <span class="evidence-id">STAT-004</span> <span class="evidence-id">STAT-008</span> <span class="evidence-id">STAT-006</span></p></div>
+<div class="technical">
+<p>The immediate ask is a technical-governance decision: review the retained cancellation-characterization evidence and decide whether the native-first frozen-NLMS ordering may be implemented as a bounded upstream R4 correction. If yes, allocate time to rerun the frozen R4 verification and regression suite. Only a passing corrected R4 path should trigger a separate authorization request for a replacement R5A matrix. That replacement is not implied by correction review.</p>
+</div>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th>Ask category</th><th>Management decision or resource</th><th>Quantitative/evidence basis</th><th>What closes it</th><th>Boundary</th></tr></thead>
+<tbody>
+<tr><td><span class="evidence-id">STAT-004</span> Technical governance</td><td>Review the native-first frozen-NLMS correction candidate and approve or reject bounded R4 adoption.</td><td>Nine real-control map-rate criteria passed; 4.1958 dB median Direct Path/ridge reduction; R5A failure remains preserved.</td><td>A documented reviewed decision and, if approved, controlled R4 verification.</td><td>Does not select a G5 product or authorize R5A by itself.</td></tr>
+<tr><td><span class="evidence-id">STAT-008</span> Compute / analysis time</td><td>Reserve controlled execution time for R4 verification and only later, if separately authorized, replacement R5A work.</td><td>The historical three-shard R5A execution took 3,635.5 s, 4,248.3 s, and 4,223.3 s per background shard.</td><td>Verified resource plan tied to the approved execution contract.</td><td>Do not substitute timeboxed diagnostic probes for formal matrix evidence.</td></tr>
+<tr><td><span class="evidence-id">STAT-006</span> Collection and Reference Path</td><td>Resource acquisition evidence that records immutable channel mapping, lock state, dropped/overrun indicators, and Reference Path condition.</td><td>Reference-session G2 evidence remains diagnostic; current G6-D support covers 42.559% of sampled opportunity, which is not acquisition acceptance.</td><td>Reviewed timing/geometry policy plus collection-specific evidence.</td><td>Deployment photographs and historical manifests are infrastructure evidence only; see Report 02.</td></tr>
+<tr><td><span class="evidence-id">STAT-006</span> ADS-B timing / geometry policy</td><td>Approve a reviewed numerical policy for R5B before collection-suitability conclusions.</td><td>Phase A reproduced 462,838 valid source samples and retained explicit uncertainty/quality limits.</td><td>Policy review plus audited time-overlap and geometry application to the three sessions.</td><td>Opportunity rectangles do not become detector support recommendations.</td></tr>
+<tr><td><span class="evidence-id">STAT-010</span> <span class="evidence-id">STAT-012</span> Cueing and timing infrastructure</td><td>Lock the GPS/PPS time source (or accept NTP with a stated tolerance), write the truth-separation rule for cued collections, then build Resource Manager scheduling and <code>collection_task</code> with <code>cue_ref</code>.</td><td>Cue interface Verified live (STAT-009); Pi clock was 14.9 s slow before NTP; <code>collection_task</code> is Proposed.</td><td>A reviewed timing tolerance and a first collection scheduled from a cue and linked to it.</td><td>Enabling work; it does not relieve the map-contract or R5B collection-suitability blockers.</td></tr>
+<tr><td><span class="evidence-id">STAT-007</span> Future Tracking / Localization</td><td>Defer Tracking and Localization commitments until validated Measurement outputs exist; then fund a measurement-model and multi-observation plan.</td><td>No formal detection table or <code>objectDetection</code> output exists. Localization needs multiple suitable observations, not one-link opportunity context.</td><td>Formal G8 Measurement validation, G9 readiness, G10 Tracking evaluation, and later multi-link Localization evidence.</td><td>No validated Tracking or Localization performance is available today.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="source">Primary evidence: <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">S06-01 next action and ownership</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-013--retain-the-failed-r5a-matrix-and-gate-downstream-work">S06-02 D-013</a>, <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md#d-014--accept-the-cancellation-characterization-as-a-reviewed-r4-correction-candidate-only">S06-02 D-014</a>.</p>
+</section>
+
+<section id="local">
+<h2>14. Local evidence navigation</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> A manager can start with this report. A reviewer can follow the links below to inspect the exact compact evidence, decisions, and companion reports without needing to reconstruct the entire project history.</p>
+<div class="family-map">
+<strong>Report Family Map</strong>
+<ol>
+<li><a href="01_NorthStarAndMotivation_V2.html">01 — Why are we doing this?</a></li>
+<li><a href="02_HardwareAndCollection_V5.html">02 — What did we build?</a></li>
+<li><a href="03_AnalysisPipelineAndGateRebuild.html">03 — How does it work?</a></li>
+<li><a href="04_MitigationAndMapRateRecovery_V2.html">04 — Why did mitigation and map-rate recovery happen?</a></li>
+<li><a href="05_StrongestEvidence_G4RRecoveryStudy.html">05 — What does the strongest evidence say?</a></li>
+<li><strong>06 — What should happen next?</strong> This report summarizes readiness and decisions; it intentionally does not re-explain hardware, pipeline, recovery, or strongest-evidence detail.</li>
+</ol>
+</div>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th>Question</th><th>Open locally</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td>What is authoritative today?</td><td><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/PROJECT_STATE.md">PROJECT_STATE.md</a></td><td>Current milestone, verified status, blocker, deferred work, and next action as of 2026-09-18.</td></tr>
+<tr><td>Why are the boundaries binding?</td><td><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/DECISIONS.md">DECISIONS.md</a></td><td>Decision records D-013 and D-014 preserve the R5A failure and correction-candidate boundary.</td></tr>
+<tr><td>What is the formal G4-R contract?</td><td><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/G4RMapRateValidityPlan.md">G4RMapRateValidityPlan.md</a></td><td>Defines R1–R5B, including the separate R5A and R5B branches.</td></tr>
+<tr><td><span class="evidence-id">STAT-003</span> What exactly failed in R5A?</td><td><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R5A_Matrix/20260915T155816449Z/aggregate_criteria_audit.csv">R5A aggregate criteria audit</a></td><td>Compact frozen-criteria evidence for the 108-condition matrix.</td></tr>
+<tr><td><span class="evidence-id">STAT-004</span> What supports the correction candidate?</td><td><a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_Cancellation_Characterization/20260916T125719176Z/summary.md">Cancellation characterization summary</a> and <a href="file:///C:/Users/pwilliam/agenticProjects/PassiveBistaticRestart/artifacts/20260622T102123/G4_R_R4_NativeFirst_Checkpoint/20260916T183355960Z/summary.md">native-first R4 checkpoint summary</a></td><td>Shows why review is justified and why adoption/verification are still required.</td></tr>
+<tr><td>What was built and collected?</td><td><a href="02_HardwareAndCollection_V5.html">02_HardwareAndCollection_V5.html — Hardware and Collection Infrastructure</a></td><td>Physical evidence, collection packaging, and Reference Path gaps.</td></tr>
+<tr><td><span class="evidence-id">STAT-009</span> How is the system organised, and what does the cue interface prove?</td><td><a href="../systems/SystemArchitectureAndCueTasking_V1.html">System Architecture and ADS-B Cue Tasking</a> (companion report)</td><td>Architecture, ICD, live cue verification, time-source finding, and their claim boundary.</td></tr>
+<tr><td><span class="evidence-id">STAT-011</span> What happened on the latest live-aircraft attempts?</td><td><a href="../diagnostics/TrackingScan_NoDetection_Diagnostic_V1.html">Tracking-scan diagnostic</a> and <a href="../diagnostics/PlutoCombPresence_Diagnostic_V1.html">Pluto calibration-signal diagnostic</a></td><td>Hardware and detection troubleshooting evidence outside the family, each with its own boundary.</td></tr>
+<tr><td>How do the gates fit together?</td><td><a href="03_AnalysisPipelineAndGateRebuild.html">03_AnalysisPipelineAndGateRebuild.html — Analysis Pipeline and Gate Rebuild</a></td><td>Detailed pipeline and gate-rebuild explanation.</td></tr>
+<tr><td>Why did G4-R happen?</td><td><a href="04_MitigationAndMapRateRecovery_V2.html">04_MitigationAndMapRateRecovery_V2.html — Mitigation and Map-Rate Recovery</a></td><td>Detailed recovery journey without duplicating it here.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="glossary">
+<h2>15. Glossary</h2>
+<dl>
+<dt>ADS-B</dt><dd>Broadcast aircraft-surveillance data used here as post-hoc timing and geometry context, not to steer the detector. Since 2026-09 it also feeds the Cue Tasker, which may select collection opportunities but must not steer map formation, thresholding, or detection.</dd>
+<dt>Cue Tasker (CT)</dt><dd>The service on the ADS-B Raspberry Pi that publishes one cue per aircraft: predicted path and up to eight ranked (receive site, DTV illuminator) opportunities with modeled, pre-integration SNR windows.</dd>
+<dt>CFAR</dt><dd>Constant false-alarm rate processing. Diagnostic CFAR results are not an operational false-alarm measurement.</dd>
+<dt>Direct Path</dt><dd>The strong broadcast component received through the direct transmitter-to-receiver route. It is not the same thing as the Reference Path.</dd>
+<dt>G1–G10</dt><dd>The ordered project gates from ingest through tracking/truth evaluation. They are defined in the project README and detailed in Report 03.</dd>
+<dt>G4-R / R1–R5B</dt><dd>The bounded G4 remediation and revalidation sequence. R5A tests map formation; R5B separately assesses collection suitability.</dd>
+<dt>Map-rate validity</dt><dd>Whether native-rate and reduced-rate map products are physically comparable under an explicit common-grid contract.</dd>
+<dt>Measurement</dt><dd>A validated output governed by a declared Measurement contract with relevant timing, geometry, and uncertainty information. No such Measurement is established here.</dd>
+<dt>Native-first frozen NLMS</dt><dd>A candidate cancellation order: train a 16-tap normalized LMS filter on target-free calibration at native rate, freeze adaptation for scoring, then resample the residual. It is not a selected G5 product.</dd>
+<dt>objectDetection</dt><dd>A MATLAB detection-object output. It remains unavailable because formal G8 is blocked.</dd>
+<dt>Passive Map</dt><dd>The passive cross-ambiguity map produced from the Reference Path and Surveillance Path. It is an upstream analysis product, not by itself a validated Measurement.</dd>
+<dt>Pd / Pfa</dt><dd>Probability of detection / probability of false alarm. No operational Pd or Pfa is established in this report.</dd>
+<dt>Reference Path</dt><dd>The declared receiver path intended to provide a usable copy of the HDTV broadcast for comparison. It is not synonymous with the Direct Path, and its collection suitability remains blocked.</dd>
+<dt>R4 checkpoint</dt><dd>The frozen verification and fixed-pilot stage within G4-R. The earlier checkpoint passed; the current candidate correction still requires adoption and verification.</dd>
+<dt>R5A matrix</dt><dd>The exact 108-condition bounded map-formation validation matrix. Its failure is retained as authoritative current evidence.</dd>
+<dt>R5B</dt><dd>The separately reviewed collection-suitability assessment based on ADS-B timing and geometry policy; it remains blocked.</dd>
+<dt>Surveillance Path</dt><dd>The declared receiver path intended to observe the scene together with broadcast content, including possible reflected components. It is paired with the Reference Path to form a Passive Map.</dd>
+<dt>Supported Diagnostic</dt><dd>A status indicating that a bounded experiment supports a narrow engineering conclusion but does not promote a formal gate or operational claim.</dd>
+<dt>Tracking / Localization</dt><dd>Future uses of validated Measurements. Tracking needs an established Measurement contract; Localization additionally needs suitable multi-observation geometry. Neither is validated in this report.</dd>
+</dl>
+</section>
+
+<section id="sources">
+<h2>16. Source inventory</h2>
+<p>The companion file <code>06_StatusAndFutureWork_source_inventory.csv</code> (retained in the ManagerReport archive, not published on this site) provides the complete V2 source inventory. The principal records are listed below.</p>
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th>ID</th><th>Record</th><th>Use in this report</th></tr></thead>
+<tbody>
+<tr><td>S06-01</td><td>PROJECT_STATE.md, updated 2026-09-18</td><td>Authoritative current state, evidence boundaries, blocker, and next action.</td></tr>
+<tr><td>S06-02</td><td>DECISIONS.md, especially D-013 and D-014</td><td>Retained R5A failure and reviewed-correction limits.</td></tr>
+<tr><td>S06-03–S06-05</td><td>NorthStar.md, README.md, G4RMapRateValidityPlan.md</td><td>Objective, gate sequence, and active G4-R contract.</td></tr>
+<tr><td>S06-06–S06-11</td><td>Current compact R5A, cancellation, R4, G6-D, and opportunity artifacts</td><td>Quantitative evidence behind the scorecard and management asks.</td></tr>
+<tr><td>S06-12–S06-14</td><td>Reports 02, 03, and 04</td><td>Scope-controlled cross-references; this report does not duplicate their evidence.</td></tr>
+<tr><td>S06-15</td><td><a href="https://github.com/pwilliamMAT/flightTest/blob/ad64bcd3ccd9ffbee023c0e1f13544bd6774c2f2/docs/system/README.md">flightTest docs/system</a> at <code>ad64bcd</code>: README, As_Built, Change_Requests (CR-8), Verification_Log, ICD Draft B</td><td>STAT-009, STAT-010, STAT-012.</td></tr>
+<tr><td>S06-16</td><td><a href="../systems/SystemArchitectureAndCueTasking_V1.html">System Architecture and ADS-B Cue Tasking V1</a></td><td>Owner of the cue-interface and architecture claims summarised here.</td></tr>
+<tr><td>S06-17</td><td><a href="../diagnostics/TrackingScan_NoDetection_Diagnostic_V1.html">Tracking-scan no-detection diagnostic V1</a></td><td>STAT-011.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<footer>
+<p>Prepared as a standalone HTML evidence report. Status vocabulary used in this report: Implemented, Investigated, Demonstrated, Supported Diagnostic, In Progress, Blocked. Claims STAT-001 to STAT-008 are bounded to the cited evidence as of 2026-09-18; STAT-009 to STAT-012 as of 2026-09-26.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FlightTest accepted technical reporting family">
+  <title>FlightTest Reporting</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #102a43;
+      --muted: #486581;
+      --line: #cbd5e1;
+      --surface: #ffffff;
+      --canvas: #f1f5f9;
+      --accent: #075caa;
+      --accent-dark: #034e86;
+      --green: #0f766e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    main {
+      width: min(1040px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2.5rem 0 4rem;
+    }
+
+    header,
+    section,
+    footer {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 0.7rem;
+      box-shadow: 0 1px 2px rgb(15 23 42 / 7%);
+    }
+
+    header {
+      padding: 2rem;
+      border-top: 0.35rem solid var(--accent);
+    }
+
+    section,
+    footer {
+      margin-top: 1rem;
+      padding: 1.5rem;
+    }
+
+    h1, h2, h3 { line-height: 1.2; }
+
+    h1 {
+      margin: 0.1rem 0 0.6rem;
+      font-size: clamp(2rem, 4vw, 3rem);
+    }
+
+    h2 { margin: 0 0 0.75rem; }
+
+    p { margin: 0.5rem 0; }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .summary-grid,
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .summary-link,
+    .report-card {
+      display: block;
+      color: inherit;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      text-decoration: none;
+    }
+
+    .summary-link {
+      border-left: 0.3rem solid var(--green);
+    }
+
+    .summary-link:hover,
+    .summary-link:focus-visible,
+    .report-card:hover,
+    .report-card:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgb(7 92 170 / 18%);
+      outline: none;
+    }
+
+    .summary-link strong,
+    .report-card h3 {
+      color: var(--accent-dark);
+    }
+
+    .report-card {
+      border-top: 0.3rem solid var(--accent);
+    }
+
+    .report-card h3 {
+      margin: 0.15rem 0 0.35rem;
+      font-size: 1.05rem;
+    }
+
+    .report-id {
+      margin: 0;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .report-card p:last-child { color: var(--muted); }
+
+    .companion-list {
+      display: grid;
+      gap: 0.7rem;
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+
+    a { color: var(--accent); }
+
+    footer {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 640px) {
+      main { width: min(100% - 1rem, 1040px); padding-top: 0.5rem; }
+      header, section, footer { padding: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Accepted technical reporting family</p>
+      <h1>FlightTest Reporting</h1>
+      <p>Use this browser view to get up to speed on the project, read the accepted evidence family, and find current status. Each report below opens in a new tab.</p>
+      <div class="summary-grid">
+        <a class="summary-link" href="reports/06_StatusAndFutureWork_V3.html" target="_blank" rel="noopener noreferrer">
+          <strong>Latest status — Report 06</strong><br>
+          Current blockers, decisions, and next evidence actions.
+        </a>
+        <a class="summary-link" href="reports/05_StrongestEvidence_G4RRecoveryStudy.html" target="_blank" rel="noopener noreferrer">
+          <strong>Strongest current evidence — Report 05</strong><br>
+          Controlled synthetic recovery evidence and its claim boundary.
+        </a>
+      </div>
+    </header>
+
+    <section>
+      <h2>Canonical nine-report family</h2>
+      <p>Read in order. Every report owns a question, result, engineering decision, and claim boundary.</p>
+      <div class="report-grid">
+        <a class="report-card" href="reports/01_NorthStarAndMotivation_V2.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">01</p>
+          <h3>North Star and Motivation</h3>
+          <p>Why the project is worth pursuing and why claims must be measurement-led.</p>
+        </a>
+        <a class="report-card" href="reports/01A_IlluminatorSelection_V4.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">01A</p>
+          <h3>Illuminator Selection</h3>
+          <p>Historical illuminator, channel, site, and observation-geometry screening.</p>
+        </a>
+        <a class="report-card" href="reports/01B_ReceiveChainDesign_V2.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">01B</p>
+          <h3>Receive-Chain Design</h3>
+          <p>How predicted signal conditions shaped the receive-chain design.</p>
+        </a>
+        <a class="report-card" href="reports/02_HardwareAndCollection_V5.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">02</p>
+          <h3>Hardware and Collection</h3>
+          <p>Installed collection infrastructure and its qualification boundary.</p>
+        </a>
+        <a class="report-card" href="reports/02A_SyntheticEchoGeneration_V1.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">02A</p>
+          <h3>Synthetic Echo Generation</h3>
+          <p>Declared synthetic truth and bounded paired replay.</p>
+        </a>
+        <a class="report-card" href="reports/03_AnalysisPipelineAndGateRebuild.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">03</p>
+          <h3>Analysis Pipeline and Gate Rebuild</h3>
+          <p>The G1–G10 pipeline gates and what they protect.</p>
+        </a>
+        <a class="report-card" href="reports/04_MitigationAndMapRateRecovery_V2.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">04</p>
+          <h3>Mitigation and Map-Rate Recovery</h3>
+          <p>Recovery work, including the retained R5A failure.</p>
+        </a>
+        <a class="report-card" href="reports/05_StrongestEvidence_G4RRecoveryStudy.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">05</p>
+          <h3>Strongest Evidence: G4-R Recovery Study</h3>
+          <p>The strongest current controlled synthetic diagnostic evidence.</p>
+        </a>
+        <a class="report-card" href="reports/06_StatusAndFutureWork_V3.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">06</p>
+          <h3>Status and Future Work</h3>
+          <p>Current blockers, decisions, and next evidence actions.</p>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>System engineering</h2>
+      <p>How the testbed is organised as a system and what has been verified about its interfaces. Not a member of the accepted report family; the report states its own question, result, decision, and claim boundary.</p>
+      <div class="report-grid">
+        <a class="report-card" href="systems/SystemArchitectureAndCueTasking_V1.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">System</p>
+          <h3>System Architecture and ADS-B Cue Tasking</h3>
+          <p>The ten-item system design and message contract, and the live verification of the ADS-B cue stream from the Pi to the collection desktop: a message-interface result, not a detection.</p>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Diagnostic reports</h2>
+      <p>Hardware and calibration troubleshooting evidence. These are not members of the accepted report family; each states its own question, result, decision, and claim boundary.</p>
+      <div class="report-grid">
+        <a class="report-card" href="diagnostics/PlutoCombPresence_Diagnostic_V1.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">Diagnostic</p>
+          <h3>Pluto Calibration Signal Presence</h3>
+          <p>Why the Pluto calibration comb never reached detection, the receive-chain overload at the old N320 gain and its range-Doppler cost (about 13.5 dB), single-carrier loop tests at 21 channel boundaries, and a map of the local DTV emitters with what the N320 sees from each.</p>
+        </a>
+        <a class="report-card" href="diagnostics/TrackingScan_NoDetection_Diagnostic_V1.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">Diagnostic</p>
+          <h3>Tracking Scan: No Detection</h3>
+          <p>A 2026-09-25 aircraft-tracking scan produced no truth-matched track: 60 Hz hum dominates the detections and the overlapping aircraft is absent even after stacking.</p>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Companion material</h2>
+      <ul class="companion-list">
+        <li><a href="explainers/FlightTest_EndToEnd_HumanStory_V2.html" target="_blank" rel="noopener noreferrer">End-to-end human story</a> — onboarding narrative that connects the nine reports.</li>
+        <li><a href="audits/report_family_story_spine.html" target="_blank" rel="noopener noreferrer">Engineering story spine</a> — short family-level story map.</li>
+        <li><a href="storyboards/manager_slide_storyboard_review.html" target="_blank" rel="noopener noreferrer">Manager-slide storyboard</a> — accepted presentation planning; no presentation binary is stored here.</li>
+      </ul>
+    </section>
+
+    <footer>
+      This site serves the accepted reporting source from the FlightTest repository. The authoritative migration archive remains ManagerReport; accepted reports are not regenerated or edited for this site. For metadata, inventories, known gaps, and repository history, use the <a href="https://github.com/pwilliamMAT/flightTest/blob/main/reporting/reporting_README.md" target="_blank" rel="noopener noreferrer">version-controlled reporting index</a>.
+    </footer>
+  </main>
+</body>
+</html>
