@@ -5,7 +5,8 @@ Start here for the accepted technical report family, the latest project status, 
 **Open rendered reports:** [FlightTest reporting site](https://pwilliammat.github.io/flightTest/) — browser view; report links there open in a new tab.<br>
 **Latest status:** [Report 06 — Status and Future Work](https://pwilliammat.github.io/flightTest/reports/06_StatusAndFutureWork_V3.html)<br>
 **Current strongest controlled evidence:** [Report 05 — G4-R Recovery Study](https://pwilliammat.github.io/flightTest/reports/05_StrongestEvidence_G4RRecoveryStudy.html)
-**Canonical family mapping and claim boundaries:** [family_manifest.json](metadata/family_manifest.json)
+**Canonical family mapping and claim boundaries:** [family_manifest.json](metadata/family_manifest.json)<br>
+**System engineering (separate from the family):** [design process and status](https://pwilliammat.github.io/flightTest/system/index.html)
 
 GitHub's repository file view intentionally displays HTML source rather than rendering it. Use the hosted reporting site for readable reports; this repository index remains the version-controlled source guide.
 
@@ -32,7 +33,7 @@ Read the accepted family in order. Each report owns one question, result, decisi
 - [Canonical gap review](audits/report_family_gap_review.md) and [known gaps](metadata/family_known_gaps.md) — current limitations and unresolved evidence.
 - [Manager-slide storyboard](https://pwilliammat.github.io/flightTest/storyboards/manager_slide_storyboard_review.html) — accepted presentation planning; no presentation binary is stored here.
 - [Accepted audit inventory](audits/audits_inventory.csv), [workflow summary](docs/workflow_summary.md), and [presentation inventory](docs/presentation_inventory.csv).
-- [System engineering](systems/README.md): the [system architecture and ADS-B cue-tasking report](https://pwilliammat.github.io/flightTest/systems/SystemArchitectureAndCueTasking_V1.html), outside the accepted family. It records the ten-item system design, the message contract, and the live verification of the cue stream; it makes no detection claim.
+- [System engineering section](system/README.md): the testbed as a formal system design process, separate from the exploration family. It covers mission goals, a [draft requirements baseline](https://pwilliammat.github.io/flightTest/system/02_Requirements.html), architecture and allocation, interfaces, [verification and traceability](https://pwilliammat.github.io/flightTest/system/05_VerificationAndTraceability.html), [truth separation for cued collections](https://pwilliammat.github.io/flightTest/system/06_TruthSeparation.html), the as-built configuration, and the first subsystem design record ([ADS-B cue tasking](https://pwilliammat.github.io/flightTest/system/SDR_CT_CueTasking_V1.html)). The masters stay in `docs/system/`.
 - [Diagnostic reports](diagnostics/README.md): hardware and calibration troubleshooting evidence outside the accepted family, including the [Pluto calibration signal presence diagnostic](https://pwilliammat.github.io/flightTest/diagnostics/PlutoCombPresence_Diagnostic_V1.html) and the [tracking-scan no-detection diagnostic](https://pwilliammat.github.io/flightTest/diagnostics/TrackingScan_NoDetection_Diagnostic_V1.html).
 - [How to update accepted reports](howToUpdateReports.md) — maintainer guidance for candidate review, acceptance, validation, and GitHub Pages publication.
 
@@ -41,7 +42,7 @@ Read the accepted family in order. Each report owns one question, result, decisi
 | Folder | Contents |
 | --- | --- |
 | `reports/` | All nine accepted members of the canonical technical report family. |
-| `systems/` | System-engineering reports (architecture, interfaces, their verification); not part of the accepted family. |
+| `system/` | System engineering section: design-process pages and subsystem design records; separate from the accepted family. Masters in `docs/system/`. |
 | `diagnostics/` | Diagnostic reports from hardware and calibration troubleshooting; not part of the accepted family. |
 | `explainers/` | The accepted end-to-end human story. |
 | `audits/` | Accepted report-family, explainer, and story audits. |

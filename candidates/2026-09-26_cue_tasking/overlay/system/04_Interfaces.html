@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interface control summary for the passive radar testbed.">
+<title>Interfaces</title>
+<style>
+:root{--ink:#172033;--muted:#526176;--line:#cbd5e1;--panel:#f8fafc;--blue:#0f4c81;--blue2:#eaf3fb;--green:#166534;--green2:#ecfdf3;--amber:#9a5b00;--amber2:#fff7e6;--red:#a61b1b;--red2:#fff1f1;--purple:#6d28d9;--purple2:#f5f3ff}
+*{box-sizing:border-box}body{max-width:1240px;margin:2rem auto;padding:0 1rem 3rem;color:var(--ink);background:#fff;font:16px/1.52 "Segoe UI",Arial,sans-serif}h1,h2,h3{line-height:1.22;color:#102a43}h1{font-size:2.15rem;margin:.2rem 0 .25rem}h2{margin-top:2.8rem;padding-top:.35rem;border-top:2px solid #e2e8f0;font-size:1.55rem}h3{margin-top:1.5rem;font-size:1.15rem}p{max-width:1080px}a{color:#075caa;text-decoration-thickness:1px;text-underline-offset:2px}a:hover{color:#003f73}code{font:.92em Consolas,"Courier New",monospace;background:#f1f5f9;padding:.08rem .25rem;border-radius:3px}.subtitle,.small{color:var(--muted)}.subtitle{font-size:1.05rem;margin:.15rem 0 .7rem}.small{font-size:.92rem}.kicker{margin:0;color:var(--blue);font-size:.82rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.eli5{padding:.85rem 1rem;border-left:5px solid var(--blue);background:var(--blue2);font-size:1.03rem}.technical{padding-left:1rem;border-left:2px solid #cbd5e1}.callout{border:1px solid var(--line);border-left:5px solid var(--blue);padding:.85rem 1rem;margin:1rem 0;background:var(--blue2)}.callout.warn{border-left-color:var(--amber);background:var(--amber2)}.callout.stop{border-left-color:var(--red);background:var(--red2)}.source{font-size:.92rem;color:var(--muted);margin-top:.65rem}.source a{font-weight:600}.tag{display:inline-block;border-radius:99px;padding:.16rem .55rem;font-size:.83rem;font-weight:700;white-space:nowrap}.t-verified{color:#166534;background:#ecfdf3}.t-partial,.t-proposed{color:#9a5b00;background:#fff7e6}.t-notmet{color:#a61b1b;background:#fff1f1}.t-notstarted{color:#475569;background:#f1f5f9}.t-info{color:#075caa;background:#eaf3fb}.figure{margin:1.25rem 0 1.6rem;padding:1rem;border:1px solid var(--line);background:#fff}.figure svg{display:block;width:100%;height:auto}.figure figcaption{margin:.7rem .2rem 0;color:var(--muted);font-size:.94rem}.table-wrap{overflow-x:auto;margin:1rem 0 1.4rem}.decision-table{width:100%;min-width:900px;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border:1px solid var(--line);padding:.6rem;vertical-align:top;text-align:left;overflow-wrap:anywhere}.decision-table th{background:#edf3f8;color:#102a43}.decision-table tbody tr:nth-child(even){background:#fbfdff}.decision-table.compact td,.decision-table.compact th{font-size:.9rem;padding:.45rem .55rem}.decision-table .tag{white-space:normal}.decision-table.wide{min-width:1120px}.plain-list li{margin:.45rem 0}.metric{font-variant-numeric:tabular-nums;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem;margin:1rem 0 1.3rem}.card{border:1px solid var(--line);border-top:4px solid var(--blue);padding:.8rem 1rem;background:var(--panel)}.card h3{margin:.1rem 0 .4rem;font-size:1.02rem}.card p{margin:.3rem 0 0;font-size:.92rem}.step-no{font:700 .8rem Consolas,"Courier New",monospace;color:var(--blue)}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.draft-banner{margin:1rem 0;padding:.8rem 1rem;border:2px dashed var(--amber);background:var(--amber2);font-weight:600}.req-tree ul{list-style:none;margin:.2rem 0 .2rem 1.1rem;padding-left:.8rem;border-left:2px solid #e2e8f0}.req-tree>ul{margin-left:0;border-left:0;padding-left:0}.req-tree li{margin:.28rem 0}.evidence-id{display:inline-block;font:700 .82rem Consolas,"Courier New",monospace;color:#075caa;background:var(--blue2);border:1px solid #c7ddec;border-radius:4px;padding:.08rem .33rem;white-space:nowrap}.rid{display:inline-block;min-width:6.2rem;font:700 .85rem Consolas,"Courier New",monospace;color:#075caa}dl dt{font-weight:700;margin-top:1rem}dl dd{margin:.25rem 0 0 1rem}footer{margin-top:3rem;padding-top:1rem;border-top:2px solid #e2e8f0;color:var(--muted);font-size:.9rem}@media(max-width:760px){body{margin:1rem auto}.two-col{grid-template-columns:1fr}h1{font-size:1.7rem}.decision-table{min-width:760px}.figure{padding:.55rem}}
+</style>
+</head>
+<body>
+<style>.sys-nav{margin:0 0 1.2rem;padding:.6rem .8rem;border:1px solid var(--line,#cbd5e1);border-top:4px solid #0f4c81;background:#f8fafc;font:14px/1.45 "Segoe UI",Arial,sans-serif}.sys-nav strong{color:#102a43;margin-right:.6rem}.sys-nav a{display:inline-block;margin:.1rem .7rem .1rem 0;color:#075caa;white-space:nowrap}.sys-nav a[aria-current=page]{color:#102a43;font-weight:700;text-decoration:none;border-bottom:2px solid #0f4c81}.sys-nav .sys-nav-home{float:right;margin-right:0}@media(max-width:760px){.sys-nav .sys-nav-home{float:none}}</style><nav class="sys-nav" aria-label="System engineering section"><a class="sys-nav-home" href="../index.html">Reporting home</a><strong>System engineering</strong><a href="index.html">Process and status</a><a href="01_MissionAndNeeds.html">1 · Mission and needs</a><a href="02_Requirements.html">2 · Requirements</a><a href="03_ArchitectureAndAllocation.html">3 · Architecture and allocation</a><a href="04_Interfaces.html" aria-current="page">4 · Interfaces</a><a href="05_VerificationAndTraceability.html">5 · Verification and traceability</a><a href="06_TruthSeparation.html">6 · Truth separation</a><a href="07_AsBuiltAndConfiguration.html">7 · As-built and configuration</a><a href="SDR_CT_CueTasking_V1.html">Subsystem record: CT</a></nav>
+<header>
+<p class="kicker">System engineering · step 4</p>
+<h1>Interfaces</h1>
+<p class="subtitle">The message contract between items: conventions, transport, and the status of every message</p>
+<p class="small">Status snapshot: 26 September 2026. The masters of everything summarised here are in flightTest <a href="https://github.com/pwilliamMAT/flightTest/tree/main/docs/system"><code>docs/system/</code></a>; where a page and a master disagree, the master wins.</p>
+</header>
+
+<section id="purpose">
+<h2>Purpose</h2>
+<p class="eli5"><strong>Bottom line (ELI5):</strong> The items talk to each other only through written message contracts. One family of messages, the cue stream, is live and checked. Every other message is still a proposal on paper.</p>
+<div class="callout stop"><strong>Claim boundary:</strong> an interface status is about the message contract: whether a schema exists, whether the producer emits it, whether it was validated live. It says nothing about the quality of what the message carries; for example, a Verified cue still carries modeled, pre-integration SNR predictions.</div>
+</section>
+<section id="ladder">
+<h2>Development status ladder (ICD §0)</h2>
+<div class="table-wrap"><table class="decision-table" style="min-width:700px"><thead><tr><th style="width:15%">Status</th><th style="width:35%">Meaning</th><th>Exit criterion to the next status</th></tr></thead><tbody>
+<tr><td>Proposed</td><td>Exists only in the ICD.</td><td>A schema file is committed.</td></tr>
+<tr><td>Draft</td><td>A schema exists; no producer code yet.</td><td>The producer emits it and a unit test validates it.</td></tr>
+<tr><td>Implemented</td><td>The producer emits it; a unit test validates it.</td><td>Seen live on the wire and validated with zero errors by a capture tool.</td></tr>
+<tr><td>Verified</td><td>Validated live on the wire.</td><td>Reviewed, with every open item for the message closed.</td></tr>
+<tr><td>Frozen</td><td>Version locked.</td><td>—</td></tr>
+</tbody></table></div>
+</section>
+<section id="register">
+<h2>Message register</h2>
+<div class="table-wrap"><table class="decision-table" style="min-width:700px"><thead><tr><th style="width:38%">Message</th><th style="width:25%">Producer → consumers</th><th>ICD Draft B status</th></tr></thead><tbody><tr><td><code>cue_heartbeat</code></td><td>CT → RM, AM</td><td><span class="tag t-verified">Verified at 2.0.0</span></td></tr><tr><td><code>cue_snapshot_begin / cue_snapshot_end</code></td><td>CT → RM</td><td><span class="tag t-verified">Verified at 2.0.0</span></td></tr><tr><td><code>track_cue</code></td><td>CT → RM, TR, RD</td><td><span class="tag t-verified">Verified at 2.0.0</span></td></tr><tr><td><code>track_cue_withdrawal</code></td><td>CT → RM, TR, RD</td><td><span class="tag t-partial">Implemented (not seen live)</span></td></tr><tr><td><code>CT configuration file (not a message)</code></td><td>file → CT</td><td><span class="tag t-partial">Implemented</span></td></tr><tr><td><code>CT compression dictionary 1 (not a message)</code></td><td>file → CT and consumers</td><td><span class="tag t-verified">Released; in use and Verified live</span></td></tr><tr><td><code>collection_task</code></td><td>RM → RC</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>antenna_command</code></td><td>RM → AC</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>antenna_state</code></td><td>AC → RC, RM, RD</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>rotator_command / rotator_packet</code></td><td>AC ↔ antenna nodes</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>capture_record</code></td><td>RC → SP, CM</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>calibration_request</code></td><td>CM → RM</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>calibration_result</code></td><td>CM → SP, AM, RD</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>detection_list</code></td><td>SP → TR, RD</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>track_report</code></td><td>TR → RM, RD</td><td><span class="tag t-proposed">Proposed</span></td></tr><tr><td><code>health_status</code></td><td>all MATLAB items → AM</td><td><span class="tag t-proposed">Proposed</span></td></tr></tbody></table></div>
+<p class="small">The proposed <code>truth_track</code> message was dropped: the Tracker and Report &amp; Display consume <code>track_cue</code> directly. That is why truth separation (<a href="06_TruthSeparation.html">page 6</a>) matters for the Tracker.</p>
+</section>
+<section id="conventions">
+<h2>Conventions every message follows</h2>
+<ul class="plain-list">
+<li><strong>Envelope:</strong> <code>schema_version</code>, <code>message_type</code>, <code>message_id</code>, <code>source</code>, <code>source_instance_id</code>, <code>sequence_number</code>, <code>generated_utc_ms</code>, flat rather than nested.</li>
+<li><strong>Encoding:</strong> UTF-8 JSON; snake_case names with units in the name; times as integer epoch milliseconds; values rounded to a stated resolution per unit.</li>
+<li><strong>Fixed shapes for MATLAB:</strong> every property present in every message of a run, no field that is sometimes null and sometimes an object, identical keys across array elements, so <code>jsondecode</code> returns the same structs every time (SR-14).</li>
+<li><strong>Versioning:</strong> <code>additionalProperties: false</code>; semantic versions per schema; breaking changes need a major version and a CR.</li>
+</ul>
+</section>
+<section id="transport">
+<h2>Transport and ports</h2>
+<div class="table-wrap"><table class="decision-table" style="min-width:700px"><thead><tr><th style="width:18%">Port</th><th style="width:22%">Protocol</th><th style="width:20%">Listener</th><th>Receives</th></tr></thead><tbody>
+<tr><td>31985</td><td>UDP</td><td>AM</td><td><code>health_status</code></td></tr>
+<tr><td>31986</td><td>UDP multicast <code>239.192.10.1</code>, TTL 1</td><td>RM, TR, RD, AM</td><td>The CT cue stream (all CT messages). In use.</td></tr>
+<tr><td>31986</td><td>TCP</td><td>RM</td><td><code>track_report</code>, <code>calibration_request</code></td></tr>
+<tr><td>31987</td><td>TCP</td><td>RC</td><td><code>collection_task</code></td></tr>
+<tr><td>31988</td><td>TCP</td><td>AC</td><td><code>antenna_command</code></td></tr>
+<tr><td>31989</td><td>UDP broadcast</td><td>RC, RM, RD</td><td><code>antenna_state</code></td></tr>
+<tr><td>31990–31993</td><td>TCP</td><td>SP, TR, RD, CM</td><td>Captures, detections, tracks, calibration results</td></tr>
+</tbody></table></div>
+<p><strong>Cue-stream framing (since 2.0.0):</strong> one message per datagram, either plain JSON (first byte <code>{</code>) or compressed (first byte <code>0xDC</code>, then a dictionary id, then raw deflate with that preset dictionary). The sender chooses once at startup; receivers detect it per datagram. Every datagram fits one Ethernet frame (1472 B). Design, evidence and the decision history are in the <a href="SDR_CT_CueTasking_V1.html">CT subsystem record</a>.</p>
+<p class="source">Master: <a href="https://github.com/pwilliamMAT/flightTest/blob/main/docs/system/ICD_Messages.md">docs/system/ICD_Messages.md</a> (Draft B, 2026-09-26). Schemas and dictionaries: <a href="https://github.com/lhilleMAT2022/ADSB-remoter/tree/feature/passive-radar-cueing/schemas">ADSB-remoter <code>schemas/</code></a>.</p>
+</section>
+
+<footer>
+<p>System Engineering section of the FlightTest reporting site. It is separate from the exploration report family and follows the same evidence rules: every claim states its evidence and claim boundary. Requirement and interface status words (Verified, Partial, Proposed) are defined on the <a href="02_Requirements.html">requirements page</a> and in the ICD; none of them is a radar-performance result.</p>
+</footer>
+</body>
+</html>

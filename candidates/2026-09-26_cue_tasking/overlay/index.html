@@ -222,12 +222,27 @@
 
     <section>
       <h2>System engineering</h2>
-      <p>How the testbed is organised as a system and what has been verified about its interfaces. Not a member of the accepted report family; the report states its own question, result, decision, and claim boundary.</p>
+      <p>The testbed as a formal system design: mission goals, a draft requirements baseline, architecture and allocation, interfaces, verification and traceability, truth separation, and the as-built configuration. This section is separate from the exploration family above, which asks “can we do it, and what does it look like”. Every page states its purpose and claim boundary; its status words are requirement- and interface-level, not radar results.</p>
       <div class="report-grid">
-        <a class="report-card" href="systems/SystemArchitectureAndCueTasking_V1.html" target="_blank" rel="noopener noreferrer">
+        <a class="report-card" href="system/index.html" target="_blank" rel="noopener noreferrer">
           <p class="report-id">System</p>
-          <h3>System Architecture and ADS-B Cue Tasking</h3>
-          <p>The ten-item system design and message contract, and the live verification of the ADS-B cue stream from the Pi to the collection desktop: a message-interface result, not a detection.</p>
+          <h3>Design Process and Status</h3>
+          <p>Start here: the seven design-process steps and the subsystem records, the decisions of 26 September 2026, the action register, and requirements status at a glance.</p>
+        </a>
+        <a class="report-card" href="system/02_Requirements.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">System · 2</p>
+          <h3>Requirements (Draft)</h3>
+          <p>Two mission goals traced to 15 system and 28 derived requirements, each with allocation, verification method and status. A draft for owner review.</p>
+        </a>
+        <a class="report-card" href="system/05_VerificationAndTraceability.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">System · 5</p>
+          <h3>Verification and Traceability</h3>
+          <p>How each requirement is checked, what has passed so far (the cue message interface), and where the evidence is.</p>
+        </a>
+        <a class="report-card" href="system/SDR_CT_CueTasking_V1.html" target="_blank" rel="noopener noreferrer">
+          <p class="report-id">Subsystem record</p>
+          <h3>ADS-B Cue Tasking (CT)</h3>
+          <p>The cue tasker on the ADS-B Pi and its live-verified cue stream to the collection side: a message-interface result, not a detection.</p>
         </a>
       </div>
     </section>

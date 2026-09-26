@@ -1,19 +1,29 @@
 Candidate files that promotion would publish under reporting/:
-  index.html  (10,286 B)
-  metadata/family_code_navigation.csv  (11,143 B)
-  metadata/family_evidence_catalog.csv  (10,505 B)
+  index.html  (11,569 B)
+  metadata/family_code_navigation.csv  (11,106 B)
+  metadata/family_evidence_catalog.csv  (10,562 B)
   metadata/family_handoff_catalog.csv  (6,402 B)
-  metadata/family_known_gaps.md  (1,974 B)
-  metadata/family_manifest.json  (31,980 B)
-  metadata/family_visual_catalog.csv  (9,340 B)
-  reporting_README.md  (7,042 B)
-  reports/02_HardwareAndCollection_V5.html  (2,194,568 B)
-  reports/06_StatusAndFutureWork_V3.html  (78,395 B)
-  systems/README.md  (1,314 B)
-  systems/SystemArchitectureAndCueTasking_V1.html  (68,665 B)
-  systems/SystemArchitectureAndCueTasking_assets/fig_capture_timeline.svg  (35,116 B)
-  systems/SystemArchitectureAndCueTasking_assets/fig_cue_size_vs_opportunities.svg  (24,059 B)
-  systems/SystemArchitectureAndCueTasking_assets/fig_message_size.svg  (10,079 B)
+  metadata/family_known_gaps.md  (2,380 B)
+  metadata/family_manifest.json  (32,305 B)
+  metadata/family_visual_catalog.csv  (9,251 B)
+  reporting_README.md  (7,600 B)
+  reports/02_HardwareAndCollection_V5.html  (2,195,463 B)
+  reports/06_StatusAndFutureWork_V3.html  (80,742 B)
+  scripts/buildTechnicalSummaryFamily.m  (92,809 B)
+  scripts/verifyTechnicalSummaryFamily.m  (31,222 B)
+  system/01_MissionAndNeeds.html  (12,788 B)
+  system/02_Requirements.html  (43,155 B)
+  system/03_ArchitectureAndAllocation.html  (22,557 B)
+  system/04_Interfaces.html  (13,739 B)
+  system/05_VerificationAndTraceability.html  (26,460 B)
+  system/06_TruthSeparation.html  (12,712 B)
+  system/07_AsBuiltAndConfiguration.html  (14,634 B)
+  system/README.md  (2,060 B)
+  system/SDR_CT_CueTasking_V1.html  (62,163 B)
+  system/SDR_CT_CueTasking_assets/fig_capture_timeline.svg  (35,116 B)
+  system/SDR_CT_CueTasking_assets/fig_cue_size_vs_opportunities.svg  (24,059 B)
+  system/SDR_CT_CueTasking_assets/fig_message_size.svg  (10,079 B)
+  system/index.html  (16,137 B)
 
 [1] Well-formedness
   PASS index.html
@@ -24,10 +34,18 @@ Candidate files that promotion would publish under reporting/:
   PASS metadata/family_visual_catalog.csv (CSV, columns [18])
   PASS reports/02_HardwareAndCollection_V5.html
   PASS reports/06_StatusAndFutureWork_V3.html
-  PASS systems/SystemArchitectureAndCueTasking_V1.html
-  PASS systems/SystemArchitectureAndCueTasking_assets/fig_capture_timeline.svg (XML)
-  PASS systems/SystemArchitectureAndCueTasking_assets/fig_cue_size_vs_opportunities.svg (XML)
-  PASS systems/SystemArchitectureAndCueTasking_assets/fig_message_size.svg (XML)
+  PASS system/01_MissionAndNeeds.html
+  PASS system/02_Requirements.html
+  PASS system/03_ArchitectureAndAllocation.html
+  PASS system/04_Interfaces.html
+  PASS system/05_VerificationAndTraceability.html
+  PASS system/06_TruthSeparation.html
+  PASS system/07_AsBuiltAndConfiguration.html
+  PASS system/SDR_CT_CueTasking_V1.html
+  PASS system/SDR_CT_CueTasking_assets/fig_capture_timeline.svg (XML)
+  PASS system/SDR_CT_CueTasking_assets/fig_cue_size_vs_opportunities.svg (XML)
+  PASS system/SDR_CT_CueTasking_assets/fig_message_size.svg (XML)
+  PASS system/index.html
 
 [2] Relative links and local assets (http/https/file links are not network-checked)
   preview 'baseline': 15 HTML pages, 62 broken relative links
@@ -40,7 +58,7 @@ Candidate files that promotion would publish under reporting/:
     reports/04_MitigationAndMapRateRecovery_V2.html: ['02_HardwareAndCollection_V3.html', '04_MitigationAndMapRateRecovery.md', '04_MitigationAndMapRateRecovery_figure_inventory.csv', '04_MitigationAndMapRateRecovery_outline.yaml', '04_MitigationAndMapRateRecovery_source_inventory.csv']
     reports/06_StatusAndFutureWork_V2.html: ['02_HardwareAndCollection_V3.html', '06_StatusAndFutureWork_source_inventory.csv']
     storyboards/manager_slide_storyboard_review.html: ['01_NorthStarAndMotivation_V2.html', '02_HardwareAndCollection_V4.html', '03_AnalysisPipelineAndGateRebuild.html', '04_MitigationAndMapRateRecovery_V2.html', '05_StrongestEvidence_G4RRecoveryStudy.html', '06_StatusAndFutureWork_V2.html', 'cross_report_evidence_catalog.csv', 'report_family_index.html']
-  preview 'retain': 18 HTML pages, 62 broken relative links
+  preview 'retain': 26 HTML pages, 62 broken relative links
     explainers/FlightTest_EndToEnd_HumanStory_V2.html: ['TechnicalSummaryFamily/assets/01A_IlluminatorSelection_assets/hudson_snr_coverage.png', 'TechnicalSummaryFamily/assets/01B_ReceiveChainDesign_assets/rf_budget_analyzer_system_model.png', 'TechnicalSummaryFamily/assets/02A_SyntheticEchoGeneration_assets/delay_doppler_placement.png', 'TechnicalSummaryFamily/assets/HardwarePhotos/new_Image%20(4).jpg', 'TechnicalSummaryFamily/reports/01A_IlluminatorSelection_V4.html', 'TechnicalSummaryFamily/reports/01B_ReceiveChainDesign_V2.html', 'TechnicalSummaryFamily/reports/01_NorthStarAndMotivation_V2.html', 'TechnicalSummaryFamily/reports/02A_SyntheticEchoGeneration_V1.html', 'TechnicalSummaryFamily/reports/02_HardwareAndCollection_V4.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html#gates', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html#recovery-timeline', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html#outcomes', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html#dependency-figure']
     reports/01A_IlluminatorSelection_V4.html: ['../LinkBudget/AppleHill_CustomizeBuildingsForRayTracingAnalysisExample.mlx', '../LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx', '../LinkBudget/LinkBudgetProgress.pptx', '../LinkBudget/Radio_Tower_List.txt', '../LinkBudget/applehill.osm', '../LinkBudget/helperPathlossOverTerrain.m', '../LinkBudget/helperRadarCoverageTargetGrid.m', '../Radio_Stations/Radio_Stations/data_from_web/BostonStationList.html', '../Radio_Stations/Radio_Stations/data_from_web/scraper.ipynb', '01A_IlluminatorSelection_V4_audit.md', '01A_IlluminatorSelection_V4_figure_inventory.csv', '01A_IlluminatorSelection_V4_source_inventory.csv']
     reports/01B_ReceiveChainDesign_V2.html: ['../LinkBudget/LinkBudgetProgress.pptx', '../MountingDiagramParkingLot.pptx', '../RFBudget/FlightTest_RFBudgetAnalysis.pptx', '../RFBudget/RFBudget_Ch27_Corrected%201.m', '../RFBudget/RFBudget_Comparative_Analysis.m', '../RFBudget/RFBudget_Newton.m', '../RFBudget/ZABP-587-S%2B_Plus25degC.s2p']
@@ -50,7 +68,7 @@ Candidate files that promotion would publish under reporting/:
     reports/04_MitigationAndMapRateRecovery_V2.html: ['02_HardwareAndCollection_V3.html', '04_MitigationAndMapRateRecovery.md', '04_MitigationAndMapRateRecovery_figure_inventory.csv', '04_MitigationAndMapRateRecovery_outline.yaml', '04_MitigationAndMapRateRecovery_source_inventory.csv']
     reports/06_StatusAndFutureWork_V2.html: ['02_HardwareAndCollection_V3.html', '06_StatusAndFutureWork_source_inventory.csv']
     storyboards/manager_slide_storyboard_review.html: ['01_NorthStarAndMotivation_V2.html', '02_HardwareAndCollection_V4.html', '03_AnalysisPipelineAndGateRebuild.html', '04_MitigationAndMapRateRecovery_V2.html', '05_StrongestEvidence_G4RRecoveryStudy.html', '06_StatusAndFutureWork_V2.html', 'cross_report_evidence_catalog.csv', 'report_family_index.html']
-  preview 'replace': 16 HTML pages, 65 broken relative links
+  preview 'replace': 24 HTML pages, 65 broken relative links
     audits/report_family_story_spine.html: ['../reports/02_HardwareAndCollection_V4.html', '../reports/06_StatusAndFutureWork_V2.html']
     explainers/FlightTest_EndToEnd_HumanStory_V2.html: ['TechnicalSummaryFamily/assets/01A_IlluminatorSelection_assets/hudson_snr_coverage.png', 'TechnicalSummaryFamily/assets/01B_ReceiveChainDesign_assets/rf_budget_analyzer_system_model.png', 'TechnicalSummaryFamily/assets/02A_SyntheticEchoGeneration_assets/delay_doppler_placement.png', 'TechnicalSummaryFamily/assets/HardwarePhotos/new_Image%20(4).jpg', 'TechnicalSummaryFamily/reports/01A_IlluminatorSelection_V4.html', 'TechnicalSummaryFamily/reports/01B_ReceiveChainDesign_V2.html', 'TechnicalSummaryFamily/reports/01_NorthStarAndMotivation_V2.html', 'TechnicalSummaryFamily/reports/02A_SyntheticEchoGeneration_V1.html', 'TechnicalSummaryFamily/reports/02_HardwareAndCollection_V4.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html', 'TechnicalSummaryFamily/reports/03_AnalysisPipelineAndGateRebuild.html#gates', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html', 'TechnicalSummaryFamily/reports/04_MitigationAndMapRateRecovery_V2.html#recovery-timeline', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html', 'TechnicalSummaryFamily/reports/05_StrongestEvidence_G4RRecoveryStudy.html#outcomes', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html', 'TechnicalSummaryFamily/reports/06_StatusAndFutureWork_V2.html#dependency-figure']
     reports/01A_IlluminatorSelection_V4.html: ['../LinkBudget/AppleHill_CustomizeBuildingsForRayTracingAnalysisExample.mlx', '../LinkBudget/FlightTest_Bistatic_RadarAndCommsAnalysis.mlx', '../LinkBudget/LinkBudgetProgress.pptx', '../LinkBudget/Radio_Tower_List.txt', '../LinkBudget/applehill.osm', '../LinkBudget/helperPathlossOverTerrain.m', '../LinkBudget/helperRadarCoverageTargetGrid.m', '../Radio_Stations/Radio_Stations/data_from_web/BostonStationList.html', '../Radio_Stations/Radio_Stations/data_from_web/scraper.ipynb', '01A_IlluminatorSelection_V4_audit.md', '01A_IlluminatorSelection_V4_figure_inventory.csv', '01A_IlluminatorSelection_V4_source_inventory.csv', '02_HardwareAndCollection_V4.html', '06_StatusAndFutureWork_V2.html']
@@ -76,7 +94,10 @@ Candidate files that promotion would publish under reporting/:
 [3] Index, manifest, canonical order
   PASS index links reports/02_HardwareAndCollection_V5.html
   PASS index links reports/06_StatusAndFutureWork_V3.html
-  PASS index links systems/SystemArchitectureAndCueTasking_V1.html
+  PASS index links system/index.html
+  PASS index links system/02_Requirements.html
+  PASS index links system/05_VerificationAndTraceability.html
+  PASS index links system/SDR_CT_CueTasking_V1.html
   PASS index no longer links reports/02_HardwareAndCollection_V4.html
   PASS index no longer links reports/06_StatusAndFutureWork_V2.html
   index family order: ['01', '01A', '01B', '02', '02A', '03', '04', '05', '06']
@@ -85,12 +106,16 @@ Candidate files that promotion would publish under reporting/:
   reports/ HTML in 'replace' mode: 9; equals intended family: True
 
 [4] Accepted files unchanged by the overlay (byte-identical in the preview)
-  accepted files replaced by candidates: ['index.html', 'metadata/family_code_navigation.csv', 'metadata/family_evidence_catalog.csv', 'metadata/family_handoff_catalog.csv', 'metadata/family_known_gaps.md', 'metadata/family_manifest.json', 'metadata/family_visual_catalog.csv', 'reporting_README.md']
+  accepted files replaced by candidates: ['index.html', 'metadata/family_code_navigation.csv', 'metadata/family_evidence_catalog.csv', 'metadata/family_handoff_catalog.csv', 'metadata/family_known_gaps.md', 'metadata/family_manifest.json', 'metadata/family_visual_catalog.csv', 'reporting_README.md', 'scripts/buildTechnicalSummaryFamily.m', 'scripts/verifyTechnicalSummaryFamily.m']
 
 [5] Restricted and draft material in files promotion would publish
-  FLAG reports/06_StatusAndFutureWork_V3.html: draft marker: ['Draft']
-  FLAG systems/README.md: draft marker: ['Draft']
-  FLAG systems/SystemArchitectureAndCueTasking_V1.html: draft marker: ['Draft']
   (any FLAG above is reviewed in UPDATE_MEMO.md; 239.192.10.1 is the organization-local multicast group and is not flagged)
+  Intentionally labelled DRAFT content (the requirements baseline and pages that cite it): ['system/01_MissionAndNeeds.html', 'system/02_Requirements.html', 'system/07_AsBuiltAndConfiguration.html', 'system/README.md', 'system/index.html']
+
+[6] Confidential wording on the whole branch (files added or lines added relative to origin/main)
+  PASS: 0 confidential-wording hits (3 terms from the external list)
+
+[7] Relative links in the proposed docs/system documents
+  PASS: 0 unresolved
 
 RESULT: PASS

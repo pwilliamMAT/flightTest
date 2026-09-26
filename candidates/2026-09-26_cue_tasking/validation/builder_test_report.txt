@@ -1,0 +1,20 @@
+TechnicalSummaryFamily builder/verifier test, 2026-09-26 (MATLAB R2026a Update 5, Ubuntu; scratch workspace, never ManagerReport)
+
+Inputs: the nine family reports (accepted 01-05 plus candidate 02 V5 and 06 V3), their asset folders, and ../HardwarePhotos, copied into a scratch reportRoot; candidate buildTechnicalSummaryFamily.m and verifyTechnicalSummaryFamily.m. Control: the same layout with the accepted 02 V4 / 06 V2 and the unmodified scripts.
+
+Result: both builds stop at TechnicalSummaryFamily:ValidationFailed, because every failed check is 'Dependency resolution' of links that only exist on the originating Windows workstation:
+  control (unmodified):   319 failed checks = 273 local-workstation file:/// links + 46 companion files kept only in ManagerReport
+  candidate:              306 failed checks = 273 local-workstation file:/// links + 33 companion files kept only in ManagerReport
+  candidate failures are a strict subset of the control's; no other check failed (release interface, manifest, hashes, report identity, continuity, navigation, index links, content gates all passed).
+  candidate link audit: 195 canonical report links resolved (accepted reports' links to 02 V4 / 06 V2 rewritten to V5 / V3), 41 external web links resolved, 33 bundled assets resolved, 0 obsolete links.
+
+Metadata written by the candidate builder vs the candidate overlay/metadata (check_builder_metadata.py):
+OK  family_evidence_catalog.csv: 9 rows compared; 18 machine-derived cells differ (expected)
+OK  family_code_navigation.csv: 19 rows compared; 25 machine-derived cells differ (expected)
+OK  family_visual_catalog.csv: 23 rows compared; 1 machine-derived cells differ (expected)
+OK  family_handoff_catalog.csv: 8 rows compared; 0 machine-derived cells differ (expected)
+OK   family_known_gaps.md identical (ignoring final newline)
+OK   family_manifest.json: known_gaps, canonical order, report fields and source hashes
+RESULT: PASS
+
+A full promoted release was not produced: promotion only happens after validation passes, which needs the workstation files.

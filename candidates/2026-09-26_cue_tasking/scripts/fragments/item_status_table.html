@@ -1,0 +1,14 @@
+<div class="table-wrap">
+<table class="decision-table">
+<thead><tr><th style="width:9%">ID</th><th style="width:18%">Item</th><th style="width:37%">Role in the design</th><th>As-built, 2026-09-26</th></tr></thead>
+<tbody>
+<tr><td>AR</td><td>ADS-B Receiver</td><td>dump1090 decodes 1090 MHz ADS-B and serves SBS reports.</td><td>Operating on the Pi.</td></tr>
+<tr><td>CT</td><td>ADS-B Cue Tasker</td><td>Tracks aircraft from SBS, predicts bistatic geometry and SNR per DTV emitter, publishes cues.</td><td>Operating as <code>adsb-cue</code> on the Pi, CT 2.0.0 compressed. <span class="evidence-id">SYS-002</span></td></tr>
+<tr><td>RM</td><td>Resource Manager</td><td>Plans collections in a 1-minute and a 5-minute loop; resolves cue, track and calibration tasks for one N320 and two rotator-mounted antennas.</td><td>First piece (<code>CueListener</code>): receives and ranks cues; no scheduling. <span class="evidence-id">SYS-005</span></td></tr>
+<tr><td>RC</td><td>RF Collector</td><td>Executes collection tasks on the N320 and writes captures with metadata.</td><td>Rev 1 capture scripts, not driven by tasks; see <a href="../reports/02_HardwareAndCollection_V5.html">Report 02</a>.</td></tr>
+<tr><td>SP</td><td>Signal Processor</td><td>Direct-path and clutter cancellation, range-Doppler map, CFAR detection.</td><td>Offline pipeline; detector not yet producing truth-matched detections. <span class="evidence-id">SYS-011</span></td></tr>
+<tr><td>CM</td><td>Calibration Manager</td><td>Pluto-injection health checks and DTV level checks; requests calibration slots from RM.</td><td>Scripts in development on feature branches; not on <code>main</code>.</td></tr>
+<tr><td>TR, RD, AM, AC</td><td>Tracker; Report &amp; Display; Activity Manager; Antenna Controller</td><td>Bistatic range-Doppler tracking; display and scoring; launch and health; rotator pointing.</td><td>Planned or proposed; not built.</td></tr>
+</tbody>
+</table>
+</div>

@@ -9,7 +9,9 @@ accepted reporting/ is never written) and checks, per howToUpdateReports.md step
   * the index links the new filenames; the manifest's canonical order and filenames exist;
   * the reports/ folder holds the intended family versions;
   * metadata JSON parses and CSV rows have a constant column count;
-  * no restricted or draft material in the files that promotion would publish.
+  * no restricted or draft material in the files that promotion would publish;
+  * no confidential wording anywhere on the branch (terms supplied from a file outside the repository);
+  * relative links in the proposed docs/system changes resolve.
 
 Two previews are checked: "retain" (superseded 02 V4 and 06 V2 stay in reports/ unchanged) and
 "replace" (they are removed). The baseline (accepted reporting/ as it is today) is also checked so
@@ -46,13 +48,37 @@ FAMILY = [
 ]
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr",
         "path", "rect", "line", "circle", "stop", "use", "polyline", "polygon", "ellipse"}
+# Confidential-wording scan: the owner's list of terms is NOT stored in the repository. Pass a file
+# (one regular expression per line, "label<TAB>regex") outside the repo with --confidential-terms or
+# the CONFIDENTIAL_TERMS_FILE environment variable. Allowed phrases (accepted wording copied unchanged)
+# are listed one per line after a line "ALLOW".
+def load_confidential(path_text: str | None) -> tuple[list[tuple[str, str]], list[str]]:
+    import os
+    path_text = path_text or os.environ.get("CONFIDENTIAL_TERMS_FILE")
+    if not path_text:
+        return [], []
+    terms, allowed, allow_mode = [], [], False
+    for line in Path(path_text).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        if line.strip() == "ALLOW":
+            allow_mode = True
+            continue
+        if allow_mode:
+            allowed.append(line.strip())
+        else:
+            label, _, regex = line.partition("\t")
+            terms.append((regex, label))
+    return terms, allowed
+
+
 RESTRICTED = [
     (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "private key"),
     (r"(?i)\b(password|passwd|secret|api[_-]?key|access[_-]?token)\b\s*[:=]", "credential assignment"),
     (r"id_ed25519|id_rsa", "SSH key file name"),
     (r"\b(?:10|127)\.\d{1,3}\.\d{1,3}\.\d{1,3}\b|\b192\.168\.\d{1,3}\.\d{1,3}\b|\b172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}\b", "private IP address"),
     (r"\bpi2@|\bsudo\b|12ac4a1e71f93ac3", "host login, sudo, or ZeroTier network id"),
-    (r"(?i)\bTODO\b|\bFIXME\b|\bDRAFT\b|lorem ipsum", "draft marker"),
+    (r"(?i)\bTODO\b|\bFIXME\b|\bTBC\b|lorem ipsum", "unfinished-work marker"),
     (r"candidates/2026-09-26|reporting/candidates-cue-tasking", "candidate-branch path"),
 ]
 
@@ -217,7 +243,8 @@ def main() -> None:
         out("\n[3] Index, manifest, canonical order")
         index = (root / "index.html").read_text(encoding="utf-8")
         for name in ("reports/02_HardwareAndCollection_V5.html", "reports/06_StatusAndFutureWork_V3.html",
-                     "systems/SystemArchitectureAndCueTasking_V1.html"):
+                     "system/index.html", "system/02_Requirements.html", "system/05_VerificationAndTraceability.html",
+                     "system/SDR_CT_CueTasking_V1.html"):
             ok = f'href="{name}"' in index
             out(f"  {'PASS' if ok else 'FAIL'} index links {name}")
             if not ok:
@@ -251,7 +278,8 @@ def main() -> None:
                 if q.read_bytes() != p.read_bytes():
                     changed.append(str(p.relative_to(REPORTING)))
         out(f"  accepted files replaced by candidates: {sorted(changed)}")
-        allowed = {"index.html", "reporting_README.md"} | {f"metadata/{p.name}" for p in (OVERLAY / 'metadata').iterdir()}
+        allowed = ({"index.html", "reporting_README.md"} | {f"metadata/{p.name}" for p in (OVERLAY / 'metadata').iterdir()}
+                   | {f"scripts/{p.name}" for p in (OVERLAY / 'scripts').iterdir()})
         if set(changed) - allowed:
             failures.append(f"unexpected accepted file changed: {set(changed) - allowed}")
 
@@ -263,6 +291,54 @@ def main() -> None:
             if hits:
                 out(f"  FLAG {p.relative_to(OVERLAY)}: {label}: {hits[:6]}")
     out("  (any FLAG above is reviewed in UPDATE_MEMO.md; 239.192.10.1 is the organization-local multicast group and is not flagged)")
+    labelled = sorted(str(p.relative_to(OVERLAY)) for p in published if re.search(r"\bDRAFT\b", p.read_text(encoding="utf-8", errors="replace")))
+    out(f"  Intentionally labelled DRAFT content (the requirements baseline and pages that cite it): {labelled}")
+
+    import sys
+    arg = sys.argv[sys.argv.index("--confidential-terms") + 1] if "--confidential-terms" in sys.argv else None
+    CONFIDENTIAL, CONFIDENTIAL_ALLOWED = load_confidential(arg)
+    out("\n[6] Confidential wording on the whole branch (files added or lines added relative to origin/main)")
+    if not CONFIDENTIAL:
+        out("  SKIPPED: no terms file given (the terms are kept outside the repository)")
+    import subprocess
+    names = subprocess.run(["git", "diff", "--name-only", "origin/main", "--"], cwd=REPO, capture_output=True, text=True, check=True).stdout.split()
+    names += subprocess.run(["git", "ls-files", "--others", "--exclude-standard"], cwd=REPO, capture_output=True, text=True, check=True).stdout.split()
+    hits_total = 0
+    for rel in sorted(set(names)):
+        path = REPO / rel
+        if not path.is_file() or path.suffix in {".png", ".jpg", ".bin"}:
+            continue
+        if subprocess.run(["git", "cat-file", "-e", f"origin/main:{rel}"], cwd=REPO, capture_output=True).returncode == 0:
+            diff = subprocess.run(["git", "diff", "origin/main", "--", rel], cwd=REPO, capture_output=True, text=True).stdout
+            text = "\n".join(l[1:] for l in diff.splitlines() if l.startswith("+") and not l.startswith("+++"))
+        else:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        for pattern, label in CONFIDENTIAL:
+            if rel.endswith("validation_report.txt"):
+                continue  # the checker's own output
+            hits = [m.group(0) for m in re.finditer(pattern, text)
+                    if not any(a in text[max(0, m.start() - 60):m.end() + 60] for a in CONFIDENTIAL_ALLOWED)]
+            if hits:
+                hits_total += len(hits)
+                out(f"  FAIL {rel}: {label}: {len(hits)}")
+    if CONFIDENTIAL:
+        out(f"  {'PASS' if not hits_total else 'FAIL'}: {hits_total} confidential-wording hits ({len(CONFIDENTIAL)} terms from the external list)")
+    if hits_total:
+        failures.append("confidential wording")
+
+    out("\n[7] Relative links in the proposed docs/system documents")
+    bad = []
+    for rel in ["docs/system/Requirements.md", "docs/system/Change_Requests.md", "docs/system/README.md", "docs/system/As_Built.md"]:
+        path = REPO / rel
+        for m in re.finditer(r"\]\(([^)]+)\)", path.read_text(encoding="utf-8")):
+            url = m.group(1)
+            if re.match(r"https?://|#|mailto:", url):
+                continue
+            if not (path.parent / url.split("#")[0]).exists():
+                bad.append(f"{rel}: {url}")
+    out(f"  {'PASS' if not bad else 'FAIL'}: {len(bad)} unresolved" + ("".join(f"\n    {b}" for b in bad)))
+    if bad:
+        failures.append("docs/system links")
 
     out("\nRESULT: " + ("PASS" if not failures else "FAIL: " + "; ".join(failures)))
     report = CANDIDATE / "validation" / "validation_report.txt"

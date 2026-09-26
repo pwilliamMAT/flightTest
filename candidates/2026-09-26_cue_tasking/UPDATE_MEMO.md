@@ -1,161 +1,208 @@
-# Update memo: 2026-09-26 system architecture and ADS-B cue-tasking candidates
+# Update memo: System Engineering section, requirements baseline, and cue-tasking updates (2026-09-26)
 
-For: Leif (owner). Status: **candidates for review. Nothing is promoted.** `reporting/` is unchanged on this branch, and `main` has not been pushed. The whole candidate set lives in `candidates/2026-09-26_cue_tasking/` on branch `reporting/candidates-cue-tasking`.
+For: Leif (owner). Status: **candidates and proposals for review. Nothing is promoted.** Branch `reporting/candidates-cue-tasking`. `reporting/` is unchanged on this branch, and `main` has not been pushed.
 
-## 1. Recommendation
+This revision applies the owner's decisions of 2026-09-26:
 
-| # | Candidate | Proposed target in `reporting/` | Why |
-|---|---|---|---|
-| 1 | `overlay/systems/SystemArchitectureAndCueTasking_V1.html` + `_assets/` (3 SVG) | new folder `systems/` (companion, **outside** the canonical family) | New question that no accepted report owns: how the testbed is organised as a system, and whether the CT → RM cue interface works. |
-| 2 | `overlay/reports/06_StatusAndFutureWork_V3.html` | `reports/` (replaces V2 as the family's 06) | 06 owns "where the project stands". V2 is dated 2026-09-18 and does not know about the cue interface, the time-source finding, or the 2026-09-25 live-aircraft diagnostic. |
-| 3 | `overlay/reports/02_HardwareAndCollection_V5.html` | `reports/` (replaces V4 as the family's 02) | 02 owns installed collection infrastructure. The Pi cue service is installed infrastructure, and the time-source finding changes what 02 can say about ADS-B truth timing in its packages. |
-| 4 | `overlay/metadata/*`, `overlay/index.html`, `overlay/reporting_README.md`, `overlay/systems/README.md` | same paths | Records and navigation for 1–3. |
+1. System engineering gets its own section, built as a formal design process. The exploration family stays at nine reports.
+2. The superseded 02 V4 and 06 V2 stay in `reports/`.
+3. The builder and verifier are updated and tested in a scratch workspace.
+4. The truth-separation rule is written down.
+5. Internet NTP is accepted, with a stated tolerance; GPS/PPS lock is a hardware to-do; the re-check of earlier ADS-B timing stays open.
+6. CueListener stays on its branch, with a review action for Pat.
+7. ADSB-remoter links are fine (the repository is public).
+8. The figure script moves to `docs/system/analysis/`.
+9. Manifest SourcePath reads "flightTest main: reporting/reports/…".
 
-The three reports link to one another, so promote them together or adjust the links (section 6).
+## 1. Proposed structure
 
-## 2. What changed in engineering, and why it belongs in reporting
-
-On 2026-09-25/26 the testbed was given a system-engineering baseline, and its first live interface was verified.
-
-- **System documents** (flightTest `docs/system/` on `main`, commit `ad64bcd`, master copy since 2026-09-26): the architecture (ten software items AR, CT, RM, RC, SP, TR, RD, CM, AM, AC); ICD Draft B (CT messages 2.0.0; all other messages Proposed); As_Built; CR-1 … CR-8; the Verification Log; Engineering Notes; the encoding analysis and CT 2.0 design; the compiled-app probe; the raw wire captures.
-- **CT (ADSB Cue Tasker)**, ADSB-remoter `feature/passive-radar-cueing` @ `55062fc`: headless mode; systemd `adsb-cue` on the ADS-B Pi; CT 2.0.0 compressed with dictionary 1 (raw deflate, preset dictionary); multicast `239.192.10.1:31986`; fit to one frame with up to 8 opportunities. Two defects were fixed: a Textual exclusive worker cancelled the SBS reader (`12e91fc`), and oversize cues were dropped (CR-1, then CR-5).
-- **RM first piece (CueListener)**, flightTest `feature/adsb-cue-listener` @ `94bf924`, **not on `main`**: a MATLAB receiver built on Java multicast and `java.util.zip`. It applies the ICD receiver rules and does no tasking.
-- **Live acceptance**, 2026-09-26 15:23–15:38 UTC. Why it matters: it is the first verified system interface, and it is the interface future collections will be tasked from.
-- **Time-source finding.** The Pi ran 14.9 s slow while GPS/PPS was unlocked and it had no internet NTP. Why it matters: it bears directly on ADS-B truth timing, which Reports 02 and 06 (STAT-006, R5B) already treat as a qualification dependency.
-
-The family's reporting rules apply because these results change the current status (06) and the installed-infrastructure record (02). They also carry a claim-boundary risk: "Verified" could be read as a radar result.
-
-## 3. Which reports own the change (from the metadata)
-
-- `family_manifest.json`: 02's question is "What physical hardware and collection infrastructure were built?", with the boundary "Infrastructure is not radar performance". **The installed CT service and the time-source state fit here.** 06's question is "Where does the project stand, and what should happen next?". **The new status, blockers and next actions fit here.**
-- No family member owns system architecture or interface control. 03 owns the analysis-pipeline gates (G1–G10), which is a different question. Folding the architecture and ICD into 02 or 03 would break the one-question-per-report rule.
-- `family_handoff_catalog.csv`: the eight handoffs form one chain (01 → … → 06). The cue interface produces nothing that a downstream family report consumes yet, because no collection has been tasked from a cue. That is why I recommend a **companion** report for now.
-- `family_known_gaps.md`: the time source, the unscheduled collections, the unwritten truth-separation rule for cued collections, and the code that is not on `main` are new gaps. They are added in the candidate.
-
-### Options for the new report (owner decides)
-
-| Option | What it means | Implications |
-|---|---|---|
-| **B (recommended): companion `systems/` report** | Like `diagnostics/`: its own index section and README, outside the manifest's canonical order. | "Canonical nine-report family" wording stays true. The TechnicalSummaryFamily builder and verifier need no change for this report. Revisit when cues actually task collections, because only then does it hand an artifact into the chain. |
-| A: family member `02B_SystemArchitectureAndCueTasking_V1.html` | Canonical order 01, 01A, 01B, 02, **02B**, 02A, 03, 04, 05, 06. | "Nine-report family" wording changes to ten in `index.html`, `reporting_README.md`, `diagnostics/README.md`, the explainer, audits and story spine. `buildTechnicalSummaryFamily.m` (`localReportDefinitions`) and `verifyTechnicalSummaryFamily.m` (the expected list at lines 74–84; checks for "nine" at 149–150, 225, 230 and 496; "Eight canonical handoffs" at 261) all hard-code nine reports and eight handoffs. It needs new handoffs 02→02B and 02B→02A; the latter is artificial. Rename the file and move it to `reports/`. |
-| C: no new report | Put the architecture and cue content into 06 V3 only. | 06 would own a second question, and 02/06 would carry ICD detail they are not built for. Not recommended. |
-
-## 4. New claims, their evidence class, and their boundary
-
-| Claim (where) | Evidence class | Status label | Source | Boundary stated in the report |
-|---|---|---|---|---|
-| Ten software items and CT messages at 2.0.0 are defined; everything else is Proposed (SYS-001) | Design record | Implemented | S02, S03 | Not evidence that any design item works |
-| CT runs on the Pi as `adsb-cue`, headless, CT 2.0.0, dictionary 1, multicast `239.192.10.1:31986`, ≤ 8 opportunities, 1472 B (SYS-002, 02 V5 CUE-001) | Installed | Implemented | As_Built, `deploy/` | Not uptime or long-run reliability |
-| Live 2.0.0 capture: 223 datagrams, 0 schema failures, 0 gaps/duplicates/out-of-order, 0 over one frame, max 747 B, 15 consistent snapshots (14 with cues), 103 cues from 11 aircraft; median 681 B on the wire vs 9,174 B JSON (SYS-003, 06 V3 STAT-009) | Measured (message interface) | Demonstrated (ICD: Verified) | Wire capture + summary; **reproduced independently** (`generated/cue_capture_summary.json`) | Message interface only; no collection, no detection; withdrawal not observed |
-| 1.1.0 cue median 7,962 B, 14/46 over one frame; 58% of bytes were labels and punctuation; 8 encodings compared (SYS-004) | Measured (option 8 is an estimate) | Investigated | Cue_Traffic_Encoding.md, 1234Z capture (median reproduced) | Why size, not bandwidth, drove CR-5 |
-| CueListener decodes 2.0.0; 16/16 tests on 20 real datagrams (SYS-005, STAT-012) | Diagnostic | Implemented | CueListener tests (re-run for this review, R2026a) | No tasking; not on `main` |
-| A compiled MATLAB app does Java multicast plus dictionary inflate on the Runtime; `udpport` multicast is Windows-only (SYS-006) | Diagnostic | Demonstrated | deployability/README.md | N320, Pluto, `serialport` and `tcpserver` still unchecked |
-| Pi measured 14.9 s slow on 2026-09-25; NTP now (0.3 ms); GPS/PPS not locked (SYS-007, STAT-010, TIME-001) | Measured (one reading, raw not kept) + Installed | Blocked | Verification Log, As_Built, CR-8 | Earlier Pi-timed ADS-B truth has an unknown offset. **Not claimed** to explain any earlier result |
-| Cue SNR windows are modeled pre-integration estimates (10 dBsm, −10 dB threshold, 8 MHz, NF 3 dB, 10 dBi) (SYS-008) | Modeled | Implemented | `bistatic.py`, `prediction.py`, `pi-cue-config.json` | Ranking only, not a detection prediction; not reconciled with 01A/01B |
-| 81 CT tests pass at `55062fc` (SYS-009) | Diagnostic | Implemented | Re-run for this review | The replay-corpus test passes silently without its corpus |
-| Cue-driven collection not built; `collection_task` Proposed (SYS-010, STAT-012) | — | In Progress | ICD §3.1, As_Built | — |
-| Live-aircraft scan 2026-09-25: 1 of 75 truth opportunities matched; 91% of 34,054 detections at ±60 Hz (STAT-011, quoted only) | Diagnostic (owned by the accepted diagnostic) | Investigated | TrackingScan diagnostic | No gate change |
-| No operational evidence (SYS-011) | Operational: none | Blocked | — | — |
-
-No synthetic evidence is used. STAT-001 to STAT-008 in 06 V3 are **carried forward from V2 unchanged**. I did not re-read the PassiveBistaticRestart state (it lives on the Windows workstation), and 06 V3 says so.
-
-## 5. Candidate file list
+### Reporting site (overlay → `reporting/`)
 
 ```
-candidates/2026-09-26_cue_tasking/
-  UPDATE_MEMO.md                      this memo
-  overlay/                            mirrors reporting/; promotion = copy these paths onto reporting/
-    index.html                        candidate index (02 V5, 06 V3, new "System engineering" section)
-    reporting_README.md               candidate README (links, companion list, systems/ row)
-    reports/02_HardwareAndCollection_V5.html
-    reports/06_StatusAndFutureWork_V3.html
-    systems/README.md
-    systems/SystemArchitectureAndCueTasking_V1.html
-    systems/SystemArchitectureAndCueTasking_assets/fig_message_size.svg
-    systems/SystemArchitectureAndCueTasking_assets/fig_cue_size_vs_opportunities.svg
-    systems/SystemArchitectureAndCueTasking_assets/fig_capture_timeline.svg
-    metadata/family_manifest.json, family_evidence_catalog.csv, family_handoff_catalog.csv,
-             family_code_navigation.csv, family_visual_catalog.csv, family_known_gaps.md
-  scripts/
-    summarize_cue_capture.py          decodes the committed wire capture, validates, cross-checks, draws the figures
-    derive_06_V3.py, derive_02_V5.py  the exact V2→V3 and V4→V5 edits (reviewable deltas)
-    derive_metadata.py                the exact metadata edits (manifest hashes of the candidate HTML)
-    validate_candidates.py            step-6 validation on merged previews
-  generated/cue_capture_summary.json  numbers quoted in the reports
-  validation/validation_report.txt    latest validation output
+reporting/
+  index.html                  + new "System engineering" section (separate from the family)
+  reporting_README.md         + section link, structure row
+  reports/                    exploration family, still nine reports:
+    02_HardwareAndCollection_V5.html   (new current; V4 retained unchanged)
+    06_StatusAndFutureWork_V3.html     (new current; V2 retained unchanged)
+  system/                     NEW: System Engineering section
+    index.html                         0 · Process and status: steps, decisions, action register, status counts
+    01_MissionAndNeeds.html            1 · Mission goals, stakeholders, mission needs
+    02_Requirements.html               2 · DRAFT baseline: tree, counts, full tables (generated from docs/system/Requirements.md)
+    03_ArchitectureAndAllocation.html  3 · Architecture figure, items, allocation, requirements per item, design rules
+    04_Interfaces.html                 4 · ICD summary: status ladder, message register, conventions, ports, framing
+    05_VerificationAndTraceability.html 5 · Verification activities → requirements; full traceability matrix
+    06_TruthSeparation.html            6 · Proposed truth-separation rule (CR-9) and worked cases
+    07_AsBuiltAndConfiguration.html    7 · As-built items, deployed CT configuration, time source, actions
+    SDR_CT_CueTasking_V1.html          Subsystem design record 1: CT (the former V1 report, retargeted)
+    SDR_CT_CueTasking_assets/*.svg     3 figures generated by docs/system/analysis/summarize_cue_capture.py
+    README.md
+  metadata/                   family metadata updated (6 files)
+  scripts/                    buildTechnicalSummaryFamily.m, verifyTechnicalSummaryFamily.m updated
 ```
 
-Candidate SHA-256: 02 V5 `cd03cf2b…19b1fd`, 06 V3 `a59d1d19…a355`, system report `fe520544…24fd` (the full hashes of 02 and 06 are in the candidate manifest).
+About the section:
 
-**Reproduce** from the worktree root:
+- Each page states its purpose and claim boundary in the family's style. The masters stay in `docs/system/`: pages link to them on `main` and do not copy them.
+- Evidence links inside the CT record stay pinned to `ad64bcd`.
+- Status words are requirement- and interface-level. Every page says that none of them is a radar result.
 
-```bash
-~/Documents/ADSB-remoter/.venv/bin/python candidates/2026-09-26_cue_tasking/scripts/summarize_cue_capture.py --adsb-remoter ~/Documents/ADSB-remoter
-python3 candidates/2026-09-26_cue_tasking/scripts/derive_06_V3.py
-python3 candidates/2026-09-26_cue_tasking/scripts/derive_02_V5.py
-python3 candidates/2026-09-26_cue_tasking/scripts/derive_metadata.py
-python3 candidates/2026-09-26_cue_tasking/scripts/validate_candidates.py
+### `docs/system/` proposals on this branch (follow the CR process in `docs/system/README.md`)
+
+| File | Change |
+|---|---|
+| `Requirements.md` (new) | **DRAFT** requirements baseline, proposed by CR-10 |
+| `Change_Requests.md` | Adds **CR-9**, truth separation for cued collections and cue-aided association (proposal, Open), and **CR-10**, adopt a requirements baseline (Open). Adds the owner's time-source decision to CR-8 |
+| `README.md` | Index rows for Requirements.md and `analysis/summarize_cue_capture.py`; CR range 1–10; open decisions CR-9 and CR-10 |
+| `As_Built.md` | Time Source row: NTP accepted (CR-8); GPS/PPS reseat to-do |
+| `analysis/summarize_cue_capture.py` (moved here from the candidate folder) | Reproduces the live-acceptance numbers, cross-checks the committed summary, and draws the three figures (`--out-dir`) |
+
+## 2. Draft requirements baseline (docs/system/Requirements.md)
+
+| Level | Count | Verified | Partial | Not met | Not started | Proposed |
+|---|---:|---:|---:|---:|---:|---:|
+| Mission goals | 2 | — | — | — | — | — |
+| Mission needs | 6 | 0 | 5 | 1 | 0 | 0 |
+| System requirements | 15 | 1 | 8 | 1 | 5 | 0 |
+| Derived requirements | 28 | 5 | 6 | 7 | 2 | 8 |
+
+Each requirement has:
+
+- an ID, rationale and parent;
+- an allocation to architecture items (AR, CT, RM, RC, SP, TR, RD, CM, AM, AC, Time Source, or process);
+- a verification method (I/A/D/T);
+- a status with evidence links.
+
+Unknown values are **TBD**: pointing tolerance, ADS-B lead/tail, release-statement content. The only proposed number is DR-TIME-1, 0.1 s, which cites the one clock measurement (+0.05 to +0.09 s). Its rationale: 0.1 s at up to about 290 m/s is at most about 58 m of bistatic range, about one range cell.
+
+Top-level tree (each requirement shown under its first parent):
+
+```
+MG-1  complete system built with MATLAB and MathWorks tools
+  MN-1  complete chain, MATLAB except named exceptions ....... SR-02 scheduling, SR-07 processing, SR-08 tracking,
+                                                               SR-12 MATLAB/compiled deployment, SR-14 ICD, SR-15 health
+  MN-2  real data on aircraft of opportunity (DTV) ........... SR-01 cueing, SR-03 collection, SR-04 pointing, SR-09 calibration
+  MN-5  claims traceable to evidence ......................... SR-13 evidence discipline
+  MN-6  MATLAB items run as deployed apps
+MG-2  data proving MATLAB functions on shareable real data
+  MN-3  independent truth for every dataset .................. SR-05 timing, SR-06 truth packaging
+  MN-4  datasets shareable (packaged, traceable, cleared) .... SR-10 packaging/provenance, SR-11 data release
+Derived: DR-CUE-1..7, DR-TASK-1..2, DR-TIME-1..4, DR-DATA-1..6, DR-DEP-1..4, DR-TS-1..5
 ```
 
-To view as it would publish: copy `reporting/` to a scratch folder, copy `overlay/` on top, and open `index.html`. In place, the 02 V5 photographs (`../HardwarePhotos/`) and the cross-links resolve only in that merged view.
+What is verified: SR-01 (at interface level), DR-CUE-1, 2, 3, 4 and 6. These are all about the cue path. No requirement about detection, tracking or dataset release is met.
 
-## 6. Exactly what promotion would change in `reporting/`
+The goals appear only as the project's mission goals (MG-1, MG-2). A branch-wide scan finds no confidential wording (section 6).
 
-1. **Add:** `systems/README.md`, `systems/SystemArchitectureAndCueTasking_V1.html`, `systems/SystemArchitectureAndCueTasking_assets/*.svg` (3 files); `reports/02_HardwareAndCollection_V5.html`; `reports/06_StatusAndFutureWork_V3.html`.
-2. **Replace:** `index.html`: Latest-status link → 06 V3; family cards 02 → V5 and 06 → V3; new "System engineering" section before "Diagnostic reports".
-3. **Replace:** `reporting_README.md`: Latest status → V3; table links for 02 and 06; companion-list entry for `systems/`; structure-table row for `systems/`.
-4. **Replace:** `metadata/`:
-   - `family_manifest.json`: reports 02 and 06 get the new filenames, `source_hash` = candidate SHA-256, and `release_hash: null`. `source_report_hashes` is updated. Two `known_gaps` are added, plus a new `post_release_changes` block that says no TechnicalSummaryFamily release was built.
-   - `family_evidence_catalog.csv`: CAT-02 and CAT-06 get the new ReleaseAsset and extended StillUnknown.
-   - `family_handoff_catalog.csv`: H04 evidence is now "Report 02 V5".
-   - `family_code_navigation.csv`: 5 rows added for CT, cue capture, CueListener, docs/system, and the figure script.
-   - `family_visual_catalog.csv`: VIS-20 to VIS-23 added.
-   - `family_known_gaps.md`: a new "Added 2026-09-26" section and a release-policy sentence.
-5. **Superseded files. Decide:**
-   - **Retain (recommended).** Keep `reports/02_HardwareAndCollection_V4.html` and `reports/06_StatusAndFutureWork_V2.html` unchanged. Accepted reports 01, 01A, 01B, 04 and 05, the story spine, and the storyboard review link to them by name.
-   - **Replace**, as the guide literally says. Deleting them breaks **9** links in accepted pages: `01A`→02 V4 and 06 V2; `01B`→02 V4; `01`→06 V2; `04`→06 V2; `05`→02 V4 and 06 V2; the story spine→02 V4 and 06 V2. Fixing those would mean editing accepted reports.
-   - With Retain, `reports/` holds 11 HTML files, not "exactly the intended accepted versions". The manifest and index still name only the nine current ones.
-6. **Not changed, but they reference the old versions** (update only if separately reviewed): `audits/report_family_story_spine.html`, `explainers/FlightTest_EndToEnd_HumanStory_V2.html`, `storyboards/*`, `docs/START_HERE.md`, `docs/ENGINEERING_INDEX.md`, `audits/*.md`, `migration_plan.md`.
-7. **Scripts** (`reporting/scripts/`): `buildTechnicalSummaryFamily.m` (`localReportDefinitions`, about line 92) and `verifyTechnicalSummaryFamily.m` (lines 74–84) hard-code `02_HardwareAndCollection_V4.html` and `06_StatusAndFutureWork_V2.html`. A verifier run after promotion would therefore fail. The verifier's obsolete-name list (about line 647) would also need `02_…_v4` and `06_…_v2`. The builder also **regenerates** the `family_*` metadata from definitions embedded in the script, so the hand-edited metadata above would be overwritten by the next builder run unless the builder is updated too. I have not changed these scripts.
-8. Suggested staging at promotion (not run): `git add reporting/systems reporting/reports/02_HardwareAndCollection_V5.html reporting/reports/06_StatusAndFutureWork_V3.html reporting/metadata reporting/index.html reporting/reporting_README.md`.
+## 3. Truth-separation rule (CR-9, proposed; `system/06_TruthSeparation.html`)
 
-## 7. Step-6 validation checklist (candidate view)
+- **Labels.** Every capture carries `collection_basis`:
+  - `cued`, with a `cue_ref`;
+  - `uncued`, `calibration` or `survey`.
 
-Run by `scripts/validate_candidates.py` on merged previews, with results in `validation/validation_report.txt`.
+  Every detection or track product carries `truth_use`: `truth_blind` or `cue_aided`.
+- **TS-3, independent evidence.** Only `truth_blind` products count as independent detection or tracking evidence. A cued collection still qualifies if nothing after capture uses the cue or ADS-B.
+- **TS-4, rates.**
+  - Detection probability from cued data is conditional on a cued opportunity.
+  - False-alarm rates state their data basis.
+- **TS-5, cue-aided association.** Scored and reported separately, never as independent tracking performance. Agreement with ADS-B is only a consistency check, because cues and truth share one source.
+- **TS-6, scoring.** Scoring uses logged ADS-B, not CT predictions.
+- **TS-7, reports.** Reports state both labels.
+- **Where the labels land.** ICD §3.1, §3.5, §3.8 and §3.9. These messages are still Proposed, so no released schema changes.
+- **Where the rule is recorded.** Requirements DR-TS-1..5 and DR-DATA-6; family known gaps; 06 V3 STAT-013.
+
+## 4. Family report changes (still candidates)
+
+| Report | Change since the last candidate |
+|---|---|
+| 06 V3 | STAT-010 time source is now **Implemented** (NTP accepted, 0.1 s tolerance; GPS/PPS reseat is a hardware to-do; the earlier-data re-check is open). New **STAT-013**: truth-separation rule, In Progress (CR-9). STAT-012 names Pat's review of `feature/adsb-cue-listener`. The management-recommendation row lists the decisions and actions. All links now point to `../system/`. |
+| 02 V5 | TIME-001 is now Implemented (NTP accepted, GPS/PPS to-do). The qualification callout points to DR-TIME-1/2. Links now point to `../system/`. |
+
+Evidence classes are unchanged from the previous memo:
+
+- **Measured** (message interface): the live capture; the Pi clock readings.
+- **Installed**: the CT service; NTP.
+- **Diagnostic**: the tests, the compiled probe, and the tracking-scan diagnostic, which is quoted only.
+- **Modeled**: predicted SNR.
+- **Design record**: the architecture and requirements.
+- **Operational**: none.
+
+## 5. Builder and verifier (`overlay/scripts/`, derived by `scripts/derive_family_scripts.py`)
+
+**Builder** (`buildTechnicalSummaryFamily.m`):
+
+- The canonical filenames are now 02 V5 and 06 V3.
+- 02 V4 and 06 V2 become legacy names, which release copies rewrite to V5/V3.
+- The embedded metadata definitions now carry the same strings as the candidate metadata:
+  - the 02/06 still-unknown text and the 06 strongest result;
+  - the H04 evidence text;
+  - the VIS-07/08/09/18 paths, plus VIS-20..23;
+  - five code-navigation rows;
+  - the known-gaps text and the manifest `known_gaps`.
+- A new `localRewriteSiteSectionLinks` points links to `../system/`, `../diagnostics/` and similar at the public site inside release copies. Those pages are not part of a release.
+
+**Verifier** (`verifyTechnicalSummaryFamily.m`):
+
+- The expected filenames are now V5 and V3.
+- 02 V4 and 06 V2 are added to the obsolete-name list.
+- A **latent bug is fixed**. `"^https?://[^\\s]+$"` in a MATLAB string excludes the letter `s`, so any external URL containing an "s" failed. It is now `\S`. The accepted reports have no external links, so the bug never showed.
+
+**Test** (scratch workspace in the session scratchpad; never ManagerReport; MATLAB R2026a; full report in `validation/builder_test_report.txt`):
+
+- **A full build cannot pass on this Linux desktop, with the accepted or the candidate scripts.** The verifier requires the workstation `file:///C:/…` evidence and the ManagerReport-only companion files to exist.
+- **Control (unmodified scripts, accepted 02 V4 / 06 V2):** 319 failed checks, all "Dependency resolution" (273 workstation links, 46 companions).
+- **Candidate:** 306 failed checks, all "Dependency resolution" (273 workstation links, 33 companions). This is a strict subset of the control's failures, and every other check passed. In the link audit:
+  - 195 canonical report links resolved, including the accepted reports' links to V4/V2, which were rewritten to V5/V3;
+  - 41 external links resolved;
+  - no obsolete links.
+- **Builder-generated metadata against the hand-edited candidate metadata** (`scripts/check_builder_metadata.py`): identical in every non-machine-derived cell of the 4 CSVs, the known-gaps text, and the manifest (`known_gaps`, canonical order, report fields, source hashes).
+- **What I could not verify:** a promoted release. Promotion runs only after validation passes, and that needs the Windows workstation.
+
+## 6. Step-6 validation (candidate view; `scripts/validate_candidates.py` → `validation/validation_report.txt`)
 
 | Check | Result |
 |---|---|
-| Family contains exactly the intended accepted versions in canonical order | **Pass** for manifest, index and filenames (01, 01A, 01B, 02 V5, 02A, 03, 04, 05, 06 V3). `reports/` equals the family only in "replace" mode; "retain" keeps the two superseded files (section 6.5) |
-| Every report-local image, asset and report link resolves | **Pass for every candidate page** (0 broken relative links, fragments checked). Promotion introduces 0 new broken links in "retain" mode and 9 in "replace" mode. `http(s)`/`file:` links are not network-checked (existing known-gap policy) |
-| Reporting index links to the new filenames | **Pass** (02 V5, 06 V3, systems report; old versions no longer linked from the index) |
-| Accepted reports not reformatted or changed | **Pass.** The overlay replaces only `index.html`, `reporting_README.md` and six metadata files. The derive scripts read V2/V4 and never write them |
-| No draft, generated or restricted material | **Pass after review.** No keys, credentials, private host IPs, logins or candidate-branch paths are in the published files. The only multicast address is `239.192.10.1`. The only "Draft" hits are the ICD revision name "Draft B" and the ICD status ladder. The three SVG figures are generated, but their script is included and they are the report's evidence figures, as with other report-local assets |
-| HTML/SVG/JSON/CSV well formed | **Pass** (balanced tags; SVG parses as XML; JSON parses; CSV column counts constant) |
-| Numbers trace to sources | **Pass.** All 10 cross-checks of the reproduced capture summary against the committed one match exactly; the 1.1.0 median of 7,962 B and 14/46 over one frame reproduce S08 |
+| Family contains exactly the intended accepted versions in canonical order | **Pass**: manifest, index and filenames (01, 01A, 01B, 02 V5, 02A, 03, 04, 05, 06 V3). With V4/V2 retained, `reports/` holds 11 HTML files, and only the nine are indexed |
+| Every report-local image, asset and link resolves | **Pass** for all 12 candidate pages (0 broken relative links, fragments checked). Promotion introduces 0 new broken links with V4/V2 retained (it would introduce 9 if they were removed) |
+| Index links the new files | **Pass**: 02 V5, 06 V3, `system/index.html`, `02_Requirements`, `05_Verification…`, `SDR_CT_…`. V4/V2 are no longer linked from the index |
+| Accepted files not changed except those intended | **Pass**. The overlay replaces only `index.html`, `reporting_README.md`, the 6 metadata files and the 2 scripts |
+| No restricted or unfinished material | **Pass**: no keys, credentials, private host IPs, logins or branch paths in published files. **Intentionally labelled DRAFT:** the requirements page plus the index, mission and as-built pages and the section README, which cite it (see question 1) |
+| Confidential wording (branch-wide: all added files and added lines vs `origin/main`) | **Pass**: 0 hits for the owner's confidential terms. The term list is kept outside the repository and passed with `--confidential-terms`, so the repository never contains it. Two raw matches are accepted wording copied unchanged from 02 V4 and from the verifier's messages, both unrelated to the goals, and are allow-listed. A repository-wide search also matches random letters inside base64 wire data in `docs/system/evidence/` |
+| Relative links in the proposed `docs/system` documents | **Pass** (0 unresolved) |
+| Well-formedness | **Pass** (HTML balanced; SVG, JSON and CSV parse) |
+| Numbers trace to sources | **Pass**: 10 of 10 capture numbers reproduced. Requirement counts are generated from Requirements.md |
 
-**Pre-existing issues, not caused by the candidates.** The accepted site today already has **62 broken relative links**:
+## 7. Exactly what promotion would change
 
-- companion CSV/MD/YAML files that were not migrated;
-- `../LinkBudget/`, `../RFBudget/` and `.pptx` links;
-- the explainer's `TechnicalSummaryFamily/…` links;
-- links to the superseded `02_HardwareAndCollection_V3.html` from 01, 04 and 06 V2;
-- storyboard links that assume a flat folder.
+1. **First merge the `docs/system` proposals to `main`:** Requirements.md, the Change_Requests (CR-9, CR-10, CR-8 note), README, As_Built, and `analysis/summarize_cue_capture.py`. The section pages link to these masters on `main`; until they are merged, the requirements, CR-9 and figure-script links return 404.
+2. **Then copy `overlay/` onto `reporting/`:**
+   - add `system/` (9 HTML, README, 3 SVG), `reports/02_HardwareAndCollection_V5.html` and `reports/06_StatusAndFutureWork_V3.html`;
+   - replace `index.html`, `reporting_README.md`, `metadata/` (6 files) and `scripts/` (2 files);
+   - keep `reports/02_HardwareAndCollection_V4.html` and `reports/06_StatusAndFutureWork_V2.html` unchanged.
+3. **Staging (not run):** `git add reporting/system reporting/reports/02_HardwareAndCollection_V5.html reporting/reports/06_StatusAndFutureWork_V3.html reporting/metadata reporting/scripts reporting/index.html reporting/reporting_README.md`.
+4. **Not changed** (they still name V4/V2; update only if separately reviewed): the story spine, the explainer, the storyboard, `docs/START_HERE.md`, `docs/ENGINEERING_INDEX.md`, audits. `diagnostics/README.md` still wrongly says the diagnostics are not listed in `index.html`.
+5. **Candidate folder:** `candidates/2026-09-26_cue_tasking/` holds only review tooling. Delete it or keep it on the branch; nothing in it is published.
 
-The candidates fix their own instances: 06 V3 links 02 V5 and 05, and 02 V5 and 06 V3 show the unpublished CSVs as plain text. `diagnostics/README.md` still says the diagnostics are "not listed in `../index.html`", which is no longer true.
+## 8. Remaining questions for Leif
 
-## 8. Open questions for Leif
+1. **Publishing a DRAFT:** promote the section with the requirements page clearly labelled DRAFT (as built), or hold `02_Requirements.html` (and the counts on other pages) until CR-10 is accepted?
+2. **Values:** accept or amend the proposed 0.1 s tolerance (DR-TIME-1). Decide the TBDs: pointing tolerance (SR-04), ADS-B lead/tail (DR-DATA-4), release-statement content and approver (SR-11, DR-DATA-5).
+3. **MG-1 and a Python CT:** is a Python cue tasker consistent with MG-1, or should CT eventually move to MATLAB (DR-DEP-4)?
+4. **CR-9:** accept the rule text as written, or amend it? In particular, is conditional Pd on cued data (TS-4) the reporting you want?
+5. **Report 02 criteria:** should its CTRL-001 acceptance criteria (the A-B-A reference test, the 30 s drop test) become derived requirements under SR-03 and SR-10?
+6. **Owners:** who owns actions A-2 (GPS/PPS reseat), A-3 (earlier-timing re-check), A-5 (repeatable clock check) and A-6 (RM scheduling design)? They are TBD on the pages.
+7. **Release build:** a full release build still needs the Windows workstation. Run `buildTechnicalSummaryFamily` there after promotion, or leave the manifest's `post_release_changes` note until the next planned release?
 
-1. **Placement of the new report:** Option B, a companion in `systems/` (recommended); Option A, family member 02B (implies ten reports and builder/verifier changes); or Option C, 06 V3 only?
-2. **Superseded files:** retain 02 V4 and 06 V2 in `reports/` so the accepted links keep working (recommended), or replace them and accept or repair the 9 broken links?
-3. **Builder and verifier:** update the hard-coded filenames (and the embedded metadata definitions), or record the post-release change in the manifest only, as the candidate does, until the next release build?
-4. **Truth separation for cued collections:** the family rule says ADS-B is post-hoc and must not steer detection. Cues will now choose when and on which illuminator to collect, and the architecture lets the Tracker use cues as an association aid. Should this become a CR/decision, for example "cue-selected timing and cue-aided association are recorded and excluded from truth-blind G8/G10 evaluation; Pfa is estimated on uncued or blinded data"? The reports flag it as not yet written down.
-5. **Time source:** accept NTP-via-desktop with a stated tolerance, or require GPS/PPS lock before cued collections count? Should any earlier package's ADS-B timing (including the 2026-09-25 tracking scan) be re-checked for the Pi offset? The reports make no claim either way.
-6. **Code location:** CueListener and the `dtv*` scripts are not on `main`. The report's code navigation says so. Merge them before promotion, or publish with branch links pinned to commit `94bf924`?
-7. **ADSB-remoter visibility:** the reports link `github.com/lhilleMAT2022/ADSB-remoter` at commit `55062fc`. If that repository is private, public readers get 404s. Acceptable?
-8. **Figure-script home:** `summarize_cue_capture.py` currently lives only on this branch. Move it to `docs/system/analysis/` (proposed) before promotion, so the code-navigation row can point to `main`?
-9. **Manifest provenance:** new versions cannot go into ManagerReport (the workflow must not modify it). Is `source_report_hashes.SourcePath = "flightTest main: reporting/reports/…"` acceptable?
+## 9. Reproduce (from the worktree root)
 
-## 9. Git
-
-- Branch `reporting/candidates-cue-tasking` from `origin/main` @ `ad64bcd`. Only `candidates/2026-09-26_cue_tasking/` is added. The checkpoint commit `0d07ddd` was followed by the final commit (see `git log`).
-- Nothing under `reporting/` is modified; `main` is not pushed. Pushing this branch does not trigger the Pages workflow, which runs only on pushes to `main` that touch `reporting/**`.
+```bash
+C=candidates/2026-09-26_cue_tasking
+python3 docs/system/analysis/summarize_cue_capture.py --adsb-remoter ../ADSB-remoter --out-dir $C/generated --assets-dir $C/overlay/system/SDR_CT_CueTasking_assets
+python3 $C/scripts/build_system_section.py      # section pages; requirements parsed from docs/system/Requirements.md
+python3 $C/scripts/derive_06_V3.py && python3 $C/scripts/derive_02_V5.py && python3 $C/scripts/derive_navigation.py
+python3 $C/scripts/derive_metadata.py && python3 $C/scripts/derive_family_scripts.py
+python3 $C/scripts/validate_candidates.py --confidential-terms <terms file kept outside the repo>
+# builder test: copy the nine reports, asset folders, ../HardwarePhotos and overlay/scripts/*.m into a scratch folder,
+# run buildTechnicalSummaryFamily(<scratch>) in MATLAB, then:
+python3 $C/scripts/check_builder_metadata.py <scratch>/TechnicalSummaryFamily_Releases/<id>_staging
+```

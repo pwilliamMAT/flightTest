@@ -9,11 +9,12 @@
 
 ## Added 2026-09-26 (cue-tasking update)
 
-- The ADS-B Pi time source is not GPS/PPS-locked. It keeps time from internet NTP through the collection desktop; before 2026-09-25 21:07 UTC the Pi was measured 14.9 s slow, so Pi-timed ADS-B truth from earlier collections carries an unknown offset (Report 02 V5 TIME-001; Report 06 V3 STAT-010).
+- The ADS-B Pi keeps time from internet NTP, which is accepted, with a proposed 0.1 s host-to-host tolerance; GPS/PPS lock is a hardware to-do. Before 2026-09-25 21:07 UTC the Pi was measured 14.9 s slow, so Pi-timed ADS-B truth from earlier collections carries an unknown offset until it is re-checked (Report 02 V5 TIME-001; Report 06 V3 STAT-010).
 - The ADS-B cue interface is verified as a message interface only. The Resource Manager does not schedule collections, and no collection has been made from a cue (Report 06 V3 STAT-009, STAT-012).
-- The truth-separation rule for cue-selected collections and cue-aided association is not yet written down.
+- Cues choose when and with which tower to collect, and the Tracker may use cues to help association. The truth-separation rule that labels cued collections and cue-aided products is proposed (CR-9, System Engineering section) and not yet accepted; until it is, no cued result counts as independent detection evidence (Report 06 V3 STAT-013).
 - Predicted SNR in cues is a modeled, pre-integration ranking estimate and has not been reconciled with the Report 01A/01B models.
-- CueListener and the DTV level-check scripts are not on `main`; the Cue Tasker code is on an ADSB-remoter feature branch.
+- CueListener and the DTV level-check scripts stay on branch `feature/adsb-cue-listener` pending review; the Cue Tasker code is on an ADSB-remoter feature branch.
+- The system requirements baseline is a draft (CR-10); no requirement is accepted.
 
 ## Workstation dependencies
 
@@ -22,4 +23,4 @@
 
 ## Release policy
 
-No unresolved P0 item is hidden. Reports 02 V5 and 06 V3 were accepted after release 20260921_181348 without a new TechnicalSummaryFamily release; the builder and verifier still name 02 V4 and 06 V2. The former P0 family-navigation gap is resolved by release-local navigation, explicit handoffs, canonical version mapping, and validation.
+No unresolved P0 item is hidden. The former P0 family-navigation gap is resolved by release-local navigation, explicit handoffs, canonical version mapping, and validation. Reports 02 V5 and 06 V3 replace 02 V4 and 06 V2 as the current versions; the superseded files stay in `reports/` unchanged because accepted reports link to them.
