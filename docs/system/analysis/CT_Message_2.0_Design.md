@@ -1,6 +1,6 @@
 # CT Cue Messages: Compressed JSON and Value Clean-up (design for approval)
 
-**Date:** 2026-09-26. **Status:** **approved** 2026-09-26 (Leif), with the answers in §6. Next: edit the ICD (CR-5), then implement.
+**Date:** 2026-09-26. **Status:** **implemented and Verified** 2026-09-26: ICD Draft B, ADSB-remoter `ea72d04`, CueListener `4526835`. Live, a cue with 8 opportunities is about 690 B (see the [verification log](../Verification_Log.md)). Approved by Leif with the answers in §6.
 **Decision it implements:** CR-5, accepted in direction by Leif on 2026-09-26: keep JSON, add a fixed preset deflate dictionary, and clean up the values.
 **Drivers:** mainline MATLAB compatibility, deployment as compiled MATLAB apps, and one-frame delivery.
 **Evidence:** [Cue_Traffic_Encoding.md](Cue_Traffic_Encoding.md), [check_matlab_decompress.m](check_matlab_decompress.m), [deployability/](deployability/).

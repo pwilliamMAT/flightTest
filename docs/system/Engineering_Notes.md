@@ -27,6 +27,11 @@ Lessons verified on this testbed. Each item is something that cost time, or woul
   - socat: `ip-add-membership=239.192.10.1:192.168.10.41`. Java: `joinGroup(group, NetworkInterface)`.
 - **netcat cannot join multicast.** Use socat or a small script.
 - **socat reads 8192-byte blocks by default**, so it truncates 8 kB cues. Always pass `-b 65535`.
+- **One message per line with socat:**
+  - `UDP4-RECV … STDOUT` concatenates datagrams, which is fine for plain JSON (`jq` splits objects) but useless for compressed ones.
+  - `UDP4-RECVFROM …,fork SYSTEM:'base64 -w0; echo'` runs one child per datagram, which gives one base64 line per message. Pipe that to a decoder.
+  - Don't put the decoder inside `SYSTEM:`, because socat parses commas and colons in the command.
+- **Keep wire bytes as evidence** when the stream is compressed (`datagram_b64`). The decoded form can be rebuilt from them, but not the other way round.
 - **Size receive buffers for snapshot bursts.** A snapshot sends every cued aircraft at once (about 8 kB each). The kernel default buffer (212 kB) overflowed during tests and showed up as sequence gaps. Use 8 MiB (`rmem_max` on the desktop is 50 MB).
 - **Datagrams larger than one frame are fragmented.** Anything over 1472 B of UDP payload is sent in fragments, and losing one fragment loses the whole datagram. Every 8 kB `track_cue` is sent as 6 fragments. See [analysis/Cue_Traffic_Encoding.md](analysis/Cue_Traffic_Encoding.md).
 - **A host without a default route cannot send multicast** (`ENETUNREACH`) unless the socket is bound to a source address or a multicast route exists. CT pins `source_address` to 192.168.10.131 for this reason.

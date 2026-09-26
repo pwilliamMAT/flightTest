@@ -27,7 +27,7 @@ This folder is the home of the system engineering material for the testbed: the 
 | [analysis/analyze_cue_traffic.py](analysis/analyze_cue_traffic.py), [analysis/check_matlab_decompress.m](analysis/check_matlab_decompress.m) | Scripts that reproduce the analysis | authored here | 2026-09-26 |
 | [analysis/CT_Message_2.0_Design.md](analysis/CT_Message_2.0_Design.md) | CR-5 design: compressed JSON framing, the dictionary as a controlled artifact, the 2.0.0 value clean-up | authored here | 2026-09-26, approved |
 | [analysis/deployability/](analysis/deployability/) | Compiled-app probe: Java multicast and deflate-with-dictionary in a standalone MATLAB app | authored here | 2026-09-26 |
-| [evidence/](evidence/) | Raw wire captures behind the verification log (one JSON message per line) | captured | 2026-09-26 |
+| [evidence/](evidence/) | Raw wire captures behind the verification log: one JSON message per line, or for compressed traffic `{received_unix_s, datagram_b64}` per datagram (decode with ADSB-remoter `tools/cue_decode.py`) | captured | 2026-09-26 |
 
 ## Software items and where their code is
 
@@ -49,12 +49,12 @@ The levels are defined in ICD §0. "Evidence" is the status the evidence support
 
 | Message | Schema (ADSB-remoter `schemas/`) | ICD status (Draft B) | Supported by evidence | Evidence |
 |---|---|---|---|---|
-| `cue_heartbeat` | `cue-heartbeat-2.0.0.json` | Draft (2.0.0); 1.1.0 was Verified | Draft | CR-5; 1.1.0: [2026-09-26 12:34 capture](evidence/cue_traffic_20260926T1234Z.jsonl) |
-| `cue_snapshot_begin` / `_end` | `cue-snapshot-begin-2.0.0.json`, `cue-snapshot-end-2.0.0.json` | Draft (2.0.0); 1.1.0 was Verified | Draft | same |
-| `track_cue` | `track-cue-2.0.0.json` | Draft (2.0.0); 1.1.0 was Verified | Draft | same |
-| `track_cue_withdrawal` | `track-cue-withdrawal-2.0.0.json` | Draft (2.0.0) | Draft (never seen live) | — |
-| CT configuration | `cue-config-2.0.0.json` | Draft | Draft | — |
-| Compression dictionary 1 | `dictionaries/cue-dictionary-1.bin` | Draft | Draft | — |
+| `cue_heartbeat` | `cue-heartbeat-2.0.0.json` | Verified (2.0.0) | Verified | [2026-09-26 15:23 wire capture](evidence/cue_traffic_20260926T1523Z_wire.jsonl) |
+| `cue_snapshot_begin` / `_end` | `cue-snapshot-begin-2.0.0.json`, `cue-snapshot-end-2.0.0.json` | Verified (2.0.0) | Verified | same |
+| `track_cue` | `track-cue-2.0.0.json` | Verified (2.0.0) | Verified | same |
+| `track_cue_withdrawal` | `track-cue-withdrawal-2.0.0.json` | Implemented | Implemented (never seen live) | — |
+| CT configuration | `cue-config-2.0.0.json` | Implemented | Implemented | — |
+| Compression dictionary 1 | `dictionaries/cue-dictionary-1.bin` (`ca649af0…`) | Released | In use, Verified live | same |
 | All ICD §3 messages | — | Proposed | Proposed | — |
 
 ## Conventions
@@ -65,7 +65,7 @@ The levels are defined in ICD §0. "Evidence" is the status the evidence support
   2. Once the owner accepts it, edit the document on a branch, and mark the CR **Done** in the same commit.
   3. Merge to `main`.
 - **Fixes that change no meaning** (typos, links) can go straight in.
-- **Evidence files:** `evidence/<stream>_<UTC timestamp>.jsonl`, one message per line, exactly as received. Log each capture in [Verification_Log.md](Verification_Log.md).
+- **Evidence files:** `evidence/<stream>_<UTC timestamp>.jsonl`, exactly as received. Plain traffic is one JSON message per line. Compressed traffic is kept as wire bytes (`_wire.jsonl`: `received_unix_s` and `datagram_b64` per datagram), because the decoded form is reproducible from them. Log each capture in [Verification_Log.md](Verification_Log.md).
 - **As-built:** update [As_Built.md](As_Built.md) in the same change as any deployment change.
 
 ## Shared data with more than one copy (see CR-7)

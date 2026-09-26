@@ -26,12 +26,12 @@ Every message carries one development status:
 
 | Message | Producer → Consumers | Status | Schema |
 |---|---|---|---|
-| `cue_heartbeat` | CT → RM, AM | **Draft** at 2.0.0 (1.1.0 was Verified 2026-09-26, CR-3) | `cue-heartbeat-2.0.0.json` |
-| `cue_snapshot_begin` / `cue_snapshot_end` | CT → RM | **Draft** at 2.0.0 (1.1.0 was Verified 2026-09-26) | `cue-snapshot-begin-2.0.0.json`, `cue-snapshot-end-2.0.0.json` |
-| `track_cue` | CT → RM, TR, RD | **Draft** at 2.0.0 (1.1.0 was Verified 2026-09-26, one aircraft) | `track-cue-2.0.0.json` |
-| `track_cue_withdrawal` | CT → RM, TR, RD | **Draft** at 2.0.0 (1.1.0 Implemented; never seen live) | `track-cue-withdrawal-2.0.0.json` |
-| CT config file (not a message) | file → CT | **Draft** at 2.0.0 | `cue-config-2.0.0.json` |
-| CT compression dictionary (not a message) | file → CT and every consumer | **Draft**: id 1 (§1.3) | `dictionaries/cue-dictionary-1.bin` |
+| `cue_heartbeat` | CT → RM, AM | **Verified** at 2.0.0 (live capture 2026-09-26 15:23–15:38 UTC, 90 messages, 0 errors) | `cue-heartbeat-2.0.0.json` |
+| `cue_snapshot_begin` / `cue_snapshot_end` | CT → RM | **Verified** at 2.0.0 (15 pairs, all consistent, 14 carrying cues) | `cue-snapshot-begin-2.0.0.json`, `cue-snapshot-end-2.0.0.json` |
+| `track_cue` | CT → RM, TR, RD | **Verified** at 2.0.0 (103 cues, 11 aircraft, compressed, all within one frame) | `track-cue-2.0.0.json` |
+| `track_cue_withdrawal` | CT → RM, TR, RD | **Implemented** at 2.0.0: schema unit test; not yet seen live | `track-cue-withdrawal-2.0.0.json` |
+| CT config file (not a message) | file → CT | **Implemented** at 2.0.0 (validated at load) | `cue-config-2.0.0.json` |
+| CT compression dictionary (not a message) | file → CT and every consumer | **Released**: id 1, in use and Verified live (§1.3) | `dictionaries/cue-dictionary-1.bin` |
 | `collection_task` | RM → RC | Proposed | §3.1 |
 | `antenna_command` | RM → AC | Proposed | §3.2 |
 | `antenna_state` | AC → RC, RM, RD | Proposed | §3.3 |
@@ -168,7 +168,7 @@ Each datagram carries exactly one message, in one of two forms:
 
 | Id | File | SHA-256 | Built from | Status |
 |---|---|---|---|---|
-| 1 | `cue-dictionary-1.bin` | *recorded at release* | CT 2.0.0 messages, see the file's build record | Draft |
+| 1 | `cue-dictionary-1.bin` | `ca649af0a49ceb14b8610aeec89e55c3e83801e8d7e50d449aeeedac4e5b4cd4` | 1 707 CT 2.0.0 track cues from the 11 SBS test fixtures replayed through the production code, plus one of each other message (`cue-dictionary-1.build.json`) | **Released** 2026-09-26; reproducible (`--check`) |
 
 `239.192.0.0/14` is the organization-local multicast scope, the correct choice for a private LAN. Two points to check in CT:
 
@@ -1167,7 +1167,7 @@ The Activity Manager's `system_config.json` should generate or point to this fil
 | # | Item | Status |
 |---|---|---|
 | CT-1 … CT-10 | The 1.1.0 release items (Draft A of this ICD) | Closed: released in 1.1.0, which was Verified live on 2026-09-26 (CR-3). CT-9, the datagram size, is superseded by fit-to-frame (§2.0) and compression (§1.3) |
-| CT-11 | 2.0.0 released and Verified: implementation, then a live capture meeting the WI-7 criteria, then the per-opportunity size recorded | Open |
+| CT-11 | 2.0.0 released and Verified: implementation, then a live capture meeting the WI-7 criteria, then the per-opportunity size recorded | **Closed** 2026-09-26: live capture of 223 datagrams, 0 schema failures, 0 gaps, none over one frame; about 57 B per opportunity compressed (cue with 0 opportunities 226 B, with 8 about 690 B) |
 | CT-12 | Stale tracks are withdrawn only when purged | Open, CR-6 |
 | CT-13 | Revision comparison across CT restarts | Open, CR-4 |
 
