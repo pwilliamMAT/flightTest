@@ -1,5 +1,7 @@
 # Interface Control Document — Messages
 
+> **Master copy:** flightTest `main`, `docs/system/`, since 2026-09-26. Change it through git, following the change process in [README.md](README.md).
+
 **System:** Apple Hill passive bistatic radar testbed. Companion to [System_Architecture.md](System_Architecture.md).
 **Revision:** Draft A, 2026-09-25. For review.
 **Focus of this revision:** the ADSB Cue Tasker (CT) messages, with the goal of freezing them as soon as possible. All other messages are first-draft proposals.
