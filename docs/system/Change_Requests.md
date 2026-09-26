@@ -11,11 +11,11 @@ The owner (Leif) decides each one. Accepted changes are made in the controlled d
 
 | CR | Title | Kind | Affects | Status |
 |---|---|---|---|---|
-| CR-1 | Cap `track_cue` opportunities to the top N by peak SNR | Deviation | ICD §2.3, §2.5; `cue-config` schema | Open (to be replaced by fit-to-frame, CR-5) |
+| CR-1 | Cap `track_cue` opportunities to the top N by peak SNR | Deviation | ICD §2.3, §2.5; `cue-config` schema | **Done** (superseded by fit-to-frame, ICD Draft B §2.0) |
 | CR-2 | MATLAB consumers need a Java multicast socket | Proposal | ICD §1.3; Architecture Deployment Policy rule 5, open item 4 | Open (deployability verified) |
-| CR-3 | Mark CT messages Verified from the 2026-09-26 capture | Proposal | ICD §0 status table | Open |
+| CR-3 | Mark CT messages Verified from the 2026-09-26 capture | Proposal | ICD §0 status table | **Done** (ICD Draft B §0 records 1.1.0 as Verified) |
 | CR-4 | Revision comparison across CT restarts | Clarification | ICD §2.0 receiver rule | Open |
-| CR-5 | Encoding of the CT cue stream | Proposal | ICD §1.2, §1.3, §2, §3.1 | **Accepted**; ICD edit next |
+| CR-5 | Encoding of the CT cue stream | Proposal | ICD §1.2, §1.3, §2, §3.1 | **Done** (ICD Draft B, 2026-09-26) |
 | CR-6 | Stale tracks are not withdrawn until purged | Clarification | ICD §2.0, §2.4 | Open |
 | CR-7 | Single controlled source for observer site geometry | Proposal | Architecture (CT inputs); SiteGeometry.md | Open |
 | CR-8 | As-built corrections to System_Architecture.md | Correction | Architecture: RF Collection Desktop, Raspberry Pi, Time Source, CT, open item 9 | Open |
@@ -78,6 +78,7 @@ See [analysis/Cue_Traffic_Encoding.md](analysis/Cue_Traffic_Encoding.md).
   - Message version 2.0.0, with epoch-millisecond times, rounding, `models` once per cue, and the derivable fields removed.
   - Fit-to-frame opportunity shedding.
   - Measured: a median `track_cue` of 536 B, against 7 962 B today.
+  - **Done 2026-09-26:** ICD Draft B, §1.2 (millisecond times, resolutions, MATLAB shape rules), §1.3 (framing, dictionary registry), §2 (CT 2.0.0) and §3 (times, `cue_ref`).
   - **Design approved 2026-09-26** (§6 of the design: 2.0.0; millisecond times in every message; `summary` off by default; fit-to-frame up to 8; dictionary in `schemas/dictionaries/`). Framing is chosen by the sender at startup and detected by receivers per datagram. Next: the ICD edit, then the implementation.
 
 ### CR-6: Stale tracks are not withdrawn until purged

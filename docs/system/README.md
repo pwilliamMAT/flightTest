@@ -14,7 +14,7 @@ This folder is the home of the system engineering material for the testbed: the 
 | Document | What it is | Origin | Revision |
 |---|---|---|---|
 | [System_Architecture.md](System_Architecture.md) | Functional items, hardware, networks, allocation, System Composer mapping, decisions and open items | received | 2026-09-25 |
-| [ICD_Messages.md](ICD_Messages.md) | Message contract: envelope, transport and ports, CT messages (§2, being frozen), proposed messages for other items (§3), status levels (§0) | received | Draft A, 2026-09-25 |
+| [ICD_Messages.md](ICD_Messages.md) | Message contract: envelope, conventions (millisecond times, resolutions, MATLAB shape rules), transport and framing, CT messages 2.0.0 (§2), proposed messages for other items (§3), status levels (§0) | received, then edited here | Draft B, 2026-09-26 |
 | [SiteGeometry.md](SiteGeometry.md) | Receive-site location, antenna layout and pointing, local DTV transmitter table and bearings | received | 2026-09-24 |
 | [20_DTV_direct_path_input.csv](20_DTV_direct_path_input.csv) | FCC-derived DTV emitter table (call sign, channel, frequency, location, EIRP) | received | — |
 | [CT_1.1.0_handoff.md](CT_1.1.0_handoff.md) | Work brief that took the CT messages to schema 1.1.0 | received | 2026-09-25 |
@@ -47,13 +47,14 @@ Details, including hosts, addresses, services and ports, are in [As_Built.md](As
 
 The levels are defined in ICD §0. "Evidence" is the status the evidence supports; the ICD column changes only when the owner updates the ICD.
 
-| Message | Schema (ADSB-remoter `schemas/`) | ICD status (Draft A) | Supported by evidence | Evidence |
+| Message | Schema (ADSB-remoter `schemas/`) | ICD status (Draft B) | Supported by evidence | Evidence |
 |---|---|---|---|---|
-| `cue_heartbeat` | `cue-heartbeat-1.1.0.json` | Verified (at 1.0.0) | **Verified** at 1.1.0 | [2026-09-26 12:34 capture](evidence/cue_traffic_20260926T1234Z.jsonl), CR-3 |
-| `cue_snapshot_begin` / `_end` | `cue-snapshot-begin-1.1.0.json`, `cue-snapshot-end-1.1.0.json` | Verified (at 1.0.0) | **Verified** at 1.1.0 | same |
-| `track_cue` | `track-cue-1.1.0.json` | Implemented | **Verified** (one aircraft, with the top-3 cap; see CR-1, CR-3) | same |
-| `track_cue_withdrawal` | `track-cue-withdrawal-1.1.0.json` | Implemented | Implemented (not yet seen live) | — |
-| CT configuration | `cue-config-1.1.0.json` (adds `maximum_opportunities_per_cue`) | Implemented at 1.0.0 | Implemented at 1.1.0 (CR-1) | — |
+| `cue_heartbeat` | `cue-heartbeat-2.0.0.json` | Draft (2.0.0); 1.1.0 was Verified | Draft | CR-5; 1.1.0: [2026-09-26 12:34 capture](evidence/cue_traffic_20260926T1234Z.jsonl) |
+| `cue_snapshot_begin` / `_end` | `cue-snapshot-begin-2.0.0.json`, `cue-snapshot-end-2.0.0.json` | Draft (2.0.0); 1.1.0 was Verified | Draft | same |
+| `track_cue` | `track-cue-2.0.0.json` | Draft (2.0.0); 1.1.0 was Verified | Draft | same |
+| `track_cue_withdrawal` | `track-cue-withdrawal-2.0.0.json` | Draft (2.0.0) | Draft (never seen live) | — |
+| CT configuration | `cue-config-2.0.0.json` | Draft | Draft | — |
+| Compression dictionary 1 | `dictionaries/cue-dictionary-1.bin` | Draft | Draft | — |
 | All ICD §3 messages | — | Proposed | Proposed | — |
 
 ## Conventions

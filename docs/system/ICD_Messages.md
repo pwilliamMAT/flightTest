@@ -3,8 +3,8 @@
 > **Master copy:** flightTest `main`, `docs/system/`, since 2026-09-26. Change it through git, following the change process in [README.md](README.md).
 
 **System:** Apple Hill passive bistatic radar testbed. Companion to [System_Architecture.md](System_Architecture.md).
-**Revision:** Draft A, 2026-09-25. For review.
-**Focus of this revision:** the ADSB Cue Tasker (CT) messages, with the goal of freezing them as soon as possible. All other messages are first-draft proposals.
+**Revision:** Draft B, 2026-09-26: CT messages 2.0.0 (CR-5; changes in §2.7). Draft A was 2026-09-25.
+**Focus:** the ADSB Cue Tasker (CT) messages, now at 2.0.0 and heading for Frozen. All other messages are first-draft proposals; they adopt the same conventions (§1), including epoch-millisecond times.
 
 This ICD **replaces** the Interface Catalog and the proposed message envelope in System_Architecture.md. CT already has a working, schema-validated envelope, so the whole system adopts it instead of the camelCase envelope proposed there (see §1).
 
@@ -26,11 +26,12 @@ Every message carries one development status:
 
 | Message | Producer → Consumers | Status | Schema |
 |---|---|---|---|
-| `cue_heartbeat` | CT → RM, AM | **Verified** (28 live, 0 errors, capture 2026-09-08) | `cue-heartbeat-1.0.0.json` |
-| `cue_snapshot_begin` / `cue_snapshot_end` | CT → RM | **Verified** (5 pairs live, 0 errors) | `cue-snapshot-boundary-1.0.0.json` (current); in 1.1.0, `cue-snapshot-begin-1.1.0.json` and `cue-snapshot-end-1.1.0.json` |
-| `track_cue` | CT → RM, TR, RD | **Implemented**. Unit-tested against the schema (`test_cue.py`). A replay test (`test_replay_cueing.py`) also runs recorded ADS-B data through the prediction code and validates the resulting cue, but with **one observer** only. **Not yet seen live** (see CT-1). | `track-cue-1.0.0.json` |
-| `track_cue_withdrawal` | CT → RM, TR, RD | **Implemented**, but no schema unit test and not seen live. | `track-cue-withdrawal-1.0.0.json` |
-| CT config file (not a message) | file → CT | **Implemented**. Validated at load time. | `cue-config-1.0.0.json` |
+| `cue_heartbeat` | CT → RM, AM | **Draft** at 2.0.0 (1.1.0 was Verified 2026-09-26, CR-3) | `cue-heartbeat-2.0.0.json` |
+| `cue_snapshot_begin` / `cue_snapshot_end` | CT → RM | **Draft** at 2.0.0 (1.1.0 was Verified 2026-09-26) | `cue-snapshot-begin-2.0.0.json`, `cue-snapshot-end-2.0.0.json` |
+| `track_cue` | CT → RM, TR, RD | **Draft** at 2.0.0 (1.1.0 was Verified 2026-09-26, one aircraft) | `track-cue-2.0.0.json` |
+| `track_cue_withdrawal` | CT → RM, TR, RD | **Draft** at 2.0.0 (1.1.0 Implemented; never seen live) | `track-cue-withdrawal-2.0.0.json` |
+| CT config file (not a message) | file → CT | **Draft** at 2.0.0 | `cue-config-2.0.0.json` |
+| CT compression dictionary (not a message) | file → CT and every consumer | **Draft**: id 1 (§1.3) | `dictionaries/cue-dictionary-1.bin` |
 | `collection_task` | RM → RC | Proposed | §3.1 |
 | `antenna_command` | RM → AC | Proposed | §3.2 |
 | `antenna_state` | AC → RC, RM, RD | Proposed | §3.3 |
@@ -43,7 +44,7 @@ Every message carries one development status:
 | `health_status` | all (except CT) → AM | Proposed | §3.10 |
 | ~~`truth_track`~~ | — | **Dropped** (proposed). TR and RD consume `track_cue` directly. | — |
 
-Schema files for CT live in the ADSB-Remoter repository under `schemas/`. The rest will live in a shared `schemas/` folder (location **TBD**) using the same naming convention: `<message-name>-<version>.json`.
+Schema files and compression dictionaries for CT live in the ADSB-Remoter repository, under `schemas/` and `schemas/dictionaries/`. Superseded versions are in `schemas/archive/`. The rest will live in a shared `schemas/` folder (location **TBD**) using the same naming convention: `<message-name>-<version>.json`.
 
 ---
 
@@ -61,7 +62,7 @@ Every message is one JSON object whose top level starts with these fields. The e
 | `source` | string (const per producer) | Application name, e.g. `ADSBConsoleApp`. |
 | `source_instance_id` | string | Unique per process start. A new value tells receivers the producer restarted and its sequence numbering has reset. |
 | `sequence_number` | integer ≥ 1 | Increases by one per message from each `source_instance_id`, across all message types. Receivers use it to detect gaps and reordering. |
-| `generated_utc` | string, ISO-8601 UTC | Millisecond precision with a `Z` suffix, e.g. `2026-09-08T19:36:09.079Z`. |
+| `generated_utc_ms` | integer ≥ 0 | Milliseconds since 1970-01-01T00:00:00Z (§1.2). |
 
 Proposed shared schema file `envelope-1.0.0.json`, which non-CT schemas `$ref`:
 
@@ -71,7 +72,7 @@ Proposed shared schema file `envelope-1.0.0.json`, which non-CT schemas `$ref`:
   "$id": "https://passive-radar.local/schemas/envelope-1.0.0.json",
   "type": "object",
   "required": ["schema_version", "message_type", "message_id", "source",
-               "source_instance_id", "sequence_number", "generated_utc"],
+               "source_instance_id", "sequence_number", "generated_utc_ms"],
   "properties": {
     "schema_version":     { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
     "message_type":       { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
@@ -79,7 +80,7 @@ Proposed shared schema file `envelope-1.0.0.json`, which non-CT schemas `$ref`:
     "source":             { "type": "string", "minLength": 1 },
     "source_instance_id": { "type": "string", "minLength": 1 },
     "sequence_number":    { "type": "integer", "minimum": 1 },
-    "generated_utc":      { "type": "string", "format": "date-time" }
+    "generated_utc_ms":   { "type": "integer", "minimum": 0 }
   }
 }
 ```
@@ -89,8 +90,30 @@ CT's schemas repeat these fields inline rather than using `$ref`. That is fine. 
 ### 1.2 Encoding and naming
 
 - UTF-8 JSON. NaN and Infinity are not allowed (CT enforces this with `allow_nan=False`); a missing value is `null`.
-- Field names are snake_case, and units go in the name: `_m`, `_mps`, `_hz`, `_db`, `_dbsm`, `_deg`, `_s`, `_utc`.
-- All times are UTC. Angles are degrees true unless the name says otherwise. Positions use ENU in metres, relative to a named `reference_origin_id`.
+- Field names are snake_case, and units go in the name: `_m`, `_mps`, `_hz`, `_hzps`, `_db`, `_dbsm`, `_deg`, `_s`, `_utc_ms`.
+- **Times** are integers in fields named `*_utc_ms`: milliseconds since 1970-01-01T00:00:00Z. This applies to every message in this ICD.
+  - Reason: MATLAB reads them as numbers, and one vectorised `datetime(t/1000, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC')` replaces per-field string parsing. A double holds them exactly to the millisecond.
+  - Angles are degrees true unless the name says otherwise. Positions use ENU in metres, relative to a named `reference_origin_id`.
+- **Resolution.** Producers round measured values to the resolution for their unit, to the nearest value. A producer may send finer values only where this ICD says so.
+
+  | Unit (field suffix) | Resolution |
+  |---|---|
+  | `latitude_deg`, `longitude_deg` | 1e-6° (about 0.1 m) |
+  | other `_deg` | 0.1° |
+  | `_m`, `_m_msl` | 1 m (sent as an integer) |
+  | `_mps` | 0.1 m/s |
+  | `_hz` | 0.1 Hz |
+  | `_hzps` | 0.001 Hz/s |
+  | `_db`, `_dbsm` | 0.1 dB |
+  | `_s` | 0.1 s |
+  | `_utc_ms` | 1 ms (integer) |
+
+- **Fixed shapes, for MATLAB `jsondecode` and compiled apps.** These rules make `jsondecode` return the same struct types every time:
+  - Within one producer run (one `source_instance_id`), a message type always has the same shape: every property is present in every message. A startup option may add an optional property (for example CT's debug-only `summary`), but then it is present in every message of that run.
+  - No field is `null` in some messages and an object or array in others.
+  - Arrays of objects always have identical keys, so they decode to struct arrays, not cell arrays.
+  - Measured quantities are numbers. Enumerations are strings.
+  - Field names are valid MATLAB identifiers of at most 63 characters.
 - Every schema sets `additionalProperties: false`. Adding a field therefore requires a schema version bump; this is deliberate.
 - Versioning: a patch bump for documentation-only changes, a minor bump for new optional fields or newly-typed sub-objects, a major bump for anything that changes a field's meaning.
 
@@ -98,7 +121,7 @@ CT's schemas repeat these fields inline rather than using `$ref`. That is fine. 
 
 | Stream | Transport | Why |
 |---|---|---|
-| CT cue stream (all four CT message types) | **UDP**, one message per datagram | CT is built for a lossy link. Periodic full snapshots, per-track revisions and sequence numbers let a receiver recover, so a lost datagram is repaired within one snapshot interval (60 s). This is a deliberate exception to "TCP for anything that must arrive". |
+| CT cue stream (all four CT message types) | **UDP**, one message per datagram, plain or compressed (see Framing below) | CT is built for a lossy link. Periodic full snapshots, per-track revisions and sequence numbers let a receiver recover, so a lost datagram is repaired within one snapshot interval (60 s). This is a deliberate exception to "TCP for anything that must arrive". |
 | Tasking, captures, detections, tracks, calibration | TCP, newline-delimited JSON | Must arrive, and has no periodic refresh. |
 | `antenna_state`, `health_status` | UDP | Periodic and loss-tolerant. |
 | Antenna nodes | ESP-NOW (then USB serial to AC) | See §3.4. |
@@ -120,7 +143,32 @@ CT's schemas repeat these fields inline rather than using `$ref`. That is fine. 
 | 31993 | TCP | CM | `capture_record` (calibration captures) |
 | 31994 | TCP | host agents | launch / stop |
 
-CT currently defaults to `127.0.0.1:31001`. Moving it to the multicast group means setting `udp_output.destination_address` to `239.192.10.1` and `destination_port` to `31986` in the config file.
+CT's example and deployed configurations send to `239.192.10.1:31986`. For bench work, CT can also send unicast (for example `127.0.0.1:31001`).
+
+#### Framing of the CT cue stream (since 2.0.0)
+
+Each datagram carries exactly one message, in one of two forms:
+
+| First byte | Contents |
+|---|---|
+| `{` (0x7B) | **Plain:** the UTF-8 JSON message. |
+| `0xDC` | **Compressed:** byte 1 is the dictionary id (1–255). Bytes 2 onward are raw deflate (RFC 1951; no zlib or gzip header) of the UTF-8 JSON message, compressed with that dictionary as the preset dictionary. |
+
+- **The producer chooses the framing once, at startup,** with CT's `udp_output.encoding` (`json` or `deflate_dictionary`) and `udp_output.dictionary_id`, or a command-line override. Every datagram of a run uses the same framing. Deployed CT uses `deflate_dictionary`; plain JSON is for development and troubleshooting.
+- **Receivers choose per datagram,** from the first byte, and need no configuration. They count datagrams with an unknown first byte or dictionary id, and drop them. Schema validation always applies to the decoded JSON.
+- **One Ethernet frame.** CT's `maximum_datagram_bytes` defaults to 1472, the UDP payload of one 1500-byte Ethernet frame, so no datagram is fragmented. CT fits each `track_cue` to that size (§2.0).
+- **Decoding in MATLAB:** use `java.util.zip.Inflater(true)` with `setDictionary` before any input, fed through an `InflaterOutputStream` into a `ByteArrayOutputStream`. This is plain Java 8, and it works in compiled apps (see `analysis/deployability/`).
+
+**Compression dictionaries.** A dictionary is a controlled artifact, like a schema:
+
+- It lives in ADSB-Remoter `schemas/dictionaries/cue-dictionary-<id>.bin`, with a `.sha256` file, and is at most 32 768 bytes.
+- It is built reproducibly by `tools/build_cue_dictionary.py` from real 2.0.0 messages.
+- It is immutable once released; a change gets a new id through a CR.
+- Every consumer ships all released dictionaries, and checks the SHA-256 before use.
+
+| Id | File | SHA-256 | Built from | Status |
+|---|---|---|---|---|
+| 1 | `cue-dictionary-1.bin` | *recorded at release* | CT 2.0.0 messages, see the file's build record | Draft |
 
 `239.192.0.0/14` is the organization-local multicast scope, the correct choice for a private LAN. Two points to check in CT:
 
@@ -133,476 +181,1013 @@ Each consumer binds port 31986 with `SO_REUSEADDR` and joins the group, so sever
 
 ## 2. ADSB Cue Tasker (CT) messages
 
-Producer: `ADSBConsoleApp` (repository ADSB-Remoter), `src/adsb_console/cue.py`. It publishes only when `udp_output.enabled` is true.
+Producer: `ADSBConsoleApp` (repository ADSB-Remoter), `src/adsb_console/cue.py`. It publishes only when `udp_output.enabled` is true. Every CT message carries `schema_version` `"2.0.0"`; all CT schemas move together because they share one `SCHEMA_VERSION`.
 
-### 2.0 CT timing (from `examples/passive-radar-cueing.json`)
+### 2.0 CT timing and receiver rules
 
 | Message | Trigger | Nominal rate |
 |---|---|---|
 | `cue_heartbeat` | Timer, `heartbeat_interval_s` | Every **10 s** |
-| `cue_snapshot_begin`, then `track_cue` × N, then `cue_snapshot_end` | Timer, `snapshot_interval_s`. A full refresh of every track that has a valid prediction. | Every **60 s**. N = number of predicted tracks (116 cue-eligible in the 2026-09-08 capture). |
-| `track_cue` (event) | A new prediction revision. `update_reason` ∈ {initial_track, track_maneuver, prediction_error, periodic_refresh, observer_configuration_change, emitter_configuration_change}. Debounced by `regeneration_debounce_s`. | At most 1 per track per **1 s** (debounce). Refreshed at least every `maximum_prediction_age_s` = **30 s** per track. |
+| `cue_snapshot_begin`, then `track_cue` × N, then `cue_snapshot_end` | Timer, `snapshot_interval_s`. A full refresh of every track that has a valid prediction | Every **60 s**. N = number of cue-eligible tracks |
+| `track_cue` (event) | A new prediction revision. `update_reason` ∈ {initial_track, track_maneuver, prediction_error, periodic_refresh, observer_configuration_change, emitter_configuration_change}. Debounced by `regeneration_debounce_s` | At most 1 per track per **1 s**; refreshed at least every `maximum_prediction_age_s` = **30 s** per track |
 | `track_cue` (operator) | `Shift+Q` in the console with `publication_mode: manual` | On demand |
 | `track_cue_withdrawal` | A track is purged (`reason: "track_purged"`) | Event |
 
-Receiver rule: for each `track_id`, keep the `track_cue` with the highest `prediction.revision`. Ignore stale revisions, and delete the track on a withdrawal whose `withdrawn_prediction_revision` ≥ the revision held. A snapshot with a given `snapshot_id` is complete once `cue_snapshot_end` arrives with `published_track_count` equal to the count received. If some are missing, wait for the next snapshot.
+**Opportunity selection and fit to frame.** A `track_cue` carries only opportunities that the observer can receive, whose emitter is enabled, and that have at least one usable window, strongest peak window SNR first:
 
-### 2.1 `cue_heartbeat` — status: Verified
+1. At most `udp_output.maximum_opportunities_per_cue` of them (default **8**).
+2. If the encoded datagram is larger than `maximum_datagram_bytes` (default 1472), CT drops the lowest-ranked opportunity and encodes again, until it fits.
+3. A cue that doesn't fit even with no opportunities is not sent. It counts as oversize, and the next heartbeat reports `degraded`.
 
-The liveness signal for the cue stream. It also serves as CT's health heartbeat (see CT-4).
+An empty `opportunities` array is valid, and still delivers the track state.
 
-Schema `cue-heartbeat-1.0.0.json` (current, unchanged):
+**Receiver rules:**
+- For each `track_id`, keep the `track_cue` with the highest `prediction.revision`, and ignore stale revisions.
+- Delete the track on a withdrawal whose `withdrawn_prediction_revision` is at least the revision held.
+- A snapshot with a given `snapshot_id` is complete once `cue_snapshot_end` arrives with `published_track_count` equal to the count received. If some are missing, wait for the next snapshot.
 
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://passive-radar.local/schemas/cue-heartbeat-1.0.0.json",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "schema_version", "message_type", "message_id", "source", "source_instance_id",
-    "sequence_number", "generated_utc", "status", "active_tracks",
-    "cue_eligible_tracks", "active_observers", "implemented_observers", "enabled_emitters"
-  ],
-  "properties": {
-    "schema_version": { "const": "1.0.0" },
-    "message_type": { "const": "cue_heartbeat" },
-    "message_id": { "type": "string", "format": "uuid" },
-    "source": { "const": "ADSBConsoleApp" },
-    "source_instance_id": { "type": "string", "minLength": 1 },
-    "sequence_number": { "type": "integer", "minimum": 1 },
-    "generated_utc": { "type": "string", "format": "date-time" },
-    "status": { "enum": ["starting", "running", "degraded", "stopping"] },
-    "active_tracks": { "type": "integer", "minimum": 0 },
-    "cue_eligible_tracks": { "type": "integer", "minimum": 0 },
-    "active_observers": { "type": "integer", "minimum": 0 },
-    "implemented_observers": { "type": "integer", "minimum": 0 },
-    "enabled_emitters": { "type": "integer", "minimum": 0 },
-    "udp_destination": { "type": ["string", "null"] },
-    "last_full_snapshot_utc": { "type": ["string", "null"], "format": "date-time" }
-  }
-}
-```
+### 2.1 `cue_heartbeat`
 
-Review items: CT-5 (`status` is always `"running"`), CT-6 (`implemented_observers` always equals `active_observers`).
+The liveness signal for the cue stream; it also serves as CT's health heartbeat. `status`:
 
-**Decided for `cue-heartbeat-1.1.0` (CT-6):**
-
-- Remove `implemented_observers` from `required` and from `properties`.
-- Set `schema_version` to `"1.1.0"`.
-
-Nothing else changes. CT-5 changes which `status` values CT sends, but not the schema.
-
-### 2.2 `cue_snapshot_begin` / `cue_snapshot_end` — status: Verified
-
-These bracket each 60 s full refresh. `begin` carries `expected_track_count`. `end` carries `published_track_count` and `failed_track_count`.
-
-Schema `cue-snapshot-boundary-1.0.0.json` (current, unchanged):
+| Value | When |
+|---|---|
+| `starting` | The first beat |
+| `degraded` | The dump1090 feed is stale (no SBS for more than `maximum_adsb_report_age_s`), or sends failed or were oversize since the previous beat |
+| `stopping` | The final beat on a clean shutdown |
+| `running` | Otherwise |
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://passive-radar.local/schemas/cue-snapshot-boundary-1.0.0.json",
+  "$id": "https://passive-radar.local/schemas/cue-heartbeat-2.0.0.json",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "message_type", "message_id", "source", "source_instance_id",
-    "sequence_number", "generated_utc", "snapshot_id"
+    "schema_version",
+    "message_type",
+    "message_id",
+    "source",
+    "source_instance_id",
+    "sequence_number",
+    "generated_utc_ms",
+    "status",
+    "active_tracks",
+    "cue_eligible_tracks",
+    "active_observers",
+    "enabled_emitters",
+    "udp_destination",
+    "last_full_snapshot_utc_ms"
   ],
   "properties": {
-    "schema_version": { "const": "1.0.0" },
-    "message_type": { "enum": ["cue_snapshot_begin", "cue_snapshot_end"] },
-    "message_id": { "type": "string", "format": "uuid" },
-    "source": { "const": "ADSBConsoleApp" },
-    "source_instance_id": { "type": "string", "minLength": 1 },
-    "sequence_number": { "type": "integer", "minimum": 1 },
-    "generated_utc": { "type": "string", "format": "date-time" },
-    "snapshot_id": { "type": "string", "minLength": 1 },
-    "expected_track_count": { "type": "integer", "minimum": 0 },
-    "published_track_count": { "type": "integer", "minimum": 0 },
-    "failed_track_count": { "type": "integer", "minimum": 0 }
+    "schema_version": {
+      "const": "2.0.0"
+    },
+    "message_type": {
+      "const": "cue_heartbeat"
+    },
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source": {
+      "const": "ADSBConsoleApp"
+    },
+    "source_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_utc_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "starting",
+        "running",
+        "degraded",
+        "stopping"
+      ]
+    },
+    "active_tracks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cue_eligible_tracks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "active_observers": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "enabled_emitters": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "udp_destination": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_full_snapshot_utc_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    }
   }
 }
 ```
 
-Review item CT-7: the count fields are optional in the schema but required in practice (on `begin` and on `end` respectively).
+### 2.2 `cue_snapshot_begin` / `cue_snapshot_end`
 
-**Decided for 1.1.0 (CT-7):** split `cue-snapshot-boundary` into one schema per message type, matching the rest of CT. Each file allows only one `message_type` value and requires its own counts. CT's output doesn't change. `cue_capture.py` needs no change, because it already picks the schema by `message_type`. Only the file mapping in `test_cue.py` changes. `cue-snapshot-boundary-1.0.0.json` is retired.
-
-`cue-snapshot-begin-1.1.0.json`:
+These bracket each 60 s full refresh. `begin` carries `expected_track_count`; `end` carries `published_track_count` and `failed_track_count`.
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://passive-radar.local/schemas/cue-snapshot-begin-1.1.0.json",
+  "$id": "https://passive-radar.local/schemas/cue-snapshot-begin-2.0.0.json",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "message_type", "message_id", "source", "source_instance_id",
-    "sequence_number", "generated_utc", "snapshot_id", "expected_track_count"
+    "schema_version",
+    "message_type",
+    "message_id",
+    "source",
+    "source_instance_id",
+    "sequence_number",
+    "generated_utc_ms",
+    "snapshot_id",
+    "expected_track_count"
   ],
   "properties": {
-    "schema_version": { "const": "1.1.0" },
-    "message_type": { "const": "cue_snapshot_begin" },
-    "message_id": { "type": "string", "format": "uuid" },
-    "source": { "const": "ADSBConsoleApp" },
-    "source_instance_id": { "type": "string", "minLength": 1 },
-    "sequence_number": { "type": "integer", "minimum": 1 },
-    "generated_utc": { "type": "string", "format": "date-time" },
-    "snapshot_id": { "type": "string", "minLength": 1 },
-    "expected_track_count": { "type": "integer", "minimum": 0 }
+    "schema_version": {
+      "const": "2.0.0"
+    },
+    "message_type": {
+      "const": "cue_snapshot_begin"
+    },
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source": {
+      "const": "ADSBConsoleApp"
+    },
+    "source_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_utc_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_track_count": {
+      "type": "integer",
+      "minimum": 0
+    }
   }
 }
 ```
-
-`cue-snapshot-end-1.1.0.json`:
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://passive-radar.local/schemas/cue-snapshot-end-1.1.0.json",
+  "$id": "https://passive-radar.local/schemas/cue-snapshot-end-2.0.0.json",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "message_type", "message_id", "source", "source_instance_id",
-    "sequence_number", "generated_utc", "snapshot_id",
-    "published_track_count", "failed_track_count"
+    "schema_version",
+    "message_type",
+    "message_id",
+    "source",
+    "source_instance_id",
+    "sequence_number",
+    "generated_utc_ms",
+    "snapshot_id",
+    "published_track_count",
+    "failed_track_count"
   ],
   "properties": {
-    "schema_version": { "const": "1.1.0" },
-    "message_type": { "const": "cue_snapshot_end" },
-    "message_id": { "type": "string", "format": "uuid" },
-    "source": { "const": "ADSBConsoleApp" },
-    "source_instance_id": { "type": "string", "minLength": 1 },
-    "sequence_number": { "type": "integer", "minimum": 1 },
-    "generated_utc": { "type": "string", "format": "date-time" },
-    "snapshot_id": { "type": "string", "minLength": 1 },
-    "published_track_count": { "type": "integer", "minimum": 0 },
-    "failed_track_count": { "type": "integer", "minimum": 0 }
+    "schema_version": {
+      "const": "2.0.0"
+    },
+    "message_type": {
+      "const": "cue_snapshot_end"
+    },
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source": {
+      "const": "ADSBConsoleApp"
+    },
+    "source_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_utc_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "published_track_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failed_track_count": {
+      "type": "integer",
+      "minimum": 0
+    }
   }
 }
 ```
 
-Because `additionalProperties` is false, a begin message carrying end counts (or an end message carrying `expected_track_count`) is now rejected, whereas before it passed silently.
+### 2.3 `track_cue`
 
-### 2.3 `track_cue` — status: Implemented
+The main cue: one aircraft track, with its current state, its prediction, the prediction models (once per cue), and its ranked observation *opportunities*. Each opportunity is one (observer, emitter) pair, with its current predicted geometry and SNR (`current`) and its usable observation windows (`windows`).
 
-The main cue. It carries one aircraft track: its current state, its prediction metadata, and one *opportunity* per (observer, emitter) pair. Each opportunity holds the predicted bistatic geometry, SNR, and usable observation windows.
+- **What is left out, and why:**
+  - **Priority:** RM decides it.
+  - **Recommended antenna azimuth:** RM derives it from the observer geometry.
+  - **Identifiers that can be derived:**
+    - an opportunity is identified by `observer_id` + `emitter_id`;
+    - a window by `start_utc_ms`;
+    - a prediction by `track_id` + `revision`.
+- **Emitter id format:** `dtv:<facility_id>:<rf_channel>:<MHz>`. `carrier_frequency_hz` and `rf_channel` are also given as numbers, so consumers need not parse it.
+- **`summary`:** optional and **off by default**. It is a debugging aid, enabled only at CT startup (`cue_prediction.include_summary` or `--cue-include-summary`). When enabled, it is present in every opportunity of that run (§1.2).
 
-This message corresponds to `ADSBCue` in the architecture. Beam-entry times come from `windows[]`. The architecture's `priority` and `recommended_surv_az_deg` are **not** added to CT: priority is RM's job, and the azimuth can be derived by RM from the observer geometry. Keeping them out of CT helps it freeze sooner.
-
-**Current schema `track-cue-1.0.0.json`:** the top level, `track`, `track.state` and `prediction` are fully typed. These sub-objects are declared only as `"type": "object"`, so they are **not locked down**:
-
-- `state.quality`
-- `prediction.validation`
-- `opportunity.models`
-- `opportunity.current`
-- `opportunity.summary`
-- `opportunity.windows[]`
-- `opportunity.history[]`
-
-That gap is the main thing keeping `track_cue` from being freezable (CT-2).
-
-**Proposed `track-cue-1.1.0.json`** is below, for review. It changes no fields and no meanings. It types the loose sub-objects exactly as `cue.py` already emits them and turns the free-text fields into fixed value lists. Current CT output should therefore validate against it unchanged, apart from the `schema_version` constant. Changes from 1.0.0 are marked `// NEW` (JSON does not allow comments; remove them when creating the file).
-
-```jsonc
+```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://passive-radar.local/schemas/track-cue-1.1.0.json",
+  "$id": "https://passive-radar.local/schemas/track-cue-2.0.0.json",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "message_type", "message_id", "source",
-    "source_instance_id", "sequence_number", "generated_utc",
-    "snapshot_id", "track", "prediction", "opportunities"
+    "schema_version",
+    "message_type",
+    "message_id",
+    "source",
+    "source_instance_id",
+    "sequence_number",
+    "generated_utc_ms",
+    "snapshot_id",
+    "track",
+    "prediction",
+    "models",
+    "opportunities"
   ],
   "properties": {
-    "schema_version": { "const": "1.1.0" },                       // NEW version
-    "message_type": { "const": "track_cue" },
-    "message_id": { "type": "string", "format": "uuid" },
-    "source": { "const": "ADSBConsoleApp" },
-    "source_instance_id": { "type": "string", "minLength": 1 },
-    "sequence_number": { "type": "integer", "minimum": 1 },
-    "generated_utc": { "type": "string", "format": "date-time" },
-    "snapshot_id": { "type": ["string", "null"] },
+    "schema_version": {
+      "const": "2.0.0"
+    },
+    "message_type": {
+      "const": "track_cue"
+    },
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source": {
+      "const": "ADSBConsoleApp"
+    },
+    "source_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_utc_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "snapshot_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "track": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["track_id", "icao", "status", "last_report_utc", "report_age_s", "state"],
+      "required": [
+        "track_id",
+        "icao",
+        "callsign",
+        "status",
+        "last_report_utc_ms",
+        "report_age_s",
+        "state"
+      ],
       "properties": {
-        "track_id": { "type": "string", "minLength": 1 },
-        "icao": { "type": "string", "pattern": "^[0-9A-F]{6}$" },
-        "callsign": { "type": ["string", "null"] },
-        "status": { "enum": ["active", "stale", "purged", "invalid"] },
-        "last_report_utc": { "type": "string", "format": "date-time" },
-        "report_age_s": { "type": "number", "minimum": 0 },
-        "state": { "$ref": "#/$defs/state" }
+        "track_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "icao": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{6}$"
+        },
+        "callsign": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "active",
+            "stale",
+            "purged",
+            "invalid"
+          ]
+        },
+        "last_report_utc_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "report_age_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "state": {
+          "$ref": "#/$defs/state"
+        }
       }
     },
-    "prediction": { "$ref": "#/$defs/prediction" },
-    "opportunities": { "type": "array", "items": { "$ref": "#/$defs/opportunity" } }
+    "prediction": {
+      "$ref": "#/$defs/prediction"
+    },
+    "models": {
+      "$ref": "#/$defs/models"
+    },
+    "opportunities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/opportunity"
+      }
+    }
   },
   "$defs": {
-    "numberOrNull": { "type": ["number", "null"] },
-    "utcOrNull": { "type": ["string", "null"], "format": "date-time" },     // NEW
-    "vector3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "vector3": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
     "state": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "epoch_utc", "reference_frame", "reference_origin_id", "position_enu_m",
-        "velocity_enu_mps", "latitude_deg", "longitude_deg", "altitude_m_msl"
+        "epoch_utc_ms",
+        "reference_frame",
+        "reference_origin_id",
+        "position_enu_m",
+        "velocity_enu_mps",
+        "latitude_deg",
+        "longitude_deg",
+        "altitude_m_msl",
+        "ground_speed_mps",
+        "track_angle_deg",
+        "vertical_rate_mps",
+        "quality"
       ],
       "properties": {
-        "epoch_utc": { "type": "string", "format": "date-time" },
-        "reference_frame": { "const": "ENU" },
-        "reference_origin_id": { "type": "string", "minLength": 1 },
-        "position_enu_m": { "$ref": "#/$defs/vector3" },
-        "velocity_enu_mps": { "$ref": "#/$defs/vector3" },
-        "latitude_deg": { "type": "number", "minimum": -90, "maximum": 90 },
-        "longitude_deg": { "type": "number", "minimum": -180, "maximum": 180 },
-        "altitude_m_msl": { "type": "number" },
-        "ground_speed_mps": { "$ref": "#/$defs/numberOrNull" },
-        "track_angle_deg": { "$ref": "#/$defs/numberOrNull" },
-        "vertical_rate_mps": { "$ref": "#/$defs/numberOrNull" },
-        "quality": { "$ref": "#/$defs/quality" }                             // NEW (was untyped object|null)
+        "epoch_utc_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reference_frame": {
+          "const": "ENU"
+        },
+        "reference_origin_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position_enu_m": {
+          "$ref": "#/$defs/vector3"
+        },
+        "velocity_enu_mps": {
+          "$ref": "#/$defs/vector3"
+        },
+        "latitude_deg": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude_deg": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "altitude_m_msl": {
+          "type": "number"
+        },
+        "ground_speed_mps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "track_angle_deg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_rate_mps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "quality": {
+          "$ref": "#/$defs/quality"
+        }
       }
     },
-    "quality": {                                                             // NEW
+    "quality": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["vertical_rate_assumed", "horizontal_velocity_estimated",
-                   "position_valid", "velocity_valid"],
+      "required": [
+        "vertical_rate_assumed",
+        "horizontal_velocity_estimated",
+        "position_valid",
+        "velocity_valid"
+      ],
       "properties": {
-        "vertical_rate_assumed": { "type": "boolean" },
-        "horizontal_velocity_estimated": { "type": "boolean" },
-        "position_valid": { "type": "boolean" },
-        "velocity_valid": { "type": "boolean" }
+        "vertical_rate_assumed": {
+          "type": "boolean"
+        },
+        "horizontal_velocity_estimated": {
+          "type": "boolean"
+        },
+        "position_valid": {
+          "type": "boolean"
+        },
+        "velocity_valid": {
+          "type": "boolean"
+        }
       }
     },
     "prediction": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "prediction_id", "revision", "created_utc", "valid_until_utc", "horizon_s",
-        "sample_interval_s", "motion_model", "maturity", "update_reason", "validation"
+        "revision",
+        "created_utc_ms",
+        "valid_until_utc_ms",
+        "horizon_s",
+        "sample_interval_s",
+        "motion_model",
+        "maturity",
+        "update_reason",
+        "validation"
       ],
       "properties": {
-        "prediction_id": { "type": "string", "minLength": 1 },
-        "revision": { "type": "integer", "minimum": 1 },
-        "created_utc": { "type": "string", "format": "date-time" },
-        "valid_until_utc": { "type": "string", "format": "date-time" },
-        "horizon_s": { "type": "number", "exclusiveMinimum": 0 },
-        "sample_interval_s": { "type": "number", "exclusiveMinimum": 0 },
-        "motion_model": { "const": "constant_velocity_enu" },
-        "maturity": { "enum": ["initial", "stabilizing", "stable", "invalid"] },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_utc_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_utc_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "horizon_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sample_interval_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "motion_model": {
+          "const": "constant_velocity_enu"
+        },
+        "maturity": {
+          "enum": [
+            "initial",
+            "stabilizing",
+            "stable",
+            "invalid"
+          ]
+        },
         "update_reason": {
           "enum": [
-            "initial_track", "track_maneuver", "prediction_error", "periodic_refresh",
-            "observer_configuration_change", "emitter_configuration_change",
+            "initial_track",
+            "track_maneuver",
+            "prediction_error",
+            "periodic_refresh",
+            "observer_configuration_change",
+            "emitter_configuration_change",
             "application_snapshot"
           ]
         },
-        "validation": { "$ref": "#/$defs/validation" }                       // NEW (was untyped)
+        "validation": {
+          "$ref": "#/$defs/validation"
+        }
       }
     },
-    "validation": {                                                          // NEW
+    "validation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["position_error_m", "position_error_threshold_m",
-                   "velocity_error_mps", "velocity_error_threshold_mps",
-                   "heading_change_deg", "heading_change_threshold_deg"],
+      "required": [
+        "position_error_m",
+        "position_error_threshold_m",
+        "velocity_error_mps",
+        "velocity_error_threshold_mps",
+        "heading_change_deg",
+        "heading_change_threshold_deg"
+      ],
       "properties": {
-        "position_error_m": { "$ref": "#/$defs/numberOrNull" },
-        "position_error_threshold_m": { "$ref": "#/$defs/numberOrNull" },
-        "velocity_error_mps": { "$ref": "#/$defs/numberOrNull" },
-        "velocity_error_threshold_mps": { "$ref": "#/$defs/numberOrNull" },
-        "heading_change_deg": { "$ref": "#/$defs/numberOrNull" },
-        "heading_change_threshold_deg": { "$ref": "#/$defs/numberOrNull" }
+        "position_error_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "position_error_threshold_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "velocity_error_mps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "velocity_error_threshold_mps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "heading_change_deg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "heading_change_threshold_deg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bistatic_range_definition",
+        "doppler_source",
+        "doppler_sign_convention",
+        "snr_model_id",
+        "assumed_rcs_dbsm",
+        "detection_threshold_db"
+      ],
+      "properties": {
+        "bistatic_range_definition": {
+          "const": "tx_target_plus_target_rx_minus_tx_rx"
+        },
+        "doppler_source": {
+          "const": "analytic_derivative_of_bistatic_range"
+        },
+        "doppler_sign_convention": {
+          "const": "positive_for_decreasing_bistatic_path"
+        },
+        "snr_model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assumed_rcs_dbsm": {
+          "type": "number"
+        },
+        "detection_threshold_db": {
+          "type": "number"
+        }
       }
     },
     "opportunity": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "opportunity_id", "observer_id", "observer_name", "emitter_id",
-        "transmitter_site_id", "carrier_frequency_hz", "emitter_enabled",
-        "observer_can_receive", "models", "current", "summary", "windows", "history"
+        "observer_id",
+        "emitter_id",
+        "carrier_frequency_hz",
+        "rf_channel",
+        "current",
+        "windows"
       ],
       "properties": {
-        "opportunity_id": { "type": "string", "minLength": 1 },
-        "observer_id": { "type": "string", "minLength": 1 },
-        "observer_name": { "type": "string", "minLength": 1 },
-        "emitter_id": { "type": "string", "minLength": 1 },
-        "transmitter_site_id": { "type": "string", "minLength": 1 },
-        "carrier_frequency_hz": { "type": "number", "exclusiveMinimum": 0 },
-        "rf_channel": { "type": ["integer", "null"], "minimum": 2, "maximum": 69 },  // NEW: CT-8 decided (int)
-        "emitter_enabled": { "type": "boolean" },
-        "observer_can_receive": { "type": "boolean" },
-        "models": { "$ref": "#/$defs/models" },                              // NEW (was untyped)
-        "current": { "oneOf": [ { "$ref": "#/$defs/sample" }, { "type": "null" } ] },  // NEW
-        "summary": { "$ref": "#/$defs/summary" },                            // NEW (was untyped)
-        "windows": { "type": "array", "items": { "$ref": "#/$defs/window" } },          // NEW
-        "history": { "type": ["array", "null"], "items": { "$ref": "#/$defs/sample" } } // NEW
+        "observer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "emitter_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "carrier_frequency_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rf_channel": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 69
+        },
+        "current": {
+          "$ref": "#/$defs/sample"
+        },
+        "windows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/window"
+          }
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        }
       }
     },
-    "models": {                                                              // NEW
+    "sample": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["bistatic_range_definition", "doppler_source", "doppler_sign_convention",
-                   "snr_model_id", "assumed_rcs_dbsm", "detection_threshold_db"],
+      "required": [
+        "time_offset_s",
+        "sample_utc_ms",
+        "bistatic_range_m",
+        "bistatic_range_rate_mps",
+        "bistatic_doppler_hz",
+        "predicted_bistatic_snr_db",
+        "geometrically_visible",
+        "rf_available",
+        "within_range_limits",
+        "within_doppler_limits",
+        "above_snr_threshold",
+        "usable"
+      ],
       "properties": {
-        "bistatic_range_definition": { "const": "tx_target_plus_target_rx_minus_tx_rx" },
-        "doppler_source": { "const": "analytic_derivative_of_bistatic_range" },
-        "doppler_sign_convention": { "const": "positive_for_decreasing_bistatic_path" },
-        "snr_model_id": { "type": "string", "minLength": 1 },
-        "assumed_rcs_dbsm": { "type": "number" },
-        "detection_threshold_db": { "type": "number" }
+        "time_offset_s": {
+          "type": "number"
+        },
+        "sample_utc_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bistatic_range_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bistatic_range_rate_mps": {
+          "type": "number"
+        },
+        "bistatic_doppler_hz": {
+          "type": "number"
+        },
+        "predicted_bistatic_snr_db": {
+          "type": "number"
+        },
+        "geometrically_visible": {
+          "type": "boolean"
+        },
+        "rf_available": {
+          "type": "boolean"
+        },
+        "within_range_limits": {
+          "type": "boolean"
+        },
+        "within_doppler_limits": {
+          "type": "boolean"
+        },
+        "above_snr_threshold": {
+          "type": "boolean"
+        },
+        "usable": {
+          "type": "boolean"
+        }
       }
     },
-    "sample": {                                                              // NEW
+    "window": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["time_offset_s", "sample_utc", "bistatic_range_m", "bistatic_range_rate_mps",
-                   "bistatic_doppler_hz", "predicted_bistatic_snr_db", "geometrically_visible",
-                   "rf_available", "within_range_limits", "within_doppler_limits",
-                   "above_snr_threshold", "usable"],
+      "required": [
+        "start_utc_ms",
+        "end_utc_ms",
+        "duration_s",
+        "entry_reason",
+        "exit_reason",
+        "min_bistatic_range_m",
+        "max_bistatic_range_m",
+        "min_bistatic_range_rate_mps",
+        "max_bistatic_range_rate_mps",
+        "min_bistatic_doppler_hz",
+        "max_bistatic_doppler_hz",
+        "maximum_abs_doppler_rate_hzps",
+        "min_snr_db",
+        "mean_snr_db",
+        "max_snr_db",
+        "peak_snr_utc_ms"
+      ],
       "properties": {
-        "time_offset_s": { "type": "number" },
-        "sample_utc": { "type": "string", "format": "date-time" },
-        "bistatic_range_m": { "type": "number", "minimum": 0 },
-        "bistatic_range_rate_mps": { "type": "number" },
-        "bistatic_doppler_hz": { "type": "number" },
-        "predicted_bistatic_snr_db": { "type": "number" },
-        "geometrically_visible": { "type": "boolean" },
-        "rf_available": { "type": "boolean" },
-        "within_range_limits": { "type": "boolean" },
-        "within_doppler_limits": { "type": "boolean" },
-        "above_snr_threshold": { "type": "boolean" },
-        "usable": { "type": "boolean" }
+        "start_utc_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_utc_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duration_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "entry_reason": {
+          "enum": [
+            "prediction_start_inside_usable",
+            "prediction_horizon",
+            "geometric_visibility",
+            "rf_availability",
+            "bistatic_range_limit",
+            "doppler_limit",
+            "snr_threshold",
+            "state_transition"
+          ]
+        },
+        "exit_reason": {
+          "enum": [
+            "prediction_start_inside_usable",
+            "prediction_horizon",
+            "geometric_visibility",
+            "rf_availability",
+            "bistatic_range_limit",
+            "doppler_limit",
+            "snr_threshold",
+            "state_transition"
+          ]
+        },
+        "min_bistatic_range_m": {
+          "type": "number"
+        },
+        "max_bistatic_range_m": {
+          "type": "number"
+        },
+        "min_bistatic_range_rate_mps": {
+          "type": "number"
+        },
+        "max_bistatic_range_rate_mps": {
+          "type": "number"
+        },
+        "min_bistatic_doppler_hz": {
+          "type": "number"
+        },
+        "max_bistatic_doppler_hz": {
+          "type": "number"
+        },
+        "maximum_abs_doppler_rate_hzps": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "min_snr_db": {
+          "type": "number"
+        },
+        "mean_snr_db": {
+          "type": "number"
+        },
+        "max_snr_db": {
+          "type": "number"
+        },
+        "peak_snr_utc_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
-    "summary": {                                                             // NEW
+    "summary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["has_usable_window", "next_window_start_utc", "next_window_end_utc",
-                   "total_usable_duration_s", "maximum_snr_db", "maximum_snr_utc",
-                   "minimum_bistatic_range_m", "maximum_bistatic_range_m",
-                   "minimum_bistatic_doppler_hz", "maximum_bistatic_doppler_hz"],
+      "required": [
+        "has_usable_window",
+        "next_window_start_utc_ms",
+        "next_window_end_utc_ms",
+        "total_usable_duration_s",
+        "maximum_snr_db",
+        "maximum_snr_utc_ms",
+        "minimum_bistatic_range_m",
+        "maximum_bistatic_range_m",
+        "minimum_bistatic_doppler_hz",
+        "maximum_bistatic_doppler_hz"
+      ],
       "properties": {
-        "has_usable_window": { "type": "boolean" },
-        "next_window_start_utc": { "$ref": "#/$defs/utcOrNull" },
-        "next_window_end_utc": { "$ref": "#/$defs/utcOrNull" },
-        "total_usable_duration_s": { "type": "number", "minimum": 0 },
-        "maximum_snr_db": { "$ref": "#/$defs/numberOrNull" },
-        "maximum_snr_utc": { "$ref": "#/$defs/utcOrNull" },
-        "minimum_bistatic_range_m": { "$ref": "#/$defs/numberOrNull" },
-        "maximum_bistatic_range_m": { "$ref": "#/$defs/numberOrNull" },
-        "minimum_bistatic_doppler_hz": { "$ref": "#/$defs/numberOrNull" },
-        "maximum_bistatic_doppler_hz": { "$ref": "#/$defs/numberOrNull" }
-      }
-    },
-    "windowReason": {                                                        // NEW (values from prediction.py)
-      "enum": ["prediction_start_inside_usable", "prediction_horizon", "geometric_visibility",
-               "rf_availability", "bistatic_range_limit", "doppler_limit", "snr_threshold",
-               "state_transition"]
-    },
-    "window": {                                                              // NEW
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["window_id", "start_utc", "end_utc", "duration_s", "entry_reason", "exit_reason",
-                   "min_bistatic_range_m", "max_bistatic_range_m",
-                   "min_bistatic_range_rate_mps", "max_bistatic_range_rate_mps",
-                   "min_bistatic_doppler_hz", "max_bistatic_doppler_hz",
-                   "maximum_abs_doppler_rate_hzps", "min_snr_db", "mean_snr_db", "max_snr_db",
-                   "peak_snr_utc"],
-      "properties": {
-        "window_id": { "type": "string", "minLength": 1 },
-        "start_utc": { "type": "string", "format": "date-time" },
-        "end_utc": { "type": "string", "format": "date-time" },
-        "duration_s": { "type": "number", "minimum": 0 },
-        "entry_reason": { "$ref": "#/$defs/windowReason" },
-        "exit_reason": { "$ref": "#/$defs/windowReason" },
-        "min_bistatic_range_m": { "type": "number" },
-        "max_bistatic_range_m": { "type": "number" },
-        "min_bistatic_range_rate_mps": { "type": "number" },
-        "max_bistatic_range_rate_mps": { "type": "number" },
-        "min_bistatic_doppler_hz": { "type": "number" },
-        "max_bistatic_doppler_hz": { "type": "number" },
-        "maximum_abs_doppler_rate_hzps": { "type": "number", "minimum": 0 },
-        "min_snr_db": { "type": "number" },
-        "mean_snr_db": { "type": "number" },
-        "max_snr_db": { "type": "number" },
-        "peak_snr_utc": { "type": "string", "format": "date-time" }
+        "has_usable_window": {
+          "type": "boolean"
+        },
+        "next_window_start_utc_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "next_window_end_utc_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "total_usable_duration_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_snr_db": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximum_snr_utc_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "minimum_bistatic_range_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximum_bistatic_range_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "minimum_bistatic_doppler_hz": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maximum_bistatic_doppler_hz": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
       }
     }
   }
 }
 ```
 
-Uncertain points in this draft: whether the `validation` fields can really be `null` (for an initial prediction), and whether any window field can be `null`. I set these from reading `cue.py`, not from live output. A live `track_cue` capture validated against 1.1.0 settles both (CT-1).
+### 2.4 `track_cue_withdrawal`
 
-### 2.4 `track_cue_withdrawal` — status: Implemented
-
-This tells receivers to drop a track's cue.
-
-Current schema `track-cue-withdrawal-1.0.0.json`: envelope + `track_id`, `icao` (6 hex), `withdrawn_prediction_revision` (int ≥ 1), `reason` (free string).
-
-**Decided for 1.1.0:** identical to 1.0.0 except `schema_version` = `"1.1.0"`. This is required because `cue.py` uses one `SCHEMA_VERSION` constant for every CT message, so all CT message schemas move to the next version together. Also add a schema unit test (CT-3).
-
-Possible later change (not decided): make `reason` a fixed set of values:
+This tells receivers to drop a track's cue. Only `reason: "track_purged"` is emitted today. Tracks that go stale are not withdrawn until they are purged (see CR-6), so consumers must also judge staleness from `track.report_age_s` and `prediction.valid_until_utc_ms`.
 
 ```json
-"reason": { "enum": ["track_purged", "track_invalid", "prediction_invalid", "operator_withdrawn"] }
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://passive-radar.local/schemas/track-cue-withdrawal-2.0.0.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "message_type",
+    "message_id",
+    "source",
+    "source_instance_id",
+    "sequence_number",
+    "generated_utc_ms",
+    "track_id",
+    "icao",
+    "withdrawn_prediction_revision",
+    "reason"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2.0.0"
+    },
+    "message_type": {
+      "const": "track_cue_withdrawal"
+    },
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source": {
+      "const": "ADSBConsoleApp"
+    },
+    "source_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_utc_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "track_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "icao": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{6}$"
+    },
+    "withdrawn_prediction_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
 ```
 
-Only `track_purged` is emitted today (`app.py`). The other three are placeholders.
+### 2.5 CT configuration file
 
-### 2.5 CT configuration file — status: Implemented
+This is not a wire message. `cue-config-2.0.0.json` validates the JSON config that `ADSBConsoleApp --cue-config` loads, with sections `publication_mode`, `cue_prediction` and `udp_output`. Relative to 1.1.0:
 
-This is not a wire message. `cue-config-1.0.0.json` validates the JSON config that `ADSBConsoleApp --cue-config` loads, with sections `publication_mode`, `cue_prediction` and `udp_output`. It belongs in the ICD because its values set the message rates in §2.0 and the destination in §1.3. No schema changes are proposed. The Activity Manager's `system_config.json` should generate or point to this file, so that CT's destination follows the configuration map.
+- **Added:** `cue_prediction.include_summary`, and `udp_output.encoding`, `dictionary_id` and `maximum_opportunities_per_cue`.
+- **Removed:** `udp_output.oversize_policy`, because fit-to-frame (§2.0) replaces it.
 
-### 2.6 CT open items (the path to Frozen)
+The Activity Manager's `system_config.json` should generate or point to this file.
 
-| # | Item | Blocks | Proposed action |
-|---|---|---|---|
-| **CT-1** | **No `track_cue` has been seen live.** In the 2026-09-08 capture, heartbeats reported 116 cue-eligible tracks, but every snapshot had `expected_track_count: 0`. So `self.predictions` was empty and no predictions were produced. | Verified | Find out why predictions were empty (observer/emitter configuration? prediction disabled?). Then capture and validate a live snapshot. |
-| **CT-2** | Loose sub-objects in `track_cue` 1.0.0 | Frozen | Review and adopt 1.1.0 (§2.3). Bump `SCHEMA_VERSION` in `cue.py`. |
-| **CT-3** | No schema unit test for `track_cue_withdrawal` | Implemented → Verified | Add it to `test_udp_publisher_serializes_sequences_and_snapshot_messages`. |
-| **CT-4** | **Fan-out.** The cue stream has several consumers (RM, TR, RD, and AM for the heartbeat), but CT sends to one address. | Deployment | Option A (recommended): UDP multicast, e.g. `239.192.10.1:31986`. Consumers join the group; CT needs a config change only (plus possibly setting the TTL/loopback socket options). Option B: RM relays to the others. Option C: CT supports a list of destinations (a code change, but no schema change). |
-| **CT-5** | `cue_heartbeat.status` is hard-coded to `"running"` | Frozen | Emit `starting` on the first beat, `degraded` when the dump1090 feed is stale or sends are failing, and `stopping` on shutdown. |
-| **CT-6** | `implemented_observers` is always set equal to `active_observers` | Frozen | Define the difference between the two, or drop one in 1.1.0. |
-| **CT-7** | Snapshot count fields are optional in the schema | Frozen | Add an `if`/`then` on `message_type` in 1.1.0. |
-| **CT-8** | `rf_channel` is typed int, string or null | Frozen | Pick one; integer or null is proposed. |
-| **CT-9** | **Datagram size.** `maximum_datagram_bytes` = 1200. A `track_cue` with 2 observers × 16 emitters = 32 opportunities is roughly 25–40 KB even without history, so today it would be counted as `failed`. Test fixtures use few opportunities. | Verified | Measure a real payload once CT-1 is fixed. Options: (a) include only opportunities with `observer_can_receive && emitter_enabled && has_usable_window`, which is a behaviour change with no schema change; (b) raise the limit to ≤ 65507 and rely on IP fragmentation on the quiet wired LAN; (c) both. Recommendation: (c), with a limit of 16 KB. |
-| CT-10 | The `$id` domain `passive-radar.local` | — | Keep it and use it for all schemas in the system. |
+### 2.6 CT open items
 
-**Decisions (2026-09-25):**
+| # | Item | Status |
+|---|---|---|
+| CT-1 … CT-10 | The 1.1.0 release items (Draft A of this ICD) | Closed: released in 1.1.0, which was Verified live on 2026-09-26 (CR-3). CT-9, the datagram size, is superseded by fit-to-frame (§2.0) and compression (§1.3) |
+| CT-11 | 2.0.0 released and Verified: implementation, then a live capture meeting the WI-7 criteria, then the per-opportunity size recorded | Open |
+| CT-12 | Stale tracks are withdrawn only when purged | Open, CR-6 |
+| CT-13 | Revision comparison across CT restarts | Open, CR-4 |
 
-| # | Decision |
-|---|---|
-| CT-1 | To do: find out why predictions were empty, then capture a live snapshot. |
-| CT-2 | **Adopt `track-cue-1.1.0`** (§2.3). |
-| CT-3 | To do: add the withdrawal schema test. |
-| CT-4 | **Option A, UDP multicast.** CT sends to group `239.192.10.1:31986`; RM, TR, RD and AM join the group (§1.3). |
-| CT-5 | **Emit `starting`** on the first beat, **`degraded`** when the dump1090 feed is stale or sends are failing, and **`stopping`** on shutdown. Code change in `cue.py`/`app.py`; no schema change, since the enum already allows these values. |
-| CT-6 | **Keep `active_observers` and drop `implemented_observers`.** This needs `cue-heartbeat-1.1.0` (§2.1). |
-| CT-7 | **Split into two schemas:** `cue-snapshot-begin-1.1.0` and `cue-snapshot-end-1.1.0`, each requiring its own counts (§2.2). There is no change to CT's output; only the file mapping in `test_cue.py` changes. |
-| CT-8 | **`rf_channel` is an integer or null** (applied in §2.3). |
-| CT-9 | **Recommendation (c):** send only receivable, enabled opportunities that have a usable window, and raise `maximum_datagram_bytes` to 16384. Measure real payload sizes after CT-1. |
-| CT-10 | **Agreed:** keep `passive-radar.local` as the `$id` domain for all schemas. |
+### 2.7 Version history
 
-**Suggested order:** CT-1 and CT-9 first, since they are the only things preventing live verification. Then CT-2, CT-3, CT-5, CT-6, CT-7 and CT-8 as a single 1.1.0 schema release. Every CT message schema moves to 1.1.0 together, because they share one `SCHEMA_VERSION`:
-
-- `track-cue`
-- `cue-heartbeat`
-- `cue-snapshot-begin`
-- `cue-snapshot-end`
-- `track-cue-withdrawal`
-
-After a validated live capture, declare all of them **Frozen at 1.1.0**.
-
-Work is handed off in [CT_1.1.0_handoff.md](CT_1.1.0_handoff.md).
+| Version | Date | Changes |
+|---|---|---|
+| 1.0.0 | 2026-09-08 | First CT schemas |
+| 1.1.0 | 2026-09-25 | Typed every sub-object of `track_cue`; split the snapshot schema into begin and end; dropped `implemented_observers`; `rf_channel` integer or null; heartbeat statuses; only usable opportunities sent. Verified 2026-09-26 |
+| **2.0.0** | 2026-09-26 | CR-5, breaking changes: |
+| | | – **framing:** plain or deflate-with-dictionary (§1.3); |
+| | | – **times:** every `*_utc` string became a `*_utc_ms` integer; |
+| | | – **values:** rounded to the §1.2 resolutions; |
+| | | – **`models`:** moved to the top of `track_cue` (it was repeated in every opportunity); |
+| | | – **removed:** `prediction.prediction_id`, and from opportunities `opportunity_id`, `observer_name`, `transmitter_site_id`, `emitter_enabled`, `observer_can_receive` and `history`, and `windows[].window_id`; |
+| | | – **`summary`:** optional and off by default; |
+| | | – **`current`:** always an object, and `windows` has at least one entry; |
+| | | – **every property required**, apart from the optional `summary`; |
+| | | – **fit-to-frame** opportunity selection, up to 8; |
+| | | – **config:** `cue-config-2.0.0` |
 
 ---
 
@@ -623,8 +1208,9 @@ These use the envelope in §1.1. The schemas below list only the message-specifi
     "reason": { "enum": ["cue", "track_update", "calibration", "survey"] },
     "cue_ref": { "type": ["object", "null"], "properties": {
         "track_id": { "type": "string" }, "prediction_revision": { "type": "integer" },
-        "opportunity_id": { "type": "string" }, "window_id": { "type": "string" } } },
-    "start_utc": { "type": "string", "format": "date-time" },
+        "observer_id": { "type": "string" }, "emitter_id": { "type": "string" },
+        "window_start_utc_ms": { "type": "integer" } } },
+    "start_utc_ms": { "type": "integer", "minimum": 0 },
     "duration_s": { "type": "number", "exclusiveMinimum": 0, "maximum": 60 },
     "emitter_id": { "type": ["string", "null"] },
     "center_frequency_hz": { "type": "number" },
@@ -636,7 +1222,7 @@ These use the envelope in §1.1. The schemas below list only the message-specifi
     "ref_az_deg": { "type": ["number", "null"] },
     "output_path": { "type": "string" }
   },
-  "required": ["message_type", "task_id", "observer_id", "reason", "start_utc", "duration_s",
+  "required": ["message_type", "task_id", "observer_id", "reason", "start_utc_ms", "duration_s",
                "center_frequency_hz", "sample_rate_sps", "lo_offset_hz", "gain_db", "output_path"]
 }
 ```
@@ -656,7 +1242,7 @@ These use the envelope in §1.1. The schemas below list only the message-specifi
     "command": { "enum": ["go_to", "stop", "cal_sweep"] },
     "target_az_deg": { "type": ["number", "null"], "minimum": 0, "exclusiveMaximum": 360 },
     "tolerance_deg": { "type": "number", "minimum": 0 },
-    "deadline_utc": { "type": ["string", "null"], "format": "date-time" }
+    "deadline_utc_ms": { "type": ["integer", "null"], "minimum": 0 }
   },
   "required": ["message_type", "antenna", "command"]
 }
@@ -671,7 +1257,7 @@ These use the envelope in §1.1. The schemas below list only the message-specifi
   "properties": {
     "message_type": { "const": "antenna_state" },
     "antenna": { "enum": ["SURV", "REF"] },
-    "measured_utc": { "type": "string", "format": "date-time" },
+    "measured_utc_ms": { "type": "integer", "minimum": 0 },
     "az_true_deg": { "type": ["number", "null"] },
     "tilt_deg": { "type": ["number", "null"] },
     "field_strength_ut": { "type": ["number", "null"] },
@@ -680,9 +1266,9 @@ These use the envelope in §1.1. The schemas below list only the message-specifi
     "moving": { "type": "boolean" },
     "command_state": { "enum": ["idle", "moving", "settled", "fault"] },
     "fault_code": { "type": ["string", "null"] },
-    "node_last_heard_utc": { "type": ["string", "null"], "format": "date-time" }
+    "node_last_heard_utc_ms": { "type": ["integer", "null"], "minimum": 0 }
   },
-  "required": ["message_type", "antenna", "measured_utc", "az_true_deg", "moving", "command_state"]
+  "required": ["message_type", "antenna", "measured_utc_ms", "az_true_deg", "moving", "command_state"]
 }
 ```
 
@@ -712,7 +1298,7 @@ Schema: **TBD** once the firmware exists.
     "task_id": { "type": "string" },
     "observer_id": { "type": "string" },
     "file_path": { "type": "string" },
-    "start_utc": { "type": "string", "format": "date-time" },
+    "start_utc_ms": { "type": "integer", "minimum": 0 },
     "duration_s": { "type": "number" },
     "center_frequency_hz": { "type": "number" },
     "sample_rate_sps": { "type": "number" },
@@ -727,10 +1313,10 @@ Schema: **TBD** once the firmware exists.
     "status": { "enum": ["ok", "drops", "fail"] },
     "dropped_samples": { "type": "integer", "minimum": 0 }
   },
-  "required": ["message_type", "task_id", "observer_id", "file_path", "start_utc", "status"],
+  "required": ["message_type", "task_id", "observer_id", "file_path", "start_utc_ms", "status"],
   "$defs": { "antennaSnapshot": { "type": "object", "properties": {
       "az_true_deg": { "type": ["number", "null"] }, "field_strength_ok": { "type": "boolean" },
-      "tilt_ok": { "type": "boolean" }, "node_last_heard_utc": { "type": ["string", "null"] } } } }
+      "tilt_ok": { "type": "boolean" }, "node_last_heard_utc_ms": { "type": ["integer", "null"], "minimum": 0 } } } }
 }
 ```
 
@@ -744,12 +1330,12 @@ Schema: **TBD** once the firmware exists.
     "message_type": { "const": "calibration_request" },
     "request_id": { "type": "string" },
     "cal_type": { "enum": ["pluto_tone", "pluto_multitone", "noise_floor", "azimuth_scan", "rotator_mag_sweep"] },
-    "earliest_utc": { "type": "string", "format": "date-time" },
-    "latest_utc": { "type": "string", "format": "date-time" },
+    "earliest_utc_ms": { "type": "integer", "minimum": 0 },
+    "latest_utc_ms": { "type": "integer", "minimum": 0 },
     "priority": { "type": "integer", "minimum": 0, "maximum": 9 },
     "estimated_duration_s": { "type": "number" }
   },
-  "required": ["message_type", "request_id", "cal_type", "earliest_utc", "latest_utc", "priority"]
+  "required": ["message_type", "request_id", "cal_type", "earliest_utc_ms", "latest_utc_ms", "priority"]
 }
 ```
 
@@ -793,9 +1379,9 @@ Schema: **TBD** once the firmware exists.
         "cpi_s": { "type": "number" }, "n_cpi": { "type": "integer" },
         "detector": { "type": "string" }, "pfa": { "type": "number" } } },
     "detections": { "type": "array", "items": { "type": "object",
-      "required": ["cpi_utc", "bistatic_range_m", "bistatic_doppler_hz", "snr_db"],
+      "required": ["cpi_utc_ms", "bistatic_range_m", "bistatic_doppler_hz", "snr_db"],
       "properties": {
-        "cpi_utc": { "type": "string", "format": "date-time" },
+        "cpi_utc_ms": { "type": "integer", "minimum": 0 },
         "bistatic_range_m": { "type": "number" },
         "bistatic_doppler_hz": { "type": "number" },
         "snr_db": { "type": "number" },
@@ -820,19 +1406,19 @@ Schema: **TBD** once the firmware exists.
     "message_type": { "const": "track_report" },
     "report_kind": { "enum": ["update", "full"] },
     "tracks": { "type": "array", "items": { "type": "object",
-      "required": ["track_id", "observer_id", "emitter_id", "time_utc", "state", "status"],
+      "required": ["track_id", "observer_id", "emitter_id", "time_utc_ms", "state", "status"],
       "properties": {
         "track_id": { "type": "string" },
         "observer_id": { "type": "string" },
         "emitter_id": { "type": "string" },
-        "time_utc": { "type": "string", "format": "date-time" },
+        "time_utc_ms": { "type": "integer", "minimum": 0 },
         "state": { "type": "object", "properties": {
             "bistatic_range_m": { "type": "number" }, "bistatic_range_rate_mps": { "type": "number" } } },
         "covariance": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
         "status": { "enum": ["tentative", "confirmed", "coasting", "deleted"] },
         "associated_icao": { "type": ["string", "null"], "pattern": "^[0-9A-F]{6}$" },
         "associated_ct_track_id": { "type": ["string", "null"] },
-        "next_update_due_utc": { "type": ["string", "null"], "format": "date-time" } } } }
+        "next_update_due_utc_ms": { "type": ["integer", "null"], "minimum": 0 } } } }
   },
   "required": ["message_type", "report_kind", "tracks"]
 }
