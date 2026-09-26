@@ -25,6 +25,10 @@ collection, replay, or analysis guides below.
 
 Read the [end-to-end engineering story](reporting/explainers/FlightTest_EndToEnd_HumanStory_V2.html) for project goals, major decisions, strongest evidence, blockers, and next steps.
 
+### Understand the System Design
+
+Start at [docs/system/README.md](docs/system/README.md). It is the home for the system architecture, the message ICD (the ADS-B cue tasker and the other software items), the as-built record, change requests and verification evidence.
+
 ### Understand the Major Engineering Decisions
 
 - [Illuminator Selection](reporting/reports/01A_IlluminatorSelection_V4.html)
