@@ -59,6 +59,10 @@ dd { color: var(--ink-2); margin: 2px 0 12px 0; }
 <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6">
 
 <header class="mb-6">
+  <div class="card p-4 mb-4" style="border-color:var(--critical);border-width:2px" role="note">
+    <p class="font-semibold" style="color:var(--critical)">Correction, 2026-09-27 afternoon: the 521 MHz candidate below is withdrawn.</p>
+    <p class="text-sm ink2 mt-1">The capture timing turned out to be worse than this report assumed. Each 15 s file is fifteen 1 s slices whose starts are about 6 s apart, so it spans about 87 s of real time, not 15 s with small gaps. With that timing the two 521 MHz detections do not fall on the aircraft's track, and no capture of this pass matches it at any shift within ±3 s. The findings on the surveillance beam, the analysis memory fix and the collection PC's memory still stand. See <a class="underline" href="TimedCuedPasses_Diagnostic_V1.html">Radio-Timed Cued Passes</a> for the timing measurement, the fix and the re-score.</p>
+  </div>
   <p class="text-sm muted">flightTest · diagnostic report · tracking scan · sessions 20260927T014205_503, _521, _599 · 2026-09-27</p>
   <h1 class="text-2xl sm:text-3xl font-semibold mt-1">Cued three-tower pass: one candidate, and a timing error found</h1>
   <p class="ink2 mt-2 max-w-3xl">The ADS-B cue stream flagged an airliner (JBU1897, ICAO A38836) whose predicted bistatic SNR was above 10 dB on three towers at once, from two directions. The N320 captured it on 503, 521 and 599 MHz, one channel after another, 15 s each. No detection matched the ADS-B truth at the standard gate. At 521 MHz, the only capture with the aircraft inside the surveillance antenna's beam, two detections match its predicted Doppler within 6 Hz and its range once the truth is shifted 2.0–2.5 s later. None of 400 control tracks do that. The shift is explained by how the capture is timestamped, and the capture file turns out to be fifteen separate 1 s segments. The overnight run that took this pass stopped when the analysis ran the 15 GB collection PC out of memory.</p>

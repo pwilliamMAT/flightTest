@@ -286,13 +286,24 @@
         <h3>Tracking scan reports</h3>
         <p>Does an aircraft pass produce a truth-matched detection? Captures scored against ADS-B truth, newest first.</p>
         <div class="report-grid">
+          <a class="report-card" href="diagnostics/TimedCuedPasses_Diagnostic_V1.html" target="_blank" rel="noopener noreferrer">
+            <p class="report-id">Tracking · 2026-09-27 afternoon</p>
+            <h3>Radio-Timed Cued Passes</h3>
+            <p>Capture timestamps fixed with radio-scheduled, contiguous captures; earlier sessions re-scored; two new cued passes on four channels, with no detection of the cued aircraft. Covers:</p>
+            <ul class="sub-list">
+              <li>What the old captures really recorded: fifteen 1 s slices over about 87 s</li>
+              <li>Re-score of the 25 and 27 September sessions (no real detections; the 521 MHz candidate withdrawn)</li>
+              <li>Six captures of UAL659 and RKJ948, matches against chance, and pass timelines</li>
+              <li>Why only the first channel of a pass is in the window, and the PC's 100 Mb/s link</li>
+            </ul>
+          </a>
           <a class="report-card" href="diagnostics/CuedPass_ThreeTower_Diagnostic_V1.html" target="_blank" rel="noopener noreferrer">
-            <p class="report-id">Tracking · 2026-09-27</p>
+            <p class="report-id">Tracking · 2026-09-27 overnight</p>
             <h3>Cued Three-Tower Pass</h3>
-            <p>The first cue-triggered capture of one aircraft on three towers: no match at the standard gate, one candidate at 521 MHz after a timing correction. Covers:</p>
+            <p>The first cue-triggered capture of one aircraft on three towers: no match. Its 521 MHz candidate was withdrawn after the capture timing was measured (see Radio-Timed Cued Passes). Covers:</p>
             <ul class="sub-list">
               <li>Surveillance-beam geometry, and cueing that now requires the aircraft in the beam</li>
-              <li>Candidate detections and the time-shift test against 400 control tracks</li>
+              <li>The (withdrawn) time-shift candidate and its control tracks</li>
               <li>Capture timing: early start stamp and fifteen 1 s segments per file</li>
               <li>Analysis memory: 13.45 → 5.3 GB, and the case for a 64 GB collection PC</li>
             </ul>
