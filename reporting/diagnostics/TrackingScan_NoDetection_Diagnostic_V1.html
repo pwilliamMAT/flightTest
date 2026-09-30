@@ -56,6 +56,10 @@ dd { color: var(--ink-2); margin: 2px 0 12px 0; }
   <p class="text-sm muted">flightTest · diagnostic report · passive radar · session 20260925T012110 · 2026-09-25</p>
   <h1 class="text-2xl sm:text-3xl font-semibold mt-1">Aircraft-tracking scan: no truth-matched track</h1>
   <p class="ink2 mt-2 max-w-3xl">A four-part tracking scan at 599 MHz (the Newton ATSC transmitter) ran cleanly and was analysed end to end, but the detector matched the one overlapping ADS-B aircraft once in 75 opportunities. 91% of the 34,054 detections are 60 Hz hum lines, and most of the rest are further low-Doppler lines. At the aircraft's Doppler the detector is quiet, yet the aircraft is still absent, even when its predicted track is stacked over all 75 blocks. The geometry was favourable, so the missing sensitivity points at the processing chain, which is the next thing to diagnose. The scan also exposed a hard-coded transmitter position and a memory limit that had crashed an earlier analysis.</p>
+  <div class="mt-3 status" style="color:var(--warn-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l7 12.5H1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v1" stroke="currentColor" stroke-width="2"/></svg>
+    <span>Correction (2026-09-29): SURV pointed about 060° true, not 270°. The airliner described here as 7° off SURV's boresight was in its back lobe, so its absence says little about sensitivity. See <a class="underline" href="CuedPasses_RealPointing_Diagnostic_V1.html">Cued passes with the real antenna pointing</a>.</span>
+  </div>
   <div class="mt-3 status" style="color:var(--critical)">
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="2"/></svg>
     No track · 1 of 75 truth points matched · aircraft absent even after 75-block stacking

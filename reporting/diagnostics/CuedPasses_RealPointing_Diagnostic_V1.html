@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cued Passes, Real Pointing</title>
+<meta name="description" content="Diagnostic, 2026-09-29/30: five cued passes with the antennas' real pointing known (SURV about 304°, REF about 090°, LNAs removed); three were genuinely in the beam and none detected the cued aircraft. Two passes fired on stale track states (fixed with a 30 s age limit). Re-examined with SURV's real pre-29 September pointing (about 060°), only 4 of the 39 cued captures of 27–28 September had the aircraft in the beam.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --raised: #ffffff;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --band: rgba(137,135,129,0.14);
+  --critical: #d03b3b; --good: #0ca30c; --good-text: #006300; --warn: #c98a00; --warn-text: #8a5f00; --accent-wash: rgba(42,120,214,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --raised: #222221;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --band: rgba(195,194,183,0.12);
+    --good-text: #0ca30c; --warn-text: #e0a82e; --accent-wash: rgba(57,135,229,0.12);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --raised: #222221;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --band: rgba(195,194,183,0.12);
+  --good-text: #0ca30c; --warn-text: #e0a82e; --accent-wash: rgba(57,135,229,0.12);
+}
+body { background: var(--page); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.ink2 { color: var(--ink-2); } .muted { color: var(--muted); }
+.swatch { display:inline-block; width:10px; height:10px; border-radius:3px; vertical-align:middle; }
+.swatch-line { display:inline-block; width:16px; height:0; border-top:2px solid; vertical-align:middle; }
+table { font-variant-numeric: tabular-nums; }
+th { color: var(--ink-2); font-weight: 600; text-align: left; }
+td, th { border-bottom: 1px solid var(--grid); padding: 6px 10px; white-space: nowrap; }
+.num { text-align: right; }
+.status { display:inline-flex; align-items:flex-start; gap:6px; font-weight:600; }
+.status svg { flex: none; margin-top: 3px; }
+.chart-box { position: relative; height: 300px; }
+code { font-size: 0.85em; background: var(--accent-wash); padding: 0 4px; border-radius: 4px; }
+dt { font-weight: 600; }
+dd { color: var(--ink-2); margin: 2px 0 12px 0; }
+.seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.seg button { padding:4px 12px; font-size:0.875rem; color: var(--ink-2); background: var(--raised); }
+.seg button[aria-pressed="true"] { background: var(--accent-wash); color: var(--ink); font-weight:600; }
+.seg button + button { border-left:1px solid var(--border); }
+</style>
+</head>
+<body class="min-h-screen">
+<div class="max-w-7xl mx-auto px-4 py-6 sm:px-6">
+
+<header class="mb-6">
+  <p class="text-sm muted">flightTest · diagnostic report · tracking scan · sessions 20260929T223400_503 … 20260929T230545_599, and a re-examination of 20260927T014205_503 … 20260928T155151_599</p>
+  <h1 class="text-2xl sm:text-3xl font-semibold mt-1">Cued passes with the real antenna pointing: still no detection</h1>
+  <p class="ink2 mt-2 max-w-3xl">On 29 September the antenna pointing was established on site: until that day SURV had been pointing about 060° true (north-east), not 270° (west) as the watcher and the earlier tracking reports assumed. That evening five cued passes were captured with the pointing known (SURV about 304°, REF about 090°, all LNAs removed, gain [10 0]). Two passes fired on stale track states that only appeared to be in the beam; the watcher now ignores states older than 30 s. The other three were genuinely in the beam, two with good ADS-B truth, and none produced a detection near the cued aircraft. Re-examined against SURV's real pointing, only 4 of the 39 cued captures of 27–28 September had the aircraft in the beam, so those runs say little about sensitivity.</p>
+  <div class="mt-3 status" style="color:var(--critical)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="2"/></svg>
+    <span>No cued aircraft detected in the three genuine in-beam passes (9 captures) · nearest detection 3.7–12.5 gates from the predicted track</span>
+  </div>
+  <div class="mt-1 status" style="color:var(--warn-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l7 12.5H1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v1" stroke="currentColor" stroke-width="2"/></svg>
+    <span>Correction: before 29 September SURV pointed about 060°, not 270°. Of the 39 cued captures of 27–28 September, 21 had the aircraft in the assumed beam (really SURV's back lobe) and only 4 in the real beam, all without a match. Earlier in-beam and sensitivity statements are withdrawn</span>
+  </div>
+  <div class="mt-1 status" style="color:var(--warn-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l7 12.5H1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v1" stroke="currentColor" stroke-width="2"/></svg>
+    <span>The Pi's ADS-B log missed AFR332 entirely and had only 2–4 fixes for EJM313 on two channels, although the cue stream tracked both</span>
+  </div>
+  <div class="mt-1 status" style="color:var(--good-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 8.5l2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    <span>Fixed: the watcher ignores track states older than 30 s (2 of 5 passes on 29 September fired on states 3–5 min old) · replaying the recorded cues keeps the genuine alerts and drops the stale ones</span>
+  </div>
+</header>
+
+<section id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></section>
+
+<div class="card p-5 mb-4">
+  <h2 class="text-lg font-semibold mb-3">Report summary</h2>
+  <dl id="summary" class="grid grid-cols-1 lg:grid-cols-2 gap-x-8"></dl>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+  <div class="card p-5"><h2 class="text-lg font-semibold mb-3">Findings</h2><ol id="findings" class="space-y-4"></ol></div>
+  <div class="space-y-4">
+    <div class="card p-5"><h2 class="text-lg font-semibold mb-3">Next steps</h2><ol id="nextsteps" class="space-y-3"></ol></div>
+    <div class="card p-5"><h2 class="text-lg font-semibold mb-3">Method</h2><ul id="method" class="space-y-2 text-sm ink2"></ul></div>
+    <div class="card p-5"><h2 class="text-lg font-semibold mb-3">Code navigation</h2><ul id="codenav" class="space-y-2 text-sm ink2"></ul></div>
+  </div>
+</div>
+
+<div class="card p-5 mb-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-lg font-semibold">Where was the aircraft during each capture?</h2>
+    <div class="seg" role="group" aria-label="Run" id="sel-brg"></div>
+  </div>
+  <p class="text-sm ink2 mt-1 mb-2" id="brg-intro"></p>
+  <div class="legend text-sm ink2 my-2 flex flex-wrap gap-x-4 gap-y-1" id="lg-brg"></div>
+  <div class="chart-box" id="brg-box" style="height:420px"><canvas id="c-brg" role="img" aria-label="Bearing of the cued aircraft during each capture, with the SURV beam shaded"></canvas></div>
+</div>
+
+<div class="card p-5 mb-4">
+  <h2 class="text-lg font-semibold">29 September: the fifteen captures</h2>
+  <p class="text-sm ink2 mt-1 mb-3">Five passes, three channels each, 15 s per capture. "Bearing" is from fresh cue fixes (under 30 s old) during the capture; the beam is SURV's 304° ± 45°. "Nearest" is the closest detection to the aircraft's projected bistatic range and Doppler within ±0.2 s, in gate units (146 m, 30 Hz); a match needs ≤ 1.</p>
+  <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-0929"></table></div>
+</div>
+
+<div class="card p-5 mb-4">
+  <h2 class="text-lg font-semibold">Stale alerts: the alert's bearing against a fresh fix</h2>
+  <p class="text-sm ink2 mt-1 mb-3">Each alert prints the bearing of the track state it used. Comparing it with the nearest fresh fix shows whether that state was current. On 29 September two alerts were off by 24° and 30° with fixes 3–5 minutes old. On 27–28 September the differences are explained by the aircraft's own motion between the alert and the next fresh fix (close aircraft turn through bearing quickly); the largest unexplained lag is about 10 s, inside the new 30 s limit.</p>
+  <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-alerts"></table></div>
+</div>
+
+<details class="card p-5 mb-4">
+  <summary class="text-lg font-semibold cursor-pointer">27–28 September re-examined: all 39 cued captures</summary>
+  <p class="text-sm ink2 mt-2 mb-3">Bearing from fresh cue fixes during each capture, tested against the beam the watcher assumed (270° ± 45°) and the beam SURV actually had (about 060° ± 45°).</p>
+  <div class="overflow-x-auto"><table class="text-sm w-full" id="tbl-recheck"></table></div>
+</details>
+
+<footer class="text-xs muted mt-6 mb-2">Evidence class: measured, diagnostic. ADS-B truth from the Pi logger; aircraft positions for the beam test from the cue stream. Not a member of the accepted report family.</footer>
+</div>
+
+<script>
+const D = {"run0929":[{"sid":"20260929T223400_503","mhz":503,"icao":"AA23EA","callsign":"N75202","alert_utc":"22:32:13","state_age_s":269,"n_det":185,"tp":0,"truth_fixes":18,"truth_overlap_s":14.8,"brg":[26,28],"rng_km":[19,19],"in_304":false,"pass":1,"stale":"\u2248270 s old","in_beam_pass":false},{"sid":"20260929T223518_593","mhz":593,"icao":"AA23EA","callsign":"N75202","alert_utc":"22:32:13","state_age_s":269,"n_det":237,"tp":0,"truth_fixes":1,"truth_overlap_s":0.0,"pass":1,"stale":"\u2248270 s old","in_beam_pass":false},{"sid":"20260929T223636_599","mhz":599,"icao":"AA23EA","callsign":"N75202","alert_utc":"22:32:13","state_age_s":269,"n_det":160,"tp":0,"truth_fixes":0,"truth_overlap_s":0.0,"pass":1,"stale":"\u2248270 s old","in_beam_pass":false},{"sid":"20260929T224230_503","mhz":503,"icao":"A352C9","callsign":"EJM313","alert_utc":"22:38:06","state_age_s":19,"n_det":165,"tp":0,"truth_fixes":2,"truth_overlap_s":0.0,"pass":2,"stale":"","in_beam_pass":true},{"sid":"20260929T224349_599","mhz":599,"icao":"A352C9","callsign":"EJM313","alert_utc":"22:38:06","state_age_s":19,"n_det":157,"tp":0,"truth_fixes":21,"truth_overlap_s":14.8,"brg":[317,317],"rng_km":[33,33],"in_304":true,"nearest_gates":12.5,"nearest_dR_m":-1808,"nearest_dF_hz":-49,"pass":2,"stale":"","in_beam_pass":true},{"sid":"20260929T224507_593","mhz":593,"icao":"A352C9","callsign":"EJM313","alert_utc":"22:38:06","state_age_s":19,"n_det":201,"tp":0,"truth_fixes":4,"truth_overlap_s":0.0,"brg":[335,335],"rng_km":[30,30],"in_304":true,"pass":2,"stale":"","in_beam_pass":true},{"sid":"20260929T224628_503","mhz":503,"icao":"A3A9D1","callsign":"EJA335","alert_utc":"22:46:28","state_age_s":0,"n_det":182,"tp":0,"truth_fixes":43,"truth_overlap_s":14.8,"brg":[41,41],"rng_km":[26,27],"in_304":false,"pass":3,"stale":"\u2248200 s old, mid-turn","in_beam_pass":false},{"sid":"20260929T224746_521","mhz":521,"icao":"A3A9D1","callsign":"EJA335","alert_utc":"22:46:28","state_age_s":0,"n_det":165,"tp":0,"truth_fixes":38,"truth_overlap_s":14.8,"brg":[32,32],"rng_km":[22,22],"in_304":false,"pass":3,"stale":"\u2248200 s old, mid-turn","in_beam_pass":false},{"sid":"20260929T224901_593","mhz":593,"icao":"A3A9D1","callsign":"EJA335","alert_utc":"22:46:28","state_age_s":0,"n_det":221,"tp":1,"truth_fixes":2,"truth_overlap_s":0.0,"pass":3,"stale":"\u2248200 s old, mid-turn","in_beam_pass":false},{"sid":"20260929T225717_503","mhz":503,"icao":"39D2A9","callsign":"AFR332","alert_utc":"22:50:54","state_age_s":3,"n_det":202,"tp":1,"truth_fixes":0,"truth_overlap_s":0.0,"pass":4,"stale":"","in_beam_pass":true},{"sid":"20260929T225836_599","mhz":599,"icao":"39D2A9","callsign":"AFR332","alert_utc":"22:50:54","state_age_s":3,"n_det":183,"tp":0,"truth_fixes":0,"truth_overlap_s":0.0,"pass":4,"stale":"","in_beam_pass":true},{"sid":"20260929T225955_593","mhz":593,"icao":"39D2A9","callsign":"AFR332","alert_utc":"22:50:54","state_age_s":3,"n_det":232,"tp":0,"truth_fixes":0,"truth_overlap_s":0.0,"pass":4,"stale":"","in_beam_pass":true},{"sid":"20260929T230308_503","mhz":503,"icao":"A3C21A","callsign":"ENY3408","alert_utc":"23:01:13","state_age_s":15,"n_det":214,"tp":0,"truth_fixes":70,"truth_overlap_s":14.8,"brg":[262,262],"rng_km":[12,12],"in_304":true,"nearest_gates":10.8,"nearest_dR_m":-1555,"nearest_dF_hz":-60,"pass":5,"stale":"","in_beam_pass":true},{"sid":"20260929T230427_593","mhz":593,"icao":"A3C21A","callsign":"ENY3408","alert_utc":"23:01:13","state_age_s":15,"n_det":191,"tp":0,"truth_fixes":71,"truth_overlap_s":14.8,"brg":[267,267],"rng_km":[29,29],"in_304":true,"nearest_gates":11.3,"nearest_dR_m":-1649,"nearest_dF_hz":0,"pass":5,"stale":"","in_beam_pass":true},{"sid":"20260929T230545_599","mhz":599,"icao":"A3C21A","callsign":"ENY3408","alert_utc":"23:01:13","state_age_s":15,"n_det":171,"tp":0,"truth_fixes":56,"truth_overlap_s":14.8,"brg":[267,267],"rng_km":[48,48],"in_304":true,"nearest_gates":3.7,"nearest_dR_m":97,"nearest_dF_hz":-109,"pass":5,"stale":"","in_beam_pass":true}],"recheck":[{"sid":"20260927T014205_503","mhz":503,"icao":"A38836","callsign":"JBU1897","alert_utc":"01:42:05","state_age_s":1,"n_det":528,"tp":0,"truth_fixes":141,"truth_overlap_s":14.8,"brg":[348,348],"rng_km":[9,9],"in_270":false,"in_060":false},{"sid":"20260927T014413_521","mhz":521,"icao":"A38836","callsign":"JBU1897","alert_utc":"01:42:05","state_age_s":1,"n_det":1791,"tp":0,"truth_fixes":39,"truth_overlap_s":13.7},{"sid":"20260927T014618_599","mhz":599,"icao":"A38836","callsign":"JBU1897","alert_utc":"01:42:05","state_age_s":1,"n_det":2093,"tp":0,"truth_fixes":7,"truth_overlap_s":9.3,"brg":[274,274],"rng_km":[56,56],"in_270":true,"in_060":false},{"sid":"20260927T150451_503","mhz":503,"icao":"A0B7FA","callsign":"UAL659","alert_utc":"15:04:51","state_age_s":0,"n_det":1391,"tp":1,"truth_fixes":192,"truth_overlap_s":14.8,"brg":[289,289],"rng_km":[26,26],"in_270":true,"in_060":false},{"sid":"20260927T150704_521","mhz":521,"icao":"A0B7FA","callsign":"UAL659","alert_utc":"15:04:51","state_age_s":0,"n_det":217,"tp":0,"truth_fixes":219,"truth_overlap_s":14.8,"brg":[332,342],"rng_km":[19,20],"in_270":false,"in_060":false},{"sid":"20260927T150923_599","mhz":599,"icao":"A0B7FA","callsign":"UAL659","alert_utc":"15:04:51","state_age_s":0,"n_det":6348,"tp":0,"truth_fixes":67,"truth_overlap_s":14.8,"brg":[18,20],"rng_km":[28,30],"in_270":false,"in_060":true},{"sid":"20260927T160104_521","mhz":521,"icao":"AD2C9F","callsign":"RKJ948","alert_utc":"16:01:04","state_age_s":1,"n_det":227,"tp":0,"truth_fixes":150,"truth_overlap_s":14.8,"brg":[291,291],"rng_km":[15,15],"in_270":true,"in_060":false},{"sid":"20260927T160317_503","mhz":503,"icao":"AD2C9F","callsign":"RKJ948","alert_utc":"16:01:04","state_age_s":1,"n_det":1815,"tp":1,"truth_fixes":111,"truth_overlap_s":14.8,"brg":[264,268],"rng_km":[38,42],"in_270":true,"in_060":false},{"sid":"20260927T160530_593","mhz":593,"icao":"AD2C9F","callsign":"RKJ948","alert_utc":"16:01:04","state_age_s":1,"n_det":294,"tp":0,"truth_fixes":0,"truth_overlap_s":0.0},{"sid":"20260927T162102_503","mhz":503,"icao":"3D4322","callsign":"DEXRE","alert_utc":"16:20:22","state_age_s":1,"n_det":1125,"tp":0,"truth_fixes":252,"truth_overlap_s":14.8,"brg":[230,241],"rng_km":[4,5],"in_270":true,"in_060":false},{"sid":"20260927T162318_593","mhz":593,"icao":"3D4322","callsign":"DEXRE","alert_utc":"16:20:22","state_age_s":1,"n_det":742,"tp":0,"truth_fixes":255,"truth_overlap_s":14.8,"brg":[2,2],"rng_km":[6,6],"in_270":false,"in_060":false},{"sid":"20260927T162533_599","mhz":599,"icao":"3D4322","callsign":"DEXRE","alert_utc":"16:20:22","state_age_s":1,"n_det":2651,"tp":0,"truth_fixes":121,"truth_overlap_s":14.8},{"sid":"20260927T163053_503","mhz":503,"icao":"A34892","callsign":"","alert_utc":"16:29:32","state_age_s":13,"n_det":2213,"tp":0,"truth_fixes":113,"truth_overlap_s":14.8,"brg":[89,89],"rng_km":[5,5],"in_270":false,"in_060":true},{"sid":"20260927T163309_593","mhz":593,"icao":"A34892","callsign":"","alert_utc":"16:29:32","state_age_s":13,"n_det":1083,"tp":0,"truth_fixes":21,"truth_overlap_s":14.8,"brg":[130,130],"rng_km":[25,25],"in_270":false,"in_060":false},{"sid":"20260927T163523_599","mhz":599,"icao":"A34892","callsign":"","alert_utc":"16:29:32","state_age_s":13,"n_det":8300,"tp":0,"truth_fixes":0,"truth_overlap_s":0.0},{"sid":"20260927T170129_503","mhz":503,"icao":"A6BF4E","callsign":"JIA5150","alert_utc":"17:01:12","state_age_s":3,"n_det":3121,"tp":2,"truth_fixes":133,"truth_overlap_s":14.8,"brg":[290,290],"rng_km":[9,9],"in_270":true,"in_060":false},{"sid":"20260927T170344_599","mhz":599,"icao":"A6BF4E","callsign":"JIA5150","alert_utc":"17:01:12","state_age_s":3,"n_det":4302,"tp":9,"truth_fixes":69,"truth_overlap_s":14.8,"brg":[257,257],"rng_km":[40,40],"in_270":true,"in_060":false},{"sid":"20260927T170600_593","mhz":593,"icao":"A6BF4E","callsign":"JIA5150","alert_utc":"17:01:12","state_age_s":3,"n_det":380,"tp":1,"truth_fixes":1,"truth_overlap_s":0.0},{"sid":"20260927T174343_503","mhz":503,"icao":"A06020","callsign":"N123PD","alert_utc":"17:43:00","state_age_s":22,"n_det":4060,"tp":3,"truth_fixes":75,"truth_overlap_s":14.8,"brg":[235,235],"rng_km":[10,10],"in_270":true,"in_060":false},{"sid":"20260927T174558_593","mhz":593,"icao":"A06020","callsign":"N123PD","alert_utc":"17:43:00","state_age_s":22,"n_det":591,"tp":0,"truth_fixes":22,"truth_overlap_s":14.8},{"sid":"20260927T174813_599","mhz":599,"icao":"A06020","callsign":"N123PD","alert_utc":"17:43:00","state_age_s":22,"n_det":6616,"tp":7,"truth_fixes":0,"truth_overlap_s":0.0},{"sid":"20260927T175049_503","mhz":503,"icao":"A517DC","callsign":"RPA4362","alert_utc":"17:50:26","state_age_s":20,"n_det":1393,"tp":0,"truth_fixes":122,"truth_overlap_s":14.8},{"sid":"20260927T175304_593","mhz":593,"icao":"A517DC","callsign":"RPA4362","alert_utc":"17:50:26","state_age_s":20,"n_det":937,"tp":0,"truth_fixes":89,"truth_overlap_s":14.8,"brg":[261,261],"rng_km":[39,39],"in_270":true,"in_060":false},{"sid":"20260927T175516_599","mhz":599,"icao":"A517DC","callsign":"RPA4362","alert_utc":"17:50:26","state_age_s":20,"n_det":7668,"tp":0,"truth_fixes":30,"truth_overlap_s":12.3,"brg":[263,264],"rng_km":[65,69],"in_270":true,"in_060":false},{"sid":"20260928T152610_521","mhz":521,"icao":"A86A77","callsign":"IJA64","alert_utc":"15:24:42","state_age_s":0,"n_det":199,"tp":0,"truth_fixes":53,"truth_overlap_s":14.8,"brg":[44,44],"rng_km":[8,8],"in_270":false,"in_060":true},{"sid":"20260928T152728_503","mhz":503,"icao":"A86A77","callsign":"IJA64","alert_utc":"15:24:42","state_age_s":0,"n_det":910,"tp":0,"truth_fixes":107,"truth_overlap_s":14.8,"brg":[103,109],"rng_km":[12,14],"in_270":false,"in_060":true},{"sid":"20260928T152846_593","mhz":593,"icao":"A86A77","callsign":"IJA64","alert_utc":"15:24:42","state_age_s":0,"n_det":1383,"tp":1,"truth_fixes":70,"truth_overlap_s":14.8,"brg":[123,123],"rng_km":[24,24],"in_270":false,"in_060":false},{"sid":"20260928T153040_503","mhz":503,"icao":"A7C878","callsign":"JIA5661","alert_utc":"15:30:26","state_age_s":20,"n_det":983,"tp":2,"truth_fixes":78,"truth_overlap_s":14.8,"brg":[287,287],"rng_km":[10,10],"in_270":true,"in_060":false},{"sid":"20260928T153157_599","mhz":599,"icao":"A7C878","callsign":"JIA5661","alert_utc":"15:30:26","state_age_s":20,"n_det":6492,"tp":0,"truth_fixes":74,"truth_overlap_s":14.8},{"sid":"20260928T153315_593","mhz":593,"icao":"A7C878","callsign":"JIA5661","alert_utc":"15:30:26","state_age_s":20,"n_det":609,"tp":0,"truth_fixes":69,"truth_overlap_s":14.8,"brg":[256,256],"rng_km":[42,42],"in_270":true,"in_060":false},{"sid":"20260928T153451_503","mhz":503,"icao":"A7337E","callsign":"EJA563","alert_utc":"15:34:45","state_age_s":1,"n_det":1528,"tp":3,"truth_fixes":93,"truth_overlap_s":14.8,"brg":[280,280],"rng_km":[9,9],"in_270":true,"in_060":false},{"sid":"20260928T153609_593","mhz":593,"icao":"A7337E","callsign":"EJA563","alert_utc":"15:34:45","state_age_s":1,"n_det":1135,"tp":1,"truth_fixes":98,"truth_overlap_s":14.8,"brg":[267,269],"rng_km":[21,24],"in_270":true,"in_060":false},{"sid":"20260928T153726_599","mhz":599,"icao":"A7337E","callsign":"EJA563","alert_utc":"15:34:45","state_age_s":1,"n_det":7898,"tp":7,"truth_fixes":59,"truth_overlap_s":14.8,"brg":[260,260],"rng_km":[37,37],"in_270":true,"in_060":false},{"sid":"20260928T154118_503","mhz":503,"icao":"A3F43C","callsign":"","alert_utc":"15:39:06","state_age_s":1,"n_det":3502,"tp":0,"truth_fixes":99,"truth_overlap_s":14.8,"brg":[244,244],"rng_km":[11,11],"in_270":true,"in_060":false},{"sid":"20260928T154237_593","mhz":593,"icao":"A3F43C","callsign":"","alert_utc":"15:39:06","state_age_s":1,"n_det":869,"tp":0,"truth_fixes":75,"truth_overlap_s":14.8,"brg":[257,257],"rng_km":[28,28],"in_270":true,"in_060":false},{"sid":"20260928T154353_599","mhz":599,"icao":"A3F43C","callsign":"","alert_utc":"15:39:06","state_age_s":1,"n_det":6582,"tp":0,"truth_fixes":81,"truth_overlap_s":14.8,"brg":[259,259],"rng_km":[40,40],"in_270":true,"in_060":false},{"sid":"20260928T154914_503","mhz":503,"icao":"A97DCB","callsign":"","alert_utc":"15:46:39","state_age_s":6,"n_det":1368,"tp":0,"truth_fixes":59,"truth_overlap_s":14.8,"brg":[244,244],"rng_km":[17,17],"in_270":true,"in_060":false},{"sid":"20260928T155033_593","mhz":593,"icao":"A97DCB","callsign":"","alert_utc":"15:46:39","state_age_s":6,"n_det":1121,"tp":0,"truth_fixes":63,"truth_overlap_s":14.8,"brg":[255,255],"rng_km":[30,30],"in_270":true,"in_060":false},{"sid":"20260928T155151_599","mhz":599,"icao":"A97DCB","callsign":"","alert_utc":"15:46:39","state_age_s":6,"n_det":5885,"tp":5,"truth_fixes":44,"truth_overlap_s":14.8,"brg":[260,260],"rng_km":[51,51],"in_270":true,"in_060":false}],"alerts":[{"day":"20260927","utc":"01:42:05","callsign":"JBU1897","alert_az":null,"fresh_az":null,"err_deg":null},{"day":"20260927","utc":"15:04:51","callsign":"UAL659","alert_az":277,"fresh_az":278,"err_deg":1},{"day":"20260927","utc":"16:01:04","callsign":"RKJ948","alert_az":311,"fresh_az":298,"err_deg":13},{"day":"20260927","utc":"16:20:22","callsign":"DEXRE","alert_az":178,"fresh_az":183,"err_deg":5},{"day":"20260927","utc":"16:29:32","callsign":"-","alert_az":26,"fresh_az":26,"err_deg":0},{"day":"20260927","utc":"17:01:12","callsign":"JIA5150","alert_az":25,"fresh_az":342,"err_deg":43},{"day":"20260927","utc":"17:43:00","callsign":"N123PD","alert_az":89,"fresh_az":93,"err_deg":4},{"day":"20260927","utc":"17:50:26","callsign":"RPA4362","alert_az":133,"fresh_az":133,"err_deg":0},{"day":"20260928","utc":"15:24:42","callsign":"IJA64","alert_az":353,"fresh_az":352,"err_deg":1},{"day":"20260928","utc":"15:30:26","callsign":"JIA5661","alert_az":23,"fresh_az":23,"err_deg":0},{"day":"20260928","utc":"15:34:45","callsign":"EJA563","alert_az":67,"fresh_az":49,"err_deg":18},{"day":"20260928","utc":"15:39:06","callsign":"-","alert_az":93,"fresh_az":97,"err_deg":4},{"day":"20260928","utc":"15:46:39","callsign":"-","alert_az":99,"fresh_az":99,"err_deg":0},{"day":"20260929","utc":"22:32:13","callsign":"N75202","alert_az":33,"fresh_az":9,"err_deg":24},{"day":"20260929","utc":"22:38:06","callsign":"EJM313","alert_az":288,"fresh_az":288,"err_deg":0},{"day":"20260929","utc":"22:46:28","callsign":"EJA335","alert_az":8,"fresh_az":38,"err_deg":30},{"day":"20260929","utc":"22:50:54","callsign":"AFR332","alert_az":69,"fresh_az":68,"err_deg":1},{"day":"20260929","utc":"23:01:13","callsign":"ENY3408","alert_az":98,"fresh_az":98,"err_deg":0}]};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (v, d = 1) => (v === null || v === undefined || Number.isNaN(v)) ? '—' : Number(v).toFixed(d);
+const R9 = D.run0929, RC = D.recheck;
+const ang = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+const yes = v => v === true ? 'yes' : v === false ? 'no' : '—';
+
+const inBeamCaps = R9.filter(r => r.in_beam_pass);
+const cards = [
+  { k: 'Cued aircraft detected', v: `0 of ${inBeamCaps.length}`, s: 'Captures from the three genuine in-beam passes (EJM313, AFR332, ENY3408). No detection within a gate of the cued track.' },
+  { k: 'Genuine in-beam passes', v: '3 of 5', s: 'Passes 1 and 3 fired on track states 3–5 minutes old; the aircraft stayed at 9–41°, outside the 259–349° beam.' },
+  { k: 'Detections per capture', v: `${Math.min(...R9.map(r => r.n_det))}–${Math.max(...R9.map(r => r.n_det))}`, s: 'About 3× the number the CFAR false-alarm setting predicts (≈61). The two matches of the night are other aircraft at chance level.' },
+  { k: '27–28 Sep captures in the real beam', v: `${RC.filter(r => r.in_060).length} of ${RC.length}`, s: `${RC.filter(r => r.in_270).length} were inside the assumed 270° beam, which was SURV's back lobe; ${RC.filter(r => !r.brg).length} had no fresh fix during the capture.` },
+];
+document.getElementById('cards').innerHTML = cards.map(c =>
+  `<div class="card p-4"><p class="text-sm ink2">${c.k}</p><p class="text-2xl font-semibold mt-1">${c.v}</p><p class="text-sm ink2 mt-1">${c.s}</p></div>`).join('');
+
+const summary = [
+  ['Question', 'With the antenna pointing known, does a cued aircraft inside SURV\'s beam produce a truth-matched detection, and how much of the 27–28 September evidence actually tested an in-beam aircraft?'],
+  ['Result', 'No. Three genuine in-beam passes (9 captures) produced no detection within a gate of the cued aircraft; the nearest are 3.7–12.5 gates away and isolated. Only 4 of the 39 cued captures of 27–28 September had the aircraft in SURV\'s real beam, all without a match.'],
+  ['Engineering decision', 'Treat 27–28 September as untested for sensitivity. Use the stale-state limit in the watcher. Score cued aircraft against the cue-stream track when the Pi\'s truth is thin. Before more passes, find why the detector runs at about 3× its design false-alarm rate.'],
+  ['Still unknown', 'Whether an in-beam airliner is above the detection threshold at all with the LNAs out and gain [10 0]. Why the Pi\'s ADS-B log misses aircraft that the cue stream tracks. The effect of SURV facing the stairwell corner (≈304°) rather than a chosen surveillance sector.'],
+  ['Evidence class', 'Measured on hardware, 29 September 22:34–23:07 UTC; offline re-examination of the 27–28 September cue recordings.'],
+  ['Claim boundary', 'Three in-beam passes on three channels each, one antenna geometry, LNAs removed. A null result here does not bound sensitivity in general. Bearings come from cue fixes that can be several seconds apart, so a capture near the beam edge can be misclassified.'],
+];
+document.getElementById('summary').innerHTML = summary.map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join('');
+
+const findings = [
+  ['The pointing assumed until 29 September was wrong.', 'SURV pointed about 060° true, so aircraft west of the site, which the watcher and the reports called in the beam, were 150–210° off: in the back lobe. Of 39 cued captures on 27–28 September, 21 were in that assumed beam and only 4 in the real one, several at its edge.'],
+  ['Two of five passes on 29 September fired on stale states.', 'The watcher extrapolated each cue\'s last state without checking its age. N75202\'s state was about 270 s old and EJA335\'s about 200 s old with a heading caught mid-turn; extrapolated, both looked in-beam, while the real aircraft stayed at 9–41°. Cues older than 30 s are now ignored.'],
+  ['The 27–28 September alerts were not stale.', 'Each alert\'s bearing agrees with a fresh fix once the aircraft\'s motion is allowed for; the worst unexplained lag is about 10 s.'],
+  ['EJM313: in the beam, good truth on one channel, no detection.', 'On 599 MHz the Pi logged 21 fixes for the whole capture (bistatic range 61–63 km, Doppler +313 to +348 Hz). The closest detections are 1.8–2.3 km and about 49 Hz off: 12.5 gates, not a near miss.'],
+  ['ENY3408: in the beam, excellent truth, no detection.', 'About 70 fixes per channel and a large Doppler (−580 to −890 Hz, well clear of the clutter lines). Nearest detections 10.8, 11.3 and 3.7 gates; the 3.7 is a single isolated detection among 171, consistent with chance.'],
+  ['AFR332 cannot be scored from the Pi.', 'The Pi logged no fixes for it in any of its three captures, and only 2–4 for EJM313 on 503 and 593 MHz, although the cue stream tracked both throughout.'],
+  ['The detector over-produces.', 'Every capture gave 157–237 detections, about three times the CFAR design rate. The night\'s two truth matches (JBU177 at 118 km and one other) are uncued aircraft on single detections: chance.'],
+];
+document.getElementById('findings').innerHTML = findings.map(([h, t]) => `<li><p class="font-semibold">${h}</p><p class="text-sm ink2 mt-1">${t}</p></li>`).join('');
+document.getElementById('nextsteps').innerHTML = [
+  'Find why the detector runs at about 3× its design false-alarm rate, since that noise floor is what every pass is scored against.',
+  'Score cued aircraft against the cue-stream track as well as the Pi log, and check the Pi\'s ADS-B reception.',
+  'Point SURV at a chosen surveillance sector (not the calibration corner), re-check the linear gain range there, and repeat in-beam passes.',
+  'Estimate the expected echo SNR for these passes with the LNAs out, to know whether a detection was possible at all.',
+].map(t => `<li class="text-sm ink2">${t}</li>`).join('');
+document.getElementById('method').innerHTML = [
+  'Cueing: the watcher waits for an aircraft predicted inside SURV\'s beam (±45°) with at least three towers above 6 dB, then the launcher captures each tower\'s channel once for 15 s (N320 gain [10 0]), strongest first, from the predicted beam entry.',
+  'Analysis: runBistaticAnalysisSession, headless, per capture; truth matching at |ΔR| < 146 m, |Δf| < 30 Hz, |Δt| < 0.2 s.',
+  'Beam test: aircraft bearing from the cue stream\'s ENU position (origin at the receive site), using only states less than 30 s old at receipt, during each capture\'s radar window.',
+  'Stale test: bearing printed in the alert (the state it used) against the nearest fresh fix, allowing for the aircraft\'s motion in between.',
+].map(t => `<li>${t}</li>`).join('');
+document.getElementById('codenav').innerHTML = [
+  'Cue watcher: <code>ADSB-remoter/tools/watch_capture_alerts.py</code>; stale-state limit <code>--max-state-age-s</code> added in commit 728a61c.',
+  '<code>BistaticDataAnalysis/runBistaticAnalysisSession.m</code>, <code>runDetectionTruthDiagnostics.m</code>: analysis and truth scoring.',
+  'The pass launcher, analysis runner and the re-examination scripts are collection-PC scripts and are not in the repository.',
+].map(t => `<li>${t}</li>`).join('');
+
+// ---------- tables ----------
+document.getElementById('tbl-0929').innerHTML = '<thead><tr><th class="num">Pass</th><th>Capture</th><th>Aircraft</th><th>Alert</th><th class="num">Bearing</th><th class="num">Range</th><th>Pass in beam</th><th class="num">Pi fixes</th><th class="num">Detections</th><th class="num">Matches</th><th class="num">Nearest</th></tr></thead><tbody>' +
+  R9.map(r => `<tr><td class="num">${r.pass}</td><td>${r.sid}</td><td>${r.callsign}</td><td>${r.stale ? 'stale: ' + r.stale : 'current'}</td><td class="num">${r.brg ? r.brg[0] + (r.brg[1] !== r.brg[0] ? '–' + r.brg[1] : '') + '°' : '—'}</td><td class="num">${r.rng_km ? r.rng_km[0] + (r.rng_km[1] !== r.rng_km[0] ? '–' + r.rng_km[1] : '') + ' km' : '—'}</td><td>${r.in_beam_pass ? 'yes' : 'no'}</td><td class="num">${r.truth_fixes}</td><td class="num">${r.n_det}</td><td class="num">${r.tp}</td><td class="num">${r.nearest_gates !== undefined ? fmt(r.nearest_gates) + ' gates' : '—'}</td></tr>`).join('') + '</tbody>';
+document.getElementById('tbl-alerts').innerHTML = '<thead><tr><th>Date</th><th>Alert (UTC)</th><th>Aircraft</th><th class="num">Alert bearing</th><th class="num">Fresh-fix bearing</th><th class="num">Difference</th><th>Verdict</th></tr></thead><tbody>' +
+  D.alerts.map(a => { const v = a.day === '20260929' && a.err_deg >= 20 ? 'stale state' : a.err_deg === null ? 'no bearing printed' : a.err_deg > 10 ? 'aircraft motion (checked)' : 'current';
+    return `<tr><td>${a.day.slice(0, 4)}-${a.day.slice(4, 6)}-${a.day.slice(6)}</td><td>${a.utc}</td><td>${(a.callsign && a.callsign !== '-') ? a.callsign : '—'}</td><td class="num">${a.alert_az ?? '—'}${a.alert_az != null ? '°' : ''}</td><td class="num">${a.fresh_az ?? '—'}${a.fresh_az != null ? '°' : ''}</td><td class="num">${a.err_deg ?? '—'}${a.err_deg != null ? '°' : ''}</td><td>${v}</td></tr>`; }).join('') + '</tbody>';
+document.getElementById('tbl-recheck').innerHTML = '<thead><tr><th>Capture</th><th>Aircraft</th><th class="num">Bearing</th><th class="num">Range</th><th>In assumed 270° beam</th><th>In real 060° beam</th><th class="num">Detections</th><th class="num">Matches</th></tr></thead><tbody>' +
+  RC.map(r => `<tr><td>${r.sid}</td><td>${r.callsign || r.icao}</td><td class="num">${r.brg ? r.brg[0] + (r.brg[1] !== r.brg[0] ? '–' + r.brg[1] : '') + '°' : '—'}</td><td class="num">${r.rng_km ? r.rng_km[0] + (r.rng_km[1] !== r.rng_km[0] ? '–' + r.rng_km[1] : '') + ' km' : '—'}</td><td>${yes(r.in_270)}</td><td>${yes(r.in_060)}</td><td class="num">${r.n_det ?? '—'}</td><td class="num">${r.tp ?? '—'}</td></tr>`).join('') + '</tbody>';
+
+// ---------- bearing chart ----------
+let charts = {}, sel = 0;
+const make = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
+const bands = { id: 'bands', beforeDatasetsDraw(ch, _, o) { const { ctx, chartArea: a, scales: { x } } = ch; (o.list || []).forEach(b => {
+  const segs = b[0] < 0 ? [[b[0] + 360, 360], [0, b[1]]] : b[1] > 360 ? [[b[0], 360], [0, b[1] - 360]] : [[b[0], b[1]]];
+  ctx.save(); ctx.fillStyle = b[2]; segs.forEach(([p, q]) => { const x0 = x.getPixelForValue(p), x1 = x.getPixelForValue(q); ctx.fillRect(x0, a.top, x1 - x0, a.bottom - a.top); });
+  ctx.fillStyle = css('--ink-2'); ctx.font = '12px system-ui'; ctx.fillText(b[3], x.getPixelForValue(((b[0] + b[1]) / 2 + 360) % 360) - 30, a.top + 14 + (b[4] || 0)); ctx.restore(); }); } };
+function drawBrg() {
+  const rows = sel ? RC : R9;
+  document.getElementById('brg-box').style.height = (sel ? 620 : 420) + 'px';
+  document.getElementById('brg-intro').textContent = sel
+    ? 'Each row is one cued capture of 27–28 September; the dot is the aircraft\'s bearing during the capture from fresh fixes. The grey band is the beam the watcher assumed (270° ± 45°); the blue band is where SURV actually pointed (about 060° ± 45°). Rows without a dot had no fresh fix during the capture.'
+    : 'Each row is one capture of 29 September; the dot is the aircraft\'s bearing during the capture from fresh fixes. The band is SURV\'s beam (304° ± 45°). Rows without a dot had no fresh fix during the capture.';
+  const leg = sel ? [[css('--band'), 'Assumed beam (270° ± 45°)'], [css('--accent-wash'), 'Real SURV beam (≈060° ± 45°)']] : [[css('--accent-wash'), 'SURV beam (304° ± 45°)']];
+  document.getElementById('lg-brg').innerHTML = leg.map(([c, t]) => `<span class="inline-flex items-center gap-1.5"><span class="swatch" style="background:${c};border:1px solid var(--border)"></span>${t}</span>`).join('') +
+    `<span class="inline-flex items-center gap-1.5"><span class="swatch" style="background:${css('--s1')};border-radius:50%"></span>Aircraft during the capture</span>`;
+  const labels = rows.map(r => `${r.sid.slice(6, 8)}/${r.sid.slice(4, 6)} ${r.sid.slice(9, 11)}:${r.sid.slice(11, 13)} · ${r.mhz} MHz · ${r.callsign || r.icao}`);
+  const pts = []; rows.forEach((r, i) => { if (r.brg) pts.push({ x: (r.brg[0] + r.brg[1]) / 2, y: labels[i], r }); });
+  const bl = sel ? [[225, 315, css('--band'), 'assumed'], [15, 105, css('--accent-wash'), 'real SURV beam']] : [[259, 349, css('--accent-wash'), 'SURV beam']];
+  make('c-brg', { type: 'scatter', data: { datasets: [{ data: pts, backgroundColor: css('--s1'), borderColor: css('--surface'), borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 }] },
+    options: { responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, bands: { list: bl },
+        tooltip: { backgroundColor: css('--raised'), titleColor: css('--ink'), bodyColor: css('--ink-2'), borderColor: css('--border'), borderWidth: 1,
+          callbacks: { title: i => i[0].raw.r.sid, label: i => { const r = i.raw.r; return [` ${r.callsign || r.icao}, ${r.mhz} MHz`, ` bearing ${r.brg[0]}–${r.brg[1]}°, ${r.rng_km[0]}–${r.rng_km[1]} km`, ` ${r.n_det} detections, ${r.tp} matches`]; } } } },
+      scales: { x: { type: 'linear', min: 0, max: 360, ticks: { stepSize: 45, color: css('--ink-2'), callback: v => v + '°' }, title: { display: true, text: 'Bearing from the receive site (true)', color: css('--ink-2') }, grid: { color: css('--grid') }, border: { color: css('--axis') } },
+                y: { type: 'category', labels, offset: true, ticks: { autoSkip: false, color: css('--ink-2'), font: { size: 11 } }, grid: { color: css('--grid') }, border: { color: css('--axis') } } } },
+    plugins: [bands] });
+}
+const segEl = document.getElementById('sel-brg');
+segEl.innerHTML = ['29 September', '27–28 September'].map((o, i) => `<button type="button" aria-pressed="${i === sel}">${o}</button>`).join('');
+[...segEl.children].forEach((b, i) => b.onclick = () => { [...segEl.children].forEach((c, j) => c.setAttribute('aria-pressed', i === j)); sel = i; drawBrg(); });
+drawBrg();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawBrg);
+</script>
+</body>
+</html>

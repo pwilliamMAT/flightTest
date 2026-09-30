@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calibration Loop and Linearity</title>
+<meta name="description" content="Diagnostic, 2026-09-29: the N320's own transmitter radiates but reaches SURV only by internal leakage; the Pluto at the outdoor stairwell corner closes the loop on both channels (SURV +39.7 dB aimed, REF +12.4 dB side-on); with all LNAs removed the receive chain is linear only to N320 gain 10 (SURV) / 15 (REF); the N320 has no AGC.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --raised: #ffffff;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --band: rgba(137,135,129,0.14);
+  --critical: #d03b3b; --good: #0ca30c; --good-text: #006300; --warn: #c98a00; --warn-text: #8a5f00; --accent-wash: rgba(42,120,214,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --raised: #222221;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --band: rgba(195,194,183,0.12);
+    --good-text: #0ca30c; --warn-text: #e0a82e; --accent-wash: rgba(57,135,229,0.12);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --raised: #222221;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --band: rgba(195,194,183,0.12);
+  --good-text: #0ca30c; --warn-text: #e0a82e; --accent-wash: rgba(57,135,229,0.12);
+}
+body { background: var(--page); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.ink2 { color: var(--ink-2); } .muted { color: var(--muted); }
+.swatch { display:inline-block; width:10px; height:10px; border-radius:3px; vertical-align:middle; }
+.swatch-line { display:inline-block; width:16px; height:0; border-top:2px solid; vertical-align:middle; }
+table { font-variant-numeric: tabular-nums; }
+th { color: var(--ink-2); font-weight: 600; text-align: left; }
+td, th { border-bottom: 1px solid var(--grid); padding: 6px 10px; white-space: nowrap; }
+.num { text-align: right; }
+.status { display:inline-flex; align-items:flex-start; gap:6px; font-weight:600; }
+.status svg { flex: none; margin-top: 3px; }
+.chart-box { position: relative; height: 300px; }
+code { font-size: 0.85em; background: var(--accent-wash); padding: 0 4px; border-radius: 4px; }
+dt { font-weight: 600; }
+dd { color: var(--ink-2); margin: 2px 0 12px 0; }
+.seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.seg button { padding:4px 12px; font-size:0.875rem; color: var(--ink-2); background: var(--raised); }
+.seg button[aria-pressed="true"] { background: var(--accent-wash); color: var(--ink); font-weight:600; }
+.seg button + button { border-left:1px solid var(--border); }
+</style>
+</head>
+<body class="min-h-screen">
+<div class="max-w-7xl mx-auto px-4 py-6 sm:px-6">
+
+<header class="mb-6">
+  <p class="text-sm muted">flightTest · diagnostic report · calibration scan · 2026-09-29 15:23–22:22 UTC · records captures/n320CwLoopTests/, captures/plutoCwLoopTests/20260929T*</p>
+  <h1 class="text-2xl sm:text-3xl font-semibold mt-1">Calibration loop closed from outdoors; the N320's own transmitter only leaks</h1>
+  <p class="ink2 mt-2 max-w-3xl">On 29 September a vertical monopole on the N320's RF0 TX/RX port was tried as a built-in calibration source. It does radiate (an independent receiver hears it 75 ft away), but the only place the N320 sees it is SURV, through leakage inside the radio: the level is the same with SURV's input on a 50 Ω load. Neither Yagi hears it over the air. The Pluto, moved outdoors to the corner of the stairwell with a horizontal antenna, closes the loop on both channels: +39.7 dB on SURV (turned to face it) and +12.4 dB on REF (side-on), with SURV silent when loaded. A gain sweep with every LNA removed shows the chain is linear only up to N320 gain 10 on SURV and 15 on REF; above that the front end compresses. The N320 has no automatic gain control.</p>
+  <div class="mt-3 status" style="color:var(--good-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 8.5l2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    <span>Loop closed on both channels from an independent source: SURV +39.7 dB (z 67.5), REF +12.4 dB (z 20.8), repeatable to 0.4 dB · null check passed (SURV on 50 Ω: nothing)</span>
+  </div>
+  <div class="mt-1 status" style="color:var(--warn-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l7 12.5H1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v1" stroke="currentColor" stroke-width="2"/></svg>
+    <span>The N320's own transmitter is not a usable calibration source as installed: SURV's +21 dB is internal TX/RX → RX2 leakage, and REF hears nothing over the air at TX gain 30, −20 dBFS</span>
+  </div>
+  <div class="mt-1 status" style="color:var(--warn-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l7 12.5H1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v1" stroke="currentColor" stroke-width="2"/></svg>
+    <span>Front end compresses above N320 gain ≈10 (SURV) / 15 (REF) even with the LNAs removed · the capture default [10 0] is inside the linear range · no hardware AGC on the N320</span>
+  </div>
+  <div class="mt-1 status" style="color:var(--warn-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l7 12.5H1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v1" stroke="currentColor" stroke-width="2"/></svg>
+    <span>Pointing correction: until 29 September SURV pointed about 060° true, not 270° as earlier reports assumed. For these tests REF pointed about 090° and SURV was turned to about 304°, facing the Pluto</span>
+  </div>
+</header>
+
+<section id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></section>
+
+<div class="card p-5 mb-4">
+  <h2 class="text-lg font-semibold mb-3">Report summary</h2>
+  <dl id="summary" class="grid grid-cols-1 lg:grid-cols-2 gap-x-8"></dl>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+  <div class="card p-5">
+    <h2 class="text-lg font-semibold mb-3">Findings</h2>
+    <ol id="findings" class="space-y-4"></ol>
+  </div>
+  <div class="space-y-4">
+    <div class="card p-5"><h2 class="text-lg font-semibold mb-3">Next steps</h2><ol id="nextsteps" class="space-y-3"></ol></div>
+    <div class="card p-5"><h2 class="text-lg font-semibold mb-3">Method</h2><ul id="method" class="space-y-2 text-sm ink2"></ul></div>
+    <div class="card p-5"><h2 class="text-lg font-semibold mb-3">Code navigation</h2><ul id="codenav" class="space-y-2 text-sm ink2"></ul></div>
+  </div>
+</div>
+
+<div class="card p-5 mb-4">
+  <h2 class="text-lg font-semibold">1 · Does the N320's transmitter radiate, and what does the N320 see of it?</h2>
+  <p class="text-sm ink2 mt-1 mb-2">The Pluto, as an independent receiver on the stairwell wall about 75 ft from the monopole, reports the carrier level every 0.25 s (strongest bin near 602.06 MHz against neighbouring bins, 15 Hz resolution). The N320 transmits from RF0 TX/RX and, while transmitting, runs one background capture and one blocking capture. SURV's input is on a 50 Ω load. The carrier stays on through both captures, so a blocking capture does not interrupt the transmitter.</p>
+  <div class="legend text-sm ink2 my-2 flex flex-wrap gap-x-4 gap-y-1" id="lg-mon"></div>
+  <div class="chart-box" style="height:300px"><canvas id="c-mon" role="img" aria-label="Carrier level at the Pluto over 47 seconds: noise at about 1 dB before and after, about 12.5 dB while the N320 transmits, unchanged during the background and blocking captures"></canvas></div>
+  <div class="overflow-x-auto mt-4"><table class="text-sm w-full" id="tbl-tx"></table></div>
+</div>
+
+<div class="card p-5 mb-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-lg font-semibold">2 · Pluto → N320 loop from the stairwell corner</h2>
+    <div class="seg" role="group" aria-label="Run" id="sel-loop"></div>
+  </div>
+  <p class="text-sm ink2 mt-1 mb-2" id="loop-intro"></p>
+  <div class="legend text-sm ink2 my-2 flex flex-wrap gap-x-4 gap-y-1" id="lg-loop"></div>
+  <div class="chart-box" style="height:320px"><canvas id="c-loop" role="img" aria-label="Carrier-bin level per 0.1 s frame on SURV and REF, with the carrier-on frames shaded"></canvas></div>
+  <div class="overflow-x-auto mt-4"><table class="text-sm w-full" id="tbl-loop"></table></div>
+</div>
+
+<div class="card p-5 mb-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-lg font-semibold">3 · Receive-chain linearity with the LNAs removed</h2>
+    <div class="seg" role="group" aria-label="Measure" id="sel-sweep"></div>
+  </div>
+  <p class="text-sm ink2 mt-1 mb-2" id="sweep-intro"></p>
+  <div class="legend text-sm ink2 my-2 flex flex-wrap gap-x-4 gap-y-1" id="lg-sweep"></div>
+  <div class="chart-box" style="height:320px"><canvas id="c-sweep" role="img" aria-label="Level versus N320 gain from 0 to 60 dB for SURV and REF"></canvas></div>
+  <div class="overflow-x-auto mt-4"><table class="text-sm w-full" id="tbl-sweep"></table></div>
+</div>
+
+<div class="card p-5 mb-4">
+  <h2 class="text-lg font-semibold mb-2">Why not AGC?</h2>
+  <ul class="text-sm ink2 space-y-2 list-disc pl-5">
+    <li>The N320 has none. Its UHD property tree exposes one control per receive front end, <code>rx_frontends/0/gains/all</code>, and no AGC node. Hardware AGC exists on AD9361-based radios (Pluto, E320, B2xx), not on the N320.</li>
+    <li>A running AGC would hurt this radar even where it exists: a gain step inside a coherent processing interval breaks the cross-ambiguity integration and the ECA clutter cancellation, and it changes the REF/SURV ratio this calibration measures.</li>
+    <li>What works instead is set-and-hold: before each capture, step the gain and watch total output power. It rises 1 dB per dB up to the knee and then flattens (table above), so the knee can be found without the Pluto. Hold the gain one or two steps below it for the whole capture.</li>
+  </ul>
+</div>
+
+<footer class="text-xs muted mt-6 mb-2">Evidence class: measured, diagnostic. Single carrier at 602.05 MHz (the channel 35/36 gap), levels per 10 Hz bin unless stated. Not a member of the accepted report family.</footer>
+</div>
+
+<script>
+const D = {"sweep":{"gain":[0,5,10,15,20,25,30,35,40,45,50,55,60],"tone":[[-61.29,-56.62,-52.15,-51.85,-53,-52.37,-53.76,-53.25,-54.17,-54.42,-53.59,-53.89,-53.98],[-85.88,-81.36,-76.8,-72.66,-71.4,-68.75,-72.63,-71.42,-69.11,-72.8,-74.03,-71.45,-75.02]],"floor":[[-99.88,-97.32,-90.21,-77.7,-74.91,-72.3,-74.85,-73.2,-76.36,-76.41,-83.76,-75.19,-78.66],[-99,-94.79,-86.98,-85.41,-75.25,-72.89,-75.26,-75.01,-73.09,-77.2,-77.45,-74.79,-82.76]],"total":[[-29.36,-24.37,-19.38,-16.56,-15.36,-15.36,-15.59,-15.38,-15.74,-16.25,-17.18,-18.19,-18.67],[-26.69,-21.71,-16.7,-11.97,-13.47,-11.42,-11.56,-11.09,-11.62,-12.16,-12.76,-14.23,-14.7]]},"loop":[{"name":"20260929T214800Z_602p05_corner_survLoad","trace":[[-120.26,-122.5,-121.98,-122.22,-119.79,-122.66,-123.17,-120.43,-117.66,-121.56,-119.38,-124.93,-120.81,-123.28,-134.97,-127.28,-122.07,-123.29,-119.48,-122.33,-120.42,-124.93,-121.03,-122.71,-124.18,-119.44,-121.19,-123.27,-123.09,-118.4,-120.87,-124.63,-122.44,-123.7,-123.02,-117.96,-121.4,-122.59,-118.99,-127.35,-122.5,-119.36,-122.64,-126.95,-122.38,-121.78,-121.1,-122.13,-123,-117.71,-123.25,-124.94,-120.32,-124.51,-124.69,-125.36,-123.96,-122.12,-119.29,-122.16,-124.25,-117.05,-123.34,-121.13,-120.03,-121.87,-121.67,-123.84,-121.91,-122.92,-116.85,-120.29,-120.3,-127.96,-119.43,-118.19,-119.01,-123.37,-119.83,-122.09,-119.75,-121.37,-116.6,-126.55,-119.9,-123.62,-121.88,-119.83,-121.28,-123.06,-120.28,-118.53,-119.54,-120.11,-120.54,-119.1,-120.29,-118.57,-122.68,-119.48,-124.16,-123.01,-123.09,-124.67,-126.42,-120.48,-120.12,-118.89,-119.59,-122.69,-118.33,-120.14,-122.51,-120.63,-118.58,-118.71,-122.34,-119.1,-128.1,-121.34,-122.39,-124.45,-120.29,-119.38,-119.95,-124.52,-122.12,-118.61,-121.69,-127.91,-121.96,-120.1,-126.13,-119.63,-117.42,-121.16,-118.74,-125.73,-128.96,-119.18,-122.3,-121.23,-119.35,-124.46,-120.75,-122.62,-120.13,-123.88,-119.1,-118.41,-122.26,-124.43,-126.4,-121.74,-119.15,-123.38,-124.38,-118.92,-122.26,-120.18,-125.62,-121.29,-126.89,-122.55,-120.8,-121.25,-125.34,-122.73,-125.54,-117.53,-119.5,-117.84,-121.75,-122.13,-123.67,-124.12,-121.52,-120.67,-123.21,-121.74,-123.25,-120.6,-120.7,-123.46,-125.42,-119.94,-121.41,-122.43,-119.59,-124.8,-124.39,-120.67,-118.47,-123.59,-123.97,-121.54,-123.3,-122.23,-121.75,-125.44,-121.07,-125.47,-124.1,-122.25,-122.03,-121.16,-122.36,-118.21,-120.34,-120.54,-127.83,-121.73,-120.47,-121.52,-124.44,-121.65,-121.18,-119.12,-119.57,-121.12],[-103.32,-102.79,-100.26,-100.33,-102.61,-95.97,-102.47,-99.03,-97.82,-100.86,-90.68,-89.35,-91.3,-90.77,-91.16,-90.1,-89.25,-88.5,-89.11,-88.76,-89.14,-93.1,-89.55,-89.34,-90.04,-91.78,-89.89,-91.08,-90.41,-89.81,-90.13,-89.61,-91.28,-92.46,-93.28,-88.86,-88.89,-89.54,-87.33,-90.09,-89.95,-88.03,-89.87,-91.66,-89.22,-87.44,-89.56,-90.99,-90.32,-89.6,-89.52,-91.23,-91.33,-91.67,-90.93,-91.99,-89.74,-88.69,-92.12,-89.85,-88.95,-93.25,-89.61,-89.66,-91.56,-90.56,-90.33,-89.54,-89.43,-90.78,-89.81,-87.92,-89.6,-88.49,-91.3,-90.38,-89.29,-91.37,-91.72,-89.53,-89.25,-88.45,-93.64,-92.07,-87.92,-90.14,-88.16,-89.88,-94.2,-92.53,-89.71,-91.58,-91.42,-91.01,-90.4,-90.82,-89.5,-89.75,-90.94,-89.5,-89,-89.36,-88.8,-91.59,-87.76,-88.82,-91.27,-90.88,-91.53,-90.52,-103.26,-103.65,-102.82,-103.77,-98.58,-100.54,-101.74,-100.46,-100.98,-99.04,-100.27,-102.72,-99.7,-100.94,-104.39,-98.89,-101.18,-96.29,-105.24,-102.7,-102.03,-98.55,-99.49,-98.3,-99.87,-97.68,-101.88,-101.2,-99.04,-105.52,-100.36,-99.35,-98.55,-101.88,-101.2,-101.62,-98.44,-98.43,-97.73,-107.7,-100.52,-101.38,-98.33,-102.78,-98.64,-99.32,-99.16,-101.09,-98.51,-99.71,-103.07,-101.18,-100.28,-98.81,-97.64,-102.67,-100.47,-97.52,-100.68,-102.89,-97.73,-98.53,-103.84,-97.29,-100.01,-105.41,-102.03,-101.14,-103.29,-99.92,-97.85,-102.76,-100.73,-103.03,-96.45,-98.6,-96.71,-98.9,-98.45,-97.16,-100.05,-102.2,-98.73,-98.38,-99.48,-104.89,-100.2,-102.15,-102.91,-103.51,-102.19,-102.86,-102.43,-101.14,-100.52,-99.16,-99.34,-99.71,-102.23,-105.7,-101.12,-102.34,-101.19,-96.58,-102.75,-100.64,-99.25,-105.01,-103.64,-103.94]],"labels":["pre","pre","pre","pre","pre","pre","pre","pre","pre","pre","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post"],"onoff":[2,12.9],"z":[3.3,21.6],"tone":[-151.5,-88.6],"floor":[-124.5,-103.1],"coupling":[-149.3,-86.5],"carrier_mhz":602.0495,"ppm":-17.440122246952132,"p_on":0.9168240851791045,"p_off":0.7137667975966453},{"name":"20260929T215556Z_602p05_corner_survAtCorner","trace":[[-93.18,-94.67,-91,-92.57,-95.08,-94.39,-93.63,-95.15,-88.52,-90.68,-56.15,-55.62,-55.34,-55.31,-55.32,-55.43,-55.4,-55.42,-55.39,-55.6,-55.55,-55.84,-55.86,-55.8,-55.84,-56.1,-56.18,-56.26,-56.32,-56.26,-56.29,-56.27,-56.47,-56.51,-56.74,-56.61,-56.47,-56.6,-56.64,-56.64,-56.62,-56.54,-56.62,-56.46,-56.52,-56.43,-56.4,-56.34,-56.37,-56.46,-56.35,-56.38,-56.37,-56.27,-56.22,-56.18,-56.13,-56.03,-56.12,-55.98,-55.89,-55.99,-55.95,-55.87,-55.83,-55.69,-55.7,-55.63,-55.66,-55.64,-55.6,-55.66,-55.54,-55.48,-55.44,-55.49,-55.5,-55.42,-55.37,-55.52,-55.42,-55.46,-55.42,-55.44,-55.28,-55.28,-55.39,-55.39,-55.3,-55.23,-55.3,-55.37,-55.32,-55.34,-55.41,-55.27,-55.37,-55.34,-55.26,-55.43,-55.41,-55.39,-55.4,-55.48,-55.43,-55.58,-55.48,-55.63,-55.51,-55.63,-92.03,-90.21,-96.2,-91.55,-93.06,-93.69,-92.32,-90.82,-92.71,-95.41,-93.66,-103.34,-92.22,-95.78,-93.4,-91.87,-89.12,-92.7,-92.6,-94.17,-95.69,-89.49,-95.82,-97.55,-89.85,-97.28,-88.25,-89.18,-90.83,-96.58,-92.72,-93.53,-90.64,-94.39,-90.96,-91.76,-96.7,-94.22,-91.86,-95.46,-96.9,-94.69,-95.73,-93.14,-101.1,-92.27,-95.74,-92.65,-99.29,-90.8,-100.01,-91.16,-89.97,-89.7,-92.58,-90.73,-88.53,-94.55,-95.63,-96.56,-94.6,-97.57,-89.86,-90.49,-92.8,-94.65,-92.08,-90.02,-94.34,-93.45,-94.13,-99.18,-90.07,-92.28,-93.36,-91.28,-92.13,-90.8,-91.12,-95.58,-88.92,-90.19,-91.84,-95.87,-92.78,-93.55,-94.53,-90.52,-97.17,-89.61,-88.96,-88.97,-87.97,-88.42,-93.06,-91.32,-91.73,-88.52,-91.82,-96.28,-87.39,-95.22,-90.08,-92.58,-92.09,-99.52,-88.67,-97.11,-93.35,-91.33],[-99.7,-102.31,-102.31,-99.36,-100.69,-97.04,-101.4,-102.67,-93.93,-103.62,-91.15,-89.3,-90.79,-89.76,-88.9,-93.81,-89.39,-91.78,-87.5,-91.31,-91.7,-92.62,-94.28,-89.49,-92.21,-90.41,-92.31,-89.65,-89.18,-90.28,-90.9,-87.7,-89.15,-89.18,-89.36,-89.42,-91.54,-91.59,-91.32,-90.17,-93.22,-93.12,-89.87,-93.74,-91.12,-89.52,-91.58,-89.69,-89.82,-92.67,-94.48,-90.38,-93.07,-90.5,-89.85,-91.54,-89.72,-88.1,-90.03,-90.5,-93.52,-90.29,-88.97,-90.05,-88.21,-95.53,-90.6,-89.91,-90.84,-90.27,-88.74,-87.67,-89.69,-90.92,-92.93,-91.05,-88.69,-91.79,-91.4,-91.97,-87.41,-91.33,-90.38,-90.8,-91.35,-90.4,-88.43,-94.02,-88.88,-90.05,-90.93,-88.93,-91.5,-88.18,-88.01,-90.54,-89.77,-90.06,-91.26,-90.88,-89.45,-92.49,-88.77,-90.26,-89.79,-92.58,-90.79,-90.63,-94.62,-91.24,-104.74,-103.59,-97.85,-96.38,-97.32,-97.99,-99.32,-98.57,-100.03,-99.29,-100.41,-97.49,-97.96,-109.65,-102.41,-99.3,-101.08,-103.17,-97.68,-105.82,-102.14,-98.22,-98.94,-101.61,-102.29,-104.47,-95.6,-96.7,-102.2,-99.16,-98.4,-97.53,-99.37,-102.29,-101.87,-99.26,-105.07,-100.75,-100.23,-103.35,-103.83,-102.64,-100.87,-103.36,-101.51,-100.73,-97.01,-98.62,-97.04,-96.63,-99.32,-97.08,-103.32,-100.56,-103.08,-98.21,-99.6,-102.74,-100.77,-103.79,-100.31,-98.28,-98.4,-98.79,-96.42,-100.1,-103.94,-96.64,-99.56,-97.38,-102.42,-101.45,-104.17,-98.63,-101.81,-97.68,-99.73,-97.57,-100.07,-99.88,-96.95,-98.85,-103.32,-104.23,-103.68,-101.68,-101.61,-104.85,-102.75,-98.13,-98.47,-99.1,-98.19,-107.4,-100.47,-103.91,-103.45,-100.15,-106.4,-104.11,-96.99,-102.08,-98.98,-96.44,-105.92,-101.84,-101.78,-99.18,-101.46,-98.71]],"labels":["pre","pre","pre","pre","pre","pre","pre","pre","pre","pre","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","pulse","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post","post"],"onoff":[39.7,12.4],"z":[67.5,20.8],"tone":[-54,-89],"floor":[-95.1,-103],"coupling":[-51.9,-86.9],"carrier_mhz":602.0496,"ppm":-17.274025844600207,"p_on":2.358548454796599e-42,"p_off":0.0001516153527207862}],"monitor":{"t0_utc":"21:37:44","pts":[[0.0,0.6],[0.3,0.3],[0.5,1.0],[0.8,0.6],[1.1,0.3],[1.3,-0.1],[1.6,1.0],[1.9,1.0],[2.1,0.4],[2.4,0.2],[2.6,0.7],[2.9,0.4],[3.2,1.7],[3.4,0.1],[3.7,1.2],[4.0,0.1],[4.2,2.9],[4.5,0.9],[4.7,0.2],[5.0,0.7],[5.3,0.2],[5.5,1.1],[5.8,0.7],[6.0,0.3],[6.3,1.4],[6.6,1.0],[6.8,0.8],[7.1,0.9],[7.4,0.3],[7.6,0.3],[7.9,0.5],[8.1,0.3],[8.4,0.3],[8.7,0.5],[8.9,3.2],[9.2,1.5],[9.5,11.5],[9.7,12.2],[10.0,12.3],[10.2,12.5],[10.5,12.3],[10.8,12.0],[11.0,12.4],[11.3,11.6],[11.6,12.5],[11.8,12.0],[12.1,12.3],[12.3,13.0],[12.6,12.9],[12.9,12.1],[13.1,12.2],[13.4,12.1],[13.7,12.2],[13.9,12.5],[14.2,12.5],[14.4,12.5],[14.7,12.7],[15.0,12.9],[15.2,12.4],[15.5,13.0],[15.7,11.9],[16.0,12.4],[16.3,12.4],[16.5,13.1],[16.8,12.3],[17.1,13.1],[17.3,12.2],[17.6,12.7],[17.8,12.6],[18.1,12.2],[18.4,12.0],[18.6,12.7],[18.9,12.4],[19.2,13.0],[19.4,13.2],[19.7,12.3],[19.9,12.9],[20.2,12.9],[20.5,13.4],[20.7,12.5],[21.0,12.7],[21.3,12.6],[21.5,12.2],[21.8,12.7],[22.0,12.6],[22.3,13.0],[22.6,12.8],[22.8,12.7],[23.1,12.9],[23.3,12.6],[23.6,12.8],[23.9,12.5],[24.1,13.0],[24.4,13.1],[24.7,12.8],[24.9,12.7],[25.2,12.9],[25.4,12.9],[25.7,12.2],[26.0,12.5],[26.2,13.1],[26.5,12.1],[26.8,12.7],[27.0,13.0],[27.3,13.5],[27.5,12.1],[27.8,13.1],[28.1,13.3],[28.3,12.8],[28.6,12.1],[28.9,12.6],[29.1,12.5],[29.4,11.9],[29.6,13.1],[29.9,12.0],[30.2,13.0],[30.4,13.2],[30.7,12.3],[31.0,12.1],[31.2,13.0],[31.5,12.4],[31.7,12.3],[32.0,13.5],[32.3,12.9],[32.5,13.6],[32.8,13.0],[33.0,12.8],[33.3,12.2],[33.6,12.8],[33.8,12.3],[34.1,12.3],[34.4,11.9],[34.6,13.0],[34.9,12.4],[35.1,12.3],[35.4,12.5],[35.7,12.5],[35.9,11.7],[36.2,11.9],[36.5,12.8],[36.7,12.5],[37.0,12.9],[37.2,11.9],[37.5,12.7],[37.8,12.0],[38.0,12.7],[38.3,12.8],[38.6,12.5],[38.8,12.9],[39.1,11.7],[39.3,13.0],[39.6,0.8],[39.9,0.6],[40.1,1.8],[40.4,1.3],[40.7,-0.2],[40.9,0.5],[41.2,0.8],[41.4,1.1],[41.7,0.6],[42.0,0.3],[42.2,0.8],[42.5,0.6],[42.7,-0.2],[43.0,1.0],[43.3,0.7],[43.5,1.4],[43.8,1.2],[44.1,-0.1],[44.3,1.5],[44.6,0.6],[44.8,0.3],[45.1,0.1],[45.4,0.2],[45.6,0.0],[45.9,0.5],[46.2,0.6],[46.4,0.6],[46.7,0.7],[46.9,0.9]],"marks":[["radio set up, TX off",2.2],["TX on",9.2],["background capture",13.3],["background capture end",17.0],["blocking capture",26.7],["blocking capture end",32.6],["TX off",39.3]],"n320":{"background":{"surv":[21.4,21.3],"ref":[0.3,0.3]},"blocking":{"surv":[21.3,21.4],"ref":[0.2,0.2]}}}};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (v, d = 1) => (v === null || v === undefined || Number.isNaN(v)) ? '—' : Number(v).toFixed(d);
+const sgn = (v, d = 1) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
+const [L0, L1] = D.loop;
+
+const cards = [
+  { k: 'SURV loop, aimed at the Pluto', v: `+${fmt(L1.onoff[0])} dB`, s: `Carrier on vs off, z ${fmt(L1.z[0])}. Tone ${fmt(L1.tone[0])} dBFS, coupling ${fmt(L1.coupling[0])} dB from the Pluto DAC level.` },
+  { k: 'REF loop, side-on', v: `+${fmt(L1.onoff[1])} dB`, s: `z ${fmt(L1.z[1])}; phase-locked to SURV (p ≈ 2×10⁻⁴²). Coupling ${fmt(L1.coupling[1])} dB, within 0.4 dB of the first run.` },
+  { k: 'N320 TX into SURV', v: '+21.4 dB', s: 'With SURV\'s input on a 50 Ω load (+22.7 dB with the antenna). Internal RF0 TX/RX → RX2 leakage; REF +0.3 dB.' },
+  { k: 'Linear up to N320 gain', v: '10 · 15', s: 'SURV · REF, LNAs removed. Above that total output flattens near −15 / −11 dBFS and the floor at the carrier jumps 20 dB.' },
+];
+document.getElementById('cards').innerHTML = cards.map(c =>
+  `<div class="card p-4"><p class="text-sm ink2">${c.k}</p><p class="text-2xl font-semibold mt-1">${c.v}</p><p class="text-sm ink2 mt-1">${c.s}</p></div>`).join('');
+
+const summary = [
+  ['Question', 'Can the N320\'s own transmitter serve as the calibration source, does a known carrier reach both receive channels over the air, and over what gain range is the receive chain linear now that the LNAs are out?'],
+  ['Result', 'The N320 transmitter radiates but reaches only SURV, and only by internal leakage. The Pluto at the outdoor stairwell corner closes the loop on both channels, repeatably. The chain is linear to N320 gain 10 (SURV) and 15 (REF) and compresses above.'],
+  ['Engineering decision', 'Use the Pluto at the outdoor corner, horizontally polarised, as the calibration source. Keep capture gain inside the linear range ([10 0] or [5 5]). Do not pursue AGC; if needed, add a set-and-hold gain step before each capture.'],
+  ['Still unknown', 'Why n320CwLoopTest saw no carrier at all on 29 September morning (it should at least have seen the leakage; one difference is that it captures before its first transmit). The REF/SURV chain ratio with both antennas facing the Pluto. Where the knee sits once SURV points back at the surveillance sector.'],
+  ['Evidence class', 'Measured on hardware, 29 September 2026, 15:23–22:22 UTC. Single CW carrier at 602.05 MHz; independent Pluto receiver for the transmitter test.'],
+  ['Claim boundary', 'One frequency, one geometry per run. The two channels were pointed differently (SURV at the Pluto, REF side-on), so the 35 dB difference is mostly antenna pattern, not a chain calibration. Gain-sweep points are 0.5 s each (±1 dB). Absolute coupling includes the unknown cable and antenna losses.'],
+];
+document.getElementById('summary').innerHTML = summary.map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join('');
+
+const findings = [
+  ['The N320\'s transmitter works.', 'Both TX/RX LEDs light on command, and the Pluto hears the 602.05 MHz carrier from the monopole at +8 to +12.5 dB, 75 ft away. The morning\'s conclusion that no RF was produced was wrong.'],
+  ['Everything the N320 saw of it was leakage.', 'SURV shows the carrier at +21.4 dB with its input on a 50 Ω load and +22.7 dB with the antenna connected: the path is RF0 TX/RX → RF0 RX2 inside the radio. REF never rose above noise. A vertical monopole into horizontal Yagis costs about 20 dB of cross-polar loss.'],
+  ['A blocking capture does not stop the transmitter.', 'The Pluto trace stays at about 12.5 dB through a background and a blocking capture (section 1). That hypothesis for the morning\'s nulls is ruled out; the cause is still open.'],
+  ['The design problem: a transmitter on RF0 swamps SURV, one on RF1 would swamp REF.', 'Using the N320 as its own source would need the leakage measured with the load and subtracted. An independent source avoids this.'],
+  ['The Pluto closes the loop on both channels.', 'From the outdoor corner, horizontal pigtail, full output: REF +12.9 and +12.4 dB in two runs (coupling −86.5 and −86.9 dB); SURV +39.7 dB once aimed at it (coupling −51.9 dB). With SURV loaded the null check held (+2.0 dB, phase test p = 0.92).'],
+  ['REF hears the Pluto 30–36 dB more weakly than on 23–24 September.', 'REF now points east, about 95° from the corner; on the 23rd the stairwell was about 16° off its boresight. The loop still closes with 13 dB to spare.'],
+  ['The front end compresses above gain 10–15.', 'The carrier rises 0.9 dB per dB up to gain 10 (SURV) and 15 (REF). Above that, total output stops rising at about −15.5 / −11.5 dBFS, far below full scale, so an analog stage (not the ADC) is saturating, most likely on the local DTV cluster. The floor at the carrier bin rises 20 dB or more (intermodulation).'],
+  ['REF\'s margin is set outside the radio.', 'REF keeps about 13 dB of carrier-over-floor from gain 0 to 15 while its floor rises with gain: the floor is external (the DTV environment), so more gain does not help REF.'],
+];
+document.getElementById('findings').innerHTML = findings.map(([h, t]) => `<li><p class="font-semibold">${h}</p><p class="text-sm ink2 mt-1">${t}</p></li>`).join('');
+const nextsteps = [
+  'Aim REF at the corner too and repeat the loop test: with both antennas facing the same source, the REF/SURV difference measures the two receive chains (level and phase).',
+  'Re-run the gain sweep with SURV pointed back at the surveillance sector, since the knee depends on total input power.',
+  'Find why n320CwLoopTest recorded nothing; if the N320 source is revisited, measure its leakage on a load and subtract it.',
+  'Record the new antenna layout in SiteGeometry.md.',
+];
+document.getElementById('nextsteps').innerHTML = nextsteps.map(t => `<li class="text-sm ink2">${t}</li>`).join('');
+const method = [
+  'N320 transmitter: CW tone +500 kHz from a 601.55 MHz TX LO (carrier 602.05 MHz), TX gain 30 dB, −20 dBFS, RF0 TX/RX. N320 capture 6.144 MS/s centred 601 MHz, gain [10 0]; carrier scored at +1.05 MHz against neighbouring bins 20–200 kHz away.',
+  'Independent check: the Pluto streams 1 MS/s I/Q (LO 602.0 MHz, manual gain 40 dB) through iio_readdev into a monitor that averages four 2¹⁶-point FFTs every 0.26 s and reports the strongest bin within ±15 kHz of 602.06 MHz against the median of bins 30–200 kHz away.',
+  'Loop test: Pluto LO 601.56 MHz + 500 kHz tone, amplitude 0.78, TX gain 0 dB. N320 at 599 MHz, gain [10 0], 0.1 s frames (10 Hz bins): 10 off, 100 on, 110 off. Detection by on/off ratio at the best bin (z-score) and, for the weaker channel, by the Rayleigh test of its phase against the stronger channel.',
+  'Gain sweep: same carrier; N320 gain 0 to 60 dB in 5 dB steps on both channels, five 0.1 s frames per step with the carrier on, then the same steps with it off. Tone levels include the 1.76 dB Hann bin loss.',
+];
+document.getElementById('method').innerHTML = method.map(t => `<li>${t}</li>`).join('');
+const codenav = [
+  '<code>TestSetupTesting/plutoCwLoopTest.m</code>, <code>plutoCwLoopAnalyze.m</code>: loop test and its analysis.',
+  '<code>TestSetupTesting/plutoCwGainSweep.m</code>: gain sweep.',
+  '<code>TestSetupTesting/n320CwLoopTest.m</code>: N320-as-source loop test (morning runs).',
+  'The transmit-while-capturing test and the Pluto monitor were ad hoc session scripts and are not in the repository.',
+  'Records: <code>captures/plutoCwLoopTests/20260929T214800Z_602p05_corner_survLoad</code>, <code>…T215556Z_602p05_corner_survAtCorner</code>, <code>…T222146Z_gainsweep_noLNA_survAtCorner</code>; <code>captures/n320CwLoopTests/20260929T15*</code>.',
+];
+document.getElementById('codenav').innerHTML = codenav.map(t => `<li>${t}</li>`).join('');
+
+// ---------- tables ----------
+const tx = [
+  ['15:23–15:31', 'n320CwLoopTest, TX gain 0–30, −40 / −20 dBFS', 'antenna', 'no carrier on either channel', '—'],
+  ['20:55–20:56', 'LED test, RF0 then RF1', '—', 'both TX/RX LEDs lit in their windows', '—'],
+  ['21:05', 'Pluto listens, no N320 capture', 'antenna', '—', '+8.0 dB'],
+  ['21:19', 'TX + background capture', 'antenna', 'SURV +22.7 dB, REF +1.5 dB', '+10.7 dB'],
+  ['21:37', 'TX + background, then blocking capture', '50 Ω load', 'SURV +21.3 / +21.4 dB, REF +0.2 / +0.3 dB', '≈ +12.5 dB, steady'],
+];
+document.getElementById('tbl-tx').innerHTML = '<thead><tr><th>UTC</th><th>Step</th><th>SURV input</th><th>N320 (carrier vs neighbours)</th><th class="num">Pluto on/off</th></tr></thead><tbody>' +
+  tx.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td class="num">${r[4]}</td></tr>`).join('') + '</tbody>';
+
+const loopRows = [[L0, 'SURV on 50 Ω load · 21:46'], [L1, 'SURV aimed at the Pluto · 21:54']];
+document.getElementById('tbl-loop').innerHTML = '<thead><tr><th>Run (UTC)</th><th>Channel</th><th class="num">On/off</th><th class="num">z</th><th class="num">Tone (dBFS)</th><th class="num">Floor (dBFS/10 Hz)</th><th class="num">Coupling (dB)</th><th>Detected</th></tr></thead><tbody>' +
+  loopRows.map(([L, n]) => ['SURV', 'REF'].map((c, i) => `<tr><td>${i ? '' : n}</td><td>${c}</td><td class="num">${sgn(L.onoff[i])} dB</td><td class="num">${fmt(L.z[i])}</td><td class="num">${fmt(L.tone[i])}</td><td class="num">${fmt(L.floor[i])}</td><td class="num">${fmt(L.coupling[i])}</td><td>${(i === 0 && L === L0) ? 'no (load)' : 'yes'}</td></tr>`).join('')).join('') + '</tbody>';
+
+const G = D.sweep;
+document.getElementById('tbl-sweep').innerHTML = '<thead><tr><th class="num">N320 gain</th><th class="num">SURV tone</th><th class="num">SURV margin</th><th class="num">SURV total</th><th class="num">REF tone</th><th class="num">REF margin</th><th class="num">REF total</th></tr></thead><tbody>' +
+  G.gain.map((g, k) => `<tr><td class="num">${g}</td>${[0, 1].map(c => `<td class="num">${fmt(G.tone[c][k])}</td><td class="num">${fmt(G.tone[c][k] - G.floor[c][k])} dB</td><td class="num">${fmt(G.total[c][k])}</td>`).join('')}</tr>`).join('') + '</tbody>';
+
+// ---------- charts ----------
+const legend = (id, items) => { document.getElementById(id).innerHTML = items.map(i =>
+  `<span class="inline-flex items-center gap-1.5">${i.band ? `<span class="swatch" style="background:${i.c}"></span>` : `<span class="swatch-line" style="border-color:${i.c};${i.dash ? 'border-top-style:dashed' : ''}"></span>`}${i.t}</span>`).join(''); };
+const bands = { id: 'bands', beforeDatasetsDraw(ch, _, o) { const { ctx, chartArea: a, scales: { x } } = ch; (o.list || []).forEach(b => {
+  const x0 = x.getPixelForValue(b[0]), x1 = x.getPixelForValue(b[1]); ctx.save(); ctx.fillStyle = b[2]; ctx.fillRect(x0, a.top, x1 - x0, a.bottom - a.top);
+  if (b[3]) { ctx.fillStyle = css('--ink-2'); ctx.font = '12px system-ui'; ctx.fillText(b[3], x0 + 4, a.top + 14 + (b[4] || 0)); } ctx.restore(); }); } };
+const base = (xt, yt) => ({ responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false },
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: css('--raised'), titleColor: css('--ink'), bodyColor: css('--ink-2'), borderColor: css('--border'), borderWidth: 1 } },
+  scales: { x: { type: 'linear', title: { display: true, text: xt, color: css('--ink-2') }, grid: { color: css('--grid') }, ticks: { color: css('--ink-2') }, border: { color: css('--axis') } },
+            y: { title: { display: true, text: yt, color: css('--ink-2') }, grid: { color: css('--grid') }, ticks: { color: css('--ink-2') }, border: { color: css('--axis') } } } });
+const line = (label, data, color, extra = {}) => ({ label, data, borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0, ...extra });
+let charts = {};
+const make = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
+const seg = (id, opts, cur, fn) => { const el = document.getElementById(id); el.innerHTML = opts.map((o, i) => `<button type="button" aria-pressed="${i === cur}">${o}</button>`).join('');
+  [...el.children].forEach((b, i) => b.onclick = () => { [...el.children].forEach((c, j) => c.setAttribute('aria-pressed', i === j)); fn(i); }); };
+
+function drawMon() {
+  const M = D.monitor, m = Object.fromEntries(M.marks.map(([k, v]) => [k, v]));
+  legend('lg-mon', [{ c: css('--s1'), t: 'Carrier level at the Pluto (dB over neighbouring bins)' }, { c: css('--band'), t: 'N320 transmitting', band: true }, { c: css('--accent-wash'), t: 'N320 capture running', band: true }]);
+  const o = base('Seconds after 21:37:44 UTC', 'Carrier over neighbours (dB)');
+  o.plugins.bands = { list: [[m['TX on'], m['TX off'], css('--band'), 'TX on'], [m['background capture'], m['background capture end'], css('--accent-wash'), 'background capture', 16], [m['blocking capture'], m['blocking capture end'], css('--accent-wash'), 'blocking capture', 16]] };
+  o.scales.y.min = -2; o.scales.y.max = 16;
+  o.plugins.tooltip.callbacks = { title: i => `t = ${fmt(i[0].parsed.x)} s`, label: i => ` ${fmt(i.parsed.y)} dB` };
+  make('c-mon', { type: 'line', data: { datasets: [line('Pluto', M.pts.map(([x, y]) => ({ x, y })), css('--s1'))] }, options: o, plugins: [bands] });
+}
+let loopSel = 1, sweepSel = 0;
+function drawLoop() {
+  const L = D.loop[loopSel], n = L.trace[0].length;
+  const on = L.labels.map((l, i) => l === 'pulse' ? i : null).filter(v => v !== null);
+  document.getElementById('loop-intro').textContent = loopSel
+    ? `21:54 UTC. SURV turned to face the Pluto. Level of the carrier bin (±2 bins) per 0.1 s frame; carrier on for frames ${on[0] + 1}–${on[on.length - 1] + 1}. SURV rises about 38 dB; REF about 10 dB.`
+    : `21:46 UTC. SURV's input on a 50 Ω load as a null check, REF on its antenna pointing east. REF rises about 12 dB; SURV stays at its load floor, so there is no stray path into SURV.`;
+  legend('lg-loop', [{ c: css('--s1'), t: 'SURV' }, { c: css('--s2'), t: 'REF' }, { c: css('--band'), t: 'Pluto carrier on', band: true }]);
+  const o = base('Frame (0.1 s of data each)', 'Carrier-bin level (dBFS)');
+  o.plugins.bands = { list: [[on[0] + 0.5, on[on.length - 1] + 1.5, css('--band'), 'carrier on']] };
+  o.plugins.tooltip.callbacks = { title: i => `frame ${i[0].parsed.x} · ${L.labels[i[0].parsed.x - 1]}`, label: i => ` ${i.dataset.label}: ${fmt(i.parsed.y)} dBFS` };
+  make('c-loop', { type: 'line', data: { datasets: ['SURV', 'REF'].map((c, k) => line(c, L.trace[k].map((y, i) => ({ x: i + 1, y })), css(k ? '--s2' : '--s1'))) }, options: o, plugins: [bands] });
+}
+function drawSweep() {
+  const G = D.sweep, names = ['Carrier level', 'Carrier over floor', 'Total output'];
+  const val = [(c, k) => G.tone[c][k], (c, k) => G.tone[c][k] - G.floor[c][k], (c, k) => G.total[c][k]][sweepSel];
+  document.getElementById('sweep-intro').textContent = [
+    'Carrier level with the Pluto on. Dashed: what a linear chain would give (1 dB per dB from gain 0). Both channels track it to gain 10–15, then stop rising.',
+    'Carrier level minus the floor in the same bin with the Pluto off. SURV keeps about 38–41 dB to gain 10, then loses 13–20 dB; REF keeps about 13 dB to 15, then drops to 2–7 dB.',
+    'Total output power with the Pluto on (mostly DTV). It rises 5 dB per 5 dB step to gain 10, then flattens far below full scale: the front end is compressing.'][sweepSel];
+  const ds = ['SURV', 'REF'].map((c, k) => line(c, G.gain.map((g, i) => ({ x: g, y: val(k, i) })), css(k ? '--s2' : '--s1'), { pointRadius: 3 }));
+  const leg = [{ c: css('--s1'), t: 'SURV' }, { c: css('--s2'), t: 'REF' }];
+  if (sweepSel === 0) { ['SURV', 'REF'].forEach((c, k) => ds.push(line(`${c} if linear`, G.gain.map(g => ({ x: g, y: G.tone[k][0] + g })), css(k ? '--s2' : '--s1'), { borderDash: [5, 4], borderWidth: 1.5 })));
+    leg.push({ c: css('--muted'), t: 'if linear (1 dB/dB)', dash: true }); }
+  legend('lg-sweep', leg);
+  const o = base('N320 gain (dB, both channels)', [ 'Carrier level (dBFS)', 'Carrier over floor (dB)', 'Total output (dBFS)'][sweepSel]);
+  if (sweepSel === 0) { o.scales.y.min = -90; o.scales.y.max = -20; }
+  o.scales.x.ticks.stepSize = 5;
+  o.plugins.tooltip.callbacks = { title: i => `gain ${i[0].parsed.x} dB`, label: i => ` ${i.dataset.label}: ${fmt(i.parsed.y)}` };
+  make('c-sweep', { type: 'line', data: { datasets: ds }, options: o });
+}
+seg('sel-loop', ['SURV on 50 Ω', 'SURV aimed at the Pluto'], loopSel, i => { loopSel = i; drawLoop(); });
+seg('sel-sweep', ['Carrier level', 'Carrier over floor', 'Total output'], sweepSel, i => { sweepSel = i; drawSweep(); });
+const drawAll = () => { drawMon(); drawLoop(); drawSweep(); };
+drawAll();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+</script>
+</body>
+</html>

@@ -267,11 +267,24 @@
         <h3>Calibration scan reports</h3>
         <p>Is the receive chain linear, and does a known signal get through it? Pluto calibration-signal scans, loop tests and direct-path level checks.</p>
         <div class="report-grid">
+          <a class="report-card" href="diagnostics/Calibration_LoopAndLinearity_Diagnostic_V1.html" target="_blank" rel="noopener noreferrer">
+            <p class="report-id">Calibration · 2026-09-29</p>
+            <h3>Calibration Loop and Linearity</h3>
+            <p>The loop closed on both channels from an independent source, and the N320's own transmitter ruled out as a source. Covers:</p>
+            <ul class="sub-list">
+              <li>N320 transmitter on a monopole: it radiates (heard by the Pluto 75 ft away), but reaches SURV only by internal leakage (+21 dB on a 50 Ω load)</li>
+              <li>A blocking capture does not interrupt the transmitter</li>
+              <li>Pluto at the outdoor stairwell corner: SURV +39.7 dB aimed, REF +12.4 dB side-on, null check on a load</li>
+              <li>Gain sweep with the LNAs removed: linear to N320 gain 10 (SURV) / 15 (REF), compression above</li>
+              <li>Why not AGC: the N320 has none, and a running AGC would break coherent integration</li>
+            </ul>
+          </a>
           <a class="report-card" href="diagnostics/PlutoCombPresence_Diagnostic_V1.html" target="_blank" rel="noopener noreferrer">
             <p class="report-id">Calibration · 2026-07-28 to 2026-09-24</p>
             <h3>Pluto Calibration Signal Presence</h3>
             <p>Why the Pluto calibration comb never reached detection, and what the receive chain can and cannot measure. Covers:</p>
             <ul class="sub-list">
+              <li><strong>Correction:</strong> SURV pointed about 060°, not 270°, until 29 September; the loop has since been closed from outdoors (see Calibration Loop and Linearity)</li>
               <li>Comb presence against a Pluto-off baseline, and the Pluto self-loopback</li>
               <li>Single-carrier loop closure at 602.05 MHz on both channels</li>
               <li>Receive-chain overload at N320 gain [30 50] and its range-Doppler cost (about 13.5 dB)</li>
@@ -286,11 +299,24 @@
         <h3>Tracking scan reports</h3>
         <p>Does an aircraft pass produce a truth-matched detection? Captures scored against ADS-B truth, newest first.</p>
         <div class="report-grid">
+          <a class="report-card" href="diagnostics/CuedPasses_RealPointing_Diagnostic_V1.html" target="_blank" rel="noopener noreferrer">
+            <p class="report-id">Tracking · 2026-09-29 evening</p>
+            <h3>Cued Passes, Real Pointing</h3>
+            <p>Five cued passes with the antenna pointing known; three genuinely in the beam, none detected. Covers:</p>
+            <ul class="sub-list">
+              <li>Pointing correction: SURV pointed about 060°, not 270°, until 29 September</li>
+              <li>Re-examination of 27–28 September: only 4 of 39 cued captures had the aircraft in the real beam</li>
+              <li>Stale cue states (2 of 5 passes) and the 30 s age limit added to the watcher</li>
+              <li>EJM313 and ENY3408 in the beam with good truth: nearest detections 3.7–12.5 gates away</li>
+              <li>Gaps in the Pi's ADS-B log, and a detector running at about 3× its design false-alarm rate</li>
+            </ul>
+          </a>
           <a class="report-card" href="diagnostics/TimedCuedPasses_Diagnostic_V1.html" target="_blank" rel="noopener noreferrer">
             <p class="report-id">Tracking · 2026-09-27 afternoon to 2026-09-28</p>
             <h3>Radio-Timed Cued Passes</h3>
             <p>Capture timestamps fixed with radio-scheduled, contiguous captures; earlier sessions re-scored; twelve new cued passes over two days (36 captures), with no detection of the cued aircraft. Covers:</p>
             <ul class="sub-list">
+              <li><strong>Correction:</strong> assumes SURV pointed 270°; it pointed about 060° until 29 September (see Cued Passes, Real Pointing)</li>
               <li>What the old captures really recorded: fifteen 1 s slices over about 87 s</li>
               <li>Re-score of the 25 and 27 September sessions (no real detections; the 521 MHz candidate withdrawn)</li>
               <li>Six captures of UAL659 and RKJ948, matches against chance, and pass timelines</li>
@@ -305,6 +331,7 @@
             <h3>Cued Three-Tower Pass</h3>
             <p>The first cue-triggered capture of one aircraft on three towers: no match. Its 521 MHz candidate was withdrawn after the capture timing was measured (see Radio-Timed Cued Passes). Covers:</p>
             <ul class="sub-list">
+              <li><strong>Correction:</strong> assumes SURV pointed 270°; it pointed about 060° until 29 September (see Cued Passes, Real Pointing)</li>
               <li>Surveillance-beam geometry, and cueing that now requires the aircraft in the beam</li>
               <li>The (withdrawn) time-shift candidate and its control tracks</li>
               <li>Capture timing: early start stamp and fifteen 1 s segments per file</li>
@@ -316,6 +343,7 @@
             <h3>Tracking Scan: No Detection</h3>
             <p>A four-part scan at 599 MHz produced no truth-matched track. Covers:</p>
             <ul class="sub-list">
+              <li><strong>Correction:</strong> assumes SURV pointed 270°; it pointed about 060° until 29 September (see Cued Passes, Real Pointing)</li>
               <li>60 Hz mains hum: 91% of detections at ±60 Hz Doppler</li>
               <li>Stacking the aircraft's predicted track against noise-only control tracks</li>
               <li>The hard-coded transmitter (since fixed) and the analysis memory limit</li>

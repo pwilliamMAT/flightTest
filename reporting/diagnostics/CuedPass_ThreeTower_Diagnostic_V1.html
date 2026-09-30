@@ -66,6 +66,10 @@ dd { color: var(--ink-2); margin: 2px 0 12px 0; }
   <p class="text-sm muted">flightTest · diagnostic report · tracking scan · sessions 20260927T014205_503, _521, _599 · 2026-09-27</p>
   <h1 class="text-2xl sm:text-3xl font-semibold mt-1">Cued three-tower pass: one candidate, and a timing error found</h1>
   <p class="ink2 mt-2 max-w-3xl">The ADS-B cue stream flagged an airliner (JBU1897, ICAO A38836) whose predicted bistatic SNR was above 10 dB on three towers at once, from two directions. The N320 captured it on 503, 521 and 599 MHz, one channel after another, 15 s each. No detection matched the ADS-B truth at the standard gate. At 521 MHz, the only capture with the aircraft inside the surveillance antenna's beam, two detections match its predicted Doppler within 6 Hz and its range once the truth is shifted 2.0–2.5 s later. None of 400 control tracks do that. The shift is explained by how the capture is timestamped, and the capture file turns out to be fifteen separate 1 s segments. The overnight run that took this pass stopped when the analysis ran the 15 GB collection PC out of memory.</p>
+  <div class="mt-3 status" style="color:var(--warn-text)">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l7 12.5H1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 6v4M8 11.5v1" stroke="currentColor" stroke-width="2"/></svg>
+    <span>Correction (2026-09-29): SURV pointed about 060° true, not 270°. The "surveillance beam" in this report is SURV's back lobe, so its in-beam statements are superseded. See <a class="underline" href="CuedPasses_RealPointing_Diagnostic_V1.html">Cued passes with the real antenna pointing</a>.</span>
+  </div>
   <div class="mt-3 status" style="color:var(--critical)">
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="2"/></svg>
     <span>No truth-matched detection at the standard gate on any of the three channels</span>
